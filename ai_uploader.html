@@ -155,7 +155,8 @@
         const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
         const availableFoldersStr = globalSubFoldersList.join(', ');
 
-        const maxPagesToProcess = Math.min(totalPages, 5);
+        const maxPagesToProcess = totalPages;
+        
 
         for (let i = 1; i <= maxPagesToProcess; i++) {
           statusEl.textContent = `⚡ Processing page ${i} of ${maxPagesToProcess} (Hybrid Scan)...`;
