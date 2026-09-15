@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A to Z Exam Mocks - AI Smart Text & PDF Uploader</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
+      authDomain: "physicsvault-80a10.firebaseapp.com",
+      projectId: "physicsvault-80a10",
+      storageBucket: "physicsvault-80a10.firebasestorage.app",
+      messagingSenderId: "1043166507399",
+      appId: "1:1043166507399:web:634efdac6f109273d42322"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.db = getFirestore(app);
+    window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
+    window.doc = doc; window.getDoc = getDoc; window.setDoc = setDoc; window.deleteDoc = deleteDoc;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email') || 'atozexammocks@gmail.com';
+      window.currentTeacherEmail = savedEmail;
+      document.getElementById('current-user-tag').textContent = savedEmail;
+      await loadLibraryRegistry();
+    });
+  </script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #060911; color: #f8fafc; overflow: hidden; }
+
+    #toast-msg {
+      position: fixed; bottom: 24px; right: 24px; background: #10b981; color: #ffffff;
+      padding: 10px 16px; border-radius: 8px; font-weight: 800; font-size: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none; z-index: 100000;
+    }
+
+    #navbar { height: 52px; background: #0b1120; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; flex-shrink: 0; }
+    .nav-brand { font-size: 15px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+    .nav-tabs { display: flex; gap: 8px; align-items: center; }
+    .nav-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 11px; text-decoration: none; display: flex; align-items: center; gap: 4px; }
+    .nav-btn:hover { border-color: #38bdf8; color: white; }
+    .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+    .main-workspace { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 16px; overflow-y: auto; background: #060911; }
+    
+    .upload-box { background: #0b1120; border: 2px dashed #334155; border-radius: 12px; padding: 24px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    .upload-box:hover { border-color: #38bdf8; }
+
+    .review-container { flex: 1; background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    
+    .extracted-card { background: #060911; border: 1px solid #1e293b; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .extracted-card textarea, .extracted-card input, .extracted-card select { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 6px 8px; border-radius: 4px; font-size: 12px; }
+    
+    .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
+    .tool-btn:hover { border-color: #38bdf8; }
+  </style>
+</head>
+<body>
+
+  <div id="toast-msg">✔ Action Successful!</div>
+
+  <div id="navbar">
+    <div class="nav-brand">🤖 AI Smart Text & PDF Uploader</div>
+    <div class="nav-tabs">
+      <a href="teacher.html" class="nav-btn">🏠 Dashboard</a>
+      <span class="user-pill" id="current-user-tag">Educator</span>
+    </div>
+  </div>
+
+  <div class="main-workspace">
+    <div class="upload-box">
+      <h3 style="color:#38bdf8; font-size:16px;">📂 Upload PDF (Hybrid Text + Scanned Vision Extractor)</h3>
+      <p style="font-size:12px; color:#94a3b8;">Automatically switches between text reading and image vision scanning for scanned papers.</p>
+      
+      <div style="display:flex; gap:10px; align-items:center; margin-top:6px;">
+        <label class="tool-btn" style="background:#0284c7; cursor:pointer; padding:8px 16px;">
+          📁 Choose PDF File <input type="file" id="bulk-file-input" accept="application/pdf" style="display:none;" onchange="handleBulkPdfUpload(event)">
+        </label>
+      </div>
+      <div id="progress-status" style="font-size:12px; font-weight:bold; color:#10b981; margin-top:4px;"></div>
+    </div>
+
+    <div class="review-container">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+        <h3 style="color:#38bdf8; font-size:14px;">👁️ Extracted Clean Text Questions Review</h3>
+        <button class="tool-btn" style="background:#10b981;" onclick="approveAndPushAllToCloud()">🚀 Approve & Push All to Library</button>
+      </div>
+      
+      <div id="extracted-questions-list" style="display:flex; flex-direction:column; gap:12px; overflow-y:auto; flex:1;">
+        <p style="text-align:center; color:#64748b; margin-top:40px;">No questions loaded yet. Choose a PDF above.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showToast(text) {
+      const el = document.getElementById('toast-msg');
+      if (!el) return;
+      el.textContent = text; el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }
+
+    let extractedItems = [];
+    let mainFolders = [];
+    let subFolders = {};
+    let globalSubFoldersList = ["General / General"];
+
+    async function loadLibraryRegistry() {
+      try {
+        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        const snap = await window.getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.mainFolders) mainFolders = data.mainFolders;
+          if (data.subFolders) subFolders = data.subFolders;
+          
+          globalSubFoldersList = [];
+          for (const [mName, subs] of Object.entries(subFolders)) {
+            subs.forEach(s => globalSubFoldersList.push(`${mName} / ${s}`));
+          }
+        }
+      } catch (e) {}
+    }
+
+    window.handleBulkPdfUpload = async function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const statusEl = document.getElementById('progress-status');
+      statusEl.textContent = "⚡ Analyzing PDF pages & layout...";
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdfDoc = await loadingTask.promise;
+        const totalPages = pdfDoc.numPages;
+
+        extractedItems = [];
+        const apiKey = "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0";
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+        const availableFoldersStr = globalSubFoldersList.join(', ');
+
+        const maxPagesToProcess = Math.min(totalPages, 5);
+
+        for (let i = 1; i <= maxPagesToProcess; i++) {
+          statusEl.textContent = `⚡ Processing page ${i} of ${maxPagesToProcess} (Hybrid Scan)...`;
+          
+          const page = await pdfDoc.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageRawText = textContent.items.map(item => item.str).join(" ").trim();
+
+          let payload = {};
+          const promptText = `Analyze this exam paper page. Extract all multiple-choice questions (MCQs), options (A,B,C,D), and answer keys.
+          Choose the most appropriate Library Path from: [${availableFoldersStr}].
+          Return STRICTLY as a valid JSON array of objects with keys: "qNo" (number), "qText" (string), "optA" (string), "optB" (string), "optC" (string), "optD" (string), "key" (string), "topic" (string), "targetPath" (string). No markdown backticks.`;
+
+          // HYBRID CHECK: If page has digital text use text, otherwise switch to Image Vision scan
+          if (pageRawText.length > 50) {
+            payload = {
+              contents: [{
+                parts: [{ text: promptText + "\n\nExtracted Page Text:\n" + pageRawText }]
+              }]
+            };
+          } else {
+            // Scanned image fallback
+            const viewport = page.getViewport({ scale: 1.5 });
+            const canvas = document.createElement('canvas');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+            const base64Img = canvas.toDataURL('image/png').split(',')[1];
+
+            payload = {
+              contents: [{
+                parts: [
+                  { text: promptText + "\n(This is a scanned image page. Read questions directly from visual render)." },
+                  { inline_data: { mime_type: "image/png", data: base64Img } }
+                ]
+              }]
+            };
+          }
+
+          try {
+            const response = await fetch(`${endpoint}?key=${apiKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+              const resJson = await response.json();
+              const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+              
+              let cleanJsonStr = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+              let parsedArray = [];
+
+              try {
+                parsedArray = JSON.parse(cleanJsonStr);
+              } catch (parseErr) {
+                const match = cleanJsonStr.match(/\[[\s\S]*\]/);
+                if (match) {
+                  try {
+                    parsedArray = JSON.parse(match[0]);
+                  } catch (e) {
+                    parsedArray = [];
+                  }
+                }
+              }
+
+              if (Array.isArray(parsedArray) && parsedArray.length > 0) {
+                extractedItems = extractedItems.concat(parsedArray);
+              }
+            }
+          } catch (innerErr) {
+            console.warn(`Skipped page ${i}:`, innerErr);
+          }
+
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+
+        statusEl.textContent = `✔ Extracted ${extractedItems.length} questions successfully.`;
+        renderExtractedReviewList();
+        showToast("✔ Hybrid AI Extraction Complete!");
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "❌ Error processing PDF file.";
+        alert("Extraction failed: " + err.message);
+      }
+    };
+
+    function renderExtractedReviewList() {
+      const container = document.getElementById('extracted-questions-list');
+      container.innerHTML = '';
+
+      if (extractedItems.length === 0) {
+        container.innerHTML = `<p style="text-align:center; color:#64748b; margin-top:40px;">No questions could be extracted. Try checking the PDF content.</p>`;
+        return;
+      }
+
+      extractedItems.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'extracted-card';
+        card.id = `card-item-${idx}`;
+        card.innerHTML = `
+          <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; align-items:center;">
+            <div><strong style="color:#38bdf8;">Item #${idx + 1}</strong> (Q.No: <input type="number" id="qno-${idx}" value="${item.qNo || (idx + 1)}" style="width:50px; display:inline-block;">)</div>
+            <div>Topic: <input type="text" id="topic-${idx}" value="${item.topic || 'General'}" placeholder="Topic"></div>
+            <div>Ans Key: <input type="text" id="key-${idx}" value="${item.key || 'A'}" style="width:40px; display:inline-block; text-align:center; font-weight:bold; color:#10b981;"></div>
+          </div>
+          <div>
+            <label style="font-size:10px; color:#94a3b8; font-weight:bold;">Library Path:</label>
+            <select id="path-${idx}">${buildFolderOptionsHtml(item.targetPath)}</select>
+          </div>
+          <textarea id="qtext-${idx}" rows="2">${item.qText || ''}</textarea>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <input type="text" id="opta-${idx}" value="${item.optA || ''}" placeholder="Option A">
+            <input type="text" id="optb-${idx}" value="${item.optB || ''}" placeholder="Option B">
+            <input type="text" id="optc-${idx}" value="${item.optC || ''}" placeholder="Option C">
+            <input type="text" id="optd-${idx}" value="${item.optD || ''}" placeholder="Option D">
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+            <button class="tool-btn" style="background:#10b981; padding:4px 10px; font-size:11px;" onclick="approveSingleItem(${idx})">✔ Approve & Save</button>
+            <button class="tool-btn" style="background:#7f1d1d; color:#fecaca; padding:4px 10px; font-size:11px;" onclick="discardSingleItem(${idx})">🗑️ Discard</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function buildFolderOptionsHtml(selectedPath) {
+      globalSubFoldersList = [];
+      for (const [mName, subs] of Object.entries(subFolders)) {
+        subs.forEach(s => globalSubFoldersList.push(`${mName} / ${s}`));
+      }
+      let html = '';
+      globalSubFoldersList.forEach(path => {
+        const sel = (selectedPath === path) ? 'selected' : '';
+        html += `<option value="${path}" ${sel}>📂 ${path}</option>`;
+      });
+      return html;
+    }
+
+    window.approveSingleItem = async function(idx) {
+      try {
+        const qNo = parseInt(document.getElementById(`qno-${idx}`).value) || (idx + 1);
+        const qText = document.getElementById(`qtext-${idx}`).value.trim();
+        const topic = document.getElementById(`topic-${idx}`).value.trim() || 'General';
+        const targetPath = document.getElementById(`path-${idx}`).value;
+        const optA = document.getElementById(`opta-${idx}`).value.trim();
+        const optB = document.getElementById(`optb-${idx}`).value.trim();
+        const optC = document.getElementById(`optc-${idx}`).value.trim();
+        const optD = document.getElementById(`optd-${idx}`).value.trim();
+        const key = document.getElementById(`key-${idx}`).value.trim() || 'A';
+
+        let optTextFormatted = '';
+        if (optA || optB || optC || optD) {
+          optTextFormatted = `(A) ${optA} | (B) ${optB} | (C) ${optC} | (D) ${optD}`;
+        }
+
+        const newQ = {
+          qNo, subject: targetPath, topic, qText,
+          optText: optTextFormatted,
+          flags: { red: false, blue: false, green: false, yellow: false },
+          key, 
+          question: '', 
+          solution: '', creatorEmail: window.currentTeacherEmail,
+          createdAt: new Date().toISOString()
+        };
+
+        await window.addDoc(window.collection(window.db, "questions"), newQ);
+        document.getElementById(`card-item-${idx}`).remove();
+        showToast(`✔ Item #${idx + 1} Approved & Saved!`);
+      } catch (err) {
+        alert("Failed to save: " + err.message);
+      }
+    };
+
+    window.discardSingleItem = function(idx) {
+      const card = document.getElementById(`card-item-${idx}`);
+      if (card) { card.remove(); showToast(`🗑️ Item Discarded.`); }
+    };
+
+    window.approveAndPushAllToCloud = async function() {
+      const cards = document.querySelectorAll('.extracted-card');
+      if (cards.length === 0) return alert("No items remaining!");
+      showToast("⏳ Pushing all questions to cloud...");
+      try {
+        for (const card of cards) {
+          const match = card.id.match(/card-item-(\d+)/);
+          if (match) {
+            await window.approveSingleItem(match[1]);
+          }
+        }
+        setTimeout(() => { window.location.href = 'teacher.html'; }, 1500);
+      } catch (err) {
+        alert("Failed: " + err.message);
+      }
+    };
+  </script>
+</body>
+</html>

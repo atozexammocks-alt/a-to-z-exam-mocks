@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A to Z Exam Mocks - Super Admin Portal</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
+  
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
+      authDomain: "physicsvault-80a10.firebaseapp.com",
+      projectId: "physicsvault-80a10",
+      storageBucket: "physicsvault-80a10.firebasestorage.app",
+      messagingSenderId: "1043166507399",
+      appId: "1:1043166507399:web:634efdac6f109273d42322"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.db = getFirestore(app);
+    window.collection = collection; window.getDocs = getDocs; window.doc = doc; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc;
+
+    const SUPER_ADMINS = ["atozexammocks@gmail.com", "vikasattri3003@gmail.com"];
+
+    window.onload = async () => {
+      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email');
+      if (savedEmail && SUPER_ADMINS.includes(savedEmail.toLowerCase())) {
+        window.currentAdminEmail = savedEmail;
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('current-admin-tag').textContent = savedEmail;
+        await loadAdminDashboard();
+      } else {
+        if (savedEmail) {
+          alert("Access Denied! Super Admin privileges required.");
+          window.location.href = 'teacher.html';
+        }
+      }
+    };
+  </script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #060911; color: #f8fafc; overflow: hidden; }
+
+    #toast-msg {
+      position: fixed; bottom: 24px; right: 24px; background: #10b981; color: #ffffff;
+      padding: 12px 20px; border-radius: 8px; font-weight: 800; font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none; z-index: 100000;
+    }
+
+    #auth-overlay {
+      position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #0f172a 0%, #060911 100%);
+      display: flex; align-items: center; justify-content: center; z-index: 99999;
+    }
+    .auth-card {
+      background: #0b1120; border: 1.5px solid rgba(56, 189, 248, 0.4); width: 420px;
+      border-radius: 20px; padding: 32px 28px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      display: flex; flex-direction: column; gap: 16px; text-align: center;
+    }
+    .auth-icon-badge {
+      width: 56px; height: 56px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto;
+    }
+    .auth-input-group { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+    .auth-input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
+    .auth-input-group input { width: 100%; padding: 12px 14px; background: #060911; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 14px; }
+    .btn-auth-unlock { background: linear-gradient(90deg, #2563eb 0%, #0284c7 100%); border: none; color: white; padding: 13px; border-radius: 8px; font-size: 14px; font-weight: 800; cursor: pointer; }
+
+    #navbar { height: 56px; background: #0b1120; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; flex-shrink: 0; }
+    .nav-brand { font-size: 16px; font-weight: 900; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+    .nav-tabs { display: flex; gap: 8px; align-items: center; }
+    .nav-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+    .nav-btn:hover { border-color: #38bdf8; color: white; }
+    .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+
+    .admin-container { flex: 1; display: flex; height: calc(100vh - 56px); overflow: hidden; }
+    .admin-sidebar { width: 260px; background: #090d16; border-right: 1px solid #1e293b; padding: 20px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; overflow-y: auto; }
+    .admin-menu-btn { background: transparent; border: 1px solid transparent; color: #cbd5e1; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 10px; }
+    .admin-menu-btn:hover { background: #0f172a; border-color: #334155; color: white; }
+    .admin-menu-btn.active { background: #2563eb; color: white; border-color: #38bdf8; }
+
+    .admin-content { flex: 1; padding: 24px; overflow-y: auto; background: #060911; display: flex; flex-direction: column; gap: 20px; }
+    .admin-view { display: none; flex-direction: column; gap: 16px; height: 100%; }
+    .admin-view.active { display: flex; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat-card { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .stat-card h4 { font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
+    .stat-card .val { font-size: 26px; font-weight: 900; color: #38bdf8; }
+
+    .app-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    .app-table th { background: #0f172a; color: #38bdf8; padding: 12px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
+    .app-table td { padding: 12px; border-bottom: 1px solid #1e293b; color: #f8fafc; }
+    
+    .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; }
+
+    .audit-date-group { background: #0b1120; border: 1px solid #1e293b; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+    .audit-date-header { background: #0f172a; padding: 12px 18px; font-size: 14px; font-weight: 800; color: #38bdf8; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
+    .audit-date-header:hover { background: #1e293b; }
+    .audit-date-content { display: none; padding: 10px; }
+    .audit-date-content.open { display: block; }
+
+    /* SUBMISSION ITEM CARDS FOR MENTOR REQUESTS */
+    .submission-item { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.2s; }
+    .submission-item:hover { border-color: #38bdf8; }
+    .sub-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 10px; }
+    .sub-email { color: #38bdf8; font-weight: 900; font-size: 15px; }
+    .sub-exam { background: #064e3b; color: #34d399; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; }
+    .sub-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 13px; color: #cbd5e1; }
+    .sub-notes { background: #060911; padding: 10px 14px; border-radius: 6px; border: 1px solid #1e293b; font-size: 12px; color: #e2e8f0; }
+    .copy-prompt-btn { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border: none; padding: 10px 16px; border-radius: 6px; font-weight: 800; font-size: 13px; cursor: pointer; text-align: center; transition: opacity 0.2s; display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; }
+    .copy-prompt-btn:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+  <div id="toast-msg">✔ Action Successful!</div>
+
+  <!-- ADMIN AUTH OVERLAY -->
+  <div id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-icon-badge">🛡️</div>
+      <h2 style="font-size:20px; font-weight:900; color:#ffffff;">Super Admin Portal</h2>
+      <p style="font-size:12px; color:#94a3b8; margin-top:-6px;">A to Z Exam Mocks Master Access</p>
+      <div class="auth-input-group"><label>Admin Email</label><input type="email" id="admin-auth-email" placeholder="atozexammocks@gmail.com" required></div>
+      <button class="btn-auth-unlock" onclick="handleAdminLogin()">Authenticate Admin ➔</button>
+    </div>
+  </div>
+
+  <div id="navbar">
+    <div class="nav-brand">👑 A to Z Exam Mocks - Super Admin Control</div>
+    <div class="nav-tabs">
+      <a href="teacher.html" class="nav-btn">🔙 Back to Educator Studio</a>
+      <span class="user-pill" id="current-admin-tag">Super Admin</span>
+      <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutAdmin()">🔒 Logout</button>
+    </div>
+  </div>
+
+  <div class="admin-container">
+    <div class="admin-sidebar">
+      <button class="admin-menu-btn active" onclick="switchAdminTab('overview', this)">📊 Global Overview</button>
+      <button class="admin-menu-btn" onclick="switchAdminTab('teachers', this)">👨‍🏫 Teacher Management</button>
+      <button class="admin-menu-btn" onclick="switchAdminTab('students', this)">🎓 Student Submissions</button>
+      <button class="admin-menu-btn" onclick="switchAdminTab('mentorRequests', this)">📋 Student Mentor Requests</button>
+      <button class="admin-menu-btn" onclick="switchAdminTab('audit', this)">🛡️ Master Audit Logs</button>
+      <button class="admin-menu-btn" onclick="exportFullDatabaseBackup()">💾 System JSON Backup</button>
+      <button class="admin-menu-btn" style="background:#7f1d1d; color:#fecaca; margin-top:auto;" onclick="nukeAllDatabaseData()">🔥 Nuke / Wipe All Questions</button>
+    </div>
+
+    <div class="admin-content">
+      
+      <!-- TAB 1: OVERVIEW -->
+      <div class="admin-view active" id="view-overview">
+        <div>
+          <h2>📊 Global Platform Overview</h2>
+          <p style="font-size:13px; color:#94a3b8;">Real-time statistics of your entire EdTech platform.</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h4>Total Teachers</h4>
+            <div class="val" id="stat-teachers-count">0</div>
+          </div>
+          <div class="stat-card">
+            <h4>Published Mock Tests</h4>
+            <div class="val" id="stat-tests-count">0</div>
+          </div>
+          <div class="stat-card">
+            <h4>Student Submissions</h4>
+            <div class="val" id="stat-submissions-count">0</div>
+          </div>
+          <div class="stat-card">
+            <h4>Platform Status</h4>
+            <div class="val" style="color:#10b981; font-size:20px; margin-top:4px;">🟢 Operational</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: TEACHER MANAGEMENT -->
+      <div class="admin-view" id="view-teachers">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2>👨‍🏫 Registered Educators & Control</h2>
+            <p style="font-size:13px; color:#94a3b8;">Manage educator access, block/unblock, or permanently delete accounts.</p>
+          </div>
+          <button class="tool-btn" style="background:#2563eb;" onclick="loadTeachersList()">🔄 Refresh</button>
+        </div>
+        <div style="background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:16px; flex:1; overflow-y:auto;">
+          <table class="app-table">
+            <thead>
+              <tr>
+                <th>Educator Email</th>
+                <th>Registered Date</th>
+                <th>Status</th>
+                <th style="text-align:center;">Action Controls</th>
+              </tr>
+            </thead>
+            <tbody id="admin-teachers-tbody">
+              <tr><td colspan="4" style="text-align:center; color:#64748b;">Loading teachers...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: STUDENT SUBMISSIONS -->
+      <div class="admin-view" id="view-students">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2>🎓 Global Student Submissions</h2>
+            <p style="font-size:13px; color:#94a3b8;">Review or remove student test attempts across all teachers.</p>
+          </div>
+          <button class="tool-btn" style="background:#2563eb;" onclick="loadAllStudentResults()">🔄 Refresh</button>
+        </div>
+        <div style="background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:16px; flex:1; overflow-y:auto;">
+          <table class="app-table">
+            <thead>
+              <tr>
+                <th>Student Email</th>
+                <th>Test Title</th>
+                <th>Score</th>
+                <th>Percentage</th>
+                <th>Date</th>
+                <th style="text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-students-tbody">
+              <tr><td colspan="6" style="text-align:center; color:#64748b;">Loading student results...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 4: STUDENT MENTOR REQUESTS -->
+      <div class="admin-view" id="view-mentorRequests">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2>📋 Student Personal Mentor Requests</h2>
+            <p style="font-size:13px; color:#94a3b8;">Review student exam requests, weak areas, and copy AI prompts for PDF generation.</p>
+          </div>
+          <button class="tool-btn" style="background:#2563eb;" onclick="loadStudentMentorRequests()">🔄 Refresh Requests</button>
+        </div>
+        <div id="mentor-requests-list-container" style="display:flex; flex-direction:column; gap:16px; flex:1; overflow-y:auto; padding-right:4px;">
+          <p style="text-align:center; color:#64748b; padding:40px;">Loading student mentor requests...</p>
+        </div>
+      </div>
+
+      <!-- TAB 5: MASTER AUDIT LOGS -->
+      <div class="admin-view" id="view-audit">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2>🛡️ Master Activity & Audit Logs</h2>
+            <p style="font-size:13px; color:#94a3b8;">Complete tracking of all teacher logins and modifications.</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="tool-btn" style="background:#b91c1c;" onclick="clearAllAuditLogs()">🗑️ Clear All Logs</button>
+            <button class="tool-btn" style="background:#2563eb;" onclick="loadMasterAuditLogs()">🔄 Refresh Logs</button>
+          </div>
+        </div>
+        <div style="background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:16px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+          <div id="admin-audit-accordion" style="display:flex; flex-direction:column; gap:8px;">
+            <p style="text-align:center; color:#64748b;">Loading logs...</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const SUPER_ADMINS = ["atozexammocks@gmail.com", "vikasattri3003@gmail.com"];
+
+    function showToast(text) {
+      const el = document.getElementById('toast-msg');
+      el.textContent = text; el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }
+
+    function handleAdminLogin() {
+      const email = document.getElementById('admin-auth-email').value.trim().toLowerCase();
+      if (SUPER_ADMINS.includes(email)) {
+        localStorage.setItem('ExamVault_Teacher_Email', email);
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('current-admin-tag').textContent = email;
+        loadAdminDashboard();
+        showToast("✔ Admin Authenticated Successfully!");
+      } else {
+        alert("Unauthorized email! Only Super Admin allowed.");
+      }
+    }
+
+    function logoutAdmin() {
+      if (confirm("Logout from Super Admin?")) {
+        localStorage.removeItem('ExamVault_Teacher_Email');
+        window.location.reload();
+      }
+    }
+
+    window.switchAdminTab = function(tabName, btnEl) {
+      document.querySelectorAll('.admin-view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.admin-menu-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(`view-${tabName}`).classList.add('active');
+      btnEl.classList.add('active');
+
+      if (tabName === 'overview') loadAdminDashboard();
+      if (tabName === 'teachers') window.loadTeachersList();
+      if (tabName === 'students') window.loadAllStudentResults();
+      if (tabName === 'mentorRequests') window.loadStudentMentorRequests();
+      if (tabName === 'audit') window.loadMasterAuditLogs();
+    }
+
+    async function loadAdminDashboard() {
+      try {
+        const tSnap = await window.getDocs(window.collection(window.db, "registered_teachers"));
+        const pSnap = await window.getDocs(window.collection(window.db, "published_tests"));
+        const sSnap = await window.getDocs(window.collection(window.db, "student_results"));
+
+        document.getElementById('stat-teachers-count').textContent = tSnap.size;
+        document.getElementById('stat-tests-count').textContent = pSnap.size;
+        document.getElementById('stat-submissions-count').textContent = sSnap.size;
+      } catch (e) {
+        document.getElementById('stat-teachers-count').textContent = "0";
+        document.getElementById('stat-tests-count').textContent = "0";
+        document.getElementById('stat-submissions-count').textContent = "0";
+      }
+    }
+
+    window.nukeAllDatabaseData = async function() {
+      if (confirm("🚨 WARNING: This will permanently wipe ALL questions and published tests from the database! Are you sure?")) {
+        try {
+          showToast("🔥 Wiping all questions and tests...");
+          const qSnap = await window.getDocs(window.collection(window.db, "questions"));
+          for (const d of qSnap.docs) {
+            await window.deleteDoc(window.doc(window.db, "questions", d.id));
+          }
+          const pSnap = await window.getDocs(window.collection(window.db, "published_tests"));
+          for (const d of pSnap.docs) {
+            await window.deleteDoc(window.doc(window.db, "published_tests", d.id));
+          }
+          loadAdminDashboard();
+          showToast("🗑️ All Questions & Tests Wiped Successfully!");
+        } catch (e) {
+          alert("Failed to wipe database: " + e.message);
+        }
+      }
+    };
+
+    window.loadTeachersList = async function() {
+      const tbody = document.getElementById('admin-teachers-tbody');
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b;">Loading teachers...</td></tr>`;
+      try {
+        const snap = await window.getDocs(window.collection(window.db, "registered_teachers"));
+        tbody.innerHTML = '';
+        if (snap.size === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b;">No registered teachers found.</td></tr>`;
+          return;
+        }
+        snap.forEach(d => {
+          const t = d.data();
+          const isBlocked = t.isBlocked || false;
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${t.email}</strong></td>
+              <td>${t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'N/A'}</td>
+              <td><span style="color:${isBlocked?'#ef4444':'#10b981'}; font-weight:800;">${isBlocked ? 'BLOCKED' : 'ACTIVE'}</span></td>
+              <td style="text-align:center; display:flex; gap:6px; justify-content:center;">
+                <button class="tool-btn" style="background:${isBlocked?'#059669':'#b91c1c'};" onclick="toggleBlockTeacher('${d.id}', ${!isBlocked})">${isBlocked ? 'Unblock' : 'Block'}</button>
+                <button class="tool-btn" style="background:#7f1d1d; color:#fecaca;" onclick="deleteTeacherAccount('${d.id}', '${t.email}')">🗑️ Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b;">No records found.</td></tr>`;
+      }
+    };
+
+    window.toggleBlockTeacher = async function(docId, blockStatus) {
+      try {
+        await window.updateDoc(window.doc(window.db, "registered_teachers", docId), { isBlocked: blockStatus });
+        window.loadTeachersList();
+        showToast(blockStatus ? "🚫 Teacher Blocked!" : "✔ Teacher Unblocked!");
+      } catch (e) {
+        alert("Action failed!");
+      }
+    };
+
+    window.deleteTeacherAccount = async function(docId, email) {
+      if (confirm(`⚠️ Permanently delete teacher account "${email}"?`)) {
+        try {
+          await window.deleteDoc(window.doc(window.db, "registered_teachers", docId));
+          window.loadTeachersList();
+          loadAdminDashboard();
+          showToast("🗑️ Teacher Deleted!");
+        } catch (e) {
+          alert("Failed to delete teacher!");
+        }
+      }
+    };
+
+    window.loadAllStudentResults = async function() {
+      const tbody = document.getElementById('admin-students-tbody');
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">Loading student results...</td></tr>`;
+      try {
+        const snap = await window.getDocs(window.collection(window.db, "student_results"));
+        tbody.innerHTML = '';
+        if (snap.size === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">No student attempts found.</td></tr>`;
+          return;
+        }
+        snap.forEach(d => {
+          const res = d.data();
+          tbody.innerHTML += `
+            <tr>
+              <td><strong>${res.studentEmail || 'Student'}</strong></td>
+              <td>${res.testTitle || 'Mock Test'}</td>
+              <td><span style="color:#10b981; font-weight:800;">${res.score} / ${res.totalMarks || 100}</span></td>
+              <td>${Math.round((res.score / (res.totalMarks || 100)) * 100)}%</td>
+              <td>${new Date(res.submittedAt || Date.now()).toLocaleDateString()}</td>
+              <td style="text-align:center; display:flex; gap:6px; justify-content:center;">
+                <button class="tool-btn" style="background:#059669; padding:4px 8px;" onclick="alert('Student: ${res.studentEmail}\\nScore: ${res.score}')">📞 Info</button>
+                <button class="tool-btn" style="background:#7f1d1d; padding:4px 8px; color:#fecaca;" onclick="deleteStudentResult('${d.id}')">🗑️ Remove</button>
+              </td>
+            </tr>
+          `;
+        });
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#64748b;">No submissions found.</td></tr>`;
+      }
+    };
+
+    window.deleteStudentResult = async function(docId) {
+      if (confirm("Delete this submission record?")) {
+        try {
+          await window.deleteDoc(window.doc(window.db, "student_results", docId));
+          window.loadAllStudentResults();
+          loadAdminDashboard();
+          showToast("🗑️ Removed!");
+        } catch (e) {
+          alert("Failed to delete!");
+        }
+      }
+    };
+
+    // LOAD STUDENT MENTOR REQUESTS & GENERATE PROMPTS
+    window.loadStudentMentorRequests = async function() {
+      const container = document.getElementById('mentor-requests-list-container');
+      container.innerHTML = `<p style="text-align:center; color:#64748b; padding:40px;">Loading mentor requests...</p>`;
+      try {
+        const snap = await window.getDocs(window.collection(window.db, "student_schedules"));
+        container.innerHTML = '';
+        if (snap.empty) {
+          container.innerHTML = `<p style="text-align:center; color:#64748b; padding:40px;">No student mentor requests found yet.</p>`;
+          return;
+        }
+
+        snap.forEach(docSnap => {
+          const data = docSnap.data();
+          const email = data.studentEmail || "Unknown Student";
+          const examName = data.examName || "General Exam";
+          const examDate = data.examDate || "Not Specified";
+          const dailyHours = data.dailyHours || "6";
+          const studentNotes = data.studentNotes || "No specific notes provided.";
+          const submittedAt = data.submittedAt ? new Date(data.submittedAt).toLocaleString() : "Recent";
+
+          const masterPrompt = `Act as an expert AI academic mentor and time-management strategist for "Future Scholar" Institute, Jind. 
+Your task is to generate a comprehensive, print-ready, Day-by-Day Master Study Roadmap for a student preparing for "${examName}".
+
+STUDENT PARAMETERS:
+- Student Email: ${email}
+- Target Exam Date: ${examDate}
+- Daily Dedication: ${dailyHours} Hours/Day
+- Student Notes / Weak Areas: ${studentNotes}
+
+INSTRUCTIONS FOR THE AI:
+1. Break down the official syllabus of "${examName}" into uncompressed, granular units and chapters.
+2. Design a strict Day-by-Day schedule incorporating Spaced Repetition memory recall intervals (Day 1, 3, 7, 15).
+3. Reserve the final 10 days before ${examDate} exclusively for Full-Length Mock Tests and Formula Rapid Revision.
+4. Output the timetable as a clean Markdown table with columns: | Day | Date | Daily Balanced Study Blocks & Spaced Memory Intervals | Study Time |.
+5. Start with a brief AI Mentor Diagnostic & Strategy Report analyzing the student's workload.
+6. EXPORT / PDF REQUIREMENT: Provide a clean format or direct instruction so it can be instantly saved or downloaded as a professional PDF document.`;
+
+          const itemDiv = document.createElement('div');
+          itemDiv.className = 'submission-item';
+          itemDiv.innerHTML = `
+            <div class="sub-header">
+              <span class="sub-email">📧 ${email}</span>
+              <span class="sub-exam">🎯 ${examName}</span>
+            </div>
+            <div class="sub-details">
+              <div><strong>Target Exam Date:</strong> ${examDate}</div>
+              <div><strong>Daily Study Hours:</strong> ${dailyHours} Hours/Day</div>
+              <div><strong>Submitted At:</strong> ${submittedAt}</div>
+            </div>
+            <div class="sub-notes">
+              <strong>Student Notes / Weak Areas:</strong> ${studentNotes}
+            </div>
+            <button class="copy-prompt-btn" onclick="copyMentorPrompt(this)">
+              📋 Copy Master Prompt for ChatGPT/Gemini
+            </button>
+            <textarea style="display:none;">${masterPrompt}</textarea>
+          `;
+          container.appendChild(itemDiv);
+        });
+        showToast("✔ Mentor requests loaded!");
+      } catch (e) {
+        container.innerHTML = `<p style="text-align:center; color:#ef4444; padding:40px;">Error loading data: ${e.message}</p>`;
+      }
+    };
+
+    window.copyMentorPrompt = function(btn) {
+      const textarea = btn.nextElementSibling;
+      textarea.style.display = 'block';
+      textarea.select();
+      navigator.clipboard.writeText(textarea.value);
+      textarea.style.display = 'none';
+      showToast("📋 Master Prompt copied to clipboard!");
+    };
+
+    window.loadMasterAuditLogs = async function() {
+      const container = document.getElementById('admin-audit-accordion');
+      container.innerHTML = `<p style="text-align:center; color:#64748b;">Loading logs...</p>`;
+      try {
+        const snap = await window.getDocs(window.collection(window.db, "teacher_activity_logs"));
+        let logs = [];
+        snap.forEach(d => logs.push({ id: d.id, ...d.data() }));
+        logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        container.innerHTML = '';
+        if (logs.length === 0) {
+          container.innerHTML = `<p style="text-align:center; color:#64748b;">No activity logs recorded.</p>`;
+          return;
+        }
+
+        const dateMap = {};
+        logs.forEach(log => {
+          const dStr = log.timestamp ? new Date(log.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Unknown Date';
+          if (!dateMap[dStr]) dateMap[dStr] = [];
+          dateMap[dStr].push(log);
+        });
+
+        for (const [dateStr, logList] of Object.entries(dateMap)) {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'audit-date-group';
+          let rowsHtml = '';
+          logList.forEach(log => {
+            rowsHtml += `
+              <tr>
+                <td><strong>${log.email || 'Unknown'}</strong></td>
+                <td><span style="background:#1e293b; color:#38bdf8; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:800;">${log.action}</span></td>
+                <td>${log.details}</td>
+                <td style="color:#94a3b8; font-size:12px;">${log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}</td>
+              </tr>
+            `;
+          });
+
+          groupDiv.innerHTML = `
+            <div class="audit-date-header" onclick="this.nextElementSibling.classList.toggle('open')">
+              <span>📅 Date: ${dateStr}</span>
+              <span style="font-size:11px; background:#2563eb; color:#fff; padding:2px 8px; border-radius:12px;">${logList.length} Actions</span>
+            </div>
+            <div class="audit-date-content">
+              <table class="app-table">
+                <thead><tr><th>Educator Email</th><th>Action Type</th><th>Details</th><th>Time</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>
+          `;
+          container.appendChild(groupDiv);
+        }
+      } catch (e) {
+        container.innerHTML = `<p style="text-align:center; color:#64748b;">No logs recorded.</p>`;
+      }
+    };
+
+    window.clearAllAuditLogs = async function() {
+      if (confirm("⚠️ Clear all master activity logs?")) {
+        try {
+          const snap = await window.getDocs(window.collection(window.db, "teacher_activity_logs"));
+          for (const d of snap.docs) {
+            await window.deleteDoc(window.doc(window.db, "teacher_activity_logs", d.id));
+          }
+          window.loadMasterAuditLogs();
+          showToast("🗑️ Cleared!");
+        } catch (e) {
+          alert("Failed to clear!");
+        }
+      }
+    };
+
+    window.exportFullDatabaseBackup = async function() {
+      try {
+        showToast("📦 Preparing backup...");
+        const tSnap = await window.getDocs(window.collection(window.db, "registered_teachers"));
+        const pSnap = await window.getDocs(window.collection(window.db, "published_tests"));
+        const qSnap = await window.getDocs(window.collection(window.db, "questions"));
+        const sSnap = await window.getDocs(window.collection(window.db, "student_results"));
+
+        const backupData = {
+          teachers: tSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+          publishedTests: pSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+          questions: qSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+          studentResults: sSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+          exportedAt: new Date().toISOString()
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", `SuperAdmin_FullBackup_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(dlAnchor);
+        dlAnchor.click();
+        dlAnchor.remove();
+        showToast("✔ Downloaded!");
+      } catch (e) {
+        alert("Export failed!");
+      }
+    };
+  </script>
+</body>
+</html>

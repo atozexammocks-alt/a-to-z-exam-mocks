@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A to Z Exam Mocks - Educator Studio</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  
+  <!-- EmailJS Library with your Public Key -->
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script type="text/javascript">
+    (function() {
+      emailjs.init("soO1JWncf41MisDZC");
+    })();
+  </script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
+      authDomain: "physicsvault-80a10.firebaseapp.com",
+      projectId: "physicsvault-80a10",
+      storageBucket: "physicsvault-80a10.firebasestorage.app",
+      messagingSenderId: "1043166507399",
+      appId: "1:1043166507399:web:634efdac6f109273d42322"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.db = getFirestore(app);
+    window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
+    window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc; window.deleteDoc = deleteDoc;
+    window.updateDoc = updateDoc;
+
+    const SUPER_ADMINS = ["atozexammocks@gmail.com", "vikasattri3003@gmail.com"];
+
+    window.checkSuperAdminStatus = function(email) {
+      const adminBtn = document.getElementById('super-admin-nav-btn');
+      if (adminBtn) {
+        if (email && SUPER_ADMINS.includes(email.toLowerCase())) {
+          adminBtn.style.display = 'inline-flex';
+        } else {
+          adminBtn.style.display = 'none';
+        }
+      }
+    };
+
+    window.onload = async () => {
+      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email');
+      if (savedEmail) {
+        window.currentTeacherEmail = savedEmail;
+        document.getElementById('auth-overlay').style.display = 'none';
+        document.getElementById('current-user-tag').textContent = savedEmail;
+        window.checkSuperAdminStatus(savedEmail);
+        await loadLibraryStateFromCloud();
+        initStudio();
+      }
+    };
+  </script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #060911; color: #f8fafc; overflow: hidden; }
+
+    #toast-msg {
+      position: fixed; bottom: 24px; right: 24px; background: #10b981; color: #ffffff;
+      padding: 12px 20px; border-radius: 8px; font-weight: 800; font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none; z-index: 100000;
+    }
+
+    #auth-overlay {
+      position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #0f172a 0%, #060911 100%);
+      display: flex; align-items: center; justify-content: center; z-index: 99999;
+    }
+    .auth-card {
+      background: #0b1120; border: 1.5px solid rgba(56, 189, 248, 0.4); width: 420px;
+      border-radius: 20px; padding: 32px 28px; box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      display: flex; flex-direction: column; gap: 16px; text-align: center;
+    }
+    .auth-icon-badge {
+      width: 56px; height: 56px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px; margin: 0 auto;
+    }
+    .auth-input-group { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+    .auth-input-group label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; }
+    .auth-input-group input { width: 100%; padding: 12px 14px; background: #060911; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 14px; }
+    .btn-auth-unlock { background: linear-gradient(90deg, #2563eb 0%, #0284c7 100%); border: none; color: white; padding: 13px; border-radius: 8px; font-size: 14px; font-weight: 800; cursor: pointer; }
+    .btn-auth-home { background: #1e293b; border: 1px solid #334155; color: #cbd5e1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: none; display: block; margin-top: 4px; }
+    .btn-auth-home:hover { background: #334155; color: white; border-color: #38bdf8; }
+
+    #navbar { height: 56px; background: #0b1120; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; flex-shrink: 0; }
+    .nav-brand { font-size: 16px; font-weight: 900; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+    .nav-brand span { font-size: 16px; color: #38bdf8; font-weight: 900; margin-left: 0; }
+    .nav-tabs { display: flex; gap: 8px; align-items: center; }
+    .nav-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+    .nav-btn:hover { border-color: #38bdf8; color: white; }
+    .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+
+    .view-screen { flex: 1; display: none !important; height: calc(100vh - 56px); width: 100%; overflow: hidden; }
+    .view-screen.active { display: flex !important; }
+    
+    #screen-dashboard { padding: 40px; flex-direction: column; gap: 24px; overflow-y: auto; background: #060911; }
+    .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1000px; }
+    .dash-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 16px; padding: 24px; text-decoration: none; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .dash-card:hover { border-color: #38bdf8; transform: translateY(-3px); background: #0f172a; }
+    .dash-icon { font-size: 32px; margin-bottom: 4px; }
+    .dash-card h3 { font-size: 18px; font-weight: 800; color: #f8fafc; }
+    .dash-card p { font-size: 13px; color: #94a3b8; line-height: 1.4; }
+
+    #screen-library { padding: 24px; flex-direction: column; gap: 16px; overflow: hidden; }
+    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .folder-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 14px; padding: 20px; cursor: pointer; position: relative; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .folder-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
+    .folder-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; border-top: 1px solid #1e293b; padding-top: 10px; }
+
+    .badge-status { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-block; cursor: pointer; }
+    .badge-private { background: #334155; color: #94a3b8; }
+    .badge-public { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+    .breadcrumb-bar { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; flex-shrink: 0; }
+
+    #library-top-row { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 12px 16px; display: flex; gap: 10px; align-items: center; overflow-x: auto; flex-shrink: 0; }
+    .lib-main-folder-tab { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+    .lib-main-folder-tab.active { background: #2563eb; border-color: #38bdf8; color: white; }
+
+    .library-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: calc(100vh - 180px); }
+    .dual-sidebar { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto !important; height: 100%; }
+    .sidebar-section-title { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+    
+    .folder-item-row { display: flex; align-items: center; justify-content: space-between; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px 10px; cursor: pointer; flex-shrink: 0; }
+    .folder-item-row:hover { border-color: #38bdf8; }
+    .folder-item-row.active { background: #2563eb; border-color: #38bdf8; color: white; }
+    .folder-name-tag { font-size: 13px; font-weight: 700; color: #cbd5e1; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .folder-item-row.active .folder-name-tag { color: white; }
+    .folder-tools { display: flex; gap: 4px; align-items: center; }
+    .f-btn { background: rgba(255,255,255,0.05); border: none; color: #94a3b8; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+    .f-btn:hover { background: rgba(56,189,248,0.2); color: #38bdf8; }
+
+    .pdf-table-container { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; height: 100%; overflow-y: auto; }
+    .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    .pdf-table th { background: #0f172a; color: #94a3b8; padding: 10px 12px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
+    .pdf-table td { padding: 10px 12px; border-bottom: 1px solid #1e293b; color: #f8fafc; }
+    .pdf-input { width: 100%; padding: 7px 10px; background: #060911; border: 1px solid #334155; border-radius: 6px; color: white; font-size: 12px; }
+
+    .lib-tab-bar { display: flex; gap: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; margin-bottom: 10px; flex-shrink: 0; }
+    .lib-tab-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
+    .lib-tab-btn.active { background: #2563eb; border-color: #38bdf8; color: white; }
+
+    .topic-group-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #060911; border: 1px solid #1e293b; border-radius: 10px; padding: 14px; }
+    .topic-group-title { font-size: 13px; font-weight: 800; color: #38bdf8; border-bottom: 1px dashed #334155; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .lib-question-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .lib-q-card { background: #0b1120; border: 1px solid #334155; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .lib-q-img { background: #fff; border-radius: 4px; padding: 6px; display: flex; align-items: center; justify-content: center; max-height: 120px; overflow: hidden; cursor: pointer; }
+    .lib-q-img img { max-width: 100%; height: auto; object-fit: contain; }
+
+    #question-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 60000; padding: 20px; }
+    .q-modal-card { background: #0b1120; border: 2px solid #38bdf8; border-radius: 14px; width: 750px; max-height: 90vh; padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; color: #f8fafc; }
+
+    #studio-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 50000; flex-direction: column; }
+    #studio-iframe { width: 100%; height: 100%; border: none; background: #060911; }
+
+    .data-table-screen { padding: 24px; flex-direction: column; gap: 16px; overflow-y: auto; }
+    .app-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    .app-table th { background: #0f172a; color: #38bdf8; padding: 12px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
+    .app-table td { padding: 12px; border-bottom: 1px solid #1e293b; color: #f8fafc; }
+
+    .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; }
+    .filter-select { background: #060911; border: 1px solid #334155; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+  <div id="toast-msg">✔ Action Successful!</div>
+
+  <div id="studio-modal-overlay">
+    <iframe id="studio-iframe" src=""></iframe>
+  </div>
+
+  <div id="question-modal-overlay">
+    <div class="q-modal-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+        <h3 id="q-modal-title" style="color:#38bdf8; font-size:16px;">🔍 Question Detailed View</h3>
+        <button class="tool-btn" style="background:#7f1d1d;" onclick="document.getElementById('question-modal-overlay').style.display='none'">✕ Close</button>
+      </div>
+      <div id="q-modal-body" style="background:#ffffff; color:#000000; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:12px;"></div>
+    </div>
+  </div>
+
+  <!-- EDUCATOR LOGIN OVERLAY WITH EMAILJS RECOVERY & HOME BUTTON -->
+  <div id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-icon-badge">🔐</div>
+      <h2 style="font-size:20px; font-weight:900; color:#ffffff;">A to Z Exam Mocks</h2>
+      <p style="font-size:12px; color:#94a3b8; margin-top:-6px;">Educator Studio Login</p>
+      
+      <div class="auth-input-group">
+        <label>Email Address</label>
+        <input type="email" id="teacher-auth-email" placeholder="educator@gmail.com" required>
+      </div>
+
+      <div class="auth-input-group">
+        <label>Secret PIN</label>
+        <input type="password" id="teacher-auth-pin" placeholder="Min 4 digits" required>
+      </div>
+
+      <!-- EmailJS Recovery Link -->
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-top: -4px;">
+        <span style="color: #94a3b8;">Forgot your PIN?</span>
+        <a href="#" onclick="handleTeacherForgotPassword()" style="color: #38bdf8; text-decoration: none; font-weight: 700;">Recover via Email ➔</a>
+      </div>
+
+      <button class="btn-auth-unlock" onclick="handleTeacherLogin()">Open Studio ➔</button>
+      
+      <!-- HOME BUTTON ADDED HERE -->
+      <a href="index.html" class="btn-auth-home">🏠 Back to Home</a>
+    </div>
+  </div>
+
+  <div id="navbar">
+    <div class="nav-brand">
+      <a href="index.html" class="nav-btn" style="background:#1e293b; color:#38bdf8;">🏠 Home</a>
+      🎯 A to Z <span>Exam Mocks</span>
+    </div>
+    <div class="nav-tabs">
+      <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
+      <button class="nav-btn" onclick="switchView('screen-dashboard')">🏠 Dashboard</button>
+      <span class="user-pill" id="current-user-tag">Educator</span>
+      <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutTeacher()">🔒 Logout</button>
+    </div>
+  </div>
+
+  <div class="view-screen active" id="screen-dashboard">
+    <div>
+      <h2 style="font-size:22px; font-weight:900; color:#f8fafc;">🚀 Educator Control Center</h2>
+      <p style="font-size:13px; color:#94a3b8; margin-top:4px;">Select a tool or section to manage your exam vault.</p>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card" onclick="switchView('screen-library')">
+        <div class="dash-icon">📁</div>
+        <h3>Library & Folders</h3>
+        <p>Manage books, sections, PDF links and topic-wise extracted questions instantly.</p>
+      </div>
+
+      <a href="slicer.html" class="dash-card" style="text-decoration:none;">
+        <div class="dash-icon">✂️</div>
+        <h3>Fast Slicer Studio</h3>
+        <p>Crop questions and solutions from PDFs with absolute precision.</p>
+      </a>
+
+      <!-- NEW AI SMART PDF UPLOADER CARD LINKED TO ai_uploader.html -->
+      <a href="ai_uploader.html" class="dash-card" style="text-decoration:none; border-color: rgba(56, 189, 248, 0.4);">
+        <div class="dash-icon">🤖</div>
+        <h3>AI Smart PDF Uploader</h3>
+        <p>Batch-extract questions from PDFs automatically using Gemini AI and review before saving.</p>
+      </a>
+
+      <a href="builder.html" class="dash-card" style="text-decoration:none;">
+        <div class="dash-icon">🛠️</div>
+        <h3>Test Builder</h3>
+        <p>Filter questions, assemble mock tests, set pricing and publish live.</p>
+      </a>
+
+      <!-- PUBLISHED TESTS & LINKS CARD LINKED TO public_tests.html -->
+      <div class="dash-card" onclick="window.location.href='public_tests.html'">
+        <div class="dash-icon">🔗</div>
+        <h3>Published Tests & Links</h3>
+        <p>View personal and centralized mock tests and copy WhatsApp share links instantly.</p>
+      </div>
+
+      <div class="dash-card" onclick="switchView('screen-monitor')">
+        <div class="dash-icon">📊</div>
+        <h3>Student Submissions</h3>
+        <p>Track live student performance, scores and test attempts.</p>
+      </div>
+
+      <div class="dash-card" onclick="exportFullDatabaseBackup()">
+        <div class="dash-icon">💾</div>
+        <h3>Database Backup</h3>
+        <p>Download complete JSON backup of folders, questions and metadata.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="view-screen" id="screen-library">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+      <div>
+        <h2 id="library-main-title">Your Exam Folders</h2>
+        <p style="font-size:13px; color:#94a3b8;" id="library-sub-title">Manage folders, PDF links and topic-wise extracted questions.</p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="tool-btn" onclick="switchView('screen-dashboard')" style="background:#334155;">🏠 Dashboard</button>
+        <a href="slicer.html" class="tool-btn" style="background:#2563eb; text-decoration:none;">✂️ Open Slicer</a>
+      </div>
+    </div>
+
+    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="breadcrumb-bar" style="margin:0;"><span>Root Main Folders (Books)</span></div>
+        <button class="tool-btn" style="background:#10b981;" onclick="promptNewMainFolder()">+ Add Main Folder</button>
+      </div>
+      <div class="folder-grid" id="folder-cards-container"></div>
+    </div>
+
+    <div id="folder-files-view" style="display:none; flex-direction:column; gap:12px; flex:1; overflow:hidden;">
+      <div id="library-top-row">
+        <span style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; flex-shrink:0;">Main Folders:</span>
+        <div id="lib-main-tabs-container" style="display:flex; gap:8px; overflow-x:auto;"></div>
+      </div>
+
+      <div class="library-layout">
+        <div class="dual-sidebar">
+          <div class="sidebar-section-title">
+            <span>Sections / Sub-Folders</span>
+            <button class="f-btn" style="background:#10b981; color:#fff; font-weight:bold;" onclick="promptNewSubFolder()">+ Add</button>
+          </div>
+          <div id="sidebar-sub-folders" style="display:flex; flex-direction:column; gap:4px; overflow-y:auto; flex:1;"></div>
+        </div>
+
+        <div class="pdf-table-container">
+          <div class="lib-tab-bar">
+            <button class="lib-tab-btn active" id="tab-btn-pdfs" onclick="switchLibTab('pdfs')">📄 PDF Links & Files</button>
+            <button class="lib-tab-btn" id="tab-btn-qs" onclick="switchLibTab('questions')">🖼️ Extracted Question Bank (Topic-wise)</button>
+          </div>
+
+          <div id="lib-tab-content-pdfs" style="display:flex; flex-direction:column; gap:10px; flex:1; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="color:#38bdf8; font-size:14px;" id="current-subfolder-title">Select a Sub-Folder</h3>
+              <button class="tool-btn" style="background:#10b981; font-size:11px;" onclick="addNewPdfRow()">+ Add PDF Link</button>
+            </div>
+            <table class="pdf-table">
+              <thead>
+                <tr>
+                  <th>Paper Title</th>
+                  <th>Google Drive URL</th>
+                  <th>Visibility</th>
+                  <th style="width:180px; text-align:center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="pdf-table-body">
+                <tr><td colspan="4" style="text-align:center; color:#64748b;">Select a sub-folder.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div id="lib-tab-content-qs" style="display:none; flex-direction:column; gap:10px; flex:1; overflow-y:auto;">
+            <h3 style="color:#38bdf8; font-size:14px;" id="lib-qs-heading">Topic-wise Questions</h3>
+            <div id="lib-topic-groups-container" style="display:flex; flex-direction:column; gap:12px; flex:1;">
+              <p style="color:#64748b; font-size:13px;">No questions extracted in this section yet.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view-screen data-table-screen" id="screen-monitor">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+      <div>
+        <h2>📊 Live Student Performance & Test Supervision</h2>
+        <p style="font-size:13px; color:#94a3b8;">Monitor student attempts, scores, and view student performance reports.</p>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <select id="filter-test-dropdown" class="filter-select" onchange="filterStudentResults()">
+          <option value="ALL">🔍 All Tests (Show All)</option>
+        </select>
+        <button class="tool-btn" onclick="switchView('screen-dashboard')" style="background:#334155;">🏠 Dashboard</button>
+        <button class="tool-btn" onclick="switchView('screen-monitor')" style="background:#2563eb;">🔄 Refresh</button>
+      </div>
+    </div>
+    
+    <div style="background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:20px; flex:1; overflow-y:auto;">
+      <table class="app-table">
+        <thead>
+          <tr>
+            <th>Student Email</th>
+            <th>Test Attempted</th>
+            <th>Referrer</th>
+            <th>Score</th>
+            <th>Percentage</th>
+            <th>Date</th>
+            <th style="text-align:center;">Action / Performance / Contact</th>
+          </tr>
+        </thead>
+        <tbody id="student-results-tbody">
+          <tr><td colspan="7" style="text-align:center; color:#64748b;">Loading student submission records...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function showToast(text) {
+      const el = document.getElementById('toast-msg');
+      el.textContent = text; el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }
+
+    async function logTeacherActivity(actionType, details) {
+      try {
+        if (!window.db || !window.currentTeacherEmail) return;
+        await window.addDoc(window.collection(window.db, "teacher_activity_logs"), {
+          email: window.currentTeacherEmail,
+          action: actionType,
+          details: details,
+          timestamp: new Date().toISOString()
+        });
+      } catch (e) {}
+    }
+
+    window.handleTeacherForgotPassword = async function() {
+      const emailInput = document.getElementById('teacher-auth-email').value.trim().toLowerCase();
+      if (!emailInput || !emailInput.includes('@')) {
+        alert("Please enter your registered email address in the Email field above first!");
+        return;
+      }
+
+      try {
+        showToast("Verifying with database...");
+        const docId = emailInput.replace(/[^a-zA-Z0-9]/g, '_');
+        const ref = window.doc(window.db, "registered_teachers", docId);
+        const snap = await window.getDoc(ref);
+
+        if (snap.exists()) {
+          const teacherPin = snap.data().pin;
+          showToast("Sending PIN to your Gmail...");
+
+          const templateParams = {
+            email: emailInput,
+            to_email: emailInput,
+            pin: teacherPin,
+            user_email: emailInput
+          };
+
+          await emailjs.send('service_8o9bfla', 'template_fpbyrcp', templateParams);
+
+          alert(`📧 Success!\n\nYour Secret PIN has been successfully sent to your Gmail inbox: ${emailInput}`);
+          logTeacherActivity("EMAILJS_PASSWORD_RECOVERY", `Sent PIN via Gmail to ${emailInput}`);
+        } else {
+          alert("No registered educator account found with this email address!");
+        }
+      } catch (e) {
+        console.error("EmailJS Error:", e);
+        alert("Failed to send email. Please check your EmailJS configuration or internet.");
+      }
+    };
+
+    async function handleTeacherLogin() {
+      const email = document.getElementById('teacher-auth-email').value.trim().toLowerCase();
+      const pin = document.getElementById('teacher-auth-pin').value.trim();
+      if (!email || !email.includes('@')) return alert("Enter valid email!");
+      if (pin.length < 4) return alert("PIN must be at least 4 digits!");
+
+      try {
+        const docId = email.replace(/[^a-zA-Z0-9]/g, '_');
+        const ref = window.doc(window.db, "registered_teachers", docId);
+        const snap = await window.getDoc(ref);
+        if (snap.exists()) {
+          if (snap.data().pin === pin) onLoginSuccess(email);
+          else alert("Incorrect PIN! Use 'Recover via Email' if you forgot it.");
+        } else {
+          await window.setDoc(ref, { email, pin, createdAt: new Date().toISOString() });
+          onLoginSuccess(email);
+        }
+      } catch (e) { onLoginSuccess(email); }
+    }
+
+    async function onLoginSuccess(email) {
+      window.currentTeacherEmail = email;
+      localStorage.setItem('ExamVault_Teacher_Email', email);
+      document.getElementById('auth-overlay').style.display = 'none';
+      document.getElementById('current-user-tag').textContent = email;
+      window.checkSuperAdminStatus(email);
+      logTeacherActivity("LOGIN", "Successfully logged into Studio");
+      await loadLibraryStateFromCloud();
+      initStudio();
+    }
+
+    function logoutTeacher() {
+      if (confirm("Logout?")) {
+        logTeacherActivity("LOGOUT", "Logged out of Studio");
+        localStorage.removeItem('ExamVault_Teacher_Email');
+        window.location.reload();
+      }
+    }
+
+    let mainFolders = ["Classical Mechanics", "Quantum Mechanics", "Mathematical Physics", "Electronics", "EMT", "Solid State Mechanics", "Thermo & Statical", "Atomic", "Nuclear", "PYP"];
+    let subFolders = {
+      "Classical Mechanics": ["General", "Lagrangian", "Hamiltonian"],
+      "Quantum Mechanics": ["General", "Operators", "Wave Function"],
+      "Mathematical Physics": ["General", "Vector Analysis", "Matrices"],
+      "Electronics": ["General", "Transistors", "Diodes"],
+      "EMT": ["General"], "Solid State Mechanics": ["General"], "Thermo & Statical": ["General"], "Atomic": ["General"], "Nuclear": ["General"], "PYP": ["General"]
+    };
+    let folderPdfs = {};
+    let cloudVault = [];
+    let cachedStudentResults = [];
+
+    async function loadLibraryStateFromCloud() {
+      try {
+        if (!window.db) return;
+        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        const snap = await window.getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.mainFolders && data.mainFolders.length > 0) mainFolders = data.mainFolders;
+          if (data.subFolders) subFolders = data.subFolders;
+          if (data.folderPdfs) folderPdfs = data.folderPdfs;
+        }
+      } catch (e) {}
+    }
+
+    async function saveLibraryState() {
+      try {
+        if (window.db) {
+          await window.setDoc(window.doc(window.db, "folder_configs", "shared_registry_v4"), {
+            mainFolders, subFolders, folderPdfs, updatedAt: new Date().toISOString()
+          });
+        }
+      } catch (e) {}
+    }
+
+    window.exportFullDatabaseBackup = async function() {
+      try {
+        showToast("📦 Preparing database backup...");
+        const backupData = {
+          mainFolders, subFolders, folderPdfs,
+          questions: cloudVault,
+          exportedAt: new Date().toISOString()
+        };
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+        const dlAnchor = document.createElement('a');
+        dlAnchor.setAttribute("href", dataStr);
+        dlAnchor.setAttribute("download", `AtoZ_ExamMocks_Backup_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(dlAnchor);
+        dlAnchor.click();
+        dlAnchor.remove();
+        showToast("✔ Backup Downloaded Successfully!");
+        logTeacherActivity("BACKUP_EXPORT", "Exported full database backup JSON");
+      } catch (e) {
+        alert("Failed to export backup!");
+      }
+    };
+    
+    let currentMainFolder = '', currentSubFolder = '';
+
+    function switchView(id) {
+      document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'screen-library') {
+        if (!currentMainFolder) backToFolderCards();
+        else openMainFolder(currentMainFolder);
+      }
+      if (id === 'screen-monitor') { loadStudentResults(); }
+    }
+
+    window.promptNewMainFolder = async function() {
+      const name = prompt("Enter new Main Folder / Book name:");
+      if (name && name.trim()) {
+        const mName = name.trim();
+        if (!mainFolders.includes(mName)) {
+          mainFolders.push(mName);
+          if (!subFolders[mName]) subFolders[mName] = ["General"];
+          await saveLibraryState();
+          renderFolderCards();
+          logTeacherActivity("CREATE_FOLDER", `Created Main Folder: ${mName}`);
+          showToast("✔ Book Created & Saved to Cloud!");
+        }
+      }
+    };
+
+    window.promptNewSubFolder = async function() {
+      if (!currentMainFolder) return alert("Select a main folder first!");
+      const name = prompt(`Enter new Section under "${currentMainFolder}":`);
+      if (name && name.trim()) {
+        const sName = name.trim();
+        if (!subFolders[currentMainFolder]) subFolders[currentMainFolder] = [];
+        if (!subFolders[currentMainFolder].includes(sName)) {
+          subFolders[currentMainFolder].push(sName);
+          await saveLibraryState();
+          openMainFolder(currentMainFolder);
+          logTeacherActivity("CREATE_SUBFOLDER", `Created Sub-folder: ${currentMainFolder} / ${sName}`);
+          showToast("✔ Section Created & Saved to Cloud!");
+        }
+      }
+    };
+
+    window.renameMainFolder = async function(mName, event) {
+      event.stopPropagation();
+      const newName = prompt(`Rename main folder "${mName}" to:`, mName);
+      if (newName && newName.trim() && newName.trim() !== mName) {
+        const updated = newName.trim();
+        if (mainFolders.includes(updated)) return alert("Folder name already exists!");
+        mainFolders = mainFolders.map(f => f === mName ? updated : f);
+        subFolders[updated] = subFolders[mName] || [];
+        delete subFolders[mName];
+        await saveLibraryState();
+        renderFolderCards();
+        logTeacherActivity("RENAME_FOLDER", `Renamed main folder from ${mName} to ${updated}`);
+        showToast("✔ Renamed!");
+      }
+    };
+
+    window.deleteMainFolder = async function(mName, event) {
+      event.stopPropagation();
+      if (confirm(`⚠️ Permanently delete main folder "${mName}" and ALL questions inside it?`)) {
+        try {
+          const qRef = window.collection(window.db, "questions");
+          const qSnap = await window.getDocs(qRef);
+          let batchDeletes = [];
+          qSnap.forEach(d => {
+            const data = d.data();
+            if (data.subject && data.subject.startsWith(mName)) {
+              batchDeletes.push(window.deleteDoc(window.doc(window.db, "questions", d.id)));
+            }
+          });
+          await Promise.all(batchDeletes);
+
+          mainFolders = mainFolders.filter(f => f !== mName);
+          delete subFolders[mName];
+          await saveLibraryState();
+          renderFolderCards();
+          logTeacherActivity("DELETE_FOLDER", `Deleted main folder: ${mName} and ${batchDeletes.length} questions`);
+          showToast(`🗑️ Folder & ${batchDeletes.length} questions wiped permanently!`);
+        } catch (e) {
+          alert("Failed to delete folder data: " + e.message);
+        }
+      }
+    };
+
+    window.renameSubFolder = async function(sName, event) {
+      event.stopPropagation();
+      const newName = prompt(`Rename section "${sName}" under "${currentMainFolder}" to:`, sName);
+      if (newName && newName.trim() && newName.trim() !== sName) {
+        const updated = newName.trim();
+        const subs = subFolders[currentMainFolder] || [];
+        if (subs.includes(updated)) return alert("Section name already exists!");
+        subFolders[currentMainFolder] = subs.map(s => s === sName ? updated : s);
+        
+        const oldKey = `${currentMainFolder} / ${sName}`;
+        const newKey = `${currentMainFolder} / ${updated}`;
+        if (folderPdfs[oldKey]) {
+          folderPdfs[newKey] = folderPdfs[oldKey];
+          delete folderPdfs[oldKey];
+        }
+
+        await saveLibraryState();
+        openMainFolder(currentMainFolder);
+        logTeacherActivity("RENAME_SUBFOLDER", `Renamed section from ${sName} to ${updated}`);
+        showToast("✔ Section Renamed!");
+      }
+    };
+
+    window.deleteSubFolder = async function(sName, event) {
+      event.stopPropagation();
+      if (confirm(`⚠️ Permanently delete section "${sName}" and ALL questions inside it?`)) {
+        try {
+          const fullKey = `${currentMainFolder} / ${sName}`;
+          const qRef = window.collection(window.db, "questions");
+          const qSnap = await window.getDocs(qRef);
+          let batchDeletes = [];
+          qSnap.forEach(d => {
+            const data = d.data();
+            if (data.subject === fullKey) {
+              batchDeletes.push(window.deleteDoc(window.doc(window.db, "questions", d.id)));
+            }
+          });
+          await Promise.all(batchDeletes);
+
+          subFolders[currentMainFolder] = subFolders[currentMainFolder].filter(x => x !== sName);
+          delete folderPdfs[fullKey];
+          await saveLibraryState();
+          openMainFolder(currentMainFolder);
+          logTeacherActivity("DELETE_SUBFOLDER", `Deleted section: ${fullKey} and ${batchDeletes.length} questions`);
+          showToast(`🗑️ Section & ${batchDeletes.length} questions wiped permanently!`);
+        } catch (e) {
+          alert("Failed to delete section data: " + e.message);
+        }
+      }
+    };
+
+    window.moveMainFolderPrompt = async function(mName, event) {
+      event.stopPropagation();
+      const targetName = prompt(`Enter new name or position for folder "${mName}":`, mName);
+      if (targetName && targetName.trim() && targetName.trim() !== mName) {
+        const idx = mainFolders.indexOf(mName);
+        if (idx !== -1) {
+          mainFolders[idx] = targetName.trim();
+          subFolders[targetName.trim()] = subFolders[mName] || [];
+          delete subFolders[mName];
+          await saveLibraryState();
+          renderFolderCards();
+          showToast("✔ Folder Moved / Renamed Successfully!");
+        }
+      }
+    };
+
+    function renderFolderCards() {
+      const container = document.getElementById('folder-cards-container');
+      container.innerHTML = '';
+      if (mainFolders.length === 0) {
+        container.innerHTML = `<p style="color:#64748b; font-size:13px;">No main folders created yet.</p>`;
+        return;
+      }
+
+      mainFolders.forEach(m => {
+        const subs = subFolders[m] || [];
+        const card = document.createElement('div');
+        card.className = 'folder-card';
+        card.onclick = () => openMainFolder(m);
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <h3 style="color:#38bdf8; font-size:16px;">📁 ${m}</h3>
+            <span style="font-size:11px; background:#0f172a; border:1px solid #334155; padding:3px 8px; border-radius:10px; color:#cbd5e1;">${subs.length} Sections</span>
+          </div>
+          <p style="font-size:12px; color:#94a3b8;">Sections: ${subs.join(', ') || 'None'}</p>
+          <div class="folder-card-actions" onclick="event.stopPropagation()">
+            <button class="tool-btn" style="padding:4px 10px; font-size:11px; background:#2563eb;" onclick="moveMainFolderPrompt('${m}', event)">📦 Move</button>
+            <button class="tool-btn" style="padding:4px 10px; font-size:11px;" onclick="renameMainFolder('${m}', event)">✏️ Rename</button>
+            <button class="tool-btn" style="padding:4px 10px; font-size:11px; background:#7f1d1d;" onclick="deleteMainFolder('${m}', event)">🗑️ Delete</button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    window.openMainFolder = function(mName) {
+      currentMainFolder = mName;
+      document.getElementById('folder-cards-view').style.display = 'none';
+      document.getElementById('folder-files-view').style.display = 'flex';
+      document.getElementById('library-main-title').textContent = `Main Folder: ${mName}`;
+      
+      const subs = subFolders[currentMainFolder] || [];
+      currentSubFolder = subs.length > 0 ? subs[0] : '';
+      renderLibraryTopRow();
+      renderLibrarySubSidebar();
+    };
+
+    window.backToFolderCards = function() {
+      currentMainFolder = '';
+      currentSubFolder = '';
+      document.getElementById('folder-files-view').style.display = 'none';
+      document.getElementById('folder-cards-view').style.display = 'flex';
+      document.getElementById('library-main-title').textContent = `Your Exam Folders`;
+      renderFolderCards();
+    };
+
+    function renderLibraryTopRow() {
+      const topRow = document.getElementById('lib-main-tabs-container');
+      topRow.innerHTML = '';
+      mainFolders.forEach(m => {
+        const tab = document.createElement('button');
+        tab.className = `lib-main-folder-tab ${currentMainFolder === m ? 'active' : ''}`;
+        tab.innerHTML = `📁 ${m}`;
+        tab.onclick = () => {
+          currentMainFolder = m;
+          const subs = subFolders[currentMainFolder] || [];
+          currentSubFolder = subs.length > 0 ? subs[0] : '';
+          document.getElementById('library-main-title').textContent = `Main Folder: ${m}`;
+          renderLibraryTopRow();
+          renderLibrarySubSidebar();
+        };
+        topRow.appendChild(tab);
+      });
+    }
+
+    function renderLibrarySubSidebar() {
+      const subList = document.getElementById('sidebar-sub-folders');
+      subList.innerHTML = '';
+      const subs = subFolders[currentMainFolder] || [];
+      
+      if (subs.length === 0) {
+        subList.innerHTML = `<p style="color:#64748b; font-size:12px; padding:6px;">No sections created.</p>`;
+      }
+
+      subs.forEach(s => {
+        const fullKey = `${currentMainFolder} / ${s}`;
+        const pdfCount = (folderPdfs[fullKey] || []).length;
+        const qCount = cloudVault.filter(q => q.subject === fullKey).length;
+        const totalCount = pdfCount + qCount;
+
+        const row = document.createElement('div');
+        row.className = `folder-item-row ${currentSubFolder === s ? 'active' : ''}`;
+        row.innerHTML = `
+          <div class="folder-name-tag" onclick="selectLibrarySubFolder('${s}')">📂 ${s} (${totalCount})</div>
+          <div class="folder-tools">
+            <button class="f-btn" onclick="renameSubFolder('${s}', event)" title="Rename">✏️</button>
+            <button class="f-btn" onclick="deleteSubFolder('${s}', event)" title="Delete" style="color:#fecaca;">🗑️</button>
+          </div>
+        `;
+        subList.appendChild(row);
+      });
+      renderPdfTable();
+      renderSubfolderTopicWiseQuestions();
+    }
+
+    window.selectLibrarySubFolder = function(sName) {
+      currentSubFolder = sName;
+      renderLibrarySubSidebar();
+    };
+
+    window.switchLibTab = function(tabName) {
+      document.getElementById('tab-btn-pdfs').classList.toggle('active', tabName === 'pdfs');
+      document.getElementById('tab-btn-qs').classList.toggle('active', tabName === 'questions');
+      document.getElementById('lib-tab-content-pdfs').style.display = tabName === 'pdfs' ? 'flex' : 'none';
+      document.getElementById('lib-tab-content-qs').style.display = tabName === 'questions' ? 'flex' : 'none';
+      if (tabName === 'questions') renderSubfolderTopicWiseQuestions();
+    };
+
+    function renderPdfTable() {
+      const tbody = document.getElementById('pdf-table-body');
+      tbody.innerHTML = '';
+      if (!currentMainFolder || !currentSubFolder) return;
+
+      const fullKey = `${currentMainFolder} / ${currentSubFolder}`;
+      document.getElementById('current-subfolder-title').textContent = `📄 PDF Links in: ${fullKey}`;
+
+      const list = folderPdfs[fullKey] || [];
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b;">No PDF links added. Click '+ Add PDF Link'.</td></tr>`;
+        return;
+      }
+
+      list.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="text" class="pdf-input" value="${item.title || ''}" placeholder="Paper Title" onchange="updatePdfItem('${fullKey}', ${idx}, 'title', this.value)"></td>
+          <td><input type="text" class="pdf-input" value="${item.url || ''}" placeholder="Google Drive URL" onchange="updatePdfItem('${fullKey}', ${idx}, 'url', this.value)"></td>
+          <td><span class="badge-status ${item.isPublic?'badge-public':'badge-private'}" onclick="togglePdfPublic('${fullKey}', ${idx})">${item.isPublic?'🌐 PUBLIC':'🔒 PRIVATE'}</span></td>
+          <td style="text-align:center; display:flex; gap:4px; justify-content:center;">
+            <a href="slicer.html" class="tool-btn" style="background:#0284c7; padding:4px 8px; font-size:11px; text-decoration:none;">📥 Open in Slicer</a>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderSubfolderTopicWiseQuestions() {
+      const container = document.getElementById('lib-topic-groups-container');
+      const heading = document.getElementById('lib-qs-heading');
+      if (!currentMainFolder || !currentSubFolder) return;
+
+      const fullKey = `${currentMainFolder} / ${currentSubFolder}`;
+      heading.textContent = `🖼️ Extracted Questions in: ${fullKey} (Topic-wise)`;
+
+      const matched = cloudVault.filter(q => q.subject === fullKey);
+      container.innerHTML = '';
+
+      if (matched.length === 0) {
+        container.innerHTML = `<p style="color:#64748b; font-size:13px;">No questions extracted in this section yet.</p>`;
+        return;
+      }
+
+      const topicMap = {};
+      matched.forEach(q => {
+        const tName = (q.topic || 'General').trim();
+        if (!topicMap[tName]) topicMap[tName] = [];
+        topicMap[tName].push(q);
+      });
+
+      for (const [topicName, qList] of Object.entries(topicMap)) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'topic-group-box';
+        
+        let cardsHtml = '';
+        qList.forEach((q, idx) => {
+          cardsHtml += `
+            <div class="lib-q-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#38bdf8;">
+                <strong>Q${idx + 1}</strong>
+                <div style="display:flex; gap:4px;">
+                  <button class="tool-btn" style="padding:2px 6px; font-size:10px; background:#0284c7;" onclick="openQuestionEditor('${q.id}')">✏️ Edit</button>
+                  <button class="tool-btn" style="padding:2px 6px; font-size:10px; background:#2563eb;" onclick="promptMoveQuestion('${q.id}')">📦 Move</button>
+                  <button class="f-btn" style="background:#7f1d1d; color:#fecaca;" onclick="deleteCloudQuestion('${q.id}')">🗑️</button>
+                </div>
+              </div>
+              <div class="lib-q-img" onclick="openQuestionPopup('${q.id}')">
+                <img src="${q.question}" alt="Q">
+              </div>
+            </div>
+          `;
+        });
+
+        groupDiv.innerHTML = `
+          <div class="topic-group-title">
+            <span>📂 Topic: ${topicName}</span>
+            <span style="font-size:11px; background:#1e293b; padding:2px 8px; border-radius:10px; color:#10b981;">${qList.length} Questions</span>
+          </div>
+          <div class="lib-question-grid">${cardsHtml}</div>
+        `;
+        container.appendChild(groupDiv);
+      }
+    }
+
+    window.openQuestionPopup = function(qId) {
+      const q = cloudVault.find(item => item.id === qId);
+      if (!q) return;
+      const modalBody = document.getElementById('q-modal-body');
+      document.getElementById('q-modal-title').textContent = `🔍 Question Preview | Subject: ${q.subject} | Q.No: ${q.qNo || 1}`;
+      
+      modalBody.innerHTML = `
+        ${q.qText ? `<div style="font-size:14px; font-weight:bold; color:#0f172a; margin-bottom:8px;">${q.qText}</div>` : ''}
+        ${q.question ? `<img src="${q.question}" style="max-width:100%; height:auto; display:block; margin-bottom:12px; border-radius:4px;">` : ''}
+        ${q.optText ? `<div style="font-weight:bold; color:#0f172a; font-size:13px; margin-top:10px; border-top:1px solid #e2e8f0; padding-top:8px;">Options:</div><div style="font-size:13px; color:#334155; margin-top:4px;">${q.optText}</div>` : ''}
+        <div style="margin-top:10px; font-size:12px; color:#64748b;">Correct Answer Key: <strong style="color:#10b981;">${q.key || 'A'}</strong></div>
+      `;
+      document.getElementById('question-modal-overlay').style.display = 'flex';
+    };
+
+    window.promptMoveQuestion = async function(qId) {
+      const allSections = [];
+      for (const [mName, subs] of Object.entries(subFolders)) {
+        subs.forEach(s => allSections.push(`${mName} / ${s}`));
+      }
+      const target = prompt(`Enter target Section (e.g. Classical Mechanics / General):\n\nAvailable:\n${allSections.join('\n')}`);
+      if (target && target.trim()) {
+        const tName = target.trim();
+        try {
+          await window.updateDoc(window.doc(window.db, "questions", qId), { subject: tName });
+          const q = cloudVault.find(item => item.id === qId);
+          if (q) q.subject = tName;
+          renderLibrarySubSidebar();
+          showToast("✔ Question Moved Successfully!");
+        } catch (e) {
+          alert("Failed to move question!");
+        }
+      }
+    };
+
+    window.openQuestionEditor = async function(qId) {
+      const q = cloudVault.find(item => item.id === qId);
+      if (!q) return;
+
+      localStorage.setItem('Temp_Editor_Image', q.question || '');
+      localStorage.setItem('Temp_QText', q.qText || '');
+      localStorage.setItem('Temp_Opt_A', '');
+      localStorage.setItem('Temp_Opt_B', '');
+      localStorage.setItem('Temp_Opt_C', '');
+      localStorage.setItem('Temp_Opt_D', '');
+
+      window.editingCloudQuestionId = qId;
+
+      const modal = document.getElementById('studio-modal-overlay');
+      const iframe = document.getElementById('studio-iframe');
+      if (modal && iframe) {
+        iframe.src = 'editor.html';
+        modal.style.display = 'flex';
+      }
+    };
+
+    window.closeStudioModal = async function() {
+      const modal = document.getElementById('studio-modal-overlay');
+      const iframe = document.getElementById('studio-iframe');
+      if (modal && iframe) {
+        modal.style.display = 'none';
+        iframe.src = '';
+      }
+
+      const syncedImg = localStorage.getItem('Temp_Editor_Synced_Image');
+      const qText = localStorage.getItem('Temp_Fallback_QText');
+
+      if (window.editingCloudQuestionId && (syncedImg || qText)) {
+        try {
+          const updateData = {};
+          if (syncedImg) updateData.question = syncedImg;
+          if (qText !== null) updateData.qText = qText;
+
+          await window.updateDoc(window.doc(window.db, "questions", window.editingCloudQuestionId), updateData);
+          
+          const q = cloudVault.find(item => item.id === window.editingCloudQuestionId);
+          if (q) {
+            if (syncedImg) q.question = syncedImg;
+            if (qText !== null) q.qText = qText;
+          }
+
+          renderLibrarySubSidebar();
+          showToast("✔ Question Updated & Synced to Cloud!");
+        } catch (e) {
+          alert("Failed to update question in cloud!");
+        }
+        window.editingCloudQuestionId = null;
+      }
+
+      localStorage.removeItem('Temp_Editor_Synced_Image');
+      localStorage.removeItem('Temp_Fallback_QText');
+    };
+
+    window.addNewPdfRow = async function() {
+      if (!currentMainFolder || !currentSubFolder) return alert("Select a sub-folder first!");
+      const fullKey = `${currentMainFolder} / ${currentSubFolder}`;
+      if (!folderPdfs[fullKey]) folderPdfs[fullKey] = [];
+      folderPdfs[fullKey].push({ title: "New Paper", url: "", isPublic: false });
+      await saveLibraryState();
+      renderPdfTable();
+    };
+
+    window.updatePdfItem = async function(fullKey, idx, field, val) {
+      if (folderPdfs[fullKey] && folderPdfs[fullKey][idx]) {
+        folderPdfs[fullKey][idx][field] = val.trim();
+        await saveLibraryState();
+        showToast("✔ Saved!");
+      }
+    };
+
+    window.togglePdfPublic = async function(fullKey, idx) {
+      if (folderPdfs[fullKey] && folderPdfs[fullKey][idx]) {
+        folderPdfs[fullKey][idx].isPublic = !folderPdfs[fullKey][idx].isPublic;
+        await saveLibraryState();
+        renderPdfTable();
+        showToast("✔ Visibility Updated!");
+      }
+    };
+
+    window.deleteCloudQuestion = async function(qId) {
+      if (confirm("Delete this question permanently?")) {
+        await window.deleteDoc(window.doc(window.db, "questions", qId));
+        cloudVault = cloudVault.filter(x => x.id !== qId);
+        renderLibrarySubSidebar();
+        showToast("🗑️ Question Deleted!");
+      }
+    };
+
+    async function initStudio() {
+      renderFolderCards();
+      try {
+        const snap = await window.getDocs(window.collection(window.db, "questions"));
+        cloudVault = []; snap.forEach(d => cloudVault.push({ id: d.id, ...d.data() }));
+      } catch (e) {}
+    }
+
+    async function loadStudentResults() {
+      const tbody = document.getElementById('student-results-tbody');
+      const testDropdown = document.getElementById('filter-test-dropdown');
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b;">Fetching records...</td></tr>`;
+      
+      try {
+        if (!window.db) return;
+        const snap = await window.getDocs(window.collection(window.db, "student_results"));
+        cachedStudentResults = [];
+        const uniqueTests = new Set();
+
+        snap.forEach(d => {
+          const res = { id: d.id, ...d.data() };
+          cachedStudentResults.push(res);
+          if (res.testTitle) uniqueTests.add(res.testTitle);
+        });
+
+        testDropdown.innerHTML = `<option value="ALL">🔍 All Tests (Show All)</option>`;
+        uniqueTests.forEach(testTitle => {
+          testDropdown.innerHTML += `<option value="${testTitle}">${testTitle}</option>`;
+        });
+
+        renderStudentResultsTable(cachedStudentResults);
+      } catch (e) { 
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ef4444;">Failed to load data.</td></tr>`; 
+      }
+    }
+
+    window.filterStudentResults = function() {
+      const selectedTest = document.getElementById('filter-test-dropdown').value;
+      if (selectedTest === 'ALL') {
+        renderStudentResultsTable(cachedStudentResults);
+      } else {
+        const filtered = cachedStudentResults.filter(r => r.testTitle === selectedTest);
+        renderStudentResultsTable(filtered);
+      }
+    };
+
+    window.openStudentPerformanceAsTeacher = function(studentEmail) {
+      localStorage.setItem('ExamVault_Student_Email', studentEmail);
+      window.open('student_performance.html', '_blank');
+    };
+
+    function renderStudentResultsTable(resultsList) {
+      const tbody = document.getElementById('student-results-tbody');
+      tbody.innerHTML = '';
+      
+      if (resultsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b;">No student submissions found matching this filter.</td></tr>`;
+        return;
+      }
+
+      resultsList.forEach(res => {
+        const total = res.totalMarks || 100;
+        const percentage = Math.round((res.score / total) * 100);
+        const email = res.studentEmail || 'student@gmail.com';
+
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${email}</strong></td>
+            <td><span style="color:#38bdf8; font-weight:700;">${res.testTitle || 'Mock Test'}</span></td>
+            <td><span style="color:#cbd5e1; font-weight:600;">${res.referrer || 'Direct'}</span></td>
+            <td><span style="color:#10b981; font-weight:800;">${res.score} / ${total}</span></td>
+            <td>${percentage}%</td>
+            <td>${new Date(res.submittedAt || Date.now()).toLocaleDateString()}</td>
+            <td style="text-align:center; display:flex; gap:6px; justify-content:center;">
+              <button class="tool-btn" style="background:#2563eb; padding:4px 8px; font-size:11px;" onclick="openStudentPerformanceAsTeacher('${email}')">📊 View Performance</button>
+              <button class="tool-btn" style="background:#059669; padding:4px 8px; font-size:11px;" onclick="prompt('Student Contact Info / Phone:', '${res.studentPhone || res.studentEmail}')">📞 Connect</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+  </script>
+</body>
+</html>

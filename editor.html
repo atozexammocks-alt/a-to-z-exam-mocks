@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A to Z Exam Mocks - Fullscreen Editor Studio</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
+  
+  <!-- Tesseract.js for Real OCR Support -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@v5/dist/tesseract.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #060911; color: #f8fafc; overflow: hidden; }
+
+    #toast-msg {
+      position: fixed; bottom: 24px; right: 24px; background: #10b981; color: #ffffff;
+      padding: 10px 16px; border-radius: 8px; font-weight: 800; font-size: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none; z-index: 100000;
+    }
+
+    #editor-header { height: 50px; background: #0b1120; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+    .header-title { font-size: 15px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+    
+    .editor-workspace { display: flex; flex: 1; height: calc(100vh - 50px); overflow: hidden; }
+    
+    #canvas-container { 
+      flex: 1; background: #090d16; display: flex; align-items: center; justify-content: center; position: relative; overflow: auto; padding: 20px;
+    }
+    
+    #canvas-wrap { position: relative; display: inline-block; line-height: 0; }
+    #editor-canvas { background: #ffffff; box-shadow: 0 15px 40px rgba(0,0,0,0.8); display: block; max-width: 100%; height: auto; }
+    
+    #draw-box { position: absolute; border: 2px dashed #ef4444; background: rgba(239, 68, 68, 0.25); pointer-events: none; display: none; z-index: 1000; }
+
+    #editor-sidebar { width: 380px; background: #0b1120; border-left: 1px solid #1e293b; display: flex; flex-direction: column; padding: 12px; gap: 8px; overflow-y: auto; }
+    .sidebar-section { background: #060911; border: 1px solid #1e293b; border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .section-title { font-size: 11px; font-weight: 800; color: #38bdf8; border-bottom: 1px solid #1e293b; padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    
+    .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .tool-btn:hover { border-color: #38bdf8; background: #0f172a; }
+
+    .color-palette { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 2px; }
+    .color-pill { padding: 5px; border: 1px solid #334155; font-size: 10px; font-weight: bold; cursor: pointer; border-radius: 4px; text-align: center; }
+    .color-pill.active { border-color: #38bdf8; outline: 2px solid #38bdf8; }
+
+    .math-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 6px; max-height: 180px; overflow-y: auto; display: none; }
+    .math-grid.open { display: grid; }
+    .math-key { background: #1e293b; color: #38bdf8; border: 1px solid #334155; padding: 6px 2px; text-align: center; font-size: 12px; font-weight: bold; cursor: pointer; border-radius: 4px; }
+    .math-key:hover { background: #0284c7; color: white; }
+
+    .fallback-input { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 4px 6px; border-radius: 4px; font-size: 11px; }
+
+    .text-overlay-box {
+      position: absolute; background: #ffffff; border: 2px dashed #38bdf8; color: #000;
+      padding: 6px; border-radius: 4px; resize: both; overflow: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      z-index: 500; min-width: 220px; min-height: 40px; line-height: normal;
+    }
+    .box-handle { background: #0f172a; color: #38bdf8; font-size: 9px; font-weight: bold; padding: 2px 6px; cursor: move; border-radius: 3px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+
+  <div id="toast-msg">✔ Action Successful!</div>
+
+  <div id="editor-header">
+    <div class="header-title">🖥️ Fullscreen Editor Studio — Solid Whiteout & OCR</div>
+    <div style="display:flex; gap:8px;">
+      <button class="tool-btn" style="background:#334155;" onclick="window.goBackToSlicer()">⬅️ Back / Return</button>
+      <button class="tool-btn" style="background:#7f1d1d;" onclick="window.closeWindow()">✕ Discard & Return</button>
+      <button class="tool-btn" style="background:#10b981; border-color:#059669;" onclick="window.saveAndSyncToParent()">💾 Save & Return</button>
+    </div>
+  </div>
+
+  <div class="editor-workspace">
+    <!-- LEFT: CANVAS AREA -->
+    <div id="canvas-container">
+      <div id="canvas-wrap">
+        <canvas id="editor-canvas"></canvas>
+        <div id="draw-box"></div>
+        <div id="overlay-layer" style="position: absolute; inset: 0; pointer-events: none;"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: TOOLS SIDEBAR -->
+    <div id="editor-sidebar">
+      <div class="sidebar-section">
+        <div class="section-title">🛠️ Drawing & Masking Tools</div>
+        <button class="tool-btn" id="mode-whitener" style="background:#1e293b;" onclick="window.setMode('whitener')">⬜ Draw Whitener Box (Whiteout)</button>
+        
+        <label style="font-size:10px; color:#94a3b8; font-weight:bold; margin-top:2px;">Select Whitener Fill Color:</label>
+        <div class="color-palette">
+          <div class="color-pill active" id="col-white" style="background:#ffffff; color:#000;" onclick="window.setWhitenerColor('#ffffff', 'col-white')">White</div>
+          <div class="color-pill" id="col-yellow" style="background:#fef08a; color:#000;" onclick="window.setWhitenerColor('#fef08a', 'col-yellow')">Yellow</div>
+          <div class="color-pill" id="col-blue" style="background:#bfdbfe; color:#000;" onclick="window.setWhitenerColor('#bfdbfe', 'col-blue')">Blue</div>
+          <div class="color-pill" id="col-pink" style="background:#fecaca; color:#000;" onclick="window.setWhitenerColor('#fecaca', 'col-pink')">Pink</div>
+        </div>
+
+        <button class="tool-btn" id="mode-ocr" style="background:#1e293b; margin-top:4px;" onclick="window.setMode('ocr')">🔍 Real OCR Text Scanner Mode</button>
+        <button class="tool-btn" onclick="window.addNewTextBox()">➕ Add Editable Text Box</button>
+        <button class="tool-btn" style="background:#7f1d1d;" onclick="window.clearAllEdits()">🗑️ Clear All Overlays</button>
+      </div>
+
+      <div class="sidebar-section">
+        <div class="section-title">🔤 Font & Formatting Tools</div>
+        <div style="display:flex; gap:6px;">
+          <button class="tool-btn" style="flex:1;" onclick="window.changeTextSize(2)">A+</button>
+          <button class="tool-btn" style="flex:1;" onclick="window.changeTextSize(-2)">A-</button>
+          <button class="tool-btn" style="flex:1;" onclick="window.insertScriptTag('sup')">x² (Sup)</button>
+          <button class="tool-btn" style="flex:1;" onclick="window.insertScriptTag('sub')">x₂ (Sub)</button>
+        </div>
+      </div>
+
+      <!-- MATH SYMBOLS POPUP SECTION -->
+      <div class="sidebar-section">
+        <div class="section-title" onclick="window.toggleMathPopup()">
+          <span>📐 Extended Math & Physics Symbols</span>
+          <span id="math-toggle-icon">▼ Open</span>
+        </div>
+        <div class="math-grid" id="math-popup-grid">
+          <div class="math-key" onclick="window.insertSymbol('=')">=</div>
+          <div class="math-key" onclick="window.insertSymbol('+')">+</div>
+          <div class="math-key" onclick="window.insertSymbol('-')">-</div>
+          <div class="math-key" onclick="window.insertSymbol('×')">×</div>
+          <div class="math-key" onclick="window.insertSymbol('÷')">÷</div>
+          <div class="math-key" onclick="window.insertSymbol('•')">•</div>
+          <div class="math-key" onclick="window.insertSymbol('±')">±</div>
+          <div class="math-key" onclick="window.insertSymbol('∓')">∓</div>
+          <div class="math-key" onclick="window.insertSymbol('√')">√</div>
+          <div class="math-key" onclick="window.insertSymbol('∛')">∛</div>
+          <div class="math-key" onclick="window.insertSymbol('∞')">∞</div>
+          <div class="math-key" onclick="window.insertSymbol('∂')">∂</div>
+          <div class="math-key" onclick="window.insertSymbol('∫')">∫</div>
+          <div class="math-key" onclick="window.insertSymbol('∬')">∬</div>
+          <div class="math-key" onclick="window.insertSymbol('∮')">∮</div>
+          <div class="math-key" onclick="window.insertSymbol('∇')">∇</div>
+          <div class="math-key" onclick="window.insertSymbol('∑')">∑</div>
+          <div class="math-key" onclick="window.insertSymbol('∏')">∏</div>
+          <!-- Greek Letters -->
+          <div class="math-key" onclick="window.insertSymbol('α')">α</div>
+          <div class="math-key" onclick="window.insertSymbol('β')">β</div>
+          <div class="math-key" onclick="window.insertSymbol('γ')">γ</div>
+          <div class="math-key" onclick="window.insertSymbol('δ')">δ</div>
+          <div class="math-key" onclick="window.insertSymbol('ε')">ε</div>
+          <div class="math-key" onclick="window.insertSymbol('θ')">θ</div>
+          <div class="math-key" onclick="window.insertSymbol('λ')">λ</div>
+          <div class="math-key" onclick="window.insertSymbol('μ')">μ</div>
+          <div class="math-key" onclick="window.insertSymbol('π')">π</div>
+          <div class="math-key" onclick="window.insertSymbol('ρ')">ρ</div>
+          <div class="math-key" onclick="window.insertSymbol('σ')">σ</div>
+          <div class="math-key" onclick="window.insertSymbol('τ')">τ</div>
+          <div class="math-key" onclick="window.insertSymbol('φ')">φ</div>
+          <div class="math-key" onclick="window.insertSymbol('ω')">ω</div>
+          <div class="math-key" onclick="window.insertSymbol('Δ')">Δ</div>
+          <div class="math-key" onclick="window.insertSymbol('Ω')">Ω</div>
+          <!-- Relations & Logic -->
+          <div class="math-key" onclick="window.insertSymbol('≤')">≤</div>
+          <div class="math-key" onclick="window.insertSymbol('≥')">≥</div>
+          <div class="math-key" onclick="window.insertSymbol('≠')">≠</div>
+          <div class="math-key" onclick="window.insertSymbol('≈')">≈</div>
+          <div class="math-key" onclick="window.insertSymbol('≡')">≡</div>
+          <div class="math-key" onclick="window.insertSymbol('∝')">∝</div>
+          <div class="math-key" onclick="window.insertSymbol('∼')">∼</div>
+          <div class="math-key" onclick="window.insertSymbol('≅')">≅</div>
+          <div class="math-key" onclick="window.insertSymbol('∈')">∈</div>
+          <div class="math-key" onclick="window.insertSymbol('∉')">∉</div>
+          <div class="math-key" onclick="window.insertSymbol('⊂')">⊂</div>
+          <div class="math-key" onclick="window.insertSymbol('⊃')">⊃</div>
+          <div class="math-key" onclick="window.insertSymbol('∪')">∪</div>
+          <div class="math-key" onclick="window.insertSymbol('∩')">∩</div>
+          <div class="math-key" onclick="window.insertSymbol('∅')">∅</div>
+          <div class="math-key" onclick="window.insertSymbol('⊥')">⊥</div>
+          <div class="math-key" onclick="window.insertSymbol('∥')">∥</div>
+          <div class="math-key" onclick="window.insertSymbol('∠')">∠</div>
+          <!-- Arrows & Misc -->
+          <div class="math-key" onclick="window.insertSymbol('→')">→</div>
+          <div class="math-key" onclick="window.insertSymbol('←')">←</div>
+          <div class="math-key" onclick="window.insertSymbol('↔')">↔</div>
+          <div class="math-key" onclick="window.insertSymbol('⇒')">⇒</div>
+          <div class="math-key" onclick="window.insertSymbol('⇐')">⇐</div>
+          <div class="math-key" onclick="window.insertSymbol('⇔')">⇔</div>
+          <div class="math-key" onclick="window.insertSymbol('ℏ')">ℏ</div>
+          <div class="math-key" onclick="window.insertSymbol('°')">°</div>
+          <div class="math-key" onclick="window.insertSymbol('′')">′</div>
+          <div class="math-key" onclick="window.insertSymbol('″')">″</div>
+        </div>
+      </div>
+
+      <!-- FALLBACK EDITORS -->
+      <div class="sidebar-section">
+        <div class="section-title">📝 Fallback Text & Options Editor</div>
+        <label style="font-size:10px; color:#94a3b8; font-weight:bold;">Edit Question Text:</label>
+        <textarea id="fallback-qtext" rows="2" class="fallback-input" placeholder="Edit question statement..."></textarea>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:2px;">
+          <div><label style="font-size:9px; color:#94a3b8;">Opt A:</label><input type="text" id="fallback-opta" class="fallback-input"></div>
+          <div><label style="font-size:9px; color:#94a3b8;">Opt B:</label><input type="text" id="fallback-optb" class="fallback-input"></div>
+          <div><label style="font-size:9px; color:#94a3b8;">Opt C:</label><input type="text" id="fallback-optc" class="fallback-input"></div>
+          <div><label style="font-size:9px; color:#94a3b8;">Opt D:</label><input type="text" id="fallback-optd" class="fallback-input"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showToast(text) {
+      const el = document.getElementById('toast-msg');
+      if (!el) return;
+      el.textContent = text; el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }
+
+    let canvas = document.getElementById('editor-canvas');
+    let ctx = canvas.getContext('2d');
+    let canvasWrap = document.getElementById('canvas-wrap');
+    let baseImg = new Image();
+    let currentMode = 'select'; 
+    let whiteners = []; 
+    let activeTextFieldId = null;
+    let selectedWhitenerColor = '#ffffff';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const imgData = localStorage.getItem('Temp_Editor_Image');
+      if (!imgData) {
+        alert("No image found! Please crop an image first from Slicer Studio.");
+        window.close();
+        return;
+      }
+
+      const qText = localStorage.getItem('Temp_QText');
+      if (qText) document.getElementById('fallback-qtext').value = qText;
+
+      baseImg.crossOrigin = "anonymous";
+      baseImg.src = imgData;
+      baseImg.onload = () => {
+        canvas.width = baseImg.naturalWidth;
+        canvas.height = baseImg.naturalHeight;
+        redrawCanvas();
+        showToast("✔ Image Loaded into Studio");
+      };
+    });
+
+    window.setWhitenerColor = function(color, pillId) {
+      selectedWhitenerColor = color;
+      document.querySelectorAll('.color-pill').forEach(p => p.classList.remove('active'));
+      document.getElementById(pillId).classList.add('active');
+      showToast(`🎨 Whitener Color Selected`);
+    };
+
+    window.toggleMathPopup = function() {
+      const grid = document.getElementById('math-popup-grid');
+      const icon = document.getElementById('math-toggle-icon');
+      grid.classList.toggle('open');
+      icon.textContent = grid.classList.contains('open') ? '▲ Close' : '▼ Open';
+    };
+
+    function redrawCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(baseImg, 0, 0);
+
+      whiteners.forEach(w => {
+        ctx.save();
+        ctx.fillStyle = w.color || '#ffffff';
+        ctx.fillRect(w.x, w.y, w.w, w.h);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(w.x, w.y, w.w, w.h);
+        ctx.restore();
+      });
+    }
+
+    window.setMode = function(mode) {
+      if (currentMode === mode) {
+        currentMode = 'select'; 
+      } else {
+        currentMode = mode;
+      }
+
+      document.getElementById('mode-whitener').style.background = (currentMode === 'whitener') ? '#059669' : '#1e293b';
+      document.getElementById('mode-ocr').style.background = (currentMode === 'ocr') ? '#0284c7' : '#1e293b';
+
+      if (currentMode === 'whitener') {
+        showToast("⬜ Whitener Mode ON: Drag to apply whiteout.");
+        document.getElementById('canvas-container').style.cursor = 'crosshair';
+      } else if (currentMode === 'ocr') {
+        showToast("🔍 OCR Mode ON: Drag over text to scan.");
+        document.getElementById('canvas-container').style.cursor = 'crosshair';
+      } else {
+        showToast("🖱️ Normal Cursor Mode");
+        document.getElementById('canvas-container').style.cursor = 'default';
+      }
+    };
+
+    const drawBox = document.getElementById('draw-box');
+    let isDrawing = false, startX = 0, startY = 0;
+
+    canvasWrap.onmousedown = (e) => {
+      if (currentMode === 'select') return; 
+      const wrapRect = canvasWrap.getBoundingClientRect();
+      if (e.clientX < wrapRect.left || e.clientX > wrapRect.right || e.clientY < wrapRect.top || e.clientY > wrapRect.bottom) return;
+
+      isDrawing = true;
+      startX = e.clientX - wrapRect.left;
+      startY = e.clientY - wrapRect.top;
+
+      drawBox.style.left = startX + 'px';
+      drawBox.style.top = startY + 'px';
+      drawBox.style.width = '0px';
+      drawBox.style.height = '0px';
+      drawBox.style.display = 'block';
+    };
+
+    canvasWrap.onmousemove = (e) => {
+      if (!isDrawing || currentMode === 'select') return;
+      const wrapRect = canvasWrap.getBoundingClientRect();
+      const curX = e.clientX - wrapRect.left;
+      const curY = e.clientY - wrapRect.top;
+
+      let left = Math.min(startX, curX);
+      let top = Math.min(startY, curY);
+      let width = Math.abs(curX - startX);
+      let height = Math.abs(curY - startY);
+
+      drawBox.style.left = `${left}px`;
+      drawBox.style.top = `${top}px`;
+      drawBox.style.width = `${width}px`;
+      drawBox.style.height = `${height}px`;
+    };
+
+    canvasWrap.onmouseup = async (e) => {
+      if (!isDrawing || currentMode === 'select') return;
+      isDrawing = false;
+      drawBox.style.display = 'none';
+
+      const boxW = parseFloat(drawBox.style.width);
+      const boxH = parseFloat(drawBox.style.height);
+
+      if (boxW > 5 && boxH > 5) {
+        const canvasRect = canvas.getBoundingClientRect();
+        const wrapRect = canvasWrap.getBoundingClientRect();
+        
+        const offsetX = canvasRect.left - wrapRect.left;
+        const offsetY = canvasRect.top - wrapRect.top;
+
+        const boxLeft = parseFloat(drawBox.style.left) - offsetX;
+        const boxTop = parseFloat(drawBox.style.top) - offsetY;
+
+        const scaleX = canvas.width / canvasRect.width;
+        const scaleY = canvas.height / canvasRect.height;
+
+        const x = Math.max(0, boxLeft * scaleX);
+        const y = Math.max(0, boxTop * scaleY);
+        const w = boxW * scaleX;
+        const h = boxH * scaleY;
+
+        let executedMode = currentMode;
+        window.setMode('select'); 
+
+        if (executedMode === 'whitener') {
+          whiteners.push({ x, y, w, h, color: selectedWhitenerColor });
+          redrawCanvas();
+          showToast("⬜ Solid Whitener Applied!");
+        } else if (executedMode === 'ocr') {
+          showToast("⏳ Scanning text via OCR...");
+          try {
+            const cropCanvas = document.createElement('canvas');
+            cropCanvas.width = w;
+            cropCanvas.height = h;
+            const cropCtx = cropCanvas.getContext('2d');
+            cropCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
+            
+            const dataUrl = cropCanvas.toDataURL('image/png');
+            const result = await Tesseract.recognize(dataUrl, 'eng+hin');
+            const extractedText = result.data.text.trim() || "No text detected";
+            
+            window.addNewTextBoxAt(parseFloat(drawBox.style.left), parseFloat(drawBox.style.top), Math.max(boxW, 220), Math.max(boxH, 50), extractedText);
+            showToast("✔ Text Extracted Successfully!");
+          } catch (err) {
+            console.error(err);
+            showToast("❌ OCR Failed. Created empty box.");
+            window.addNewTextBoxAt(parseFloat(drawBox.style.left), parseFloat(drawBox.style.top), boxW, boxH, "");
+          }
+        }
+      }
+    };
+
+    window.addNewTextBox = function() {
+      window.addNewTextBoxAt(100, 120, 240, 60, "Type clean text or equation here...");
+    };
+
+    window.addNewTextBoxAt = function(leftPx, topPx, widthPx, heightPx, initialText) {
+      const layer = document.getElementById('overlay-layer');
+      const id = 'text-box-' + Date.now();
+      
+      const div = document.createElement('div');
+      div.id = 'container-' + id;
+      div.className = 'text-overlay-box';
+      div.style.pointerEvents = 'auto';
+      div.style.top = topPx + 'px'; 
+      div.style.left = leftPx + 'px';
+      if (widthPx) div.style.width = widthPx + 'px';
+      if (heightPx) div.style.height = heightPx + 'px';
+      
+      div.innerHTML = `
+        <div class="box-handle" onmousedown="window.setActiveField('${id}')">
+          <span>📌 Text Box (Drag)</span>
+          <button onclick="document.getElementById('container-${id}').remove()" style="background:#7f1d1d; color:white; border:none; padding:1px 4px; font-size:8px; cursor:pointer; border-radius:2px;">✕</button>
+        </div>
+        <div contenteditable="true" id="${id}" onclick="window.setActiveField('${id}')" style="outline:none; font-size:14px; color:#000; min-height:35px; padding:2px;">${initialText || ''}</div>
+      `;
+      layer.appendChild(div);
+      makeDraggable(div);
+      window.setActiveField(id);
+    };
+
+    window.setActiveField = function(id) {
+      activeTextFieldId = id;
+      document.querySelectorAll('.text-overlay-box').forEach(b => b.style.borderColor = '#38bdf8');
+      const active = document.getElementById('container-' + id);
+      if (active) active.style.borderColor = '#10b981';
+    };
+
+    function makeDraggable(elmnt) {
+      let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+      const header = elmnt.querySelector('.box-handle');
+      header.onmousedown = dragMouseDown;
+
+      function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+      }
+
+      function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+      }
+
+      function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+      }
+    }
+
+    window.insertScriptTag = function(tag) {
+      if (!activeTextFieldId) {
+        window.addNewTextBox();
+      }
+      setTimeout(() => {
+        const el = document.getElementById(activeTextFieldId);
+        if (!el) return;
+        el.focus();
+
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+        let range = sel.getRangeAt(0);
+
+        let wrapper = document.createElement(tag);
+        wrapper.innerHTML = ""; 
+
+        if (!range.collapsed) {
+          wrapper.appendChild(range.extractContents());
+        }
+
+        range.deleteContents();
+        range.insertNode(wrapper);
+
+        let spaceNode = document.createTextNode("\u00A0");
+        wrapper.parentNode.insertBefore(spaceNode, wrapper.nextSibling);
+
+        range.setStartAfter(spaceNode);
+        range.setEndAfter(spaceNode);
+        sel.removeAllRanges();
+        sel.addRange(range);
+
+        showToast(`🔤 Type custom ${tag.toUpperCase()} text now`);
+      }, 50);
+    };
+
+    window.insertSymbol = function(sym) {
+      if (!activeTextFieldId) window.addNewTextBox();
+      setTimeout(() => {
+        const el = document.getElementById(activeTextFieldId);
+        if (!el) return;
+        el.focus();
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+          let range = sel.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(document.createTextNode(sym));
+        } else {
+          el.innerText += sym;
+        }
+      }, 50);
+    };
+
+    window.changeTextSize = function(delta) {
+      if (!activeTextFieldId) return alert("Click inside a text box first!");
+      const el = document.getElementById(activeTextFieldId);
+      if (!el) return;
+      let curSize = parseInt(window.getComputedStyle(el).fontSize) || 14;
+      let newSize = Math.max(10, Math.min(36, curSize + delta));
+      el.style.fontSize = newSize + 'px';
+    };
+
+    window.clearAllEdits = function() {
+      whiteners = [];
+      redrawCanvas();
+      document.getElementById('overlay-layer').innerHTML = '';
+      activeTextFieldId = null;
+      showToast("🗑️ All edits cleared!");
+    };
+
+    // SMART BACK / RETURN FUNCTION (Works seamlessly whether opened via modal iframe or standalone tab)
+    window.goBackToSlicer = function() {
+      if (window.parent && typeof window.parent.closeStudioModal === 'function') {
+        window.parent.closeStudioModal();
+      } else {
+        window.history.back();
+      }
+    };
+
+    window.saveAndSyncToParent = async function() {
+      showToast("⏳ Rendering Final Image & Overlays...");
+
+      const canvasRect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / canvasRect.width;
+      const scaleY = canvas.height / canvasRect.height;
+
+      document.querySelectorAll('.text-overlay-box').forEach(tb => {
+        const r = tb.getBoundingClientRect();
+        const x = (r.left - canvasRect.left) * scaleX;
+        const y = (r.top - canvasRect.top) * scaleY;
+        const w = r.width * scaleX;
+        const h = r.height * scaleY;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, w, h);
+
+        const contentDiv = tb.querySelector('[contenteditable="true"]');
+        if (contentDiv) {
+          const computedFontSize = parseInt(window.getComputedStyle(contentDiv).fontSize) || 14;
+          const scaledFontSize = computedFontSize * scaleY;
+          const padding = 6 * scaleX;
+
+          let lineY = y + padding + scaledFontSize; 
+          let lineX = x + padding;
+          let currentLineX = lineX;
+          
+          function renderEditableContent(element) {
+            for (let node of element.childNodes) {
+              if (node.nodeType === Node.TEXT_NODE) {
+                let words = node.textContent.replace(/[\u200B-\u200D\uFEFF]/g, '').split(/(\s+)/);
+                for (let word of words) {
+                  if (!word) continue;
+                  ctx.font = `${scaledFontSize}px sans-serif`;
+                  let m = ctx.measureText(word);
+                  if (currentLineX + m.width > (x + w - padding) && word.trim() !== '') {
+                    lineY += scaledFontSize * 1.3;
+                    currentLineX = lineX;
+                  }
+                  ctx.fillStyle = '#000000';
+                  ctx.textBaseline = 'alphabetic';
+                  ctx.fillText(word, currentLineX, lineY);
+                  currentLineX += m.width;
+                }
+              } else if (node.nodeType === Node.ELEMENT_NODE) {
+                let tag = node.tagName.toLowerCase();
+                if (tag === 'br') {
+                  lineY += scaledFontSize * 1.3;
+                  currentLineX = lineX;
+                } else if (tag === 'sup' || tag === 'sub') {
+                  let subSize = scaledFontSize * 0.75;
+                  let offsetY = tag === 'sup' ? -scaledFontSize * 0.35 : scaledFontSize * 0.2;
+                  
+                  ctx.font = `${subSize}px sans-serif`;
+                  let subText = (node.innerText || node.textContent || '').replace(/[\u200B-\u200D\uFEFF]/g, '');
+                  let m = ctx.measureText(subText);
+
+                  if (currentLineX + m.width > (x + w - padding)) {
+                    lineY += scaledFontSize * 1.3;
+                    currentLineX = lineX;
+                  }
+
+                  ctx.fillStyle = '#000000';
+                  ctx.textBaseline = 'alphabetic';
+                  ctx.fillText(subText, currentLineX, lineY + offsetY);
+                  currentLineX += m.width;
+                } else {
+                  renderEditableContent(node);
+                }
+              }
+            }
+          }
+          renderEditableContent(contentDiv);
+        }
+      });
+
+      const finalUrl = canvas.toDataURL('image/png');
+      localStorage.setItem('Temp_Editor_Synced_Image', finalUrl);
+      
+      localStorage.setItem('Temp_Fallback_QText', document.getElementById('fallback-qtext').value.trim());
+      localStorage.setItem('Temp_Fallback_OptA', document.getElementById('fallback-opta').value);
+      localStorage.setItem('Temp_Fallback_OptB', document.getElementById('fallback-optb').value);
+      localStorage.setItem('Temp_Fallback_OptC', document.getElementById('fallback-optc').value);
+      localStorage.setItem('Temp_Fallback_OptD', document.getElementById('fallback-optd').value);
+
+      showToast("✔ Saved Successfully! Returning...");
+      setTimeout(() => { 
+        window.goBackToSlicer();
+      }, 800);
+    };
+
+    window.closeWindow = function() {
+      if (confirm("Discard changes and return?")) {
+        window.goBackToSlicer();
+      }
+    };
+  </script>
+</body>
+</html>
