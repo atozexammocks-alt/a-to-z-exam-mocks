@@ -1,4 +1,8 @@
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const MODELS = [
+  process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  'gemini-3.5-flash',
+  'gemini-3.6-flash'
+].filter((model, index, list) => model && list.indexOf(model) === index);
 const API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
 
 const itemSchema = {
@@ -94,6 +98,27 @@ function extractGoogleError(raw, httpStatus) {
   };
 }
 
+function isOverloadError(googleError) {
+  const haystack = [
+    googleError?.httpStatus,
+    googleError?.status,
+    googleError?.code,
+    googleError?.message,
+    ...(googleError?.reasons || []),
+    ...(googleError?.details || []).map((d) => d?.message)
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return (
+    googleError?.httpStatus === 503 ||
+    googleError?.code === 503 ||
+    googleError?.httpStatus === 429 ||
+    /unavailable|overload|overloaded|high demand|resource exhausted|rate limit|too many requests/.test(haystack)
+  );
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return send(res, 405, { error: 'POST only' });
@@ -157,101 +182,145 @@ module.exports = async (req, res) => {
       });
     }
 
-    const endpoint =
-      'https://generativelanguage.googleapis.com/v1beta/models/' +
-      encodeURIComponent(MODEL) +
-      ':generateContent';
+    const requestBody = {
+      contents: [{ role: 'user', parts }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+        temperature: 0.1,
+        maxOutputTokens: 4096
+      }
+    };
 
-    console.log(`[Gemini] Request: mode=${mode}, model=${MODEL}, image=${!!image}, text=${!!pageText}`);
+    let lastGoogleError = null;
 
-    const r = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': API_KEY
-      },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: {
-          responseMimeType: 'application/json',
-          responseSchema: schema,
-          temperature: 0.1,
-          maxOutputTokens: 4096
-        }
-      })
-    });
+    for (let modelIndex = 0; modelIndex < MODELS.length; modelIndex += 1) {
+      const model = MODELS[modelIndex];
+      const endpoint =
+        'https://generativelanguage.googleapis.com/v1beta/models/' +
+        encodeURIComponent(model) +
+        ':generateContent';
 
-    const raw = await r.text();
+      console.log(`[Gemini] Request: mode=${mode}, model=${model}, image=${!!image}, text=${!!pageText}`);
 
-    if (!r.ok) {
-      const googleError = extractGoogleError(raw, r.status);
-
-      console.error('[Gemini] API ERROR', {
-        httpStatus: googleError.httpStatus,
-        status: googleError.status,
-        code: googleError.code,
-        reasons: googleError.reasons,
-        message: googleError.message,
-        details: googleError.details
+      const r = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': API_KEY
+        },
+        body: JSON.stringify(requestBody)
       });
 
-      let userMessage = `Gemini API ${googleError.httpStatus}`;
-      if (googleError.status) userMessage += ` ${googleError.status}`;
-      if (googleError.reasons.length) userMessage += ` — ${googleError.reasons.join(', ')}`;
-      userMessage += `: ${googleError.message}`;
+      const raw = await r.text();
 
-      return send(res, r.status, {
-        error: userMessage,
-        google: {
+      if (!r.ok) {
+        const googleError = extractGoogleError(raw, r.status);
+        lastGoogleError = googleError;
+
+        console.error('[Gemini] API ERROR', {
+          model,
           httpStatus: googleError.httpStatus,
           status: googleError.status,
           code: googleError.code,
           reasons: googleError.reasons,
           message: googleError.message,
           details: googleError.details
+        });
+
+        if (modelIndex < MODELS.length - 1 && isOverloadError(googleError)) {
+          const nextModel = MODELS[modelIndex + 1];
+          console.warn(`[Gemini] Model ${model} is busy/unavailable. Falling back to ${nextModel}.`);
+          continue;
+        }
+
+        let userMessage = `Gemini API ${googleError.httpStatus}`;
+        if (googleError.status) userMessage += ` ${googleError.status}`;
+        if (googleError.reasons.length) userMessage += ` — ${googleError.reasons.join(', ')}`;
+        userMessage += `: ${googleError.message}`;
+
+        return send(res, r.status, {
+          error: userMessage,
+          google: {
+            httpStatus: googleError.httpStatus,
+            status: googleError.status,
+            code: googleError.code,
+            reasons: googleError.reasons,
+            message: googleError.message,
+            details: googleError.details
+          },
+          model,
+          triedModels: MODELS.slice(0, modelIndex + 1)
+        });
+      }
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (_) {
+        console.error('[Gemini] Invalid JSON gateway response:', raw.slice(0, 2000));
+        return send(res, 502, { error: 'Invalid response from Gemini gateway.', model });
+      }
+
+      const candidate = data.candidates?.[0];
+      const text = candidate?.content?.parts?.map((p) => p.text || '').join('') || '';
+
+      if (!text) {
+        console.error('[Gemini] No candidate content', {
+          model,
+          promptFeedback: data.promptFeedback || null,
+          finishReason: candidate?.finishReason || null
+        });
+        return send(res, 502, {
+          error: 'Gemini returned no result.',
+          detail: data.promptFeedback || candidate?.finishReason || 'No candidate content.',
+          model
+        });
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch (_) {
+        console.error('[Gemini] Invalid model JSON:', text.slice(0, 2000));
+        return send(res, 502, {
+          error: 'Gemini returned invalid JSON.',
+          detail: text.slice(0, 2000),
+          model
+        });
+      }
+
+      console.log(`[Gemini] Success: mode=${mode}, model=${model}`);
+
+      return mode === 'detect_boxes'
+        ? send(res, 200, { boxes: parsed, model })
+        : send(res, 200, { items: Array.isArray(parsed) ? parsed : [], model });
+    }
+
+    if (lastGoogleError) {
+      let userMessage = `Gemini API ${lastGoogleError.httpStatus}`;
+      if (lastGoogleError.status) userMessage += ` ${lastGoogleError.status}`;
+      if (lastGoogleError.reasons.length) userMessage += ` — ${lastGoogleError.reasons.join(', ')}`;
+      userMessage += `: ${lastGoogleError.message}`;
+
+      return send(res, lastGoogleError.httpStatus || 503, {
+        error: userMessage,
+        google: {
+          httpStatus: lastGoogleError.httpStatus,
+          status: lastGoogleError.status,
+          code: lastGoogleError.code,
+          reasons: lastGoogleError.reasons,
+          message: lastGoogleError.message,
+          details: lastGoogleError.details
         },
-        model: MODEL
+        triedModels: MODELS
       });
     }
 
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch (_) {
-      console.error('[Gemini] Invalid JSON gateway response:', raw.slice(0, 2000));
-      return send(res, 502, { error: 'Invalid response from Gemini gateway.' });
-    }
-
-    const candidate = data.candidates?.[0];
-    const text = candidate?.content?.parts?.map((p) => p.text || '').join('') || '';
-
-    if (!text) {
-      console.error('[Gemini] No candidate content', {
-        promptFeedback: data.promptFeedback || null,
-        finishReason: candidate?.finishReason || null
-      });
-      return send(res, 502, {
-        error: 'Gemini returned no result.',
-        detail: data.promptFeedback || candidate?.finishReason || 'No candidate content.'
-      });
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch (_) {
-      console.error('[Gemini] Invalid model JSON:', text.slice(0, 2000));
-      return send(res, 502, {
-        error: 'Gemini returned invalid JSON.',
-        detail: text.slice(0, 2000)
-      });
-    }
-
-    console.log(`[Gemini] Success: mode=${mode}, model=${MODEL}`);
-
-    return mode === 'detect_boxes'
-      ? send(res, 200, { boxes: parsed })
-      : send(res, 200, { items: Array.isArray(parsed) ? parsed : [] });
+    return send(res, 503, {
+      error: 'All configured Gemini models were unavailable.',
+      triedModels: MODELS
+    });
   } catch (e) {
     console.error('[Gemini] Server exception:', e);
     return send(res, 500, {
