@@ -1,4 +1,4 @@
-const MODELS = ['gemini-2.5-flash','gemini-3.7-flash','gemini-3.6-flash','gemini-3.5-flash'];
+const MODELS = ['gemini-3.5-flash','gemini-3.6-flash','gemini-2.5-flash'];
 const API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
 const box={type:'object',properties:{x:{type:'number'},y:{type:'number'},w:{type:'number'},h:{type:'number'}},required:['x','y','w','h']};
 const opt={type:'object',properties:{text:{type:'string'},box},required:['text','box']};
