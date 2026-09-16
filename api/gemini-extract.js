@@ -64,6 +64,44 @@ function parseImage(s) {
   return { mime: m[1].toLowerCase().replace('jpg', 'jpeg'), data: m[2] };
 }
 
+// Keep formulas readable in the saved question text. Gemini sometimes returns
+// valid LaTeX even when the source is ordinary printed math; convert the common
+// notation to Unicode/plain-text equivalents instead of exposing raw commands.
+function cleanMath(value) {
+  if (typeof value !== 'string') return value;
+  let s = value;
+  s = s.replace(/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)');
+  s = s.replace(/\\sqrt\s*\{([^{}]*)\}/g, '√($1)');
+  s = s.replace(/\\(?:dfrac|tfrac)\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, '($1)/($2)');
+  s = s.replace(/\\times/g, '×').replace(/\\cdot/g, '·').replace(/\\div/g, '÷');
+  s = s.replace(/\\pm/g, '±').replace(/\\mp/g, '∓').replace(/\\leq/g, '≤').replace(/\\geq/g, '≥');
+  s = s.replace(/\\neq/g, '≠').replace(/\\approx/g, '≈').replace(/\\infty/g, '∞');
+  s = s.replace(/\\pi/g, 'π').replace(/\\theta/g, 'θ').replace(/\\lambda/g, 'λ').replace(/\\mu/g, 'μ');
+  s = s.replace(/\\alpha/g, 'α').replace(/\\beta/g, 'β').replace(/\\gamma/g, 'γ').replace(/\\Delta/g, 'Δ');
+  s = s.replace(/\\degree/g, '°').replace(/\\%/g, '%');
+  s = s.replace(/\^\{([^{}]+)\}/g, '^$1').replace(/_\{([^{}]+)\}/g, '_$1');
+  s = s.replace(/\\left|\\right|\\text\s*/g, '');
+  s = s.replace(/\$\$?|\\\(|\\\)/g, '');
+  s = s.replace(/\\,/g, ' ').replace(/\\;/g, ' ').replace(/\\!/g, '');
+  // Remove only remaining LaTeX command slashes, never ordinary backslashes in prose.
+  s = s.replace(/\\([a-zA-Z]+)\b/g, '$1');
+  return s.replace(/[ \t]{2,}/g, ' ').trim();
+}
+
+function cleanQuestion(q) {
+  if (!q || typeof q !== 'object') return q;
+  for (const k of ['qText', 'optA', 'optB', 'optC', 'optD', 'key', 'topic', 'targetPath', 'mainFolder', 'subFolder']) {
+    if (typeof q[k] === 'string') q[k] = cleanMath(q[k]);
+  }
+  // If the model included labelled options inside qText, do not duplicate them;
+  // the dedicated option fields remain authoritative.
+  return q;
+}
+
+function cleanQuestions(list) {
+  return Array.isArray(list) ? list.map(cleanQuestion) : [];
+}
+
 function extractGoogleError(raw, httpStatus) {
   let parsed = null;
   try { parsed = JSON.parse(raw); } catch (_) {}
@@ -95,19 +133,19 @@ module.exports = async (req, res) => {
     if (mode === 'detect_boxes') {
       if (!image) return send(res, 400, { error: 'detect_boxes requires imageDataUrl.' });
       schema = boxSchema;
-      prompt = 'You are an exam PDF layout detector. Inspect this FULL single PDF page image. Identify the main question region and the answer/solution region if a distinct answer/solution is visibly present. Return normalized x,y,w,h boxes from 0 to 1000. The question box should contain the complete MCQ statement and options. Keep boxes inside the page. Confidence 0-1.';
+      prompt = 'You are an exam PDF layout detector. Inspect this FULL single PDF page image. Identify the main question region and the answer/solution region if a distinct answer/solution is visibly present. Return normalized x,y,w,h boxes from 0 to 1000. The question box should contain the complete MCQ statement and ALL visible options. Keep boxes inside the page. Confidence 0-1.';
     } else if (mode === 'scan_questions') {
       if (!image) return send(res, 400, { error: 'scan_questions requires imageDataUrl.' });
       schema = scanSchema;
-      prompt = 'You are an exam-page scanner. Inspect the FULL single PDF page image and identify every distinct MCQ/question visible in reading order. Extract question text/options and normalized question/solution boxes x,y,w,h from 0 to 1000. Classify each question into the closest existing Book Section/Sub-section from this list: [' + folders + ']. If no reasonable match exists, create a clean new mainFolder/subFolder based only on the topic. Never invent unrelated folder names.';
+      prompt = 'You are a high-accuracy exam-page scanner. Inspect the FULL single PDF page image pixel-by-pixel and identify EVERY distinct MCQ/question in reading order. For EACH question, extract the complete question statement AND every visible answer option into the dedicated optA, optB, optC, optD fields. If the page visibly contains A, B, C and D, ALL FOUR fields are mandatory and must never be blank. Do not skip an option because it is on another line, contains an equation, symbol, image, Hindi text, or small font. Cross-check the rendered image against the native text when available. Preserve mathematical meaning using clean readable Unicode/plain text (for example nRT/g, √x, a², x₁, ≤, ≥, ×); DO NOT output raw LaTeX commands such as \\frac, \\sqrt, \\alpha or dollar-delimited math. Never invent an option that is not visible. If an option is genuinely absent from the image, leave only that field empty. Extract answer key only when visibly available. Return normalized question/solution boxes x,y,w,h from 0 to 1000. Classify each question into the closest existing Book Section/Sub-section from this list: [' + folders + ']. If no reasonable match exists, create a clean new mainFolder/subFolder based only on the topic. Never invent unrelated folder names.';
     } else {
       schema = itemSchema;
-      prompt = image && !pageText ? 'Extract the MCQ(s) visible in this image.' : 'Extract EVERY MCQ visible in this single PDF page. Preserve mathematical symbols, subscripts, superscripts, Hindi/English text and numbering. Never invent missing text.';
+      prompt = image && !pageText ? 'Extract EVERY MCQ visible in this image with maximum OCR accuracy.' : 'Extract EVERY MCQ visible in this single PDF page. For every question, carefully inspect the rendered image and native PDF text together. If A/B/C/D options are visibly present, extract ALL FOUR into optA, optB, optC and optD; NEVER leave a visible option blank or skip it. An option may span multiple lines and may contain mathematical symbols, fractions, roots, subscripts, superscripts, Hindi/English text or images. Preserve the mathematical meaning in clean readable Unicode/plain text (e.g. nRT/g, (a+b)/c, √x, a², x₁, ≤, ≥, ×). DO NOT emit raw LaTeX commands such as \\frac, \\sqrt, \\alpha or $...$. Never invent missing text or options.';
       prompt += ' Return only the requested JSON array. If an answer key is not visible, return an empty key. Choose the closest library path from [' + folders + '].';
     }
 
     const parts = [{ text: prompt }];
-    if (pageText) parts.push({ text: 'Native PDF text:\n' + pageText });
+    if (pageText) parts.push({ text: 'Native PDF text (use as a cross-check, but the rendered image is authoritative for layout/options):\n' + pageText });
     if (image) parts.push({ inline_data: { mime_type: image.mime, data: image.data } });
 
     let lastFailure = null;
@@ -133,8 +171,8 @@ module.exports = async (req, res) => {
         try { parsed = JSON.parse(text); } catch (_) { lastFailure = { model, message: 'Gemini returned invalid JSON.' }; continue; }
         console.log(`[Gemini] Success: mode=${mode}, model=${model}`);
         if (mode === 'detect_boxes') return send(res, 200, { boxes: parsed, model });
-        if (mode === 'scan_questions') return send(res, 200, { questions: Array.isArray(parsed?.questions) ? parsed.questions : [], model });
-        return send(res, 200, { items: Array.isArray(parsed) ? parsed : [], model });
+        if (mode === 'scan_questions') return send(res, 200, { questions: cleanQuestions(parsed?.questions), model });
+        return send(res, 200, { items: cleanQuestions(parsed), model });
       } catch (modelError) {
         lastFailure = { model, message: modelError?.message || 'Network/model request error.' };
         console.error(`[Gemini] Model ${model} exception:`, modelError);
