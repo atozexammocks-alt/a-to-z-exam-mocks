@@ -1,5 +1,5 @@
 // Shared A to Z Exam Mocks core helpers.
-// Keeps Firestore documents small by moving data-URL images to Firebase Storage.
+// Moves data-URL images to Firebase Storage so Firestore documents stay small.
 import { getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { getStorage, ref, uploadString, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
@@ -7,28 +7,26 @@ import { getStorage, ref, uploadString, getDownloadURL } from 'https://www.gstat
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 let authReady;
 function isDataImage(value) { return typeof value === 'string' && /^data:image\//i.test(value); }
+function mimeFromDataUrl(dataUrl) { const m = String(dataUrl).match(/^data:(image\/[a-z0-9.+-]+);base64,/i); return m ? m[1].toLowerCase() : 'image/jpeg'; }
 async function ensureAnonymousAuth() {
-  try {
-    const auth = getAuth(getApp());
-    if (!auth.currentUser) await signInAnonymously(auth);
-    window.atozFirebaseUser = auth.currentUser;
-    return auth.currentUser;
-  } catch (e) {
-    console.warn('Anonymous Firebase Auth unavailable:', e.message);
-    throw new Error('Firebase Anonymous Authentication is not enabled. Enable Authentication → Sign-in method → Anonymous in the Firebase console.');
-  }
+  const auth = getAuth(getApp());
+  if (!auth.currentUser) await signInAnonymously(auth);
+  window.atozFirebaseUser = auth.currentUser;
+  return auth.currentUser;
 }
-authReady = ensureAnonymousAuth();
+authReady = ensureAnonymousAuth().catch(e => { console.error(e); throw new Error('Firebase Anonymous Authentication is not enabled. Enable Authentication → Sign-in method → Anonymous in Firebase Console.'); });
 async function uploadDataUrl(dataUrl, folder = 'question-images') {
   if (!isDataImage(dataUrl)) return dataUrl || '';
   await authReady;
   const base64 = dataUrl.split(',')[1] || '';
-  const bytes = Math.ceil((base64.length * 3) / 4);
+  const bytes = Math.floor(base64.length * 3 / 4);
   if (bytes > MAX_IMAGE_BYTES) throw new Error(`Image is larger than ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`);
   const storage = getStorage(getApp());
-  const id = `${Date.now()}-${crypto.randomUUID()}.png`;
+  const mime = mimeFromDataUrl(dataUrl);
+  const ext = mime.split('/')[1].replace('jpeg','jpg');
+  const id = `${Date.now()}-${crypto.randomUUID()}.${ext}`;
   const storageRef = ref(storage, `${folder}/${id}`);
-  await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/png', cacheControl: 'public,max-age=31536000,immutable' });
+  await uploadString(storageRef, dataUrl, 'data_url', { contentType: mime, cacheControl: 'public,max-age=31536000,immutable' });
   return getDownloadURL(storageRef);
 }
 async function externalize(data) {
