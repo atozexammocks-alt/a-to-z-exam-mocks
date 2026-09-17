@@ -1,6 +1,8 @@
 name: Expose uploader items
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/expose-uploader-items.yml'
 permissions:
   contents: write
 jobs:
@@ -21,7 +23,7 @@ jobs:
           s=s.replace(old,new,1)
           p.write_text(s)
           PY
-      - name: Commit
+      - name: Commit uploader patch
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
@@ -29,7 +31,7 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Expose uploader items to Student Preview"
           git push
-      - name: Remove workflow
+      - name: Remove temporary workflow
         if: success()
         run: |
           git rm .github/workflows/expose-uploader-items.yml
