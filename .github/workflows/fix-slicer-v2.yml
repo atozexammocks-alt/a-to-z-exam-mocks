@@ -1,0 +1,69 @@
+name: Slicer math and crop repair
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch frontend and backend
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('ai_uploader.html'); s=p.read_text()
+          old="function mathHTML(t){let s=esc(t||'');s=s.replace(/\\\\\\[([\\s\\S]*?)\\\\\\]/g,'<div>\\\\[$1\\\\]</div>').replace(/\\\\\\((.*?)\\\\\\)/g,'\\\\($1\\\\)');return s.replace(/\\n/g,'<br>')}"
+          new="""function mathHTML(t){let s=esc(t||'');s=s.replace(/\\\\\\[([\\s\\S]*?)\\\\\\]/g,'<div>\\\\[$1\\\\]</div>').replace(/\\\\\\((.*?)\\\\\\)/g,'\\\\($1\\\\)');s=s.replace(/\\n/g,'<br>');return s}"""
+          if old not in s: raise SystemExit('mathHTML anchor not found')
+          s=s.replace(old,new,1)
+          old="function previewOption(x,k){const t=optionText(x,k),img=x.optionImages?.[k]||'';return `<div class=\\\"op\\\"><b>(${k})</b> <span class=\\\"mathRender\\\">${mathHTML(t||(!img?'[Option not detected]':''))}</span>${img?`<div class=\\\"figure\\\"><span class=\\\"muted\\\">Option image</span><img src=\\\"${img}\\\"></div>`:''}</div>`}"
+          new="function previewOption(x,k){const t=optionText(x,k),img=x.optionImages?.[k]||'';return `<div class=\\\"op\\\"><b>(${k})</b> <span class=\\\"mathRender\\\">${mathHTML(t||(!img?'[Option not detected]':''))}</span>${img?`<div class=\\\"figure\\\"><span class=\\\"muted\\\">Option image</span><img src=\\\"${img}\\\"></div>`:''}</div>`}"
+          if old not in s: raise SystemExit('previewOption anchor not found')
+          # replace the entire right panel so the original PDF page is visible again, with the AI crop box highlighted
+          a=s.find('<div class=\"qright\"><div class=\"assign\"><div class=\"assignTitle\">🖼️ QUESTION IMAGE — editable crop</div>')
+          if a<0: raise SystemExit('qright anchor not found')
+          b=s.find('<div style=\"display:none\">',a)
+          if b<0: raise SystemExit('qright end not found')
+          newright='<div class=\"qright\"><div class=\"assign\"><div class=\"assignTitle\">📄 ORIGINAL PDF PAGE — crop here</div><div class=\"small\">The original page stays untouched. The red box is the AI-detected question area. Drag a new crop using the button below.</div></div><div class=\"preview\" style=\"padding:8px\"><div class=\"sidePage\" style=\"position:relative;background:#fff;overflow:auto\">${x.sourcePageImage?`<img src=\"${x.sourcePageImage}\" style=\"width:100%;height:auto;display:block\">${x.questionBox?`<div style=\"position:absolute;left:${x.questionBox.x/10}%;top:${x.questionBox.y/10}%;width:${x.questionBox.w/10}%;height:${x.questionBox.h/10}%;border:3px solid #dc2626;background:rgba(220,38,38,.10);pointer-events:none\"></div>`:''}`:`<div class=\"reviewText\">Original PDF page unavailable.</div>`}</div><div class=\"actions\"><button class=\"miniBtn primary\" onclick=\"openQuestionCrop(${i})\">✂️ Crop / Fix Question</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'A')\">A crop</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'B')\">B crop</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'C')\">C crop</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'D')\">D crop</button><button class=\"miniBtn\" onclick=\"openSolutionCrop(${i})\">Solution crop</button></div><div class=\"reviewText\" style=\"background:#fff;color:#111\">${mathHTML(langText(x))}</div></div></div>'
+          s=s[:a]+newright+s[b:]
+          # add explicit math normalization before mathHTML
+          old="function langText(x){if(x.languageMode==='hi')return x.qTextHindi||x.qText||'';if(x.languageMode==='en')return x.qTextEnglish||x.qText||'';if(x.qTextHindi&&x.qTextEnglish)return x.qTextHindi+'\\n\\n'+x.qTextEnglish;return x.qText||''}"
+          new="function langText(x){if(x.languageMode==='hi')return x.qTextHindi||x.qText||'';if(x.languageMode==='en')return x.qTextEnglish||x.qText||'';if(x.qTextHindi&&x.qTextEnglish)return x.qTextHindi+'\\n\\n'+x.qTextEnglish;return x.qText||''}function normalizeMathText(t){let s=String(t||'');const greek={'σ':'\\\\sigma','ρ':'\\\\rho','μ':'\\\\mu','ε':'\\\\epsilon','α':'\\\\alpha','β':'\\\\beta','γ':'\\\\gamma','λ':'\\\\lambda','ω':'\\\\omega','π':'\\\\pi','θ':'\\\\theta','Δ':'\\\\Delta','Ω':'\\\\Omega'};for(const[k,v]of Object.entries(greek))s=s.split(k).join(v);s=s.replace(/([\\\\](?:sigma|rho|mu|epsilon|alpha|beta|gamma|lambda|omega|pi|theta|Delta|Omega)(?:\\\\b)?[^\\n]*=[^\\n]+)/g,m=>m);return s}"
+          if old not in s: raise SystemExit('langText anchor not found')
+          s=s.replace(old,new,1)
+          # ensure preview passes normalized math
+          s=s.replace('mathHTML(langText(x))','mathHTML(normalizeMathText(langText(x)))',1)
+          s=s.replace('mathHTML(t||(!img?\'[Option not detected]\':\'\'))','mathHTML(normalizeMathText(t||(!img?\'[Option not detected]\':\'\')))',1)
+          # fix editor preview question too if still raw
+          s=s.replace('mathHTML(langText(x))}</span>','mathHTML(normalizeMathText(langText(x)))}</span>',1)
+          p.write_text(s)
+
+          p=Path('api/gemini-extract.js'); s=p.read_text()
+          old="const clean=s=>typeof s==='string'?s.replace(/[ \\t]{2,}/g,' ').trim():s;"
+          new="const clean=s=>typeof s==='string'?s.replace(/[ \\t]{2,}/g,' ').trim():s;"
+          if old not in s: raise SystemExit('clean anchor not found')
+          # Add a conservative normalizer that preserves LaTeX and converts common bare Unicode math symbols.
+          anchor="const cleanItems="
+          helper="""const normalizeMath=s=>typeof s==='string'?s.replace(/[σ]/g,'\\\\sigma').replace(/[ρ]/g,'\\\\rho').replace(/[μ]/g,'\\\\mu').replace(/[ε]/g,'\\\\epsilon').replace(/[α]/g,'\\\\alpha').replace(/[β]/g,'\\\\beta').replace(/[γ]/g,'\\\\gamma').replace(/[λ]/g,'\\\\lambda').replace(/[ω]/g,'\\\\omega').replace(/[π]/g,'\\\\pi').replace(/[θ]/g,'\\\\theta').replace(/[Δ]/g,'\\\\Delta').replace(/[Ω]/g,'\\\\Omega'):s;\n"""
+          if 'const normalizeMath=' not in s: s=s.replace(anchor,helper+anchor,1)
+          s=s.replace('q[k]=clean(q[k]);','q[k]=normalizeMath(clean(q[k]));')
+          s=s.replace('q[k].text=clean(q[k].text);','q[k].text=normalizeMath(clean(q[k].text));')
+          p.write_text(s)
+          PY
+      - name: Validate
+        run: |
+          node --check api/gemini-extract.js
+          grep -q 'ORIGINAL PDF PAGE — crop here' ai_uploader.html
+          grep -q 'normalizeMath' ai_uploader.html
+          grep -q 'normalizeMath' api/gemini-extract.js
+      - name: Commit and remove workflow
+        run: |
+          rm -f .github/workflows/fix-slicer-v2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ai_uploader.html api/gemini-extract.js .github/workflows/fix-slicer-v2.yml
+          git commit -m 'fix: restore source crop view and normalize math rendering'
+          git push
