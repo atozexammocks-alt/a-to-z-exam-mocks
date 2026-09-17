@@ -30,7 +30,7 @@ initializeApp(cfg);window.db=getFirestore();window.collection=collection;window.
 </main>
 <div id="modal" class="modal" onclick="if(event.target===this)closeModal()"><div class="modalcard"><div class="modalhead"><b id="modalTitle">Crop / Review</b><button onclick="closeModal()">✕ Close</button></div><div id="modalBody"></div></div></div>
 <script>
-let items=[],pageCache={},folderMap={General:['General']},folders=['General / General'],stopRequested=false,reviewIndex=-1,dragging=false,dragStart=null;
+let items=[];Object.defineProperty(window,"items",{configurable:true,get:()=>items});pageCache={},folderMap={General:['General']},folders=['General / General'],stopRequested=false,reviewIndex=-1,dragging=false,dragStart=null;
 const $=id=>document.getElementById(id),status=$('status'),list=$('list'),progressBar=$('progressBar'),saveBar=$('saveBar'),pageStat=$('pageStat'),saveStat=$('saveStat'),stopBtn=$('stop'),modal=$('modal');
 const esc=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]||m));
 function optText(x,k){const v=x['opt'+k];return typeof v==='object'?(v.text||''):String(v||'')}
