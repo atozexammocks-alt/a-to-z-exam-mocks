@@ -73,40 +73,4 @@ async function externalize(data) {
   return copy;
 }
 
-// Mobile Slicer helper: keep the existing one-finger crop workflow, but make
-// two-finger pan/pinch smooth so the PDF can be tracked without fighting the crop box.
-function installSlicerTouchControls() {
-  const viewport = document.getElementById('viewport');
-  const zoomIn = document.getElementById('zoom-in');
-  const zoomOut = document.getElementById('zoom-out');
-  if (!viewport || !zoomIn || !zoomOut || viewport.dataset.touchControlsInstalled) return;
-  viewport.dataset.touchControlsInstalled = '1';
-  viewport.style.overscrollBehavior = 'contain';
-  let gesture = null;
-  const distance = (a,b) => Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
-  const midpoint = (a,b) => ({x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2});
-  viewport.addEventListener('touchstart', e => {
-    if (e.touches.length !== 2) return;
-    e.preventDefault();
-    const a=e.touches[0],b=e.touches[1],m=midpoint(a,b);
-    gesture={distance:distance(a,b),mid:m,left:viewport.scrollLeft,top:viewport.scrollTop,zoomBudget:0};
-  }, {passive:false});
-  viewport.addEventListener('touchmove', e => {
-    if (!gesture || e.touches.length !== 2) return;
-    e.preventDefault();
-    const a=e.touches[0],b=e.touches[1],m=midpoint(a,b);
-    const d=distance(a,b),delta=d-gesture.distance;
-    gesture.zoomBudget += delta;
-    while (gesture.zoomBudget > 70) { zoomIn.click(); gesture.zoomBudget -= 70; }
-    while (gesture.zoomBudget < -70) { zoomOut.click(); gesture.zoomBudget += 70; }
-    viewport.scrollLeft = gesture.left + (gesture.mid.x-m.x);
-    viewport.scrollTop = gesture.top + (gesture.mid.y-m.y);
-  }, {passive:false});
-  viewport.addEventListener('touchend', e => { if (e.touches.length < 2) gesture=null; }, {passive:true});
-  viewport.addEventListener('touchcancel', () => { gesture=null; }, {passive:true});
-}
-
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installSlicerTouchControls);
-else installSlicerTouchControls();
-
 window.AtoZCore = { externalize, compressImage, MAX_IMAGE_CHARS, MAX_TOTAL_IMAGE_CHARS };
