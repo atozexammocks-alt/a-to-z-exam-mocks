@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/ai-uploader", "destination": "/ai_uploader.html" },
+    { "source": "/ai-uploader.html", "destination": "/ai_uploader.html" },
+    { "source": "/ai-upload", "destination": "/ai_uploader.html" }
+  ]
+}
