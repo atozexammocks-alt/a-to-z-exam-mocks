@@ -1,0 +1,107 @@
+name: Integrate Inline Question Editor
+on:
+  push:
+    paths: ['.github/workflows/integrate-inline-question-editor.yml']
+  workflow_dispatch:
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inject inline editor
+        run: |
+          python - <<'PY'
+          p='ai_uploader.html'
+          s=open(p,encoding='utf-8').read()
+          if 'A2Z_INLINE_EDITOR_V1' in s:
+              print('inline editor already present')
+              raise SystemExit
+          code=r'''<style id="A2Z_INLINE_EDITOR_V1">
+          #a2zInlineMask{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:9999;display:none;align-items:stretch;justify-content:center;padding:10px}
+          #a2zInlineMask.open{display:flex}
+          #a2zInlineEditor{width:min(1500px,100%);height:100%;background:#07101d;border:1px solid #334155;border-radius:12px;display:grid;grid-template-columns:minmax(420px,1fr) minmax(360px,.9fr);overflow:hidden;color:#f8fafc}
+          .a2zIELeft,.a2zIERight{min-width:0;display:flex;flex-direction:column}
+          .a2zIELeft{border-right:1px solid #334155}.a2zIERight{background:#020617}
+          .a2zIEHead{padding:9px 11px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+          .a2zIEHead b{margin-right:auto}.a2zIEHead button,.a2zIEBtn{background:#172033;color:#fff;border:1px solid #475569;border-radius:6px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer}
+          .a2zIEHead .on,.a2zIEBtn.primary{background:#0284c7;border-color:#38bdf8}.a2zIEBtn.save{background:#166534;border-color:#22c55e}
+          #a2zIEBody{padding:12px;overflow:auto;flex:1;background:#f8fafc;color:#111}
+          .a2zIECase{display:none}.a2zIECase.active{display:block}.a2zIEBlock{border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:10px;margin-bottom:9px}
+          .a2zIEBlockHead{display:flex;gap:6px;align-items:center;margin-bottom:7px;font-weight:900}.a2zIEBlockHead span{margin-right:auto}
+          .a2zIEText{min-height:35px;border:1px dashed #94a3b8;border-radius:6px;padding:8px;white-space:pre-wrap;line-height:1.55}
+          .a2zIEText[contenteditable=true]{outline:none}.a2zIEOptGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.a2zIEOpt{border:1px solid #cbd5e1;border-radius:7px;padding:8px;background:#fff}
+          .a2zIEImg{max-width:100%;max-height:420px;display:block;margin:7px auto;border:1px solid #cbd5e1;border-radius:5px}.a2zIEMuted{font-size:11px;color:#64748b}
+          #a2zIESourceWrap{padding:10px;overflow:auto;flex:1}.a2zIESource{background:#fff;padding:7px;border-radius:8px;position:relative;display:inline-block;min-width:100%}.a2zIESource img{display:block;width:100%;height:auto;user-select:none;touch-action:none}
+          #a2zIECropRect{position:absolute;border:3px solid #ef4444;background:rgba(239,68,68,.13);display:none;pointer-events:none}
+          .a2zIESourceBar{padding:8px;border-bottom:1px solid #334155;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.a2zIESourceBar select,.a2zIESourceBar input{background:#0f172a;color:#fff;border:1px solid #475569;border-radius:6px;padding:6px;font-size:11px}
+          .a2zIETools{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}.a2zIETools button{padding:5px 7px;border:1px solid #cbd5e1;background:#fff;border-radius:5px;cursor:pointer}
+          .a2zIEInserted{max-width:70%;max-height:280px;vertical-align:middle;margin:5px 9px 5px 0;cursor:pointer}.a2zIEFloat{float:left;margin:5px 12px 8px 0}
+          .a2zIEStatus{font-size:11px;color:#94a3b8}.a2zIECheck{display:flex;align-items:center;gap:5px;font-size:11px;color:#334155}
+          @media(max-width:900px){#a2zInlineEditor{grid-template-columns:1fr}.a2zIERight{display:none}.a2zIEOptGrid{grid-template-columns:1fr}}
+          </style>
+          <div id="a2zInlineMask">
+            <div id="a2zInlineEditor">
+              <section class="a2zIELeft">
+                <div class="a2zIEHead"><b>✏️ Edit Question</b><button id="a2zCase1">Case 1 — Text</button><button id="a2zCase2">Case 2 — Image</button><button id="a2zCase3">Case 3 — Full Control</button><button id="a2zIESave" class="save">💾 Save Question to Library</button><button id="a2zIEClose">✕</button></div>
+                <div id="a2zIEBody">
+                  <div id="a2zIECase1" class="a2zIECase"></div>
+                  <div id="a2zIECase2" class="a2zIECase"></div>
+                  <div id="a2zIECase3" class="a2zIECase"></div>
+                  <div id="a2zIEAnswer" class="a2zIEBlock" style="margin-top:10px;background:#f1f5f9"><b>Correct Answer (Teacher/Admin)</b><select id="a2zIEAns"><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+                </div>
+              </section>
+              <section class="a2zIERight">
+                <div class="a2zIESourceBar"><b>📖 Original PDF / Book</b><select id="a2zIEPage"></select><button id="a2zIELoad" class="a2zIEBtn primary">Load Page</button><button id="a2zIECrop" class="a2zIEBtn">✂️ Crop</button><span id="a2zIECropFor" class="a2zIEStatus">Crop target: Question</span></div>
+                <div id="a2zIESourceWrap"><div class="a2zIESource"><img id="a2zIESourceImg"><div id="a2zIECropRect"></div></div></div>
+              </section>
+            </div>
+          </div>
+          <script>
+          (function(){
+            const M=document.getElementById('a2zInlineMask'),B1=document.getElementById('a2zIECase1'),B2=document.getElementById('a2zIECase2'),B3=document.getElementById('a2zIECase3'),SRC=document.getElementById('a2zIESourceImg'),PAGE=document.getElementById('a2zIEPage'),RECT=document.getElementById('a2zIECropRect');
+            let ii=-1,cur=null,mode=1,sourcePage=1,editPdf=null,cropOn=false,cropStart=null,cropTarget='question',lastRange=null;
+            const esc2=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]||m));
+            function val(v){return typeof v==='object'?(v.text??v.value??v.content??''):String(v??'')}
+            function qval(x){for(const k of ['qText','questionText','question','statement','text','q','questionTextEnglish','questionTextHindi'])if(val(x?.[k]).trim())return val(x[k]);return ''}
+            function oval(x,k){return val(x?.['opt'+k]).trim()}
+            function imgFor(x,k){return x?.[k]||''}
+            function setActive(n){mode=n;[B1,B2,B3].forEach((e,i)=>e.classList.toggle('active',i===n-1));document.querySelectorAll('#a2zInlineMask .a2zIEHead button').forEach(e=>e.classList.remove('on'));document.getElementById('a2zCase'+n).classList.add('on');renderMode()}
+            function textBlock(label,text,id){return '<div class="a2zIEBlock"><div class="a2zIEBlockHead"><span>'+label+'</span><label class="a2zIECheck"><input type="checkbox" checked data-keep="'+id+'"> Keep text</label><button class="a2zIEBtn" data-del="'+id+'">🗑 Delete</button></div><div id="'+id+'" class="a2zIEText" contenteditable="true">'+esc2(text)+'</div></div>'}
+            function optsHtml(editable){return '<div class="a2zIEOptGrid">'+['A','B','C','D'].map(k=>'<div class="a2zIEOpt"><div class="a2zIEBlockHead"><span>'+k+'</span><label class="a2zIECheck"><input type="checkbox" checked data-keep="o'+k+'"> Keep</label><button class="a2zIEBtn" data-del="o'+k+'">🗑</button></div><div id="o'+k+'" class="a2zIEText" contenteditable="true">'+esc2(oval(cur,k))+'</div></div>').join('')+'</div>'}
+            function renderMode(){if(!cur)return; if(mode===1){B1.innerHTML=textBlock('Question',qval(cur),'a2zQ')+optsHtml(true);B2.innerHTML='';B3.innerHTML='';} if(mode===2){B2.innerHTML='<div class="a2zIEBlock"><div class="a2zIEBlockHead"><span>Question Image</span><button class="a2zIEBtn" onclick="window.__a2zCropTarget(\'question\')">✂️ Crop from Original</button></div>'+(imgFor(cur,'questionImage')?'<img class="a2zIEImg" src="'+imgFor(cur,'questionImage')+'">':'<div class="a2zIEMuted">No question crop yet. Use Crop from Original on the right.</div>')+'</div>';B1.innerHTML='';B3.innerHTML='';} if(mode===3){B3.innerHTML='<div class="a2zIETools"><button onclick="document.execCommand(\'bold\')"><b>B</b></button><button onclick="document.execCommand(\'italic\')"><i>I</i></button><button onclick="document.execCommand(\'superscript\')">x²</button><button onclick="document.execCommand(\'subscript\')">x₀</button><button onclick="document.execCommand(\'insertText\',false,\'∫\')">∫</button><button onclick="document.execCommand(\'insertText\',false,\'∑\')">∑</button><button onclick="document.execCommand(\'insertText\',false,\'√\')">√</button><button onclick="document.execCommand(\'insertText\',false,\'∇\')">∇</button><button onclick="document.execCommand(\'insertText\',false,\'±\')">±</button><button onclick="document.execCommand(\'insertText\',false,\'≤\')">≤</button><button onclick="document.execCommand(\'insertText\',false,\'≥\')">≥</button></div><div class="a2zIEBlock"><div class="a2zIEBlockHead"><span>Question</span><button class="a2zIEBtn" onclick="window.__a2zCropTarget(\'question\')">✂️ Crop & Insert Image</button></div><div id="a2zIEEditor" class="a2zIEText" contenteditable="true">'+esc2(qval(cur))+'</div><div class="a2zIEMuted">Place the cursor in the text, then Crop & Insert Image. The image is inserted at that position.</div></div>'+optsHtml(true)+'<div class="a2zIEBlock"><b>Current Question Image</b>'+(imgFor(cur,'questionImage')?'<img class="a2zIEImg" src="'+imgFor(cur,'questionImage')+'">':'<span class="a2zIEMuted">None</span>')+'</div>';}}
+            async function loadPdf(){if(editPdf)return editPdf;try{const f=document.getElementById('file')?.files?.[0];if(!f)return null;editPdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;PAGE.innerHTML='';for(let i=1;i<=editPdf.numPages;i++){const o=document.createElement('option');o.value=i;o.textContent='Page '+i;PAGE.appendChild(o)}return editPdf}catch(e){console.error(e);return null}}
+            async function getPageImage(n){try{if(typeof pageCache!=='undefined'&&pageCache[n]?.image)return pageCache[n].image}catch(e){}const p=await loadPdf();if(!p)return '';const pg=await p.getPage(n),v=pg.getViewport({scale:1.5}),c=document.createElement('canvas');c.width=Math.round(v.width);c.height=Math.round(v.height);await pg.render({canvasContext:c.getContext('2d'),viewport:v,background:'white'}).promise;return c.toDataURL('image/jpeg',.86)}
+            async function loadPage(n){sourcePage=Number(n||1);PAGE.value=sourcePage;SRC.src=await getPageImage(sourcePage);RECT.style.display='none'}
+            function open(i){ii=Number(i);cur=items[ii]||{};sourcePage=Number(cur.sourcePage||1);M.classList.add('open');loadPdf().then(()=>{PAGE.value=sourcePage;loadPage(sourcePage)});document.getElementById('a2zIEAns').value=cur.answer||cur.correctAnswer||'A';setActive(cur.previewCase||1)}
+            function close(){M.classList.remove('open');cropOn=false;RECT.style.display='none'}
+            function beginCrop(target){cropTarget=target||'question';document.getElementById('a2zIECropFor').textContent='Crop target: '+(cropTarget==='question'?'Question':('Option '+cropTarget));cropOn=true;RECT.style.display='none'}
+            SRC.parentElement.addEventListener('pointerdown',e=>{if(!cropOn)return;const r=SRC.getBoundingClientRect();cropStart={x:e.clientX-r.left,y:e.clientY-r.top};RECT.style.left=cropStart.x+'px';RECT.style.top=cropStart.y+'px';RECT.style.width='0';RECT.style.height='0';RECT.style.display='block';SRC.setPointerCapture?.(e.pointerId)});
+            SRC.parentElement.addEventListener('pointermove',e=>{if(!cropOn||!cropStart)return;const r=SRC.getBoundingClientRect(),x=Math.max(0,Math.min(r.width,e.clientX-r.left)),y=Math.max(0,Math.min(r.height,e.clientY-r.top)),x0=Math.min(cropStart.x,x),y0=Math.min(cropStart.y,y),w=Math.abs(x-cropStart.x),h=Math.abs(y-cropStart.y);RECT.style.left=x0+'px';RECT.style.top=y0+'px';RECT.style.width=w+'px';RECT.style.height=h+'px'});
+            SRC.parentElement.addEventListener('pointerup',async e=>{if(!cropOn||!cropStart)return;const r=SRC.getBoundingClientRect(),x=Math.max(0,Math.min(r.width,e.clientX-r.left)),y=Math.max(0,Math.min(r.height,e.clientY-r.top)),x0=Math.min(cropStart.x,x),y0=Math.min(cropStart.y,y),w=Math.abs(x-cropStart.x),h=Math.abs(y-cropStart.y);cropOn=false;cropStart=null;if(w<12||h<12){RECT.style.display='none';return}const im=new Image();im.onload=()=>{const sx=Math.round(x0/r.width*im.width),sy=Math.round(y0/r.height*im.height),sw=Math.max(1,Math.round(w/r.width*im.width)),sh=Math.max(1,Math.round(h/r.height*im.height)),c=document.createElement('canvas');c.width=sw;c.height=sh;c.getContext('2d').drawImage(im,sx,sy,sw,sh,0,0,sw,sh);const data=c.toDataURL('image/jpeg',.9);applyCrop(data);};im.src=SRC.src});
+            function applyCrop(data){if(!cur)return;if(cropTarget==='question'){cur.questionImage=data;cur.sourcePage=sourcePage;cur.sourcePageImage=SRC.src;if(mode===3){const ed=document.getElementById('a2zIEEditor');if(ed){ed.focus();document.execCommand('insertHTML',false,'<img class="a2zIEInserted a2zIEFloat" src="'+data+'">')}}}else{cur['optionImages']=cur.optionImages||{};cur.optionImages[cropTarget]=data;cur['opt'+cropTarget]=typeof cur['opt'+cropTarget]==='object'?cur['opt'+cropTarget]:{text:oval(cur,cropTarget)};cur['opt'+cropTarget].image=data}renderMode();RECT.style.display='none'}
+            function sync(){if(!cur)return;const q=document.getElementById('a2zQ'),ed=document.getElementById('a2zIEEditor');if(mode===1&&q)cur.qText=q.innerText.trim();if(mode===3&&ed)cur.qText=ed.innerText.trim();['A','B','C','D'].forEach(k=>{const e=document.getElementById('o'+k);if(e){const v=oval(cur,k);if(typeof cur['opt'+k]==='object')cur['opt'+k].text=e.innerText.trim();else cur['opt'+k]=e.innerText.trim()}});cur.previewCase=mode;cur.answer=document.getElementById('a2zIEAns').value;sessionStorage.setItem('A2Z_STUDENT_PREVIEW',JSON.stringify({i:ii,data:cur}));try{items[ii]=cur;render()}catch(e){}}
+            async function save(){sync();let fn=null;for(const n of ['saveQuestion','saveOne','saveItem'])if(typeof window[n]==='function'){fn=window[n];break}try{if(fn)await fn(ii);else if(typeof window.saveAll==='function')await window.saveAll();cur.saved=true;try{items[ii]=cur;render()}catch(e){}alert('Question saved to Library.')}catch(e){alert('Save failed: '+e.message)}}
+            window.__a2zCropTarget=beginCrop;document.getElementById('a2zCase1').onclick=()=>setActive(1);document.getElementById('a2zCase2').onclick=()=>setActive(2);document.getElementById('a2zCase3').onclick=()=>setActive(3);document.getElementById('a2zIEClose').onclick=()=>{sync();close()};document.getElementById('a2zIESave').onclick=save;document.getElementById('a2zIELoad').onclick=()=>loadPage(PAGE.value);document.getElementById('a2zIECrop').onclick=()=>beginCrop(cropTarget);
+            M.addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){const id=d.dataset.del,el=document.getElementById(id);if(el)el.innerHTML='';const k=id==='a2zQ'?'qText':id.replace(/^o/,'opt');if(k)cur[k]='';}});
+            const oldOpen=window.openReview;window.openReview=function(i){open(i)};
+            document.querySelectorAll('button').forEach(b=>{if(/Student Preview/i.test(b.textContent))b.textContent='✏️ Edit Question'});
+          })();
+          </script>'''
+          s=s.replace('</body>',code+'\n</body>')
+          open(p,'w',encoding='utf-8').write(s)
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add ai_uploader.html
+          git diff --cached --quiet || git commit -m 'Integrate same-page Case 1 2 3 question editor and PDF crop'
+          git push
+      - name: Remove temporary workflow
+        run: |
+          rm -f .github/workflows/integrate-inline-question-editor.yml
+          git add .github/workflows/integrate-inline-question-editor.yml
+          git commit -m 'Remove temporary inline editor workflow' || true
+          git push || true
