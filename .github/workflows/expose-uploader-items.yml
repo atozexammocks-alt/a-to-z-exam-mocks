@@ -1,0 +1,37 @@
+name: Expose uploader items
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch uploader
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('ai_uploader.html')
+          s=p.read_text()
+          old='let items=[],pageCache='
+          new='let items=[];Object.defineProperty(window,"items",{configurable:true,get:()=>items});pageCache='
+          if old not in s:
+              raise SystemExit('target declaration not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add ai_uploader.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Expose uploader items to Student Preview"
+          git push
+      - name: Remove workflow
+        if: success()
+        run: |
+          git rm .github/workflows/expose-uploader-items.yml
+          git commit -m "Remove temporary preview patch workflow"
+          git push
