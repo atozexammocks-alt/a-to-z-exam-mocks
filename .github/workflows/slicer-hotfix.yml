@@ -1,0 +1,79 @@
+name: Slicer hotfix
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply slicer fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('api/gemini-extract.js')
+          s=p.read_text()
+          old="const clean=s=>typeof s==='string'?s.replace(/\\$\\$?/g,'').replace(/\\\\\\(\\\\\\)/g,'').replace(/[ \\t]{2,}/g,' ').trim():s;"
+          new="const clean=s=>typeof s==='string'?s.replace(/[ \\t]{2,}/g,' ').trim():s;"
+          if old not in s:
+              raise SystemExit('backend clean() pattern not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          p=Path('ai_uploader.html')
+          s=p.read_text()
+
+          old="function makeCrops(x){const cur=pageCache[x.sourcePage]?.image;if(!cur)return x;x.questionImage=await cropFromDataUrl(cur,x.questionBox,10,.72,1400);x.optionImages={A:await cropFromDataUrl(cur,x.optA?.box||x.optABox,5,.72,900),B:await cropFromDataUrl(cur,x.optB?.box||x.optBBox,5,.72,900),C:await cropFromDataUrl(cur,x.optC?.box||x.optCBox,5,.72,900),D:await cropFromDataUrl(cur,x.optD?.box||x.optDBox,5,.72,900)};x.solutionImage=await cropFromDataUrl(cur,x.solutionBox,7,.68,1000);if(x.continuesToNextPage&&x.nextPageBox&&pageCache[x.sourcePage+1]?.image){const next=await cropFromDataUrl(pageCache[x.sourcePage+1].image,x.nextPageBox,10,.72,1400);x.questionImage=await stitchImages(x.questionImage,next)}return x}"
+          new="function makeCrops(x){const cur=pageCache[x.sourcePage]?.image;if(!cur)return x;x.sourcePageImage=cur;x.questionImage=await cropFromDataUrl(cur,x.questionBox,10,.72,1400);x.optionImages={A:await cropFromDataUrl(cur,x.optA?.box||x.optABox,5,.72,900),B:await cropFromDataUrl(cur,x.optB?.box||x.optBBox,5,.72,900),C:await cropFromDataUrl(cur,x.optC?.box||x.optCBox,5,.72,900),D:await cropFromDataUrl(cur,x.optD?.box||x.optDBox,5,.72,900)};x.solutionImage=await cropFromDataUrl(cur,x.solutionBox,7,.68,1000);if(x.continuesToNextPage&&x.nextPageBox&&pageCache[x.sourcePage+1]?.image){const next=await cropFromDataUrl(pageCache[x.sourcePage+1].image,x.nextPageBox,10,.72,1400);x.questionImage=await stitchImages(x.questionImage,next)}return x}"
+          if old not in s: raise SystemExit('makeCrops pattern not found')
+          s=s.replace(old,new,1)
+
+          anchor="function openQuestionCrop(i){reviewIndex=i;const src=pageCache[items[i].sourcePage]?.image;if(!src)return alert('Original page image is not available.');openCropModal(i,'question',src)}"
+          insert="function openQuestionCrop(i){reviewIndex=i;const src=pageCache[items[i].sourcePage]?.image;if(!src)return alert('Original page image is not available.');openCropModal(i,'question',src)}function openSolutionCrop(i){reviewIndex=i;const src=pageCache[items[i].sourcePage]?.image;if(!src)return alert('Original page image is not available.');openCropModal(i,'solution',src)}function openOptionCrop(i,k){reviewIndex=i;const src=pageCache[items[i].sourcePage]?.image;if(!src)return alert('Original page image is not available.');openCropModal(i,'option'+k,src)}"
+          if anchor not in s: raise SystemExit('crop anchor not found')
+          s=s.replace(anchor,insert,1)
+
+          old="if(type==='figure'){items[i].figureImage=out;items[i].figureCropVerified=true}else{items[i].questionImage=out;items[i].cropVerified=true}render();openReview(i)}"
+          new="if(type==='figure'){items[i].figureImage=out;items[i].figureCropVerified=true}else if(type==='solution'){items[i].solutionImage=out;items[i].solutionCropVerified=true}else if(type.startsWith('option')){const k=type.slice(-1);items[i].optionImages=items[i].optionImages||{};items[i].optionImages[k]=out;items[i].optionCropVerified=items[i].optionCropVerified||{};items[i].optionCropVerified[k]=true}else{items[i].questionImage=out;items[i].cropVerified=true}render();openReview(i)}"
+          if old not in s: raise SystemExit('applyManualCrop pattern not found')
+          s=s.replace(old,new,1)
+
+          old="<button class=\"miniBtn primary\" onclick=\"openQuestionCrop(${i})\">✂️ Question Crop</button><button class=\"miniBtn primary\" onclick=\"openFigureCrop(${i})\">✂️ Crop Figure / Diagram</button>"
+          new="<button class=\"miniBtn primary\" onclick=\"openQuestionCrop(${i})\">✂️ Question</button><button class=\"miniBtn primary\" onclick=\"openSolutionCrop(${i})\">✂️ Solution</button><button class=\"miniBtn primary\" onclick=\"openFigureCrop(${i})\">✂️ Figure</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'A')\">A image</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'B')\">B image</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'C')\">C image</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'D')\">D image</button>"
+          if old not in s: raise SystemExit('button pattern not found')
+          s=s.replace(old,new,1)
+
+          old="<div class=\"qright\"><div class=\"preview\" style=\"font-size:${x.fontSize||16}px\" onclick=\"openReview(${i})\"><b>Q${esc(x.qNo||i+1)}.</b> <span>${mathHTML(q)}</span><div class=\"opts\">${previewOption(x,'A')}${previewOption(x,'B')}${previewOption(x,'C')}${previewOption(x,'D')}</div>${x.questionImage?`<img src=\"${x.questionImage}\" style=\"width:${x.imageWidth||100}%;transform:translate(${x.imageOffsetX||0}px,${x.imageOffsetY||0}px)\">`:''}${x.figureImage?`<div class=\"figure\"><img src=\"${x.figureImage}\">${x.figureCaption?`<div>${esc(x.figureCaption)}</div>`:''}</div>`:''}</div></div>"
+          new="<div class=\"qright\"><div class=\"assign\"><div class=\"assignTitle\">🔒 ORIGINAL PDF IMAGE — untouched</div><div class=\"small\">Crop only creates derived images; this source image is never overwritten.</div></div><div class=\"preview\" style=\"font-size:${x.fontSize||16}px\"><img src=\"${pageCache[x.sourcePage]?.image||x.sourcePageImage||''}\" style=\"width:100%;height:auto;display:block\"><div class=\"actions\"><button class=\"miniBtn primary\" onclick=\"openQuestionCrop(${i})\">✂️ Crop Question</button><button class=\"miniBtn primary\" onclick=\"openSolutionCrop(${i})\">✂️ Crop Solution</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'A')\">A</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'B')\">B</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'C')\">C</button><button class=\"miniBtn\" onclick=\"openOptionCrop(${i},'D')\">D</button></div><div class=\"figure\"><span class=\"muted\">Derived question crop</span>${x.questionImage?`<img src=\"${x.questionImage}\">`:''}<span class=\"muted\">Derived solution crop</span>${x.solutionImage?`<img src=\"${x.solutionImage}\">`:''}</div></div></div>"
+          if old not in s: raise SystemExit('right panel pattern not found')
+          s=s.replace(old,new,1)
+
+          old="x.saved=false;await makeCrops(x);items.push(x);"
+          new="x.saved=false;x.sourcePageImage=pageCache[n]?.image||'';await makeCrops(x);items.push(x);"
+          if old not in s: raise SystemExit('processPage pattern not found')
+          s=s.replace(old,new,1)
+
+          p.write_text(s)
+          PY
+      - name: Validate
+        run: |
+          node --check api/gemini-extract.js
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('ai_uploader.html').read_text()
+          checks=['openOptionCrop','openSolutionCrop','sourcePageImage','ORIGINAL PDF IMAGE','Insert Equation']
+          missing=[x for x in checks if x not in s]
+          if missing: raise SystemExit('Missing frontend checks: '+', '.join(missing))
+          print('Slicer validation OK')
+          PY
+      - name: Commit patched files and remove hotfix workflow
+        run: |
+          rm -f .github/workflows/slicer-hotfix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add api/gemini-extract.js ai_uploader.html .github/workflows/slicer-hotfix.yml
+          git commit -m 'fix: preserve math, original PDF image and manual option crops'
+          git push
