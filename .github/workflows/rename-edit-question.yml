@@ -1,5 +1,5 @@
 name: Rename Edit Question
-aon:
+on:
   push:
     paths: ['.github/workflows/rename-edit-question.yml']
   workflow_dispatch:
