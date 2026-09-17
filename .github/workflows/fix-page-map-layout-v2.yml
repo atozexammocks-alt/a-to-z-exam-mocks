@@ -1,0 +1,83 @@
+name: Fix page mapping and external keep controls v2
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch uploader
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('ai_uploader.html')
+          s=p.read_text()
+          s=s.replace('async async function getPageImage(n)', 'async function getPageImage(n)')
+          start=s.find('<script>/* A2Z_PAGEWISE_KEEP_V1 */')
+          if start<0:
+              raise SystemExit('pagewise marker not found')
+          end=s.find('</script>', start)
+          if end<0:
+              raise SystemExit('pagewise script end not found')
+          new='''<script>/* A2Z_PAGEWISE_KEEP_V2 */
+(function(){
+  const listEl=document.getElementById('list');
+  let selected='all',busy=false;
+  function state(x){
+    if(x.keepText===undefined)x.keepText=true;
+    if(x.keepQuestionImage===undefined)x.keepQuestionImage=true;
+  }
+  function decorate(){
+    if(busy||!listEl||!Array.isArray(window.items))return;
+    busy=true;
+    try{
+      const cards=[...listEl.querySelectorAll('.q')];
+      const pages=[];
+      cards.forEach((card,i)=>{
+        const x=window.items[i]; if(!x)return;
+        state(x);
+        const page=Number(x.sourcePage||x.pageNumber||x.page||x.source_page||1);
+        card.dataset.pdfPage=page;
+        if(!pages.includes(page))pages.push(page);
+        let bar=card.querySelector('.a2zExternalKeep');
+        if(!bar){
+          bar=document.createElement('div');bar.className='a2zExternalKeep';
+          bar.style.cssText='display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:7px 0;padding:7px;border:1px solid #164e63;border-radius:8px;background:#07111f';
+          card.insertBefore(bar,card.firstElementChild);
+        }
+        bar.innerHTML='<b style="color:#67e8f9">Page '+page+' · Q'+(x.qNo||i+1)+'</b>'+
+          '<button type="button" class="a2zKT">'+(x.keepText?'✓ Keep Text':'☐ Keep Text')+'</button>'+
+          '<button type="button" class="a2zKI">'+(x.keepQuestionImage?'✓ Keep Image':'☐ Keep Image')+'</button>'+
+          '<button type="button" class="a2zKAll">'+(x.keepText&&x.keepQuestionImage?'✓ Keep Question':'↩ Unkeep Question')+'</button>';
+        bar.querySelector('.a2zKT').onclick=()=>{x.keepText=!x.keepText;decorate()};
+        bar.querySelector('.a2zKI').onclick=()=>{x.keepQuestionImage=!x.keepQuestionImage;decorate()};
+        bar.querySelector('.a2zKAll').onclick=()=>{const on=!(x.keepText&&x.keepQuestionImage);x.keepText=on;x.keepQuestionImage=on;decorate()};
+      });
+      pages.sort((a,b)=>a-b);
+      let nav=document.getElementById('a2zPageNav');
+      if(!nav){nav=document.createElement('div');nav.id='a2zPageNav';nav.style.cssText='display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:10px 0;padding:9px;background:#07111f;border:1px solid #164e63;border-radius:8px';listEl.parentElement.insertBefore(nav,listEl)}
+      const counts=pages.map(p=>[p,cards.filter(c=>Number(c.dataset.pdfPage)===p).length]);
+      nav.innerHTML='<b style="color:#67e8f9">PDF Pages:</b><button type="button" data-p="all">All ('+cards.length+')</button>'+counts.map(([p,c])=>'<button type="button" data-p="'+p+'">Page '+p+' ('+c+')</button>').join('');
+      nav.querySelectorAll('button').forEach(b=>{b.style.cssText='background:#1e293b;color:#fff;border:1px solid #334155;border-radius:6px;padding:6px 9px;font-weight:800;cursor:pointer';if(String(b.dataset.p)===String(selected))b.style.background='#0284c7';b.onclick=()=>{selected=b.dataset.p;decorate()}});
+      cards.forEach(c=>c.style.display=(selected==='all'||String(c.dataset.pdfPage)===String(selected))?'':'none');
+    }finally{busy=false}
+  }
+  const obs=new MutationObserver(()=>setTimeout(decorate,0));
+  if(listEl)obs.observe(listEl,{childList:true,subtree:false});
+  addEventListener('load',()=>setTimeout(decorate,500));
+  setInterval(()=>{if(!busy)decorate()},1000);
+})();</script>'''
+          s=s[:start]+new+s[end+9:]
+          p.write_text(s)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add ai_uploader.html
+          git commit -m 'Fix page mapping layout and external keep controls' || true
+          git rm .github/workflows/fix-page-map-layout-v2.yml
+          git commit -m 'Remove temporary page mapping workflow' || true
+          git push
