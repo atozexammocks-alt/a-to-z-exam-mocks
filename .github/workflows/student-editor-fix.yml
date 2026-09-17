@@ -1,0 +1,83 @@
+name: Student editor fix
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch student preview
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('ai_uploader.html')
+          s=p.read_text()
+
+          # Replace the current review function with a real two-pane student editor.
+          start=s.index('function openReview(i){')
+          end=s.index('\nlet dragStudentIndex=', start)
+          fn=r'''function openReview(i){
+            reviewIndex=i;
+            const x=items[i];
+            const w=window.open('', '_blank', 'noopener,noreferrer');
+            if(!w){ alert('Please allow pop-ups for Student Preview.'); return; }
+            const q=esc(x.qText||'');
+            const opts=['A','B','C','D'].map(k=>({k,text:esc(optText(x,k)),img:x.optionImages?.[k]||''}));
+            const qi=x.questionImage||'';
+            const fi=x.figureImage||'';
+            const si=x.solutionImage||'';
+            const source=x.sourcePageImage||pageCache[x.sourcePage]?.image||'';
+            const safe=v=>String(v||'').replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\\$\\{/g,'\\${');
+            const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Student Preview — Q${x.qNo||i+1}</title><style>
+            *{box-sizing:border-box}body{margin:0;background:#0b1120;color:#e5e7eb;font:14px system-ui}header{position:sticky;top:0;z-index:5;background:#111827;border-bottom:1px solid #334155;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}button,label{background:#1e293b;color:#fff;border:1px solid #475569;border-radius:6px;padding:7px 10px;cursor:pointer;font-weight:700;font-size:12px}.save{background:#166534;border-color:#22c55e}.grid{display:grid;grid-template-columns:minmax(360px,1fr) minmax(420px,1fr);gap:14px;padding:14px}.pane{background:#111827;border:1px solid #334155;border-radius:10px;padding:12px}.pane h3{margin:0 0 9px}.block{background:#fff;color:#111;border:2px solid #cbd5e1;border-radius:8px;padding:10px;margin:9px 0}.block .bar{display:flex;gap:5px;justify-content:flex-end;margin-bottom:6px}.block [contenteditable]{outline:1px dashed #94a3b8;padding:7px;min-height:42px;white-space:pre-wrap}.media{background:#fff;border-radius:8px;padding:8px;margin:9px 0}.media img{display:block;max-width:100%;max-height:360px;margin:auto}.muted{color:#94a3b8;font-size:12px}.checks{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}.checks label{display:inline-flex;gap:5px;align-items:center}.rightTools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}.source{background:#fff;border-radius:8px;padding:8px;max-height:70vh;overflow:auto}.source img{width:100%;display:block}.danger{background:#7f1d1d;border-color:#ef4444}@media(max-width:850px){.grid{grid-template-columns:1fr}}
+            </style></head><body><header><b>📝 Student Preview — Q${x.qNo||i+1}</b><div><button class="save" onclick="applyBack()">💾 Apply to Uploader</button> <button onclick="window.close()">✕ Close</button></div></header><div class="grid">
+            <section class="pane"><h3>TEXT CONTROL — Left</h3><div class="checks"><label><input id="keepText" type="checkbox" ${x.keepText!==false?'checked':''}> Keep Text</label><label><input id="keepQImg" type="checkbox" ${x.keepQuestionImage!==false?'checked':''}> Keep Question Image</label><label><input id="keepOptImg" type="checkbox" ${x.keepOptionImages!==false?'checked':''}> Keep Option Images</label><label><input id="keepFig" type="checkbox" ${x.keepFigureImage!==false?'checked':''}> Keep Figure</label><label><input id="keepSol" type="checkbox" ${x.keepSolutionImage!==false?'checked':''}> Keep Solution</label></div>
+            <div class="block"><div class="bar"><button onclick="copyBlock(this)">Copy</button><button onclick="cutBlock(this)">Cut</button><button class="danger" onclick="removeBlock(this)">Delete Text</button></div><b>Question Statement</b><div id="qtext" contenteditable="true">${q}</div></div>
+            ${opts.map((o,n)=>`<div class="block"><div class="bar"><button onclick="copyBlock(this)">Copy</button><button onclick="cutBlock(this)">Cut</button><button class="danger" onclick="removeBlock(this)">Delete Text</button></div><b>Option ${o.k}</b><div id="opt${o.k}" contenteditable="true">${o.text}</div></div>`).join('')}
+            <div class="block"><div class="bar"><button onclick="copyBlock(this)">Copy</button><button class="danger" onclick="removeBlock(this)">Delete</button></div><b>Extra / Figure Caption</b><div id="caption" contenteditable="true">${esc(x.figureCaption||'')}</div></div></section>
+            <section class="pane"><h3>IMAGE CONTROL — Right</h3><div class="rightTools"><button onclick="editFullPage()">✂️ Crop from Full Page</button><button onclick="editNextPage()">➕ Add from Next Page</button><button onclick="refreshImages()">↻ Refresh</button></div><div class="muted">Right side is image-only. If AI text/equation is wrong, keep the image and delete the corresponding left text.</div>
+            <div id="images"></div></section></div><script>
+            const data=${JSON.stringify({i,qNo:x.qNo||i+1,qi,source,opts:opts.map(o=>({k:o.k,img:o.img})),fi,si})};
+            function copyBlock(b){const t=b.closest('.block')?.querySelector('[contenteditable]')?.innerText||'';navigator.clipboard?.writeText(t)}
+            function cutBlock(b){copyBlock(b);removeBlock(b)}
+            function removeBlock(b){const c=b.closest('.block')?.querySelector('[contenteditable]');if(c)c.innerHTML=''}
+            function renderImages(){const el=document.getElementById('images');el.innerHTML='';if(document.getElementById('keepQImg').checked&&data.qi)el.innerHTML+=`<div class="media"><b>Complete Question Image</b><img src="${data.qi}"></div>`;data.opts.forEach(o=>{if(document.getElementById('keepOptImg').checked&&o.img)el.innerHTML+=`<div class="media"><b>Option ${o.k} Image</b><img src="${o.img}"></div>`});if(document.getElementById('keepFig').checked&&data.fi)el.innerHTML+=`<div class="media"><b>Figure</b><img src="${data.fi}"></div>`;if(document.getElementById('keepSol').checked&&data.si)el.innerHTML+=`<div class="media"><b>Solution Image</b><img src="${data.si}"></div>`;if(!el.innerHTML)el.innerHTML='<div class="muted">No images selected.</div>'}
+            ['keepQImg','keepOptImg','keepFig','keepSol'].forEach(id=>document.getElementById(id).onchange=renderImages);renderImages();
+            function editFullPage(){if(window.opener&&!window.opener.closed){window.opener.openCropModal(data.i,'question');window.opener.focus()}}
+            function editNextPage(){if(window.opener&&!window.opener.closed){window.opener.openCropModal(data.i,'question');window.opener.focus()}}
+            function refreshImages(){renderImages()}
+            function applyBack(){if(!window.opener||window.opener.closed)return;const o=window.opener,x=o.items[data.i];x.keepText=document.getElementById('keepText').checked;x.keepQuestionImage=document.getElementById('keepQImg').checked;x.keepOptionImages=document.getElementById('keepOptImg').checked;x.keepFigureImage=document.getElementById('keepFig').checked;x.keepSolutionImage=document.getElementById('keepSol').checked;x.qText=document.getElementById('qtext').innerText.trim();['A','B','C','D'].forEach(k=>x['opt'+k]=document.getElementById('opt'+k).innerText.trim());x.figureCaption=document.getElementById('caption').innerText.trim();o.render();alert('Applied to uploader.');}
+            </script></body></html>`;
+            w.document.open();w.document.write(html);w.document.close();
+          }
+          '''
+          s=s[:start]+fn+s[end:]
+
+          # Make the crop modal's page navigation explicit and reliable.
+          if 'let cropPage=0;' not in s:
+            old='function openCropModal(i,type){'
+            pos=s.index(old)
+            s=s[:pos]+'let cropPage=0;\n'+s[pos:]
+          s=re.sub(r'function openCropModal\(i,type\)\{.*?\nfunction installCrop\(\)', '''function openCropModal(i,type){reviewIndex=i;cropPage=items[i].sourcePage||1;showCropPage(type)}
+function showCropPage(type){const x=items[reviewIndex],src=pageCache[cropPage]?.image||x.sourcePageImage;if(!src)return alert('Original PDF page is not available.');modal.classList.add('open');$('modalTitle').textContent='Q'+(x.qNo||reviewIndex+1)+' — Full Page Crop | PDF page '+cropPage;$('modalBody').innerHTML=`<div class="small" style="margin-bottom:7px">Crop any part of the original page. If the question continues, move to the next page and add that crop.</div><div class="actions"><button onclick="setCropPage(-1,'${type}')">◀ Previous Page</button><button onclick="setCropPage(1,'${type}')">Next Page ▶</button></div><div id="cropStage" class="cropStage"><img id="stageImg" src="${src}"><div id="cropRect" class="cropRect"></div></div><div class="actions"><button class="primary" onclick="applyCrop('${type}')">✅ Use This Crop</button><button onclick="openReview(${reviewIndex})">↩ Student Preview</button></div>`;installCrop()}
+function setCropPage(delta,type){const n=cropPage+delta;if(n<1||!pageCache[n])return;cropPage=n;showCropPage(type)}
+function installCrop()''', s, count=1, flags=re.S)
+
+          # Remove obsolete inline review editor helpers if they remain; the new tab owns the editor.
+          s=re.sub(r'\nlet dragStudentIndex=.*?(?=\nasync function payload\()', '\n', s, flags=re.S)
+          p.write_text(s)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ai_uploader.html
+          git commit -m 'Fix student preview two-pane text and image controls'
+          git push
+      - name: Remove one-time workflow
+        run: |
+          git rm .github/workflows/student-editor-fix.yml
+          git commit -m 'Remove one-time student editor patch workflow'
+          git push
