@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A to Z Exam Mocks - Slicer Studio</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.css">
+  <script src="https://unpkg.com/pdf-lib@1.4.0/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
+  
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
+      authDomain: "physicsvault-80a10.firebaseapp.com",
+      projectId: "physicsvault-80a10",
+      storageBucket: "physicsvault-80a10.firebasestorage.app",
+      messagingSenderId: "1043166507399",
+      appId: "1:1043166507399:web:634efdac6f109273d42322"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.db = getFirestore(app);
+    window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
+    window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc;
+
+    let mainFolders = ["Classical Mechanics", "Quantum Mechanics", "Mathematical Physics", "Electronics", "EMT", "Solid State Mechanics", "Thermo & Statical", "Atomic", "Nuclear", "PYP"];
+    let subFolders = {
+      "Classical Mechanics": ["General", "Lagrangian", "Hamiltonian"],
+      "Quantum Mechanics": ["General", "Operators", "Wave Function"],
+      "Mathematical Physics": ["General", "Vector Analysis", "Matrices"],
+      "Electronics": ["General", "Transistors", "Diodes"],
+      "EMT": ["General"], "Solid State Mechanics": ["General"], "Thermo & Statical": ["General"], "Atomic": ["General"], "Nuclear": ["General"], "PYP": ["General"]
+    };
+
+    async function loadLibraryState() {
+      try {
+        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        const snap = await window.getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.mainFolders) mainFolders = data.mainFolders;
+          if (data.subFolders) subFolders = data.subFolders;
+        }
+      } catch (e) {}
+    }
+
+    async function saveLibraryStateToFirebase() {
+      try {
+        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        await window.setDoc(ref, { mainFolders, subFolders }, { merge: true });
+      } catch (e) {
+        console.error("Error saving folders:", e);
+      }
+    }
+
+    window.populateSlicerSubDropdown = function(mainName) {
+      const subSel = document.getElementById('vault-sub-cat');
+      if (!subSel) return;
+      subSel.innerHTML = '';
+      (subFolders[mainName] || []).forEach(s => {
+        subSel.innerHTML += `<option value="${mainName} / ${s}">${s}</option>`;
+      });
+    };
+
+    window.initSlicerStudio = function() {
+      const mainSel = document.getElementById('vault-main-cat');
+      if (!mainSel) return;
+      mainSel.innerHTML = '';
+      mainFolders.forEach(m => { mainSel.innerHTML += `<option value="${m}">${m}</option>`; });
+      if (mainFolders.length > 0) {
+        mainSel.value = mainFolders[0];
+        window.populateSlicerSubDropdown(mainFolders[0]);
+      }
+    };
+
+    window.onSlicerMainFolderChange = function() {
+      const mainSel = document.getElementById('vault-main-cat');
+      if (mainSel) window.populateSlicerSubDropdown(mainSel.value);
+    };
+
+    // 🔥 पॉप-अप के जरिए नया मेन फोल्डर जोड़ने का फंक्शन
+    window.addNewMainFolderPrompt = async function() {
+      const folderName = prompt("Enter new Main Folder name:");
+      if (!folderName || !folderName.trim()) return;
+      const cleanName = folderName.trim();
+
+      if (mainFolders.includes(cleanName)) {
+        return alert("This main folder already exists!");
+      }
+
+      mainFolders.push(cleanName);
+      if (!subFolders[cleanName]) {
+        subFolders[cleanName] = ["General"];
+      }
+
+      await saveLibraryStateToFirebase();
+      window.initSlicerStudio();
+      document.getElementById('vault-main-cat').value = cleanName;
+      window.populateSlicerSubDropdown(cleanName);
+      if (typeof showToast === 'function') showToast(`📁 Main Folder '${cleanName}' Added!`);
+    };
+
+    // 🔥 पॉप-अप के जरिए नया सब फोल्डर जोड़ने का फंक्शन
+    window.addNewSubFolderPrompt = async function() {
+      const mainSel = document.getElementById('vault-main-cat');
+      const currentMain = mainSel ? mainSel.value : '';
+      if (!currentMain) return alert("Please select a main folder first!");
+
+      const subName = prompt(`Enter new Sub Folder name under '${currentMain}':`);
+      if (!subName || !subName.trim()) return;
+      const cleanSub = subName.trim();
+
+      if (!subFolders[currentMain]) {
+        subFolders[currentMain] = [];
+      }
+
+      if (subFolders[currentMain].includes(cleanSub)) {
+        return alert("This sub folder already exists under this main folder!");
+      }
+
+      subFolders[currentMain].push(cleanSub);
+
+      await saveLibraryStateToFirebase();
+      window.populateSlicerSubDropdown(currentMain);
+      document.getElementById('vault-sub-cat').value = `${currentMain} / ${cleanSub}`;
+      if (typeof showToast === 'function') showToast(`📂 Sub Folder '${cleanSub}' Added!`);
+    };
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email') || 'atozexammocks@gmail.com';
+      window.currentTeacherEmail = savedEmail;
+      const userTag = document.getElementById('current-user-tag');
+      if (userTag) userTag.textContent = savedEmail;
+      await loadLibraryState();
+      window.initSlicerStudio();
+    });
+  </script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; height: 100vh; background: #060911; color: #f8fafc; overflow: hidden; }
+
+    #toast-msg {
+      position: fixed; bottom: 24px; right: 24px; background: #10b981; color: #ffffff;
+      padding: 10px 16px; border-radius: 8px; font-weight: 800; font-size: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none; z-index: 100000;
+    }
+
+    #navbar { height: 48px; background: #0b1120; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 100; flex-shrink: 0; }
+    .nav-brand { font-size: 15px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+    .nav-tabs { display: flex; gap: 6px; align-items: center; }
+    .nav-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 11px; text-decoration: none; display: flex; align-items: center; gap: 4px; }
+    .nav-btn:hover { border-color: #38bdf8; color: white; }
+    .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+    .slicer-workspace { display: flex; flex: 1; height: calc(100vh - 48px); overflow: hidden; }
+    
+    #slicer-left { width: 68%; height: 100%; display: flex; flex-direction: column; border-right: 1px solid #1e293b; background: #060911; }
+    #slicer-toolbar { padding: 6px 12px; background: #0b1120; display: flex; gap: 8px; align-items: center; font-size: 11px; border-bottom: 1px solid #1e293b; flex-wrap: wrap; }
+    .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; display: flex; align-items: center; gap: 4px; }
+    .tool-btn:hover { border-color: #38bdf8; }
+    .page-jump-input { width: 50px; padding: 3px; background: #060911; border: 1px solid #334155; border-radius: 4px; color: white; text-align: center; font-size: 11px; font-weight: 700; }
+
+    #viewport, #pdf-canvas, #pdf-single-page-wrap { 
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewport="0 0 32 32" style="fill:red;stroke:red;"><line x1="16" y1="0" x2="16" y2="32" stroke="red" stroke-width="3"/><line x1="0" y1="16" x2="32" y2="16" stroke="red" stroke-width="3"/></svg>') 16 16, crosshair !important;
+    }
+
+    #viewport { 
+      flex: 1; overflow: auto; position: relative; background: #060911; display: flex; align-items: flex-start; justify-content: center; padding: 20px; 
+    }
+    
+    #pdf-single-page-wrap { position: relative; background: #ffffff; box-shadow: 0 15px 40px rgba(0,0,0,0.6); display: block; margin: auto; }
+    #pdf-canvas { display: block; width: 100%; height: auto; }
+    
+    #crop-box { 
+      position: absolute; 
+      border: 3px solid #ff0000 !important; 
+      background: rgba(255, 0, 0, 0.25) !important; 
+      pointer-events: none; 
+      display: none; 
+      z-index: 999999; 
+    }
+
+    #slicer-right { width: 32%; height: 100%; padding: 8px 10px; background: #0b1120; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+    .meta-box { background: #060911; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
+    .meta-box label { color: #94a3b8; font-weight: 700; font-size: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .meta-box select, .meta-box input, .meta-box textarea { width: 100%; padding: 4px 6px; font-size: 11px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: white; }
+    
+    .opt-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .opt-row { display: flex; flex-direction: column; gap: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 4px; }
+    .opt-row span { font-weight: 800; color: #38bdf8; font-size: 10px; }
+    .opt-row input { border: none !important; background: #060911 !important; padding: 4px !important; font-size: 11px !important; color: white !important; }
+
+    .ocr-action-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 2px; }
+    .ocr-send-btn { background: #0284c7; border: 1px solid #38bdf8; color: white; padding: 4px 2px; border-radius: 3px; font-size: 9px; font-weight: 700; cursor: pointer; text-align: center; }
+    .ocr-send-btn:hover { background: #0369a1; }
+
+    .flag-group { display: flex; gap: 4px; justify-content: space-between; }
+    .flag-btn { flex: 1; padding: 3px; border: 1px solid #334155; background: #0f172a; color: #94a3b8; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; text-align: center; }
+    .flag-btn.active-flag-red { background: #7f1d1d; color: #fecaca; border-color: #ef4444; }
+    .flag-btn.active-flag-blue { background: #1e3a8a; color: #bfdbfe; border-color: #3b82f6; }
+    .flag-btn.active-flag-green { background: #064e3b; color: #a7f3d0; border-color: #10b981; }
+    .flag-btn.active-flag-yellow { background: #78350f; color: #fde68a; border-color: #f59e0b; }
+
+    .slot-group { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .target-btn { padding: 4px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 10px; text-align: center; }
+    .target-btn.active { background: #2563eb; color: white; border-color: #38bdf8; }
+    
+    .preview-card { background: #080d1a; border: 1px solid #1e293b; border-radius: 4px; padding: 4px 6px; display: flex; flex-direction: column; gap: 2px; }
+    .preview-thumb-box { background: #ffffff; border-radius: 3px; padding: 2px; max-height: 40px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .preview-thumb-box img { max-width: 100%; max-height: 36px; object-fit: contain; }
+
+    #prev-q-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 20000; padding: 20px; }
+    .prev-q-card { background: #0b1120; border: 2px solid #38bdf8; border-radius: 14px; width: 800px; max-height: 90vh; padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; color: #f8fafc; }
+    .student-view-box { background: #ffffff; color: #000000; padding: 20px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .student-question-img { max-width: 100%; height: auto; display: block; margin-bottom: 16px; border-radius: 4px; }
+
+    #studio-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 50000; flex-direction: column; }
+    #studio-iframe { width: 100%; height: 100%; border: none; background: #060911; }
+  </style>
+</head>
+<body>
+
+  <div id="toast-msg">✔ Action Successful!</div>
+
+  <div id="studio-modal-overlay">
+    <iframe id="studio-iframe" src=""></iframe>
+  </div>
+
+  <div id="prev-q-overlay">
+    <div class="prev-q-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+        <h3 id="preview-modal-title" style="color:#38bdf8; font-size:16px;">👁️ Last Saved Question Preview</h3>
+        <button class="tool-btn" style="background:#7f1d1d;" onclick="document.getElementById('prev-q-overlay').style.display='none'">✕ Close</button>
+      </div>
+      <div id="prev-q-body" style="display:flex; flex-direction:column; gap:12px;"></div>
+    </div>
+  </div>
+
+  <div id="navbar">
+    <div class="nav-brand">✂️ A to Z Exam Mocks - Slicer Studio</div>
+    <div class="nav-tabs">
+      <button class="tool-btn" id="ocr-only-btn" style="background:#065f46; border-color:#10b981;" onclick="window.toggleOcrOnlyMode()">✨ OCR Only Mode: OFF</button>
+      <button class="tool-btn" style="background:#0284c7;" onclick="window.openFullscreenEditor()">🖥️ Open Fullscreen Editor Studio</button>
+      <button class="tool-btn" style="background:#1d4ed8;" onclick="window.openLastSavedQuestionPreview()">👁️ View Last Saved Q</button>
+      <a href="teacher.html" class="nav-btn">🏠 Dashboard</a>
+      <span class="user-pill" id="current-user-tag">Educator</span>
+    </div>
+  </div>
+
+  <div class="slicer-workspace">
+    <div id="slicer-left" style="width: 68%; height: 100%; display: flex; flex-direction: column; border-right: 1px solid #1e293b; background: #060911;">
+      <div id="slicer-toolbar">
+        <label class="tool-btn" style="background:#0284c7; cursor:pointer;">📂 Open PDF<input type="file" id="file-input" accept="application/pdf" style="display:none;"></label>
+        
+        <span id="chunk-info" style="font-size:10px; color:#38bdf8; font-weight:bold;">Pages: Not Loaded</span>
+
+        <button class="tool-btn" id="btn-prev-page" style="background:#2563eb;">◀ Prev</button>
+        <span style="font-size:11px; font-weight:700; color:#cbd5e1;">Page <input type="number" id="page-num-input" class="page-jump-input" min="1" value="1" onchange="window.jumpToSpecificPage(this.value)"> of <span id="page-total-label">0</span></span>
+        <button class="tool-btn" id="btn-next-page" style="background:#2563eb;">Next ▶</button>
+
+        <button class="tool-btn" id="zoom-out" style="margin-left:auto;">🔍 -</button>
+        <span id="zoom-val" style="font-size:10px;">150%</span>
+        <button class="tool-btn" id="zoom-in">🔍 +</button>
+        
+        <span id="ocr-status-label" style="font-size:9px; color:#10b981; font-weight:bold; margin-left:8px;">✨ HD Crop Ready</span>
+      </div>
+
+      <div id="viewport">
+        <div id="pdf-single-page-wrap">
+          <canvas id="pdf-canvas"></canvas>
+          <div id="crop-box"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="slicer-right">
+      <div class="meta-box">
+        <!-- 🔥 मेन और सब फोल्डर के लेबल के साथ छोटे '+' बटन -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Main Folder:</span>
+            <button class="tool-btn" style="background:#0284c7; padding:1px 5px; font-size:9px;" onclick="window.addNewMainFolderPrompt()" title="Add New Main Folder">+ Add</button>
+          </label>
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Sub Folder:</span>
+            <button class="tool-btn" style="background:#0284c7; padding:1px 5px; font-size:9px;" onclick="window.addNewSubFolderPrompt()" title="Add New Sub Folder">+ Add</button>
+          </label>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
+          <select id="vault-main-cat" onchange="window.onSlicerMainFolderChange()"></select>
+          <select id="vault-sub-cat"></select>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px; margin-top:4px;">
+          <div><label>Q.No & Ans:</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2px;">
+              <input type="number" id="vault-qno" value="1" min="1">
+              <select id="vault-ans"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+            </div>
+          </div>
+          <div><label>Flags / Tags:</label>
+            <div class="flag-group">
+              <button class="flag-btn" id="flag-red" onclick="window.toggleFlag('red')">🚩 Red</button>
+              <button class="flag-btn" id="flag-blue" onclick="window.toggleFlag('blue')">🔵 Blue</button>
+              <button class="flag-btn" id="flag-green" onclick="window.toggleFlag('green')">🟢 Green</button>
+              <button class="flag-btn" id="flag-yellow" onclick="window.toggleFlag('yellow')">🟡 Yellow</button>
+            </div>
+          </div>
+        </div>
+
+        <label style="margin-top:2px;"><span>Question Text Note:</span></label>
+        <textarea id="vault-q-text" rows="2" placeholder="Question statement text..."></textarea>
+        
+        <label style="color:#38bdf8; margin-top:2px; display:flex; justify-content:space-between;">
+          <span>Free OCR Scratchpad:</span>
+          <button onclick="document.getElementById('vault-free-ocr').value=''" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">Clear OCR</button>
+        </label>
+        <textarea id="vault-free-ocr" rows="2" placeholder="Crop text here first, then send to Q.Text or Options..."></textarea>
+        
+        <div class="ocr-action-bar">
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('qtext')">➡️ Q.Text</button>
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('opta')">➡️ Opt A</button>
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('optb')">➡️ Opt B</button>
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('optc')">➡️ Opt C</button>
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('optd')">➡️ Opt D</button>
+        </div>
+
+        <label style="margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
+          <span>Options (A, B, C, D) [2x2 Grid Layout]:</span>
+          <button onclick="window.clearMainOptions()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:9px; font-weight:bold;">🗑️ Clear Options</button>
+        </label>
+        <div class="opt-grid-2x2">
+          <div class="opt-row"><span>(A)</span><input type="text" id="opt-a" placeholder="Option A"></div>
+          <div class="opt-row"><span>(B)</span><input type="text" id="opt-b" placeholder="Option B"></div>
+          <div class="opt-row"><span>(C)</span><input type="text" id="opt-c" placeholder="Option C"></div>
+          <div class="opt-row"><span>(D)</span><input type="text" id="opt-d" placeholder="Option D"></div>
+        </div>
+      </div>
+
+      <div class="slot-group">
+        <button class="target-btn active" data-target="question">✂️ Question Cut (HD)</button>
+        <button class="target-btn" data-target="solution">💡 Solution Cut (HD)</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
+        <div class="preview-card">
+          <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:bold;"><span style="color:#38bdf8;">Q.Img:</span><button onclick="window.clearTarget('question')" style="background:none;border:none;color:#94a3b8;cursor:pointer;">Clear</button></div>
+          <div class="preview-thumb-box" id="box-prev-q"><span style="font-size:9px; color:#64748b;">Empty</span></div>
+        </div>
+        <div class="preview-card">
+          <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:bold;"><span style="color:#10b981;">Sol.Img:</span><button onclick="window.clearTarget('solution')" style="background:none;border:none;color:#94a3b8;cursor:pointer;">Clear</button></div>
+          <div class="preview-thumb-box" id="box-prev-sol"><span style="font-size:9px; color:#64748b;">Empty</span></div>
+        </div>
+      </div>
+
+      <button class="tool-btn" id="btn-save-cloud" style="background:#10b981; padding:8px; font-size:12px; font-weight:800; justify-content:center; margin-top:auto;">☁️ Save Question to Cloud</button>
+    </div>
+  </div>
+
+  <script>
+    function showToast(text) {
+      const el = document.getElementById('toast-msg');
+      if (!el) return;
+      el.textContent = text; el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 2000);
+    }
+
+    let activeFlags = { red: false, blue: false, green: false, yellow: false };
+    let ocrOnlyMode = false;
+
+    window.toggleOcrOnlyMode = function() {
+      ocrOnlyMode = !ocrOnlyMode;
+      const btn = document.getElementById('ocr-only-btn');
+      if (btn) {
+        if (ocrOnlyMode) {
+          btn.style.background = '#d97706'; btn.style.borderColor = '#f59e0b';
+          btn.textContent = "✨ OCR Only Mode: ON";
+          showToast("✨ OCR Only Mode Enabled (Text Extraction Only)");
+        } else {
+          btn.style.background = '#065f46'; btn.style.borderColor = '#10b981';
+          btn.textContent = "✨ OCR Only Mode: OFF";
+          showToast("✂️ Standard HD Crop Mode Enabled");
+        }
+      }
+    };
+
+    window.toggleFlag = function(color) {
+      activeFlags[color] = !activeFlags[color];
+      const btn = document.getElementById(`flag-${color}`);
+      if (btn) btn.className = activeFlags[color] ? `flag-btn active-flag-${color}` : `flag-btn`;
+    };
+
+    window.clearMainOptions = function() {
+      ['opt-a', 'opt-b', 'opt-c', 'opt-d'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+      });
+      showToast("🗑️ All Options Cleared!");
+    };
+
+    window.sendOcrTo = function(target) {
+      const ocrText = document.getElementById('vault-free-ocr').value.trim();
+      if (!ocrText) return alert("Free OCR box is empty!");
+
+      if (target === 'qtext') {
+        const existing = document.getElementById('vault-q-text').value;
+        document.getElementById('vault-q-text').value = existing ? existing + " " + ocrText : ocrText;
+      } else if (target === 'opta') {
+        document.getElementById('opt-a').value = ocrText;
+      } else if (target === 'optb') {
+        document.getElementById('opt-b').value = ocrText;
+      } else if (target === 'optc') {
+        document.getElementById('opt-c').value = ocrText;
+      } else if (target === 'optd') {
+        document.getElementById('opt-d').value = ocrText;
+      }
+      
+      document.getElementById('vault-free-ocr').value = '';
+      showToast(`✔ Sent to ${target.toUpperCase()}!`);
+    };
+
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+
+    let pdfDoc = null, pageNum = 1, pageScale = 1.5;
+    let originalPdfBytes = null, totalPdfPages = 0, currentChunkStart = 1;
+    let isCropping = false, cropStartX = 0, cropStartY = 0, activeCanvas = null, activeCanvasRect = null;
+    let questionParts = [], solutionParts = [], activeTarget = 'question';
+
+    const viewport = document.getElementById('viewport');
+    const pdfCanvas = document.getElementById('pdf-canvas');
+    const cropBox = document.getElementById('crop-box');
+
+    document.getElementById('file-input').onchange = async (e) => {
+      const f = e.target.files[0];
+      if (f) {
+        try {
+          const arrayBuffer = await f.arrayBuffer();
+          originalPdfBytes = arrayBuffer;
+
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          pdfDoc = await loadingTask.promise;
+          totalPdfPages = pdfDoc.numPages;
+
+          if (totalPdfPages > 100) {
+            showToast(`⚡ Big PDF (${totalPdfPages}p). Loading Chunk 1-100...`);
+            await window.loadPdfChunk(1, Math.min(100, totalPdfPages));
+          } else {
+            currentChunkStart = 1;
+            document.getElementById('chunk-info').textContent = `Pages: 1-${totalPdfPages}`;
+            pageNum = 1;
+            document.getElementById('page-total-label').textContent = totalPdfPages;
+            window.renderCurrentPage();
+            showToast(`✔ Loaded (${totalPdfPages} pages)`);
+          }
+        } catch (err) {
+          alert("Error loading PDF file: " + err.message);
+        }
+      }
+    };
+
+    window.loadPdfChunk = async function(start, end) {
+      currentChunkStart = start;
+      document.getElementById('chunk-info').textContent = `Pages: ${start}-${end} (Total: ${totalPdfPages})`;
+      
+      const srcDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
+      const newDoc = await PDFLib.PDFDocument.create();
+      
+      const pageIndices = [];
+      for (let i = start - 1; i < end && i < srcDoc.getPageCount(); i++) {
+        pageIndices.push(i);
+      }
+      
+      const copiedPages = await newDoc.copyPages(srcDoc, pageIndices);
+      copiedPages.forEach(p => newDoc.addPage(p));
+      
+      const chunkBytes = await newDoc.save();
+      pdfDoc = await pdfjsLib.getDocument({ data: chunkBytes }).promise;
+      
+      pageNum = 1;
+      document.getElementById('page-total-label').textContent = totalPdfPages;
+      window.renderCurrentPage();
+      showToast(`✔ Loaded Range (${start} to ${end})`);
+    };
+
+    window.renderCurrentPage = async function() {
+      if (!pdfDoc) return;
+      const page = await pdfDoc.getPage(pageNum);
+      const viewportObj = page.getViewport({ scale: pageScale });
+      
+      pdfCanvas.height = viewportObj.height; 
+      pdfCanvas.width = viewportObj.width;
+
+      const pageWrap = document.getElementById('pdf-single-page-wrap');
+      pageWrap.style.width = `${viewportObj.width}px`;
+      pageWrap.style.height = `${viewportObj.height}px`;
+
+      const ctx = pdfCanvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: viewportObj }).promise;
+
+      document.getElementById('page-num-input').value = currentChunkStart + pageNum - 1;
+      document.getElementById('zoom-val').textContent = `${Math.round(pageScale * 100)}%`;
+      viewport.scrollTop = 0; 
+    };
+
+    window.jumpToSpecificPage = async function(pNum) {
+      if (!originalPdfBytes) return;
+      let target = parseInt(pNum);
+      if (target >= 1 && target <= totalPdfPages) {
+        const targetChunkStart = Math.floor((target - 1) / 100) * 100 + 1;
+        const targetChunkEnd = Math.min(targetChunkStart + 99, totalPdfPages);
+        
+        if (targetChunkStart !== currentChunkStart) {
+          await window.loadPdfChunk(targetChunkStart, targetChunkEnd);
+        }
+        pageNum = target - targetChunkStart + 1;
+        window.renderCurrentPage();
+        showToast(`📄 Jumped to Page ${target}`);
+      } else {
+        alert(`Enter valid page between 1 and ${totalPdfPages}`);
+      }
+    };
+
+    document.getElementById('btn-prev-page').onclick = async () => { 
+      let absolutePage = currentChunkStart + pageNum - 2;
+      if (absolutePage >= 1) {
+        await window.jumpToSpecificPage(absolutePage);
+      }
+    };
+
+    document.getElementById('btn-next-page').onclick = async () => { 
+      let absolutePage = currentChunkStart + pageNum;
+      if (absolutePage <= totalPdfPages) {
+        await window.jumpToSpecificPage(absolutePage);
+      }
+    };
+    
+    document.getElementById('zoom-in').onclick = () => { if (pdfDoc && pageScale < 3.0) { pageScale += 0.25; window.renderCurrentPage(); } };
+    document.getElementById('zoom-out').onclick = () => { if (pdfDoc && pageScale > 0.75) { pageScale -= 0.25; window.renderCurrentPage(); } };
+
+    viewport.onmousedown = (e) => {
+      const canvasEl = pdfCanvas;
+      if (canvasEl) {
+        activeCanvas = canvasEl;
+        activeCanvasRect = activeCanvas.getBoundingClientRect();
+        const wrapRect = document.getElementById('pdf-single-page-wrap').getBoundingClientRect();
+        
+        isCropping = true; 
+        cropStartX = e.clientX - activeCanvasRect.left; 
+        cropStartY = e.clientY - activeCanvasRect.top;
+        
+        cropBox.style.left = `${activeCanvasRect.left - wrapRect.left + cropStartX}px`; 
+        cropBox.style.top = `${activeCanvasRect.top - wrapRect.top + cropStartY}px`; 
+        cropBox.style.width = '0px'; 
+        cropBox.style.height = '0px'; 
+        cropBox.style.display = 'block';
+      }
+    };
+
+    window.onmousemove = (e) => {
+      if (isCropping && activeCanvas && activeCanvasRect) {
+        const curX = Math.max(0, Math.min(e.clientX - activeCanvasRect.left, activeCanvasRect.width));
+        const curY = Math.max(0, Math.min(e.clientY - activeCanvasRect.top, activeCanvasRect.height));
+        const wrapRect = document.getElementById('pdf-single-page-wrap').getBoundingClientRect();
+        
+        const startX = activeCanvasRect.left - wrapRect.left + cropStartX;
+        const startY = activeCanvasRect.top - wrapRect.top + cropStartY;
+        const currX = activeCanvasRect.left - wrapRect.left + curX;
+        const currY = activeCanvasRect.top - wrapRect.top + curY;
+
+        cropBox.style.left = `${Math.min(startX, currX)}px`; 
+        cropBox.style.top = `${Math.min(startY, currY)}px`;
+        cropBox.style.width = `${Math.abs(currX - startX)}px`; 
+        cropBox.style.height = `${Math.abs(currY - startY)}px`;
+      }
+    };
+
+    window.onmouseup = async () => {
+      if (isCropping) {
+        isCropping = false; cropBox.style.display = 'none';
+        const boxW = parseFloat(cropBox.style.width), boxH = parseFloat(cropBox.style.height);
+        if (boxW > 10 && boxH > 10 && activeCanvas) {
+          const scaleX = activeCanvas.width / activeCanvasRect.width;
+          const scaleY = activeCanvas.height / activeCanvasRect.height;
+          
+          const cropLeft = (parseFloat(cropBox.style.left) - (activeCanvas.getBoundingClientRect().left - document.getElementById('pdf-single-page-wrap').getBoundingClientRect().left)) * scaleX;
+          const cropTop = (parseFloat(cropBox.style.top) - (activeCanvas.getBoundingClientRect().top - document.getElementById('pdf-single-page-wrap').getBoundingClientRect().top)) * scaleY;
+          
+          let tC = document.createElement('canvas'); 
+          tC.width = boxW * scaleX; 
+          tC.height = boxH * scaleY;
+          
+          const tCtx = tC.getContext('2d');
+          tCtx.imageSmoothingEnabled = true;
+          tCtx.imageSmoothingQuality = 'high';
+
+          tCtx.drawImage(activeCanvas, cropLeft, cropTop, tC.width, tC.height, 0, 0, tC.width, tC.height);
+          const cutUrl = tC.toDataURL('image/png');
+          
+          if (ocrOnlyMode) {
+            showToast("✨ Running OCR on Selected Area...");
+            try {
+              const { data: { text } } = await Tesseract.recognize(cutUrl, 'eng+hin', { logger: m => {} });
+              if (text && text.trim().length > 1) {
+                const cleanedText = text.replace(/\n+/g, ' ').trim();
+                const existing = document.getElementById('vault-free-ocr').value;
+                document.getElementById('vault-free-ocr').value = existing ? existing + " " + cleanedText : cleanedText;
+                showToast("✔ Text Extracted & Sent to Free OCR Box!");
+              } else {
+                showToast("⚠️ No text detected in selection.");
+              }
+            } catch (err) {
+              showToast("❌ OCR Failed");
+            }
+          } else {
+            if (activeTarget === 'question') questionParts.push(cutUrl); else solutionParts.push(cutUrl);
+            window.renderLivePreviews();
+            showToast("✂️ HD Cropped!");
+          }
+        }
+        activeCanvas = null; activeCanvasRect = null;
+      }
+    };
+
+    async function stitchImages(dataUrls) {
+      if (dataUrls.length === 1) return dataUrls[0];
+      const loaded = await Promise.all(dataUrls.map(url => new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = url; })));
+      const maxW = Math.max(...loaded.map(i => i.width)), totalH = loaded.reduce((acc, i) => acc + i.height, 0);
+      const mCanvas = document.createElement('canvas'); mCanvas.width = maxW; mCanvas.height = totalH;
+      const mCtx = mCanvas.getContext('2d'); mCtx.fillStyle = '#fff'; mCtx.fillRect(0, 0, maxW, totalH);
+      let y = 0; loaded.forEach(img => { mCtx.drawImage(img, 0, y); y += img.height; });
+      return mCanvas.toDataURL('image/png');
+    }
+
+    window.renderLivePreviews = async function() {
+      const qBox = document.getElementById('box-prev-q');
+      const sBox = document.getElementById('box-prev-sol');
+      if (qBox) qBox.innerHTML = questionParts.length ? `<img src="${await stitchImages(questionParts)}">` : `<span style="font-size:9px; color:#64748b;">Empty</span>`;
+      if (sBox) sBox.innerHTML = solutionParts.length ? `<img src="${await stitchImages(solutionParts)}">` : `<span style="font-size:9px; color:#64748b;">Empty</span>`;
+    };
+
+    window.clearTarget = function(t) { 
+      if (t === 'question') {
+        questionParts = []; 
+        localStorage.removeItem('Temp_Editor_Synced_Image');
+        localStorage.removeItem('Temp_Editor_Image');
+        localStorage.removeItem('Temp_Fallback_QText');
+        localStorage.removeItem('Temp_Fallback_OptA');
+        localStorage.removeItem('Temp_Fallback_OptB');
+        localStorage.removeItem('Temp_Fallback_OptC');
+        localStorage.removeItem('Temp_Fallback_OptD');
+      } else if (t === 'solution') {
+        solutionParts = [];
+      }
+      window.renderLivePreviews();
+      showToast(`🗑️ ${t.toUpperCase()} Image Cleared!`);
+    };
+
+    document.querySelectorAll('.target-btn').forEach(b => b.onclick = () => {
+      document.querySelectorAll('.target-btn').forEach(btn => btn.classList.remove('active'));
+      b.classList.add('active'); activeTarget = b.dataset.target;
+    });
+
+    window.openFullscreenEditor = async function() {
+      if (!questionParts.length) return alert("Please crop a question image first from the PDF before opening the Editor Studio!");
+      const stitchedImg = await stitchImages(questionParts);
+      localStorage.setItem('Temp_Editor_Image', stitchedImg);
+      
+      localStorage.setItem('Temp_Opt_A', document.getElementById('opt-a').value);
+      localStorage.setItem('Temp_Opt_B', document.getElementById('opt-b').value);
+      localStorage.setItem('Temp_Opt_C', document.getElementById('opt-c').value);
+      localStorage.setItem('Temp_Opt_D', document.getElementById('opt-d').value);
+      localStorage.setItem('Temp_QText', document.getElementById('vault-q-text').value);
+
+      const modal = document.getElementById('studio-modal-overlay');
+      const iframe = document.getElementById('studio-iframe');
+      if (modal && iframe) {
+        iframe.src = 'editor.html';
+        modal.style.display = 'flex';
+      }
+    };
+
+    window.closeStudioModal = function() {
+      const modal = document.getElementById('studio-modal-overlay');
+      const iframe = document.getElementById('studio-iframe');
+      if (modal && iframe) {
+        modal.style.display = 'none';
+        iframe.src = '';
+      }
+
+      const syncedImg = localStorage.getItem('Temp_Editor_Synced_Image');
+      if (syncedImg) {
+        questionParts = [syncedImg];
+        window.renderLivePreviews();
+      }
+
+      const qText = localStorage.getItem('Temp_Fallback_QText');
+      if (qText) document.getElementById('vault-q-text').value = qText;
+
+      const optA = localStorage.getItem('Temp_Fallback_OptA');
+      const optB = localStorage.getItem('Temp_Fallback_OptB');
+      const optC = localStorage.getItem('Temp_Fallback_OptC');
+      const optD = localStorage.getItem('Temp_Fallback_OptD');
+
+      if (optA !== null) document.getElementById('opt-a').value = optA;
+      if (optB !== null) document.getElementById('opt-b').value = optB;
+      if (optC !== null) document.getElementById('opt-c').value = optC;
+      if (optD !== null) document.getElementById('opt-d').value = optD;
+
+      showToast("✔ Changes Synced Back Successfully!");
+    };
+
+    window.openLastSavedQuestionPreview = async function() {
+      const body = document.getElementById('prev-q-body');
+      if (!body) return;
+
+      if (!window.lastSavedQuestionObject) {
+        body.innerHTML = `<p style="color:#64748b;">No question saved in this session yet.</p>`;
+      } else {
+        const obj = window.lastSavedQuestionObject;
+        body.innerHTML = `
+          <div style="color:#10b981; font-weight:bold; margin-bottom:8px;">✔ Successfully Saved to Cloud | Q.No: ${obj.qNo} | Ans: ${obj.key}</div>
+          <div class="student-view-box">
+            ${obj.qText ? `<div style="font-size:14px; font-weight:bold; color:#0f172a; margin-bottom:12px;">${obj.qText}</div>` : ''}
+            ${obj.question && obj.question.trim() !== '' ? `<img src="${obj.question}" class="student-question-img">` : ''}
+            ${obj.optText ? `<div style="font-weight:bold; color:#0f172a; font-size:13px; margin-top:16px; border-top:1px solid #e2e8f0; padding-top:10px;">Options:</div><div style="font-size:13px; color:#334155; margin-top:6px;">${obj.optText}</div>` : ''}
+          </div>
+        `;
+      }
+      const overlay = document.getElementById('prev-q-overlay');
+      if (overlay) overlay.style.display = 'flex';
+    };
+
+    // 🔥 फायरबेस में फोल्डर सेव करने का फंक्शन
+    async function saveLibraryStateToFirebase() {
+      try {
+        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        await window.setDoc(ref, { mainFolders, subFolders }, { merge: true });
+      } catch (e) {
+        console.error("Error saving folders:", e);
+      }
+    }
+
+    // 🔥 मेन फोल्डर जोड़ने का प्रॉम्प्ट फंक्शन
+    window.addNewMainFolderPrompt = async function() {
+      const folderName = prompt("Enter new Main Folder name:");
+      if (!folderName || !folderName.trim()) return;
+      const cleanName = folderName.trim();
+
+      if (mainFolders.includes(cleanName)) {
+        return alert("This main folder already exists!");
+      }
+
+      mainFolders.push(cleanName);
+      if (!subFolders[cleanName]) {
+        subFolders[cleanName] = ["General"];
+      }
+
+      await saveLibraryStateToFirebase();
+      window.initSlicerStudio();
+      document.getElementById('vault-main-cat').value = cleanName;
+      window.populateSlicerSubDropdown(cleanName);
+      showToast(`📁 Main Folder '${cleanName}' Added!`);
+    };
+
+    // 🔥 सब फोल्डर जोड़ने का प्रॉम्प्ट फंक्शन
+    window.addNewSubFolderPrompt = async function() {
+      const mainSel = document.getElementById('vault-main-cat');
+      const currentMain = mainSel ? mainSel.value : '';
+      if (!currentMain) return alert("Please select a main folder first!");
+
+      const subName = prompt(`Enter new Sub Folder name under '${currentMain}':`);
+      if (!subName || !subName.trim()) return;
+      const cleanSub = subName.trim();
+
+      if (!subFolders[currentMain]) {
+        subFolders[currentMain] = [];
+      }
+
+      if (subFolders[currentMain].includes(cleanSub)) {
+        return alert("This sub folder already exists under this main folder!");
+      }
+
+      subFolders[currentMain].push(cleanSub);
+
+      await saveLibraryStateToFirebase();
+      window.populateSlicerSubDropdown(currentMain);
+      document.getElementById('vault-sub-cat').value = `${currentMain} / ${cleanSub}`;
+      showToast(`📂 Sub Folder '${cleanSub}' Added!`);
+    };
+
+    const saveCloudBtn = document.getElementById('btn-save-cloud');
+    if (saveCloudBtn) {
+      saveCloudBtn.onclick = async () => {
+        const originalText = saveCloudBtn.innerHTML;
+        saveCloudBtn.disabled = true;
+
+        try {
+          saveCloudBtn.style.background = '#2563eb';
+          saveCloudBtn.innerHTML = "⚡ Saving Instantly to Cloud...";
+
+          let finalQImg = '';
+          if (questionParts.length > 0) {
+            const syncedImg = localStorage.getItem('Temp_Editor_Synced_Image');
+            finalQImg = syncedImg || await stitchImages(questionParts);
+          } else {
+            finalQImg = '';
+          }
+
+          const finalSolImg = solutionParts.length ? await stitchImages(solutionParts) : '';
+          
+          const qTextEl = document.getElementById('vault-q-text');
+          const fallbackQText = localStorage.getItem('Temp_Fallback_QText');
+          if (fallbackQText) qTextEl.value = fallbackQText;
+
+          const fallbackOptA = localStorage.getItem('Temp_Fallback_OptA');
+          const fallbackOptB = localStorage.getItem('Temp_Fallback_OptB');
+          const fallbackOptC = localStorage.getItem('Temp_Fallback_OptC');
+          const fallbackOptD = localStorage.getItem('Temp_Fallback_OptD');
+
+          if (fallbackOptA !== null) document.getElementById('opt-a').value = fallbackOptA;
+          if (fallbackOptB !== null) document.getElementById('opt-b').value = fallbackOptB;
+          if (fallbackOptC !== null) document.getElementById('opt-c').value = fallbackOptC;
+          if (fallbackOptD !== null) document.getElementById('opt-d').value = fallbackOptD;
+
+          const hasText = qTextEl && qTextEl.value.trim().length > 0;
+          if (!finalQImg && !hasText) {
+            alert('Please provide either question text or a question image/crop!');
+            saveCloudBtn.disabled = false;
+            saveCloudBtn.style.background = '#10b981';
+            saveCloudBtn.innerHTML = originalText;
+            return;
+          }
+          
+          const subCat = document.getElementById('vault-sub-cat');
+          const qNoInput = document.getElementById('vault-qno');
+          const ansEl = document.getElementById('vault-ans');
+
+          const chosenSub = subCat ? subCat.value : 'General';
+          const qNo = qNoInput ? (parseInt(qNoInput.value) || 1) : 1;
+          
+          const optA = document.getElementById('opt-a').value.trim();
+          const optB = document.getElementById('opt-b').value.trim();
+          const optC = document.getElementById('opt-c').value.trim();
+          const optD = document.getElementById('opt-d').value.trim();
+          
+          let optTextFormatted = '';
+          if (optA || optB || optC || optD) {
+            optTextFormatted = `(A) ${optA} | (B) ${optB} | (C) ${optC} | (D) ${optD}`;
+          }
+
+          const newQ = {
+            qNo, subject: chosenSub, topic: 'General',
+            qText: qTextEl ? qTextEl.value.trim() : '',
+            optText: optTextFormatted,
+            flags: { ...activeFlags },
+            key: ansEl ? ansEl.value : 'A',
+            question: finalQImg,
+            solution: finalSolImg,
+            creatorEmail: window.currentTeacherEmail || 'atozexammocks@gmail.com',
+            createdAt: new Date().toISOString()
+          };
+
+          await window.addDoc(window.collection(window.db, "questions"), newQ);
+          window.lastSavedQuestionObject = newQ;
+
+          localStorage.removeItem('Temp_Editor_Synced_Image');
+          localStorage.removeItem('Temp_Editor_Image');
+          localStorage.removeItem('Temp_Fallback_QText');
+          localStorage.removeItem('Temp_Fallback_OptA');
+          localStorage.removeItem('Temp_Fallback_OptB');
+          localStorage.removeItem('Temp_Fallback_OptC');
+          localStorage.removeItem('Temp_Fallback_OptD');
+
+          questionParts = []; solutionParts = []; window.renderLivePreviews();
+          if (qTextEl) qTextEl.value = '';
+          ['opt-a', 'opt-b', 'opt-c', 'opt-d', 'vault-free-ocr'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+          });
+          if (qNoInput) qNoInput.value = qNo + 1;
+          
+          saveCloudBtn.style.background = '#10b981';
+          saveCloudBtn.innerHTML = "✔ Saved Instantly!";
+          setTimeout(() => {
+            saveCloudBtn.innerHTML = originalText;
+          }, 2000);
+
+          showToast(`✔ Q${qNo} Saved Instantly to Cloud!`);
+        } catch (err) {
+          alert("Failed to save question: " + err.message);
+          saveCloudBtn.style.background = '#b91c1c';
+          saveCloudBtn.innerHTML = "❌ Failed - Try Again";
+          setTimeout(() => {
+            saveCloudBtn.style.background = '#10b981';
+            saveCloudBtn.innerHTML = originalText;
+          }, 3000);
+        } finally {
+          saveCloudBtn.disabled = false;
+        }
+      };
+    }
+  </script>
+</body>
+</html>
