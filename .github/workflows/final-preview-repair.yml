@@ -1,0 +1,36 @@
+name: Final Student Preview repair
+on:
+  push:
+    branches: [main]
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('ai_uploader.html'); s=p.read_text()
+          s=re.sub(r"window\.openReview=function\(i\)\{.*?(?=const _a2zRender=render;)", "window.openReview=function(i){const x=items[i]||{};window.currentPreviewIndex=i;sessionStorage.setItem('A2Z_STUDENT_PREVIEW',JSON.stringify({i,data:x}));const w=window.open('student_preview.html?i='+encodeURIComponent(i),'_blank');if(!w)alert('Please allow pop-ups for this site.');};\n", s, count=1, flags=re.S)
+          p.write_text(s)
+
+          p=Path('student_preview.html'); s=p.read_text()
+          s=re.sub(r"function textMath\(s\)\{.*?\nfunction typeset", """function textMath(s){let t=esc(s||'');t=t.replace(/\\\\\\((.*?)\\\\\\)/gs,'\\\\($1\\\\)').replace(/\\\\\\[(.*?)\\\\\\]/gs,'<div>\\\\[$1\\\\]</div>');t=t.replace(/\\^\\{([^}]+)\\}/g,'<sup>$1</sup>').replace(/\\_\\{([^}]+)\\}/g,'<sub>$1</sub>');t=t.replace(/\\b(10|x|y|z|a|b|c|n|m|e)\\^([0-9+\\-]+)\\b/g,'$1<sup>$2</sup>').replace(/\\b([A-Za-z])_([0-9]+)\\b/g,'$1<sub>$2</sub>');return t.replace(/\\n/g,'<br>')}\nfunction typeset""", s, count=1, flags=re.S)
+          p.write_text(s)
+          PY
+      - name: Commit and remove workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ai_uploader.html student_preview.html
+          git diff --cached --quiet || git commit -m "Repair Student Preview launch and equation formatting"
+          git push
+          git rm .github/workflows/final-preview-repair.yml
+          git commit -m "Remove temporary final preview repair workflow"
+          git push
