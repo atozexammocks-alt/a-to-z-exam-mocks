@@ -5,7 +5,7 @@ const opt={type:'object',properties:{text:{type:'string'},box},required:['text',
 const schema={type:'array',items:{type:'object',properties:{qNo:{type:'integer'},qText:{type:'string'},qTextEnglish:{type:'string'},qTextHindi:{type:'string'},optA:opt,optB:opt,optC:opt,optD:opt,key:{type:'string'},topic:{type:'string'},targetPath:{type:'string'},questionBox:box,solutionBox:box,continuesToNextPage:{type:'boolean'},nextPageBox:box},required:['qNo','qText','optA','optB','optC','optD','key','topic','targetPath','questionBox','solutionBox','continuesToNextPage']}};
 const send=(r,s,b)=>r.status(s).setHeader('Content-Type','application/json').send(JSON.stringify(b));
 const img=s=>{const m=String(s||'').match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/i);return m?{mime:m[1].toLowerCase().replace('jpg','jpeg'),data:m[2]}:null};
-const clean=s=>typeof s==='string'?s.replace(/\$\$?/g,'').replace(/\\\(|\\\)/g,'').replace(/[ \t]{2,}/g,' ').trim():s;
+const clean=s=>typeof s==='string'?s.replace(/[ 	]{2,}/g,' ').trim():s;
 const cleanItems=a=>Array.isArray(a)?a.map(q=>{if(q)for(const k of ['qText','qTextEnglish','qTextHindi','key','topic','targetPath'])if(typeof q[k]==='string')q[k]=clean(q[k]);for(const k of ['optA','optB','optC','optD'])if(q?.[k]?.text)q[k].text=clean(q[k].text);return q}):[];
 module.exports=async(req,res)=>{
 if(req.method!=='POST')return send(res,405,{error:'POST only'});
