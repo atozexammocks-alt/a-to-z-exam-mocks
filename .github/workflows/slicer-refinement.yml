@@ -23,19 +23,19 @@ jobs:
           new="function typeset(){if(window.MathJax?.typesetPromise)requestAnimationFrame(()=>MathJax.typesetPromise().catch(()=>{}))}function bindEditorInputs(){items.forEach((x,i)=>{[['q'+i,'qText'],['a'+i,'optA'],['b'+i,'optB'],['c'+i,'optC'],['d'+i,'optD']].forEach(([id,key])=>{const el=document.getElementById(id);if(el&&!el._bound){el._bound=true;el.addEventListener('input',()=>{x[key]=el.value;});}});});}"
           if old not in s: raise SystemExit('typeset function not found')
           s=s.replace(old,new,1)
-          marker="<div class=\\\"qright\\\"><div class=\\\"assign\\\"><div class=\\\"assignTitle\\\">🔒 ORIGINAL PDF IMAGE — untouched</div>"
+          marker='<div class="qright"><div class="assign"><div class="assignTitle">🔒 ORIGINAL PDF IMAGE — untouched</div>'
           a=s.find(marker)
           if a<0: raise SystemExit('qright start not found')
-          b=s.find('<div style=\\\"display:none\\\">',a)
+          b=s.find('<div style="display:none">',a)
           if b<0: raise SystemExit('qright end not found')
-          newright="<div class=\\\"qright\\\"><div class=\\\"assign\\\"><div class=\\\"assignTitle\\\">🖼️ QUESTION IMAGE — editable crop</div><div class=\\\"small\\\">Right side shows this question's crop only. The PDF source stays untouched.</div></div><div class=\\\"preview\\\" style=\\\"font-size:${x.fontSize||16}px\\\">${x.questionImage?`<img src=\\\"${x.questionImage}\\\" style=\\\"width:100%;height:auto;display:block\\\">`:`<div class=\\\"reviewText\\\">No question crop yet. Use Edit from full page.</div>`}<div class=\\\"actions\\\"><button class=\\\"miniBtn primary\\\" onclick=\\\"openQuestionCrop(${i})\\\">✏️ Edit from full page</button><button class=\\\"miniBtn\\\" onclick=\\\"openSolutionCrop(${i})\\\">✂️ Solution</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'A')\\\">A image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'B')\\\">B image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'C')\\\">C image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'D')\\\">D image</button></div></div></div>"
+          newright='<div class="qright"><div class="assign"><div class="assignTitle">🖼️ QUESTION IMAGE — editable crop</div><div class="small">Right side shows this question\'s crop only. The PDF source stays untouched.</div></div><div class="preview" style="font-size:${x.fontSize||16}px">${x.questionImage?`<img src="${x.questionImage}" style="width:100%;height:auto;display:block">`:`<div class="reviewText">No question crop yet. Use Edit from full page.</div>`}<div class="actions"><button class="miniBtn primary" onclick="openQuestionCrop(${i})">✏️ Edit from full page</button><button class="miniBtn" onclick="openSolutionCrop(${i})">✂️ Solution</button><button class="miniBtn" onclick="openOptionCrop(${i},\'A\')">A image</button><button class="miniBtn" onclick="openOptionCrop(${i},\'B\')">B image</button><button class="miniBtn" onclick="openOptionCrop(${i},\'C\')">C image</button><button class="miniBtn" onclick="openOptionCrop(${i},\'D\')">D image</button></div></div></div>'
           s=s[:a]+newright+s[b:]
-          old="${mathFieldButton(i,'q'+i)}</div><div class=\\\"mathHint\\\">Detected LaTeX"
-          new="${mathFieldButton(i,'q'+i)}<button class=\\\"miniBtn\\\" type=\\\"button\\\" onclick=\\\"openQuestionCrop(${i})\\\">🖼️ Image</button></div><div class=\\\"mathHint\\\">Detected LaTeX"
+          old="${mathFieldButton(i,'q'+i)}</div><div class=\"mathHint\">Detected LaTeX"
+          new="${mathFieldButton(i,'q'+i)}<button class=\"miniBtn\" type=\"button\" onclick=\"openQuestionCrop(${i})\">🖼️ Image</button></div><div class=\"mathHint\">Detected LaTeX"
           if old not in s: raise SystemExit('question image button anchor not found')
           s=s.replace(old,new,1)
           old="${mathFieldButton(i,k.toLowerCase()+i)}</div>`).join('')}"
-          new="${mathFieldButton(i,k.toLowerCase()+i)}<button class=\\\"miniBtn\\\" type=\\\"button\\\" onclick=\\\"openOptionCrop(${i},'${k}')\\\">🖼️</button></div>`).join('')}"
+          new="${mathFieldButton(i,k.toLowerCase()+i)}<button class=\"miniBtn\" type=\"button\" onclick=\"openOptionCrop(${i},'${k}')\">🖼️</button></div>`).join('')}"
           if old not in s: raise SystemExit('option image button anchor not found')
           s=s.replace(old,new,1)
           old="}).join('');typeset()}function clearFigure"
