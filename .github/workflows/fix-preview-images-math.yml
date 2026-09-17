@@ -1,0 +1,85 @@
+name: Fix Student Preview source page image and math
+on:
+  workflow_dispatch:
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch uploader and preview
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('ai_uploader.html')
+          s=p.read_text()
+
+          old="for(const x of got){x.sourcePage=n;x.qNo=x.qNo||items.length+1;"
+          new="for(const x of got){x.sourcePage=n;x.sourcePageImage=cur.image;x.qNo=x.qNo||items.length+1;"
+          if old in s:
+              s=s.replace(old,new,1)
+          else:
+              raise SystemExit('processPage marker not found')
+
+          old="await makeCrops(x);items.push(x);"
+          new="await makeCrops(x);x.sourcePageImage=cur.image;if(!x.questionImage)x.questionImage=cur.image;items.push(x);"
+          if old in s:
+              s=s.replace(old,new,1)
+          else:
+              raise SystemExit('makeCrops marker not found')
+
+          old="window.openReview=function(i){const x=items[i]||{};sessionStorage.setItem('A2Z_STUDENT_PREVIEW',JSON.stringify({i,data:x}));const w=window.open('student_preview.html','_blank');if(!w)alert('Please allow pop-ups for this site.');};"
+          new="window.openReview=function(i){const x=items[i]||{};window.currentPreviewIndex=i;sessionStorage.setItem('A2Z_STUDENT_PREVIEW',JSON.stringify({i,data:x}));const w=window.open('student_preview.html?i='+encodeURIComponent(i),'_blank');if(!w)alert('Please allow pop-ups for this site.');};"
+          if old not in s:
+              raise SystemExit('openReview marker not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          p=Path('student_preview.html')
+          s=p.read_text()
+          old="const idxParam=params.get('i');const idx=idxParam!==null?Number(idxParam):(Number(openerWin?.currentPreviewIndex)||0);let x={};"
+          new="const idxParam=params.get('i');let storedPreview=null;try{storedPreview=JSON.parse(sessionStorage.getItem('A2Z_STUDENT_PREVIEW')||'null')}catch(e){}const idx=idxParam!==null?Number(idxParam):(Number(storedPreview?.i)||Number(openerWin?.currentPreviewIndex)||0);let x={};"
+          if old not in s:
+              raise SystemExit('preview index marker not found')
+          s=s.replace(old,new,1)
+
+          old="const originalQuestionImage=x.questionImage||x.sourcePageImage||'';let originalOptionImages={...(x.optionImages||{})};"
+          new="const originalQuestionImage=x.questionImage||'';const sourcePageImage=x.sourcePageImage||'';let originalOptionImages={...(x.optionImages||{})};"
+          if old in s:
+              s=s.replace(old,new,1)
+
+          old="function openCropModal(i,type){reviewIndex=i;cropPage=items[i].sourcePage||1;showCropPage(type)}"
+          new="function openCropModal(i,type){reviewIndex=i;cropPage=items[i].sourcePage||1;showCropPage(type)}"
+          if old in s:
+              s=s.replace(old,new,1)
+
+          old="const x=items[reviewIndex],src=pageCache[cropPage]?.image||x.sourcePageImage;if(!src)return alert('Original PDF page is not available.');"
+          new="const x=items[reviewIndex],src=pageCache[cropPage]?.image||(cropPage===x.sourcePage?x.sourcePageImage:'');if(!src)return alert('Original PDF page is not available.');"
+          if old not in s:
+              raise SystemExit('crop source marker not found')
+          s=s.replace(old,new,1)
+
+          old="function textMath(s){let t=esc(s||'');t=t.replace(/\\\\\\((.*?)\\\\\\)/gs,'\\\\($1\\\\)').replace(/\\\\\\[(.*?)\\\\\\]/gs,'<div>\\\\[$1\\\\]</div>');return t.replace(/\\n/g,'<br>')}"
+          new="function textMath(s){let t=esc(s||'');t=t.replace(/\\\\\\((.*?)\\\\\\)/gs,'\\\\($1\\\\)').replace(/\\\\\\[(.*?)\\\\\\]/gs,'<div>\\\\[$1\\\\]</div>');t=t.replace(/\\^\\{([^}]+)\\}/g,'<sup>$1</sup>').replace(/\\_\\{([^}]+)\\}/g,'<sub>$1</sub>');t=t.replace(/\\b(10|x|y|z|a|b|c|n|m|e)\\^([0-9+\\-]+)\\b/g,'$1<sup>$2</sup>').replace(/\\b([A-Za-z])_([0-9]+)\\b/g,'$1<sub>$2</sub>');return t.replace(/\\n/g,'<br>')}"
+          if old in s:
+              s=s.replace(old,new,1)
+          else:
+              raise SystemExit('textMath marker not found')
+          p.write_text(s)
+          PY
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ai_uploader.html student_preview.html
+          git diff --cached --quiet || git commit -m "Fix Student Preview source page image and math rendering"
+          git push
+      - name: Remove temporary workflow
+        run: |
+          git rm .github/workflows/fix-preview-images-math.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Remove temporary preview fix workflow"
+          git push
