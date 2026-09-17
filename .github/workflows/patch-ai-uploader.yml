@@ -1,0 +1,37 @@
+name: patch-ai-uploader
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[auto-uploader-patch]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch uploader
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('ai_uploader.html')
+          s=p.read_text()
+          marker='''</script>\n</body>'''
+          if '[AUTO UPLOADER PATCH V2]' in s:
+              print('patch already present')
+              raise SystemExit
+          patch=r'''\n/* [AUTO UPLOADER PATCH V2] */\n(function(){\n  const __renderPageOriginal=renderPage;\n  const __renderPending={};\n  renderPage=async function(pdf,n){\n    if(pageCache[n]) return pageCache[n];\n    if(__renderPending[n]) return __renderPending[n];\n    __renderPending[n]=__renderPageOriginal(pdf,n);\n    try{return await __renderPending[n]}finally{delete __renderPending[n]}\n  };\n\n  const __makeCropsOriginal=makeCrops;\n  makeCrops=async function(x){\n    await __makeCropsOriginal(x);\n    const b=x.questionBox;\n    if(!(b&&Number(b.w)>0&&Number(b.h)>0)) x.questionImage='';\n    return x;\n  };\n\n  window.toggleKeep=function(i,kind){\n    const x=items[i];\n    if(!x) return;\n    if(kind==='text') x.keepText=x.keepText===false;\n    if(kind==='image') x.keepQuestionImage=x.keepQuestionImage===false;\n    if(!x.keepText && !x.keepQuestionImage){\n      items.splice(i,1);\n      render();\n      saveProgress();\n      return;\n    }\n    render();\n  };\n\n  function addKeepControls(){\n    document.querySelectorAll('#list .q').forEach((card,i)=>{\n      const x=items[i];\n      if(!x) return;\n      const old=card.querySelector('.autoKeepBar');\n      if(old) old.remove();\n      const bar=document.createElement('div');\n      bar.className='actions autoKeepBar';\n      bar.innerHTML=`<span class="small">KEEP WHAT YOU WANT:</span>\n        <button class="mini ${x.keepText===false?'':'save'}" onclick="toggleKeep(${i},'text')">${x.keepText===false?'❌ Keep Text':'✅ Keep Text'}</button>\n        <button class="mini ${x.keepQuestionImage===false?'':'save'}" onclick="toggleKeep(${i},'image')">${x.keepQuestionImage===false?'❌ Keep Image':'✅ Keep Image'}</button>\n        ${(!x.keepText&&!x.keepQuestionImage)?'<span class="danger">Both removed — question will not be kept.</span>':''}`;\n      const left=card.querySelector('.qleft')||card.firstElementChild;\n      (left||card).appendChild(bar);\n    });\n  }\n\n  const __renderOriginal=render;\n  render=function(){\n    __renderOriginal();\n    addKeepControls();\n  };\n\n  const __saveOneOriginal=window.saveOne;\n  if(typeof __saveOneOriginal==='function'){\n    window.saveOne=async function(i){\n      const x=items[i];\n      if(!x || (!x.keepText && !x.keepQuestionImage)){\n        if(x){items.splice(i,1);render();saveProgress();}\n        return;\n      }\n      const keep={qText:x.qText,qTextEnglish:x.qTextEnglish,qTextHindi:x.qTextHindi,optA:x.optA,optB:x.optB,optC:x.optC,optD:x.optD,questionImage:x.questionImage};\n      if(x.keepText===false){x.qText='';x.qTextEnglish='';x.qTextHindi='';x.optA='';x.optB='';x.optC='';x.optD='';}\n      if(x.keepQuestionImage===false)x.questionImage='';\n      try{await __saveOneOriginal(i)}finally{Object.assign(x,keep)}\n    };\n  }\n\n  const __saveAllOriginal=window.saveAll;\n  if(typeof __saveAllOriginal==='function'){\n    window.saveAll=async function(){\n      for(let i=items.length-1;i>=0;i--) if(!items[i].keepText&&!items[i].keepQuestionImage) items.splice(i,1);\n      render();\n      return __saveAllOriginal();\n    };\n  }\n})();\n'''
+          inject='\n<script>\n'+patch+'</script>\n'
+          if marker not in s:
+              raise SystemExit('marker not found')
+          s=s.replace(marker, '</script>'+inject+'</body>',1)
+          p.write_text(s)
+          print('patched',len(s))
+          PY
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ai_uploader.html
+          git diff --cached --quiet || git commit -m 'Fix uploader speed, question crop, and keep controls [auto-uploader-patch]'
+          git push
