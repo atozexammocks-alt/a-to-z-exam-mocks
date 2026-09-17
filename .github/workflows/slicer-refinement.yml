@@ -15,32 +15,39 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('ai_uploader.html'); s=p.read_text()
-          reps=[
-          ("window.MathJax={tex:{inlineMath:[['\\\\(','\\\\)']],displayMath:[['\\\\[','\\\\]']]},svg:{fontCache:'global'}}", "window.MathJax={tex:{inlineMath:[['\\\\(','\\\\)'],['$','$']],displayMath:[['\\\\[','\\\\]'],['$$','$$']]},svg:{fontCache:'global'}}"),
-          ("function typeset(){if(window.MathJax?.typesetPromise)requestAnimationFrame(()=>MathJax.typesetPromise().catch(()=>{}))}", "function typeset(){if(window.MathJax?.typesetPromise)requestAnimationFrame(()=>MathJax.typesetPromise().catch(()=>{}))}function bindEditorInputs(){items.forEach((x,i)=>{[['q'+i,'qText'],['a'+i,'optA'],['b'+i,'optB'],['c'+i,'optC'],['d'+i,'optD']].forEach(([id,key])=>{const el=document.getElementById(id);if(el&&!el._bound){el._bound=true;el.addEventListener('input',()=>{x[key]=el.value;});}});});}"),
-          ("${mathFieldButton(i,'q'+i)}</div><div class=\\\"mathHint\\\">Detected LaTeX", "${mathFieldButton(i,'q'+i)}<button class=\\\"miniBtn\\\" type=\\\"button\\\" onclick=\\\"openQuestionCrop(${i})\\\">🖼️ Image</button></div><div class=\\\"mathHint\\\">Detected LaTeX"),
-          ("${['A','B','C','D'].map(k=>`<div class=\\\"mathRow\\\"><input id=\\\"${k.toLowerCase()}${i}\\\" placeholder=\\\"Option ${k}\\\" value=\\\"${esc(optionText(x,k))}\\\">${mathFieldButton(i,k.toLowerCase()+i)}</div>`).join('')}", "${['A','B','C','D'].map(k=>`<div class=\\\"mathRow\\\"><input id=\\\"${k.toLowerCase()}${i}\\\" placeholder=\\\"Option ${k}\\\" value=\\\"${esc(optionText(x,k))}\\\">${mathFieldButton(i,k.toLowerCase()+i)}<button class=\\\"miniBtn\\\" type=\\\"button\\\" onclick=\\\"openOptionCrop(${i},'${k}')\\\">🖼️</button></div>`).join('')}")
-          ]
-          for a,b in reps:
-              if a not in s: raise SystemExit('UI patch pattern missing: '+a[:90])
-              s=s.replace(a,b,1)
-          old="<div class=\\\"qright\\"><div class=\\\"assign\\"><div class=\\\"assignTitle\\\">🔒 ORIGINAL PDF IMAGE — untouched</div><div class=\\\"small\\\">The source page is immutable; crops are derived copies.</div></div><div class=\\\"preview\\\" style=\\\"font-size:${x.fontSize||16}px\\\"><img src=\\\"${pageCache[x.sourcePage]?.image||x.sourcePageImage||''}\\\" style=\\\"width:100%;height:auto;display:block\\\"><div class=\\\"actions\\\"><button class=\\\"miniBtn primary\\\" onclick=\\\"openQuestionCrop(${i})\\\">✂️ Q</button><button class=\\\"miniBtn primary\\\" onclick=\\\"openSolutionCrop(${i})\\\">✂️ Solution</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'A')\\\">A</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'B')\\\">B</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'C')\\\">C</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'D')\\\">D</button></div><div class=\\\"figure\\\"><span class=\\\"muted\\\">Question crop</span>${x.questionImage?`<img src=\\\"${x.questionImage}\\\">`:''}<span class=\\\"muted\\\">Solution crop</span>${x.solutionImage?`<img src=\\\"${x.solutionImage}\\\">`:''}</div></div></div>"
-          new="<div class=\\\"qright\\\"><div class=\\\"assign\\\"><div class=\\\"assignTitle\\\">🖼️ QUESTION IMAGE — editable crop</div><div class=\\\"small\\\">Only this question's crop is shown here. The original PDF page remains untouched.</div></div><div class=\\\"preview\\\" style=\\\"font-size:${x.fontSize||16}px\\\">${x.questionImage?`<img src=\\\"${x.questionImage}\\\" style=\\\"width:100%;height:auto;display:block\\\">`:`<div class=\\\"reviewText\\\">No question crop yet. Use Edit / Crop from full PDF.</div>`}<div class=\\\"actions\\\"><button class=\\\"miniBtn primary\\\" onclick=\\\"openQuestionCrop(${i})\\\">✏️ Edit from full page</button><button class=\\\"miniBtn\\\" onclick=\\\"openSolutionCrop(${i})\\\">✂️ Solution</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'A')\\\">A image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'B')\\\">B image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'C')\\\">C image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'D')\\\">D image</button></div><div class=\\\"figure\\\">${x.optionImages?.A?`<span class=\\\"muted\\\">A image</span><img src=\\\"${x.optionImages.A}\\\">`:''}${x.optionImages?.B?`<span class=\\\"muted\\\">B image</span><img src=\\\"${x.optionImages.B}\\\">`:''}${x.optionImages?.C?`<span class=\\\"muted\\\">C image</span><img src=\\\"${x.optionImages.C}\\\">`:''}${x.optionImages?.D?`<span class=\\\"muted\\\">D image</span><img src=\\\"${x.optionImages.D}\\\">`:''}</div></div></div>"
-          if old not in s: raise SystemExit('right panel patch pattern missing')
+          old="window.MathJax={tex:{inlineMath:[['\\\\(','\\\\)']],displayMath:[['\\\\[','\\\\]']]},svg:{fontCache:'global'}}"
+          new="window.MathJax={tex:{inlineMath:[['\\\\(','\\\\)'],['$','$']],displayMath:[['\\\\[','\\\\]'],['$$','$$']]},svg:{fontCache:'global'}}"
+          if old not in s: raise SystemExit('MathJax config not found')
           s=s.replace(old,new,1)
-          marker="function clearFigure(i){items[i].figureImage='';render()}"
-          replacement="function clearFigure(i){items[i].figureImage='';render()}"
-          if marker not in s: raise SystemExit('clear marker missing')
-          # Ensure render binds live text before MathJax typesetting.
-          s=s.replace("}).join('');typeset()}function clearFigure", "}).join('');bindEditorInputs();typeset()}function clearFigure",1)
+          old="function typeset(){if(window.MathJax?.typesetPromise)requestAnimationFrame(()=>MathJax.typesetPromise().catch(()=>{}))}"
+          new="function typeset(){if(window.MathJax?.typesetPromise)requestAnimationFrame(()=>MathJax.typesetPromise().catch(()=>{}))}function bindEditorInputs(){items.forEach((x,i)=>{[['q'+i,'qText'],['a'+i,'optA'],['b'+i,'optB'],['c'+i,'optC'],['d'+i,'optD']].forEach(([id,key])=>{const el=document.getElementById(id);if(el&&!el._bound){el._bound=true;el.addEventListener('input',()=>{x[key]=el.value;});}});});}"
+          if old not in s: raise SystemExit('typeset function not found')
+          s=s.replace(old,new,1)
+          marker="<div class=\\\"qright\\\"><div class=\\\"assign\\\"><div class=\\\"assignTitle\\\">🔒 ORIGINAL PDF IMAGE — untouched</div>"
+          a=s.find(marker)
+          if a<0: raise SystemExit('qright start not found')
+          b=s.find('<div style=\\\"display:none\\\">',a)
+          if b<0: raise SystemExit('qright end not found')
+          newright="<div class=\\\"qright\\\"><div class=\\\"assign\\\"><div class=\\\"assignTitle\\\">🖼️ QUESTION IMAGE — editable crop</div><div class=\\\"small\\\">Right side shows this question's crop only. The PDF source stays untouched.</div></div><div class=\\\"preview\\\" style=\\\"font-size:${x.fontSize||16}px\\\">${x.questionImage?`<img src=\\\"${x.questionImage}\\\" style=\\\"width:100%;height:auto;display:block\\\">`:`<div class=\\\"reviewText\\\">No question crop yet. Use Edit from full page.</div>`}<div class=\\\"actions\\\"><button class=\\\"miniBtn primary\\\" onclick=\\\"openQuestionCrop(${i})\\\">✏️ Edit from full page</button><button class=\\\"miniBtn\\\" onclick=\\\"openSolutionCrop(${i})\\\">✂️ Solution</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'A')\\\">A image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'B')\\\">B image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'C')\\\">C image</button><button class=\\\"miniBtn\\\" onclick=\\\"openOptionCrop(${i},'D')\\\">D image</button></div></div></div>"
+          s=s[:a]+newright+s[b:]
+          old="${mathFieldButton(i,'q'+i)}</div><div class=\\\"mathHint\\\">Detected LaTeX"
+          new="${mathFieldButton(i,'q'+i)}<button class=\\\"miniBtn\\\" type=\\\"button\\\" onclick=\\\"openQuestionCrop(${i})\\\">🖼️ Image</button></div><div class=\\\"mathHint\\\">Detected LaTeX"
+          if old not in s: raise SystemExit('question image button anchor not found')
+          s=s.replace(old,new,1)
+          old="${mathFieldButton(i,k.toLowerCase()+i)}</div>`).join('')}"
+          new="${mathFieldButton(i,k.toLowerCase()+i)}<button class=\\\"miniBtn\\\" type=\\\"button\\\" onclick=\\\"openOptionCrop(${i},'${k}')\\\">🖼️</button></div>`).join('')}"
+          if old not in s: raise SystemExit('option image button anchor not found')
+          s=s.replace(old,new,1)
+          old="}).join('');typeset()}function clearFigure"
+          if old not in s: raise SystemExit('render ending not found')
+          s=s.replace(old,"}).join('');bindEditorInputs();typeset()}function clearFigure",1)
           p.write_text(s)
 
           p=Path('api/gemini-extract.js'); s=p.read_text()
           old="Return qText, qTextEnglish and qTextHindi with LaTeX preserved. qText should prefer the source's original language/bilingual form. Also return normalized questionBox and solutionBox 0-1000."
-          new="Return qText, qTextEnglish and qTextHindi with LaTeX preserved. qText should prefer the source's original language/bilingual form. NEVER output Python, JavaScript, Markdown code fences, OCR program text, or explanations of your extraction; output only the requested question content. If a mathematical symbol is visible, transcribe it as LaTeX rather than a programming expression or English word. Preserve line breaks between separate printed lines. Also return normalized questionBox and solutionBox 0-1000."
-          if old not in s: raise SystemExit('backend prompt marker missing')
-          s=s.replace(old,new,1)
-          p.write_text(s)
+          new="Return qText, qTextEnglish and qTextHindi with LaTeX preserved. qText should prefer the source's original language/bilingual form. NEVER output Python, JavaScript, Markdown code fences, OCR program text, or extraction explanations; output only question content. If a mathematical symbol is visible, transcribe it as LaTeX rather than a programming expression or English word. Preserve line breaks between separate printed lines. Also return normalized questionBox and solutionBox 0-1000."
+          if old not in s: raise SystemExit('backend prompt marker not found')
+          p.write_text(s.replace(old,new,1))
           PY
       - name: Validate
         run: |
@@ -48,7 +55,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           s=Path('ai_uploader.html').read_text()
-          for x in ['QUESTION IMAGE — editable crop','Edit from full page','bindEditorInputs','🖼️ Image','MathJax','openOptionCrop']:
+          for x in ['QUESTION IMAGE — editable crop','Edit from full page','bindEditorInputs','🖼️ Image','openOptionCrop']:
               if x not in s: raise SystemExit('Missing check: '+x)
           print('Slicer refinement validation OK')
           PY
