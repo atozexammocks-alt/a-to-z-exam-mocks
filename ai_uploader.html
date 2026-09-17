@@ -62,6 +62,17 @@ async function processPage(pdf,n,total){
     for(const x of got){
       let source=n,cs=pageScore(x.qText,cur.text),ns=next?pageScore(x.qText,next.text):0;
       if(n<total&&ns>Math.max(.32,cs+.10))source=n+1;
+      /* A2Z_STRICT_MATCH_REPAIR */
+      if(cs<.30){
+        let best=source,bestScore=Math.max(cs,ns);
+        for(let pno=n+2;pno<=Math.min(total,n+4);pno++){
+          const pg=await renderPage(pdf,pno);
+          const sc=pageScore(x.qText,pg.text);
+          if(sc>bestScore){bestScore=sc;best=pno}
+          if(sc>=.60)break;
+        }
+        if(bestScore>=.38)source=best;
+      }
       x.sourcePage=source;
       x.targetPath=ensureFolderPath(x.targetPath||'');
       x.contentMode=x.contentMode||'both';x.imagePosition=x.imagePosition||'above';x.margin=Number.isFinite(+x.margin)?+x.margin:16;
@@ -126,6 +137,15 @@ loadFolders();
   window.a2zNewMain=()=>{const n=prompt('Main folder name:');if(n?.trim()){folderMap[n.trim()]=folderMap[n.trim()]||['General'];persistFolders()}};
   window.a2zNewSub=()=>{const m=prompt('Main folder name:');if(!m?.trim())return;const s=prompt('Sub-folder name:');if(s?.trim()){folderMap[m.trim()]=folderMap[m.trim()]||[];if(!folderMap[m.trim()].includes(s.trim()))folderMap[m.trim()].push(s.trim());persistFolders()}};
   const R=render;render=function(){items.forEach(init);R();document.querySelectorAll('#list .q').forEach((card,i)=>{const x=items[i],l=card.querySelector('.qleft'),r=card.querySelector('.qright');if(!x)return;if(l&&!l.querySelector('.a2zKeepBar')){const b=document.createElement('div');b.className='a2zKeepBar';b.innerHTML='<span class="small leftKeep">TEXT</span><button class="mini a2zKeepText '+(x.keepText?'':'a2zKeepOff')+'" onclick="a2zKeep('+i+',\'text\')">'+(x.keepText?'✅ Keep Text':'❌ Keep Text')+'</button><button class="mini a2zCropInsert" onclick="a2zCropInsert('+i+')">✂️ Crop & Insert</button>';l.insertBefore(b,l.firstChild)}if(r&&!r.querySelector('.a2zKeepBar')){const b=document.createElement('div');b.className='a2zKeepBar';b.innerHTML='<span class="small leftKeep">IMAGE</span><button class="mini a2zKeepText '+(x.keepQuestionImage?'':'a2zKeepOff')+'" onclick="a2zKeep('+i+',\'image\')">'+(x.keepQuestionImage?'✅ Keep Image':'❌ Keep Image')+'</button><button class="mini" onclick="a2zEditFull('+i+')">✏️ Edit from Full Page</button>';r.appendChild(b)}if(l&&!l.querySelector('.a2zFolderTools')){const t=document.createElement('div');t.className='a2zFolderTools';t.innerHTML='<button onclick="a2zManageFolders()">📚 Manage Library Folders</button><button onclick="a2zNewMain()">➕ New Main</button><button onclick="a2zNewSub()">➕ New Sub</button>';l.appendChild(t)}});if(window.MathJax?.typesetPromise)setTimeout(()=>MathJax.typesetPromise().catch(()=>{}),40)};
+})();
+</script>
+
+<!-- A2Z_SINGLE_EDIT_BUTTON -->
+<script>
+(function(){
+ function clean(){document.querySelectorAll('.q').forEach(card=>{const b=[...card.querySelectorAll('button')].filter(x=>/edit from full page/i.test(x.textContent||''));b.slice(1).forEach(x=>x.remove())})}
+ new MutationObserver(clean).observe(document.documentElement,{childList:true,subtree:true});
+ setTimeout(clean,100);
 })();
 </script>
 </body>
