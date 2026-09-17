@@ -1,0 +1,38 @@
+name: Apply AI uploader fixes
+on:
+  push:
+    paths:
+      - '__APPLY_AI_UPLOADER_FIX__'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch uploader
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('ai_uploader.html')
+          s=p.read_text()
+          old="""async function processPage(pdf,n,total){if(stopRequested)return;try{const cur=await renderPage(pdf,n),next=n<total?await renderPage(pdf,n+1):null;const got=await extractWithRetry({pageNumber:n,nextPageNumber:n<total?n+1:null,pageText:cur.text,imageDataUrl:cur.image,nextPageText:next?.text||'',nextImageDataUrl:next?.image||'',folders:folders.join(', ')});for(const x of got){x.sourcePage=n;x.contentMode=x.contentMode||'both';x.imagePosition=x.imagePosition||'above';x.margin=Number.isFinite(+x.margin)?+x.margin:16;x.extraText=x.extraText||'';x.figureImage=x.figureImage||'';x.figureCaption=x.figureCaption||'';x.saved=false;await makeCrops(x);items.push(x);render();saveProgress()}}catch(err){console.error('page',n,err);status.textContent=`⚠️ Page ${n}: ${err.message}`}finally{window._pagesDone=(window._pagesDone||0)+1;setProgress(window._pagesDone,total)}}"""
+          new="""function normWords(s){return String(s||'').toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu,' ').split(/\\s+/).filter(w=>w.length>1)}
+function pageScore(qtext,pagetext){const q=normWords(qtext).slice(0,24),p=new Set(normWords(pagetext));if(q.length<4)return 0;let hit=0;for(const w of q)if(p.has(w))hit++;return hit/q.length}
+async function processPage(pdf,n,total){if(stopRequested)return;try{const cur=await renderPage(pdf,n),next=n<total?await renderPage(pdf,n+1):null;const got=await extractWithRetry({pageNumber:n,nextPageNumber:n<total?n+1:null,pageText:cur.text,imageDataUrl:cur.image,nextPageText:next?.text||'',nextImageDataUrl:next?.image||'',folders:folders.join(', ')});for(const x of got){let source=n;const cs=pageScore(x.qText,cur.text),ns=next?pageScore(x.qText,next.text):0;if(n<total&&ns>Math.max(.32,cs+.10))source=n+1;x.sourcePage=source;x.contentMode=x.contentMode||'both';x.imagePosition=x.imagePosition||'above';x.margin=Number.isFinite(+x.margin)?+x.margin:16;x.extraText=x.extraText||'';x.figureImage=x.figureImage||'';x.figureCaption=x.figureCaption||'';x.saved=false;await makeCrops(x);if(source!==n){const matched=pageCache[source]?.image;if(matched&&x.questionBox?.w>0&&x.questionBox?.h>0){x.sourcePageImage=matched;x.questionImage=await crop(matched,x.questionBox,10,.76,1500);if(x.continuesToNextPage&&x.nextPageBox&&pageCache[source+1]?.image)x.questionImage=await stitch(x.questionImage,await crop(pageCache[source+1].image,x.nextPageBox,10,.76,1500))}}if(!(x.questionImage||x.qText||optText(x,'A')||optText(x,'B')||optText(x,'C')||optText(x,'D')))continue;items.push(x);render();saveProgress()}}catch(err){console.error('page',n,err);status.textContent=`⚠️ Page ${n}: ${err.message}`}finally{window._pagesDone=(window._pagesDone||0)+1;setProgress(window._pagesDone,total)}}"""
+          if old not in s: raise SystemExit('processPage pattern not found')
+          s=s.replace(old,new)
+          s=s.replace("if(!x.questionImage)x.questionImage=cur;return x","return x")
+          s=s.replace("<span class=\"small\">KEEP WHAT YOU WANT:</span>\\n        <button class=\"mini ${x.keepText===false?'':'save'}\" onclick=\"toggleKeep(${i},'text')\">${x.keepText===false?'❌ Keep Text':'✅ Keep Text'}</button>\\n        <button class=\"mini ${x.keepQuestionImage===false?'':'save'}\" onclick=\"toggleKeep(${i},'image')\">${x.keepQuestionImage===false?'❌ Keep Image':'✅ Keep Image'}</button>","<span class=\"small\">TEXT:</span><button class=\"mini ${x.keepText===false?'':'save'}\" onclick=\"toggleKeep(${i},'text')\">${x.keepText===false?'❌ Keep Text':'✅ Keep Text'}</button><span class=\"small\">IMAGE:</span><button class=\"mini ${x.keepQuestionImage===false?'':'save'}\" onclick=\"toggleKeep(${i},'image')\">${x.keepQuestionImage===false?'❌ Keep Image':'✅ Keep Image'}</button>")
+          extra='''\n<style id="A2Z_MATH_READABLE_V2">.q .mathHint{line-height:1.5}.a2zIEText{font-size:15px;line-height:1.75}.a2zIEText mjx-container{font-size:1.05em}</style>\n<script>(function(){const oldTypeset=window.typeset;window.typeset=function(){if(oldTypeset)oldTypeset();setTimeout(()=>window.MathJax?.typesetPromise?.().catch(()=>{}),80)}})();</script>\n'''
+          s=s.replace('</body>',extra+'</body>')
+          p.write_text(s)
+          PY
+      - name: Commit and clean trigger
+        run: |
+          git config user.name github-actions
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          rm -f __APPLY_AI_UPLOADER_FIX__ .github/workflows/apply-ai-uploader-fix.yml
+          git add ai_uploader.html __APPLY_AI_UPLOADER_FIX__ .github/workflows/apply-ai-uploader-fix.yml
+          git commit -m "Fix AI uploader page sync and readable math" || exit 0
+          git push
