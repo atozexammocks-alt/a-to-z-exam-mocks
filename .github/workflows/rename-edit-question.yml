@@ -1,0 +1,34 @@
+name: Rename Edit Question
+aon:
+  push:
+    paths: ['.github/workflows/rename-edit-question.yml']
+  workflow_dispatch:
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch uploader
+        run: |
+          python - <<'PY'
+          p='ai_uploader.html'
+          s=open(p,encoding='utf-8').read()
+          s=s.replace('Student Preview</button>','Edit Question</button>')
+          s=s.replace('Student Preview','Edit Question')
+          open(p,'w',encoding='utf-8').write(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add ai_uploader.html
+          git diff --cached --quiet || git commit -m 'Rename Student Preview to Edit Question'
+          git push
+      - name: Remove workflow
+        run: |
+          rm -f .github/workflows/rename-edit-question.yml
+          git add .github/workflows/rename-edit-question.yml
+          git commit -m 'Remove temporary rename workflow' || true
+          git push || true
