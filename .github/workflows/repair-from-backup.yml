@@ -1,0 +1,47 @@
+name: Repair uploader from backup
+on:
+  push:
+    branches:
+      - backup/uploader-v3-2026-09-17
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: backup/uploader-v3-2026-09-17
+          fetch-depth: 0
+      - name: Patch backup safely
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('ai_uploader.html')
+          s=p.read_text(encoding='utf-8')
+          # Do not change Gemini prompt or payload.
+          # Strengthen page matching only when the current page is a poor text match.
+          if 'A2Z_STRICT_MATCH_REPAIR' not in s:
+              pat=r"(let source=n,cs=pageScore\(x\.qText,cur\.text\),ns=next\?pageScore\(x\.qText,next\.text\):0;\s*if\(n<total&&ns>Math\.max\(\.32,cs\+\.10\)\)source=n\+1;)"
+              m=re.search(pat,s)
+              if not m:
+                  raise SystemExit('processPage matching anchor not found')
+              add="""\n      /* A2Z_STRICT_MATCH_REPAIR */\n      if(cs<.30){\n        let best=source,bestScore=Math.max(cs,ns);\n        for(let pno=n+2;pno<=Math.min(total,n+4);pno++){\n          const pg=await renderPage(pdf,pno);\n          const sc=pageScore(x.qText,pg.text);\n          if(sc>bestScore){bestScore=sc;best=pno}\n          if(sc>=.60)break;\n        }\n        if(bestScore>=.38)source=best;\n      }"""
+              s=s[:m.end()]+add+s[m.end():]
+          # Guarantee one visible Edit from Full Page button per card without touching editor/math code.
+          if 'A2Z_SINGLE_EDIT_BUTTON' not in s:
+              add="""\n<!-- A2Z_SINGLE_EDIT_BUTTON -->\n<script>\n(function(){\n function clean(){document.querySelectorAll('.q').forEach(card=>{const b=[...card.querySelectorAll('button')].filter(x=>/edit from full page/i.test(x.textContent||''));b.slice(1).forEach(x=>x.remove())})}\n new MutationObserver(clean).observe(document.documentElement,{childList:true,subtree:true});\n setTimeout(clean,100);\n})();\n</script>\n"""
+              s=s.replace('</body>',add+'</body>',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Publish repaired uploader to main and remove workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ai_uploader.html
+          git commit -m 'fix: restore uploader and repair question image matching'
+          git push origin HEAD:main
+          git rm .github/workflows/repair-from-backup.yml
+          git commit -m 'chore: remove temporary uploader repair workflow'
+          git push origin HEAD:backup/uploader-v3-2026-09-17
