@@ -1,0 +1,30 @@
+name: Fix uploader v3 workflow
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fix-v3-workflow.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix regex replacement safely
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/apply-uploader-v3.yml')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace("s2=re.sub(r'async function processPage\\\\(pdf,n,total\\\\)\\\\{.*?\\\\n?\\\\}\\\\n?async function runParallel', align+'\\\\nasync function runParallel', s, count=1, flags=re.S)", "s2=re.sub(r'async function processPage\\\\(pdf,n,total\\\\)\\\\{.*?\\\\n?\\\\}\\\\n?async function runParallel', lambda m: align+'\\\\nasync function runParallel', s, count=1, flags=re.S)")
+          s=s.replace("s2=re.sub(r'async function processPage\\\\(pdf,n,total\\\\)\\\\{.*?\\\\}\\\\}async function runParallel', align+'}\\\\nasync function runParallel', s, count=1, flags=re.S)", "s2=re.sub(r'async function processPage\\\\(pdf,n,total\\\\)\\\\{.*?\\\\}\\\\}async function runParallel', lambda m: align+'}\\\\nasync function runParallel', s, count=1, flags=re.S)")
+          p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/apply-uploader-v3.yml
+          git commit -m 'fix: make uploader patch regex replacement safe' || true
+          git push
+          git rm .github/workflows/fix-v3-workflow.yml
+          git commit -m 'chore: remove workflow fixer' || true
+          git push
