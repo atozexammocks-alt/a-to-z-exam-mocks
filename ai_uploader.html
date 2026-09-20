@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>A to Z Exam Mocks — Gemini AI Uploader</title>
+    <!-- PDF.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
+    
+    <!-- Cropper.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <!-- MathJax for Physics & Math Equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script type="module">
+        import{initializeApp}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import{getFirestore,collection,addDoc,doc,getDoc}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+        const cfg={apiKey:'AIzaSyAE7T5cToJKcoUQcj_-GZrQFbbF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
+        initializeApp(cfg);
+        window.db=getFirestore();
+        window.collection=collection;
+        window.addDoc=addDoc;
+        window.doc=doc;
+        window.getDoc=getDoc;
+        window.currentTeacherEmail=localStorage.getItem('ExamVault_Teacher_Email')||'atozexammocks@gmail.com';
+    </script>
+    <style>
+        *{box-sizing:border-box}
+        body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui;height:100vh;display:flex;flex-direction:column}
+        header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+        .brand{font-weight:900;color:#38bdf8}
+        .wrap{padding:18px;overflow:auto;flex:1}
+        .box,.q{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:14px;margin-bottom:12px}
+        .q{display:grid;grid-template-columns:minmax(250px,1fr) minmax(310px,1.2fr);gap:14px}
+        .qleft{min-width:0}
+        .qright{border-left:1px solid #1e293b;padding-left:14px}
+        .q textarea,.q input,.q select{width:100%;background:#0f172a;color:#fff;border:1px solid #334155;border-radius:5px;padding:7px;font-size:12px}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+        button,label.btn{background:#1e293b;color:#fff;border:1px solid #334155;border-radius:6px;padding:8px 12px;cursor:pointer;font-weight:800;font-size:11px}
+        .primary{background:#0284c7!important;border-color:#38bdf8!important}
+        .stop{background:#7f1d1d!important;border-color:#ef4444!important}
+        .status{color:#10b981;font-weight:800}
+        .progress{height:8px;background:#0f172a;border:1px solid #334155;border-radius:99px;overflow:hidden;margin-top:10px}
+        .progress>div{height:100%;width:0;background:#38bdf8;transition:width .2s}
+        .preview{background:#fff;color:#111;border-radius:8px;padding:16px;min-height:180px;max-height:520px;overflow:auto;line-height:1.55}
+        .preview .opts{margin-top:12px}
+        .preview .op{padding:7px 9px;border-bottom:1px solid #ddd}
+        .badge{display:inline-block;padding:3px 7px;border-radius:99px;background:#172033;color:#93c5fd;font-size:10px;font-weight:800;margin-right:4px}
+        .muted{color:#94a3b8;font-size:11px}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">🤖 Gemini AI Exam PDF Uploader</div>
+        <button onclick="location.href='teacher.html'">🏠 Dashboard</button>
+    </header>
+
+    <main class="wrap">
+        <div class="box">
+            <p style="color:#94a3b8">Upload a PDF. Extracts questions, options, and physics/math equations automatically via secure server backend.</p>
+            <label class="btn primary">📂 Choose PDF<input id="file" type="file" accept="application/pdf" hidden></label> 
+            <button id="stop" class="stop" onclick="stopRequested=true" disabled>⛔ Stop</button> 
+            <span id="status" class="status"></span>
+            <div class="progress"><div id="progressBar"></div></div>
+        </div>
+
+        <div class="box">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+                <b>Review extracted questions</b>
+                <button class="primary" onclick="saveAll()">🚀 Save All to Library</button>
+            </div>
+            <div id="list"></div>
+        </div>
+    </main>
+
+    <script>
+        let items=[], pageImages={}, folders=['General / General'], stopRequested=false;
+        const status = document.getElementById('status'), 
+              list = document.getElementById('list'), 
+              progressBar = document.getElementById('progressBar'), 
+              stopBtn = document.getElementById('stop');
+
+        async function loadFolders(){
+            try{
+                const s = await getDoc(doc(db,'folder_configs','shared_registry_v4'));
+                if(s.exists()){
+                    const d = s.data();
+                    folders = [];
+                    for(const[m,ss] of Object.entries(d.subFolders||{})) ss.forEach(x => folders.push(m+' / '+x));
+                    if(!folders.length) folders = ['General / General'];
+                }
+            }catch(e){}
+        }
+        setTimeout(loadFolders, 400);
+
+        function setProgress(n, total){
+            progressBar.style.width = `${total ? Math.round(n * 100 / total) : 0}%`;
+        }
+
+        async function renderPageImage(p){
+            const v = p.getViewport({scale:1.45}), c = document.createElement('canvas');
+            c.width = v.width; c.height = v.height;
+            await p.render({canvasContext: c.getContext('2d'), viewport: v}).promise;
+            return c.toDataURL('image/jpeg', .72);
+        }
+
+        file.onchange = async e => {
+            const f = e.target.files[0];
+            if(!f) return;
+            items = []; pageImages = {}; list.innerHTML = ''; stopRequested = false; stopBtn.disabled = false;
+            setProgress(0, 1);
+            try {
+                const pdf = await pdfjsLib.getDocument({data: await f.arrayBuffer(), useWorkerFetch: true, isEvalSupported: true}).promise;
+                for(let n = 1; n <= pdf.numPages; n++){
+                    if(stopRequested){ status.textContent = `⏹ Stopped at page ${n-1}/${pdf.numPages}`; break; }
+                    status.textContent = `⚡ Processing page ${n}/${pdf.numPages}`;
+                    setProgress(n-1, pdf.numPages);
+                    
+                    const p = await pdf.getPage(n);
+                    const tc = await p.getTextContent();
+                    const text = tc.items.map(x => x.str).join(' ').trim();
+                    const imageDataUrl = await renderPageImage(p);
+                    pageImages[n] = imageDataUrl;
+                    
+                    const got = await extractWithBackend({mode:'extract', pageText: text, imageDataUrl, folders: folders.join(', ')});
+                    for(const x of got){ 
+                        x.sourcePage = n; 
+                        items.push(x); 
+                    }
+                    setProgress(n, pdf.numPages);
+                    render();
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+                if(!stopRequested) status.textContent = `✔ Extracted ${items.length} questions from ${pdf.numPages} pages`;
+                stopBtn.disabled = true;
+            } catch(err) {
+                console.error(err);
+                status.textContent = '❌ ' + err.message;
+                alert(err.message);
+                stopBtn.disabled = true;
+            }
+        };
+
+        async function extractWithBackend(body){
+            let last = '';
+            for(let attempt = 0; attempt < 4; attempt++){
+                try {
+                    const r = await fetch('/api/gemini-extract', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(body)
+                    });
+                    let d = {};
+                    try{ d = await r.json(); }catch(_){}
+                    if(!r.ok) throw new Error(d.error || `Server error ${r.status}`);
+                    return Array.isArray(d.items) ? d.items : [];
+                } catch(e) {
+                    last = e.message;
+                    if(attempt < 3) await new Promise(r => setTimeout(r, 1000 * 2**attempt));
+                }
+            }
+            throw new Error(last);
+        }
+
+        // फिक्स किया हुआ फंक्शन जो [object Object] को टेक्स्ट में बदल देगा
+        function getOptText(opt) {
+            if (!opt) return '';
+            if (typeof opt === 'string') return opt;
+            if (typeof opt === 'object') return opt.text || opt.value || JSON.stringify(opt);
+            return String(opt);
+        }
+
+        function optionText(x, k){
+            return getOptText(x['opt' + k] || x['option' + k]);
+        }
+
+        function render(){
+            list.innerHTML = items.map((x, i) => {
+                const optA = optionText(x, 'A');
+                const optB = optionText(x, 'B');
+                const optC = optionText(x, 'C');
+                const optD = optionText(x, 'D');
+
+                return `
+                <div class="q">
+                    <div class="qleft">
+                        <div>
+                            <span class="badge">#${i+1}</span>
+                            <span class="badge">PDF page ${esc(x.sourcePage||'')}</span>
+                            <span class="badge">${esc(x.topic||'General')}</span>
+                        </div>
+                        <div class="grid">
+                            <label>Q.No<input id="n${i}" value="${esc(x.qNo||i+1)}"></label>
+                            <label>Answer<input id="k${i}" value="${esc(x.key||'')}"></label>
+                        </div>
+                        <label>Topic<input id="t${i}" value="${esc(x.topic||'General')}"></label>
+                        <label>Library<select id="p${i}">${folders.map(f=>`<option ${f===x.targetPath?'selected':''}>${esc(f)}</option>`).join('')}</select></label>
+                        <label>Question<textarea id="q${i}" rows="4">${esc(x.qText||'')}</textarea></label>
+                        <div class="grid">
+                            <div><input id="a${i}" placeholder="Option A" value="${esc(optA)}"></div>
+                            <div><input id="b${i}" placeholder="Option B" value="${esc(optB)}"></div>
+                            <div><input id="c${i}" placeholder="Option C" value="${esc(optC)}"></div>
+                            <div><input id="d${i}" placeholder="Option D" value="${esc(optD)}"></div>
+                        </div>
+                    </div>
+                    <div class="qright">
+                        <div class="preview">
+                            <div><b>Q${esc(x.qNo||i+1)}.</b> ${esc(x.qText||'')}</div>
+                            <div class="opts">
+                                <div class="op"><b>(A)</b> ${esc(optA)}</div>
+                                <div class="op"><b>(B)</b> ${esc(optB)}</div>
+                                <div class="op"><b>(C)</b> ${esc(optC)}</div>
+                                <div class="op"><b>(D)</b> ${esc(optD)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+            if(window.MathJax) MathJax.typeset();
+        }
+
+        function esc(x){ return String(x??'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+
+        async function saveAll(){
+            if(!items.length) return alert('Nothing to save.');
+            status.textContent = '⏳ Saving...';
+            try {
+                for(let i = 0; i < items.length; i++){
+                    await addDoc(collection(db, 'questions'), {
+                        qNo: +document.getElementById('n'+i).value || i+1,
+                        subject: document.getElementById('p'+i).value,
+                        topic: document.getElementById('t'+i).value,
+                        qText: document.getElementById('q'+i).value,
+                        optText: `(A) ${document.getElementById('a'+i).value} | (B) ${document.getElementById('b'+i).value} | (C) ${document.getElementById('c'+i).value} | (D) ${document.getElementById('d'+i).value}`,
+                        key: document.getElementById('k'+i).value,
+                        questionImage: '',
+                        creatorEmail: window.currentTeacherEmail,
+                        createdAt: new Date().toISOString()
+                    });
+                }
+                status.textContent = `✔ Saved ${items.length} questions`;
+                items = [];
+                render();
+            } catch(e) {
+                console.error(e);
+                alert('Save failed: ' + e.message);
+                status.textContent = '';
+            }
+        }
+    </script>
+</body>
+</html>
