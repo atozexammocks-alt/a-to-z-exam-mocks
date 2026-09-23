@@ -57,16 +57,16 @@
         </div>
     </header>
 
-    <!-- Main Workspace Layout -->
+    <!-- Main Workspace Layout (Right Side Removed & Expanded Full Width) -->
     <div class="flex-1 flex overflow-hidden">
         
-        <!-- LEFT SIDEBAR: Sections Setup -->
+        <!-- LEFT SIDEBAR: Sections & Unassigned Pool Management -->
         <aside class="w-80 bg-slate-800/90 border-r border-slate-700 flex flex-col z-0">
             <div class="p-4 border-b border-slate-700 bg-slate-800">
-                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Paper Blueprint Summary</h2>
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Paper Summary</h2>
                 <div class="grid grid-cols-2 gap-2 text-center">
                     <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
-                        <span class="block text-xs text-slate-400">Total Selected Qs</span>
+                        <span class="block text-xs text-slate-400">Total Qs</span>
                         <span id="totalQuestionsCount" class="text-lg font-bold text-indigo-400">0</span>
                     </div>
                     <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
@@ -76,15 +76,15 @@
                 </div>
             </div>
 
-            <!-- Special Option for Unassigned Questions Pool -->
+            <!-- Unassigned Pool Tab -->
             <div onclick="selectSection('UNASSIGNED')" id="unassignedTab" class="p-3 bg-amber-950/40 border-b border-slate-700 cursor-pointer hover:bg-amber-900/40 transition flex items-center justify-between">
                 <span class="text-xs font-bold text-amber-300"><i class="fa-solid fa-layer-group mr-2"></i>Unassigned Pool</span>
                 <span id="unassignedCountBadge" class="text-[10px] bg-amber-900 text-amber-200 px-2 py-0.5 rounded-full font-bold">0</span>
             </div>
 
             <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/50">
-                <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-list-check mr-2 text-indigo-400"></i>Manage Sections</span>
-                <button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center space-x-1">
+                <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-list-check mr-2 text-indigo-400"></i>Custom Sections</span>
+                <button onclick="openAddSectionModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center space-x-1">
                     <i class="fa-solid fa-plus"></i><span>Add Section</span>
                 </button>
             </div>
@@ -92,32 +92,51 @@
             <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
         </aside>
 
-        <!-- CENTER WORKSPACE: Active Section & Questions Allocation Canvas -->
+        <!-- CENTER FULL WORKSPACE -->
         <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden relative">
             <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
                 <div>
                     <h2 id="activeSectionTitle" class="text-base font-bold text-slate-100">Unassigned Questions Pool</h2>
-                    <p id="activeSectionMeta" class="text-xs text-slate-400">Yahan se aap decide karein ki kaun sa question kis section mein jayega.</p>
+                    <p id="activeSectionMeta" class="text-xs text-slate-400">Yahan se apne hisaab se question ko section mein bhejein.</p>
                 </div>
             </div>
 
-            <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl mx-auto w-full">
-                <!-- Dynamically populated questions -->
+            <!-- Questions Grid (2 columns on full screen for better view) -->
+            <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-max">
+                <!-- Dynamic Questions -->
             </div>
         </main>
 
-        <!-- RIGHT SIDEBAR: Live Breakdown -->
-        <aside class="w-80 bg-slate-800/90 border-l border-slate-700 p-4 flex flex-col overflow-y-auto">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                <i class="fa-solid fa-chart-pie mr-1.5 text-indigo-400"></i>Section Distribution Status
-            </h3>
-            <div id="rightDynamicBreakdown" class="space-y-3 flex-1"></div>
-            <div class="mt-4 pt-3 border-t border-slate-700 text-xs text-slate-400">
-                <p class="font-semibold text-slate-300 mb-1"><i class="fa-solid fa-circle-info text-sky-400 mr-1"></i>Guide</p>
-                Har question ke upar diye gaye dropdown se use apne manpasand section mein assign karein.
-            </div>
-        </aside>
+    </div>
 
+    <!-- MODAL: Custom Section Creator (Full Access to Type & Marks) -->
+    <div id="sectionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md flex flex-col shadow-2xl p-5 space-y-4">
+            <h3 class="font-bold text-base text-indigo-300">Create New Custom Section</h3>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Section Name / Title</label>
+                <input type="text" id="newSecName" value="Section C" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Section Question Type</label>
+                <select id="newSecType" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    <option value="MCQ">Multiple Choice Questions (MCQ)</option>
+                    <option value="ASSERTION">Assertion & Reason</option>
+                    <option value="SHORT">Short Answer Type</option>
+                    <option value="LONG">Long Answer / Descriptive</option>
+                    <option value="NUMERICAL">Numerical Value Type</option>
+                    <option value="CASE">Case Study / Passage Based</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Default Marks Per Question</label>
+                <input type="number" id="newSecMarks" min="1" value="2" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button onclick="closeAddSectionModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
+                <button onclick="saveNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium shadow">Create Section</button>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL: Library & Print -->
@@ -131,13 +150,13 @@
         </div>
     </div>
 
-    <!-- JavaScript Application Logic -->
+    <!-- JavaScript Logic -->
     <script>
         let testPaper = {
             title: "Question Paper",
             sections: [
-                { id: "A", name: "Section A", type: "SHORT", marksPerQ: 1, questions: [] },
-                { id: "B", name: "Section B", type: "SHORT", marksPerQ: 2, questions: [] }
+                { id: "A", name: "Section A (MCQ)", type: "MCQ", marksPerQ: 1, questions: [] },
+                { id: "B", name: "Section B (Short Answer)", type: "SHORT", marksPerQ: 2, questions: [] }
             ]
         };
         let unassignedQuestions = [];
@@ -163,7 +182,7 @@
             let rawOverrides = localStorage.getItem('AZ_PAPER_DESIGNER_OVERRIDES');
             try { paperQuestionOverrides = JSON.parse(rawOverrides || '{}'); } catch(e){ paperQuestionOverrides = {}; }
 
-            // Sabhi selected questions ko pehle unassigned pool mein daalo taaki teacher khud section choose kare
+            // Sabhi selected questions unassigned pool mein jayenge taaki teacher khud section assign kare
             unassignedQuestions = selectedIds.map(id => {
                 let found = cachedQuestionsMap[id];
                 let ov = paperQuestionOverrides[id] || {};
@@ -208,19 +227,14 @@
 
         function assignQuestionToSection(qId, targetSecId) {
             if (!targetSecId) return;
-            
-            // Check in unassigned pool first
-            let qIdx = unassignedQuestions.findIndex(q => q.id === qId);
             let qObj = null;
+            let qIdx = unassignedQuestions.findIndex(q => q.id === qId);
             if (qIdx !== -1) {
                 [qObj] = unassignedQuestions.splice(qIdx, 1);
             } else {
-                // Check across other sections
                 testPaper.sections.forEach(sec => {
                     let idx = sec.questions.findIndex(q => q.id === qId);
-                    if (idx !== -1) {
-                        [qObj] = sec.questions.splice(idx, 1);
-                    }
+                    if (idx !== -1) { [qObj] = sec.questions.splice(idx, 1); }
                 });
             }
 
@@ -235,15 +249,28 @@
                     }
                 }
             }
-
             renderSidebarSections();
             renderActiveCanvas();
             updateSummaryCounters();
         }
 
-        function addNewSection() {
+        function openAddSectionModal() {
+            document.getElementById('sectionModal').classList.remove('hidden');
+            document.getElementById('sectionModal').classList.add('flex');
+        }
+        function closeAddSectionModal() {
+            document.getElementById('sectionModal').classList.remove('flex');
+            document.getElementById('sectionModal').classList.add('hidden');
+        }
+
+        function saveNewSection() {
+            const name = document.getElementById('newSecName').value.trim() || "New Section";
+            const type = document.getElementById('newSecType').value;
+            const marksPerQ = Number(document.getElementById('newSecMarks').value) || 1;
             const newId = String.fromCharCode(65 + testPaper.sections.length);
-            testPaper.sections.push({ id: newId, name: `Section ${newId}`, type: "SHORT", marksPerQ: 1, questions: [] });
+
+            testPaper.sections.push({ id: newId, name, type, marksPerQ, questions: [] });
+            closeAddSectionModal();
             selectSection(newId);
         }
 
@@ -279,21 +306,16 @@
 
                 card.innerHTML = `
                     <div class="flex items-center justify-between mb-1.5">
-                        <input type="text" value="${sec.name}" onclick="event.stopPropagation()" onchange="renameSection('${sec.id}', this.value)" class="bg-transparent text-sm font-semibold text-slate-200 focus:bg-slate-800 px-1 rounded border border-transparent focus:border-indigo-500 w-36">
-                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">${sec.questions.length} Qs (${secMarks}m)</span>
+                        <span class="text-xs font-semibold text-slate-200 truncate w-32">${sec.name}</span>
+                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">${sec.questions.length} Qs (${secMarks}m)</span>
                     </div>
                     <div class="flex items-center justify-between text-xs text-slate-400">
                         <span>Type: ${sec.type}</span>
-                        <span>Marks/Q: <input type="number" min="1" value="${sec.marksPerQ}" onclick="event.stopPropagation()" onchange="updateSectionMarks('${sec.id}', this.value)" class="w-12 bg-slate-800 border border-slate-700 text-center rounded text-xs text-slate-200"></span>
+                        <span>Marks: <input type="number" min="1" value="${sec.marksPerQ}" onclick="event.stopPropagation()" onchange="updateSectionMarks('${sec.id}', this.value)" class="w-10 bg-slate-800 border border-slate-700 text-center rounded text-xs text-slate-200"></span>
                     </div>
                 `;
                 listEl.appendChild(card);
             });
-        }
-
-        function renameSection(secId, newName) {
-            const sec = testPaper.sections.find(s => s.id === secId);
-            if (sec) { sec.name = newName; renderSidebarSections(); updateSummaryCounters(); }
         }
 
         function renderActiveCanvas() {
@@ -303,49 +325,45 @@
 
             let currentQuestions = [];
             if (activeSectionId === 'UNASSIGNED') {
-                titleEl.innerText = "Unassigned Questions Pool (Select Section for Each)";
-                metaEl.innerText = `Total unassigned questions waiting to be placed into sections: ${unassignedQuestions.length}`;
+                titleEl.innerText = "Unassigned Questions Pool";
+                metaEl.innerText = `Yahan aapke sabhi select kiye hue questions hain. Inhe apne hisaab se sections mein bhejein.`;
                 currentQuestions = unassignedQuestions;
             } else {
                 let activeSec = testPaper.sections.find(s => s.id === activeSectionId);
                 titleEl.innerText = activeSec ? activeSec.name : "Section Workspace";
-                metaEl.innerText = `Questions assigned to this section.`;
+                metaEl.innerText = `Type: ${activeSec?.type} | Marks per question: ${activeSec?.marksPerQ}`;
                 currentQuestions = activeSec ? activeSec.questions : [];
             }
 
             if (currentQuestions.length === 0) {
-                container.innerHTML = `<div class="text-center py-16 text-slate-500 border border-dashed border-slate-800 rounded-xl"><p class="text-sm font-medium">No questions in this view.</p></div>`;
+                container.innerHTML = `<div class="col-span-full text-center py-16 text-slate-500 border border-dashed border-slate-800 rounded-xl"><p class="text-sm font-medium">Is view mein koi question nahi hai.</p></div>`;
                 return;
             }
 
             container.innerHTML = '';
             currentQuestions.forEach((q, idx) => {
                 const card = document.createElement('div');
-                card.className = "bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col space-y-3 shadow-lg";
+                card.className = "bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col space-y-3 shadow-lg";
 
-                let imageHtml = q.image ? `<div class="bg-white p-2 rounded-lg max-h-40 flex items-center justify-center overflow-hidden"><img src="${q.image}" class="max-h-36 object-contain"></div>` : '';
+                let imageHtml = q.image ? `<div class="bg-white p-2 rounded-lg max-h-36 flex items-center justify-center overflow-hidden"><img src="${q.image}" class="max-h-32 object-contain"></div>` : '';
                 let optionsHtml = q.optText ? `<div class="text-xs text-slate-300 bg-slate-950 p-2 rounded border border-slate-800 whitespace-pre-line">${q.optText}</div>` : '';
 
-                // Section Assignment Dropdown options
                 let sectionOptions = `<option value="UNASSIGNED" ${activeSectionId==='UNASSIGNED'?'selected':''}>Unassigned Pool</option>`;
                 testPaper.sections.forEach(s => {
                     sectionOptions += `<option value="${s.id}" ${activeSectionId===s.id?'selected':''}>Send to ${s.name}</option>`;
                 });
 
                 card.innerHTML = `
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                        <div class="flex items-center space-x-2.5">
-                            <span class="bg-indigo-600/20 text-indigo-400 font-bold px-3 py-1 rounded text-xs border border-indigo-500/30">#${idx + 1}</span>
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="bg-indigo-600/20 text-indigo-400 font-bold px-2.5 py-0.5 rounded text-xs border border-indigo-500/30">#${idx + 1}</span>
                             <select onchange="assignQuestionToSection('${q.id}', this.value)" class="bg-slate-800 border border-slate-700 text-xs text-amber-300 font-bold rounded px-2 py-1 focus:outline-none">
                                 ${sectionOptions}
                             </select>
                         </div>
-                        <div class="flex items-center space-x-2 text-xs">
-                            <span class="text-emerald-400 font-bold bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-800/40">${q.marks} Mark</span>
-                            <button onclick="redirectToEditor('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-                        </div>
+                        <span class="text-emerald-400 font-bold text-xs bg-emerald-950/40 px-2 py-0.5 rounded">${q.marks} Mark</span>
                     </div>
-                    <div class="text-sm text-slate-100 font-normal leading-relaxed pt-1 whitespace-pre-line bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/60">${q.text || 'Image Question'}</div>
+                    <div class="text-xs text-slate-100 font-normal leading-relaxed pt-1 whitespace-pre-line bg-slate-950/50 p-3 rounded-lg border border-slate-800/60">${q.text || 'Image Question'}</div>
                     ${imageHtml}
                     ${optionsHtml}
                 `;
@@ -362,35 +380,12 @@
             });
             document.getElementById('totalQuestionsCount').innerText = totalQ;
             document.getElementById('totalMarksCount').innerText = totalM;
-
-            // Render Right Breakdown
-            const panel = document.getElementById('rightDynamicBreakdown');
-            panel.innerHTML = `
-                <div class="bg-amber-950/40 border border-amber-800/60 p-3 rounded-lg text-xs space-y-1">
-                    <div class="flex justify-between font-bold text-amber-300"><span>Unassigned</span><span>${unassignedQuestions.length} Qs</span></div>
-                </div>
-            `;
-            testPaper.sections.forEach(sec => {
-                const count = sec.questions.length;
-                const marks = sec.questions.reduce((acc, q) => acc + Number(q.marks || 1), 0);
-                panel.innerHTML += `
-                    <div class="bg-slate-900/80 border border-slate-700/60 p-3 rounded-lg text-xs space-y-1">
-                        <div class="flex justify-between font-bold text-slate-200"><span>${sec.name}</span><span class="text-indigo-400">${count} Qs</span></div>
-                        <div class="flex justify-between text-slate-400"><span>Marks</span><span class="text-emerald-400 font-semibold">${marks}</span></div>
-                    </div>
-                `;
-            });
-        }
-
-        function redirectToEditor(qId) {
-            localStorage.setItem('editing_question_id', qId);
-            window.location.href = 'editor.html?id=' + qId;
         }
 
         function previewPrintLayout() {
             let html = `<h2 style="text-align:center;">${testPaper.title}</h2>`;
             testPaper.sections.forEach(s => {
-                html += `<h3>${s.name}</h3>`;
+                html += `<h3>${s.name} (${s.type})</h3>`;
                 s.questions.forEach((q, i) => {
                     html += `<p><b>${i+1}.</b> ${q.text || ''} [${q.marks} Marks]</p>`;
                     if (q.image) html += `<img src="${q.image}" style="max-height:100px;"><br>`;
