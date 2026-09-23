@@ -5,9 +5,9 @@
 <title>A to Z Exam Mocks — Paper Designer</title>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import {getFirestore,collection,getDocs,doc,deleteDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {getFirestore,collection,getDocs,doc,deleteDoc,query,where,documentId} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const app=initializeApp({apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"});
-window.db=getFirestore(app); window.collection=collection; window.getDocs=getDocs; window.doc=doc; window.deleteDoc=deleteDoc;
+window.db=getFirestore(app); window.collection=collection; window.getDocs=getDocs; window.doc=doc; window.deleteDoc=deleteDoc; window.query=query; window.where=where; window.documentId=documentId;
 window.addEventListener("load",()=>window.initDesigner&&window.initDesigner());
 </script>
 <style>
