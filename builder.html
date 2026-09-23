@@ -107,6 +107,24 @@
 
     #question-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 60000; padding: 20px; }
     .q-modal-card { background: #0b1120; border: 2px solid #38bdf8; border-radius: 14px; width: 750px; max-height: 90vh; padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; color: #f8fafc; }
+
+    #blueprint-modal-overlay, #paper-question-editor-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.88); display: none; align-items: center; justify-content: center; z-index: 80000; padding: 18px; }
+    .blueprint-card { width: min(1100px, 96vw); max-height: 92vh; overflow-y: auto; background:#0b1120; border:2px solid #38bdf8; border-radius:14px; padding:18px; color:#f8fafc; }
+    .blueprint-grid { display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap:8px; }
+    .blueprint-grid input,.blueprint-grid select,.paper-editor-grid input,.paper-editor-grid select,.paper-editor-grid textarea { width:100%; padding:7px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; font-size:11px; }
+    .section-card { background:#060911; border:1px solid #334155; border-radius:9px; padding:10px; margin-top:9px; }
+    .section-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .section-controls { display:flex; gap:5px; flex-wrap:wrap; }
+    .section-q-list { margin-top:8px; display:flex; flex-direction:column; gap:5px; }
+    .section-q-row { display:flex; align-items:center; gap:6px; background:#0f172a; border:1px solid #1e293b; border-radius:6px; padding:6px; font-size:10px; }
+    .section-q-row img { width:44px; height:34px; object-fit:contain; background:#fff; border-radius:3px; }
+    .paper-editor-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .editor-panel { background:#060911; border:1px solid #1e293b; border-radius:8px; padding:10px; }
+    #paper-editor-preview { background:#fff; color:#000; border-radius:7px; padding:12px; min-height:170px; overflow:auto; }
+    #paper-editor-preview img { display:block; max-width:100%; height:auto; margin:6px 0; }
+    .crop-stage { background:#111827; border:1px solid #334155; border-radius:7px; padding:8px; text-align:center; overflow:auto; }
+    #paper-editor-canvas { max-width:100%; height:auto; background:#fff; cursor:crosshair; }
+    @media(max-width:800px){ .blueprint-grid,.paper-editor-grid{grid-template-columns:1fr;} }
   </style>
 </head>
 <body>
@@ -158,6 +176,76 @@
 
   <div id="studio-modal-overlay">
     <iframe id="studio-iframe" src=""></iframe>
+  </div>
+
+
+  <div id="blueprint-modal-overlay">
+    <div class="blueprint-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:8px;">
+        <div>
+          <h3 style="color:#38bdf8;font-size:17px;">📋 Paper Blueprint / Board Pattern</h3>
+          <div style="font-size:10px;color:#94a3b8;margin-top:3px;">Set section order, question type, marks, choices and paper layout.</div>
+        </div>
+        <button class="tool-btn" style="background:#7f1d1d;" onclick="closeBlueprint()">✕ Close</button>
+      </div>
+      <div class="blueprint-grid" style="margin-top:10px;">
+        <div><label>Paper Total Marks</label><input id="bp-total-marks" type="number" min="0" value="100" oninput="renderBlueprintSummary()"></div>
+        <div><label>Default Section Layout</label><select id="bp-default-layout"><option value="1col">1 Column</option><option value="2col">2 Columns</option></select></div>
+        <div><label>Paper Style</label><select id="bp-style"><option>Custom Board Pattern</option><option>School Exam</option><option>Board Style</option><option>Institute Test</option></select></div>
+        <div style="display:flex;align-items:end;"><button class="tool-btn" style="background:#2563eb;width:100%;padding:8px;" onclick="addBlueprintSection()">＋ Add Section</button></div>
+      </div>
+      <div id="blueprint-sections"></div>
+      <div id="blueprint-summary" style="margin-top:10px;padding:9px;border-radius:7px;background:#0f172a;border:1px solid #334155;font-size:11px;"></div>
+      <div style="display:flex;gap:7px;margin-top:10px;justify-content:flex-end;">
+        <button class="tool-btn" style="background:#475569;" onclick="autoArrangePaper()">⚡ Auto Arrange Selected</button>
+        <button class="tool-btn" style="background:#10b981;padding:9px 14px;font-weight:800;" onclick="saveBlueprint()">✔ Apply Paper Pattern</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="paper-question-editor-overlay">
+    <div class="blueprint-card" style="width:min(1150px,96vw);">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:8px;">
+        <div><h3 style="color:#38bdf8;font-size:17px;">✏️ Paper Question Editor</h3><div id="paper-editor-subtitle" style="font-size:10px;color:#94a3b8;"></div></div>
+        <button class="tool-btn" style="background:#7f1d1d;" onclick="closePaperQuestionEditor()">✕ Close</button>
+      </div>
+      <div class="paper-editor-grid" style="margin-top:10px;">
+        <div class="editor-panel">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+            <div><label>Question Type</label><select id="pe-type" onchange="renderPaperEditor()">
+              <option value="MCQ">MCQ</option><option value="ASSERTION">Assertion–Reason</option><option value="VSA">Very Short Answer</option><option value="SHORT">Short Answer</option><option value="LONG">Long Answer</option><option value="NUMERICAL">Numerical</option><option value="CASE">Case / Passage Based</option><option value="FILL">Fill in the Blank</option><option value="TF">True / False</option><option value="DIAGRAM">Graph / Diagram Based</option>
+            </select></div>
+            <div><label>Marks</label><input id="pe-marks" type="number" min="0" step="0.5" value="1"></div>
+            <div><label>Section</label><select id="pe-section"></select></div>
+            <div><label>Image Width</label><select id="pe-width"><option value="100">100%</option><option value="90">90%</option><option value="80">80%</option><option value="70">70%</option><option value="60">60%</option><option value="50">50%</option><option value="auto">Auto</option></select></div>
+          </div>
+          <div style="margin-top:8px;"><label>Question Text</label><textarea id="pe-qtext" rows="4" placeholder="Type or edit the question..."></textarea></div>
+          <div style="margin-top:8px;"><label>Options / Answer Choices</label><textarea id="pe-options" rows="5" placeholder="A. ...&#10;B. ...&#10;C. ...&#10;D. ..."></textarea></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;">
+            <div><label>Correct Answer</label><input id="pe-key" placeholder="A / B / C / D"></div>
+            <div><label>Layout</label><select id="pe-layout"><option value="1col">1 Column</option><option value="2col">2 Columns</option></select></div>
+          </div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;">
+            <label style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px;"><input id="pe-show-options" type="checkbox"> Show Options</label>
+            <label style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px;"><input id="pe-keep-image" type="checkbox" checked> Keep Image</label>
+            <label style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:6px;"><input id="pe-internal-choice" type="checkbox"> Internal Choice</label>
+          </div>
+          <div style="margin-top:10px;display:flex;gap:6px;">
+            <button class="tool-btn" style="background:#0284c7;" onclick="cropPaperImage()">✂️ Crop Image</button>
+            <button class="tool-btn" style="background:#7c3aed;" onclick="resetPaperImage()">↺ Reset Image</button>
+            <button class="tool-btn" style="background:#10b981;flex:1;padding:8px;font-weight:800;" onclick="savePaperQuestion()">✔ Save Question</button>
+          </div>
+        </div>
+        <div class="editor-panel">
+          <div style="font-size:11px;font-weight:800;color:#38bdf8;margin-bottom:6px;">Live Paper Preview</div>
+          <div id="paper-editor-preview"></div>
+          <div class="crop-stage" style="margin-top:9px;">
+            <canvas id="paper-editor-canvas"></canvas>
+          </div>
+          <div style="font-size:9px;color:#64748b;margin-top:5px;">Crop: click-drag on the image, then press “Crop Image”. Image editing uses the browser canvas.</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="question-modal-overlay">
@@ -232,6 +320,7 @@
           </div>
 
           <button class="tool-btn" style="background:#2563eb; padding:8px; justify-content:center; font-weight:700; margin-top:4px;" onclick="document.getElementById('rules-modal-overlay').style.display='flex'">⚙️ Configure Test Rules & Settings</button>
+          <button class="tool-btn" style="background:#7c3aed; padding:9px; justify-content:center; font-weight:800; margin-top:4px;" onclick="openBlueprint()">📋 Paper Pattern / Blueprint</button>
 
           <div class="rev-split-box" style="display:none; margin-top:6px;">
             <div>💰 Price: <strong id="split-price" style="color:#fff;">₹99</strong></div>
@@ -265,6 +354,13 @@
     let cachedFilteredList = [];
     let currentPrintType = 'qp';
     let adminPlatformSharePercent = 10;
+
+    let paperBlueprint = { totalMarks: 100, defaultLayout: '2col', style: 'Custom Board Pattern', sections: [] };
+    let paperQuestionOverrides = {};
+    let paperEditorId = null;
+    let paperOriginalImage = '';
+    let cropSelection = null;
+    let cropDragStart = null;
 
     async function loadLibraryState() {
       try {
@@ -398,6 +494,234 @@
     };
 
     window.openQuestionEditor = async function(qId) {
+      openPaperQuestionEditor(qId);
+    };
+
+    function inferQuestionType(q) {
+      if (q && q.paperType) return q.paperType;
+      return q && q.optText ? 'MCQ' : 'SHORT';
+    }
+
+    function ensureBlueprint() {
+      if (!paperBlueprint.sections.length) {
+        paperBlueprint.sections = [
+          {id:'A',title:'Section A — MCQ',type:'MCQ',count:10,marks:1,layout:'2col',instruction:'Choose the correct option.',attempt:'all',internalChoice:false},
+          {id:'B',title:'Section B — Short Answer',type:'SHORT',count:5,marks:2,layout:'1col',instruction:'Answer briefly.',attempt:'all',internalChoice:false}
+        ];
+      }
+    }
+
+    window.openBlueprint = function() {
+      ensureBlueprint();
+      document.getElementById('bp-total-marks').value = document.getElementById('test-marks').value || paperBlueprint.totalMarks;
+      document.getElementById('bp-default-layout').value = paperBlueprint.defaultLayout || '2col';
+      document.getElementById('bp-style').value = paperBlueprint.style || 'Custom Board Pattern';
+      renderBlueprint();
+      document.getElementById('blueprint-modal-overlay').style.display='flex';
+    };
+    window.closeBlueprint = function(){ document.getElementById('blueprint-modal-overlay').style.display='none'; };
+
+    window.addBlueprintSection = function() {
+      ensureBlueprint();
+      const id = String.fromCharCode(65 + paperBlueprint.sections.length);
+      paperBlueprint.sections.push({id,title:'Section '+id,type:'SHORT',count:5,marks:2,layout:document.getElementById('bp-default-layout').value || '1col',instruction:'Answer the following questions.',attempt:'all',internalChoice:false});
+      renderBlueprint();
+    };
+
+    window.removeBlueprintSection = function(i) {
+      paperBlueprint.sections.splice(i,1);
+      renderBlueprint();
+    };
+    window.moveBlueprintSection = function(i,dir) {
+      const j=i+dir;
+      if(j<0 || j>=paperBlueprint.sections.length) return;
+      [paperBlueprint.sections[i],paperBlueprint.sections[j]]=[paperBlueprint.sections[j],paperBlueprint.sections[i]];
+      paperBlueprint.sections.forEach((s,k)=>s.id=String.fromCharCode(65+k));
+      renderBlueprint();
+    };
+    window.updateBlueprintField = function(i,key,val) {
+      paperBlueprint.sections[i][key]=key==='count'||key==='marks'?Number(val):val;
+      renderBlueprintSummary();
+    };
+
+    function renderBlueprint() {
+      const box=document.getElementById('blueprint-sections');
+      box.innerHTML='';
+      paperBlueprint.sections.forEach((s,i)=>{
+        const total=(Number(s.count)||0)*(Number(s.marks)||0);
+        box.innerHTML += `
+          <div class="section-card">
+            <div class="section-head">
+              <strong style="color:#38bdf8;">Section ${s.id}</strong>
+              <div class="section-controls">
+                <button class="f-btn" onclick="moveBlueprintSection(${i},-1)">↑</button>
+                <button class="f-btn" onclick="moveBlueprintSection(${i},1)">↓</button>
+                <button class="f-btn" style="background:#7f1d1d;color:#fecaca;" onclick="removeBlueprintSection(${i})">Delete</button>
+              </div>
+            </div>
+            <div class="blueprint-grid" style="margin-top:7px;">
+              <input value="${s.title||''}" oninput="updateBlueprintField(${i},'title',this.value)" placeholder="Section title">
+              <select onchange="updateBlueprintField(${i},'type',this.value)">
+                ${['MCQ','ASSERTION','VSA','SHORT','LONG','NUMERICAL','CASE','FILL','TF','DIAGRAM'].map(x=>`<option value="${x}" ${s.type===x?'selected':''}>${x}</option>`).join('')}
+              </select>
+              <input type="number" min="0" value="${s.count}" oninput="updateBlueprintField(${i},'count',this.value)" title="Number of questions">
+              <input type="number" min="0" step="0.5" value="${s.marks}" oninput="updateBlueprintField(${i},'marks',this.value)" title="Marks per question">
+              <select onchange="updateBlueprintField(${i},'layout',this.value)"><option value="1col" ${s.layout==='1col'?'selected':''}>1 Column</option><option value="2col" ${s.layout==='2col'?'selected':''}>2 Columns</option></select>
+              <select onchange="updateBlueprintField(${i},'attempt',this.value)"><option value="all" ${s.attempt==='all'?'selected':''}>Attempt All</option><option value="any" ${s.attempt==='any'?'selected':''}>Attempt Any</option></select>
+              <label style="display:flex;align-items:center;gap:5px;font-size:10px;"><input type="checkbox" ${s.internalChoice?'checked':''} onchange="updateBlueprintField(${i},'internalChoice',this.checked)"> Internal Choice</label>
+              <input value="${s.instruction||''}" oninput="updateBlueprintField(${i},'instruction',this.value)" placeholder="Section instruction">
+            </div>
+            <div style="font-size:10px;color:#94a3b8;margin-top:6px;">${total} marks • ${s.count} questions • ${s.type} • ${s.layout}</div>
+            <div class="section-q-list" id="bp-q-list-${i}"></div>
+          </div>`;
+      });
+      paperBlueprint.sections.forEach((s,i)=>renderBlueprintQuestions(i));
+      renderBlueprintSummary();
+    }
+
+    function renderBlueprintQuestions(i) {
+      const box=document.getElementById('bp-q-list-'+i); if(!box) return;
+      const ids=safeSectionQuestionIds(paperBlueprint.sections[i]);
+      if(!ids.length){ box.innerHTML='<div style="font-size:10px;color:#64748b;">No questions assigned yet. Select questions and use Auto Arrange, or edit each question and choose its section.</div>'; return; }
+      box.innerHTML=ids.map((id,n)=>{
+        const q=cloudVault.find(x=>x.id===id); if(!q) return '';
+        return `<div class="section-q-row"><span style="font-weight:800;">Q${n+1}</span><img src="${q.question||''}"><span style="flex:1;">${escapeHtml(q.qText||'Image question')}</span><button class="f-btn" onclick="openPaperQuestionEditor('${id}')">✏️ Edit</button></div>`;
+      }).join('');
+    }
+
+    function safeSectionQuestionIds(section) {
+      return selectedIds.filter(id=>{
+        const q=cloudVault.find(x=>x.id===id); if(!q) return false;
+        const o=paperQuestionOverrides[id]||{};
+        return (o.sectionId||'')===section.id;
+      });
+    }
+    function renderBlueprintSummary() {
+      const total=paperBlueprint.sections.reduce((a,s)=>a+(Number(s.count)||0)*(Number(s.marks)||0),0);
+      const target=Number(document.getElementById('bp-total-marks').value)||0;
+      const assigned=paperBlueprint.sections.reduce((a,s)=>a+safeSectionQuestionIds(s).length,0);
+      document.getElementById('blueprint-summary').innerHTML=`<strong>Blueprint Total: ${total}</strong> / Target ${target} Marks • Assigned: ${assigned}/${selectedIds.length} selected questions • ${total===target?'✅ Marks match':'⚠️ Adjust section counts/marks to match total'}`;
+    }
+
+    window.autoArrangePaper = function() {
+      ensureBlueprint();
+      selectedIds.forEach((id)=>{
+        const q=cloudVault.find(x=>x.id===id); if(!q) return;
+        const type=inferQuestionType(q);
+        let s=paperBlueprint.sections.find(x=>x.type===type);
+        if(!s) s=paperBlueprint.sections.find(x=>x.type==='SHORT')||paperBlueprint.sections[paperBlueprint.sections.length-1];
+        if(s) paperQuestionOverrides[id]={...(paperQuestionOverrides[id]||{}),sectionId:s.id,paperType:type,marks:Number(s.marks)||1};
+      });
+      renderBlueprint();
+      showToast('⚡ Selected questions arranged by type');
+    };
+
+    window.saveBlueprint = function() {
+      paperBlueprint.totalMarks=Number(document.getElementById('bp-total-marks').value)||0;
+      paperBlueprint.defaultLayout=document.getElementById('bp-default-layout').value;
+      paperBlueprint.style=document.getElementById('bp-style').value;
+      document.getElementById('test-marks').value=paperBlueprint.totalMarks;
+      closeBlueprint();
+      showToast('✔ Paper Blueprint applied');
+    };
+
+    function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+    window.openPaperQuestionEditor = function(qId) {
+      const q=cloudVault.find(x=>x.id===qId); if(!q) return;
+      paperEditorId=qId;
+      const o=paperQuestionOverrides[qId]||{};
+      ensureBlueprint();
+      document.getElementById('paper-editor-subtitle').textContent='Editing Q • Paper-only changes (original Library question remains safe)';
+      document.getElementById('pe-type').value=o.paperType||inferQuestionType(q);
+      document.getElementById('pe-marks').value=o.marks??1;
+      document.getElementById('pe-qtext').value=o.qText??q.qText??'';
+      document.getElementById('pe-options').value=o.optText??q.optText??'';
+      document.getElementById('pe-key').value=o.key??q.key??'';
+      document.getElementById('pe-width').value=o.imageWidth||'100';
+      document.getElementById('pe-layout').value=o.layout||paperBlueprint.defaultLayout||'1col';
+      document.getElementById('pe-show-options').checked=o.showOptions??!!q.optText;
+      document.getElementById('pe-keep-image').checked=o.keepImage!==false;
+      document.getElementById('pe-internal-choice').checked=!!o.internalChoice;
+      const sel=document.getElementById('pe-section');
+      sel.innerHTML=paperBlueprint.sections.map(s=>`<option value="${s.id}">Section ${s.id} — ${escapeHtml(s.title)}</option>`).join('');
+      sel.value=o.sectionId||paperBlueprint.sections[0]?.id||'A';
+      paperOriginalImage=o.image||q.question||'';
+      drawPaperEditorImage(paperOriginalImage);
+      document.getElementById('paper-question-editor-overlay').style.display='flex';
+      renderPaperEditor();
+    };
+
+    function renderPaperEditor() {
+      if(!paperEditorId) return;
+      const q=cloudVault.find(x=>x.id===paperEditorId); if(!q) return;
+      const img=document.getElementById('pe-keep-image').checked?(paperQuestionOverrides[paperEditorId]?.image||q.question||''):'';
+      const width=document.getElementById('pe-width').value;
+      const show=document.getElementById('pe-show-options').checked;
+      const text=escapeHtml(document.getElementById('pe-qtext').value);
+      const opts=escapeHtml(document.getElementById('pe-options').value).replace(/\n/g,'<br>');
+      document.getElementById('paper-editor-preview').innerHTML=`
+        <div style="font-weight:800;">Q. ${paperEditorId}</div>
+        <div style="font-weight:700;margin-top:5px;">${text}</div>
+        ${img?`<img src="${img}" style="width:${width==='auto'?'auto':width+'%'};max-width:100%;">`:''}
+        ${show&&opts?`<div style="margin-top:7px;line-height:1.45;">${opts}</div>`:''}
+        <div style="margin-top:7px;font-size:10px;color:#475569;">Marks: ${document.getElementById('pe-marks').value} • Type: ${document.getElementById('pe-type').value}</div>`;
+    }
+
+    ['pe-qtext','pe-options','pe-width','pe-marks','pe-show-options','pe-keep-image','pe-type','pe-layout'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.addEventListener('input',renderPaperEditor);
+      if(el) el.addEventListener('change',renderPaperEditor);
+    });
+
+    function drawPaperEditorImage(src) {
+      const canvas=document.getElementById('paper-editor-canvas'); const ctx=canvas.getContext('2d');
+      if(!src){canvas.width=500;canvas.height=120;ctx.clearRect(0,0,500,120);return;}
+      const img=new Image();
+      img.onload=()=>{canvas.width=img.naturalWidth;canvas.height=img.naturalHeight;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);};
+      img.src=src;
+    }
+
+    const peCanvas=()=>document.getElementById('paper-editor-canvas');
+    document.addEventListener('mousedown',e=>{
+      const c=peCanvas(); if(!c||e.target!==c) return;
+      const r=c.getBoundingClientRect(); cropDragStart={x:(e.clientX-r.left)*(c.width/r.width),y:(e.clientY-r.top)*(c.height/r.height)}; cropSelection=null;
+    });
+    document.addEventListener('mouseup',e=>{
+      const c=peCanvas(); if(!c||!cropDragStart||e.target!==c) return;
+      const r=c.getBoundingClientRect(); const end={x:(e.clientX-r.left)*(c.width/r.width),y:(e.clientY-r.top)*(c.height/r.height)};
+      cropSelection={x:Math.max(0,Math.min(cropDragStart.x,end.x)),y:Math.max(0,Math.min(cropDragStart.y,end.y)),w:Math.abs(end.x-cropDragStart.x),h:Math.abs(end.y-cropDragStart.y)}; cropDragStart=null;
+      const ctx=c.getContext('2d'); ctx.strokeStyle='#ef4444';ctx.lineWidth=Math.max(2,c.width/400);ctx.strokeRect(cropSelection.x,cropSelection.y,cropSelection.w,cropSelection.h);
+    });
+
+    window.cropPaperImage=function(){
+      if(!paperEditorId||!cropSelection||cropSelection.w<5||cropSelection.h<5) return alert('Image par click-drag karke crop area select karo.');
+      const c=peCanvas(), out=document.createElement('canvas'); out.width=Math.round(cropSelection.w);out.height=Math.round(cropSelection.h);
+      out.getContext('2d').drawImage(c,cropSelection.x,cropSelection.y,cropSelection.w,cropSelection.h,0,0,out.width,out.height);
+      const data=out.toDataURL('image/png');
+      paperQuestionOverrides[paperEditorId]={...(paperQuestionOverrides[paperEditorId]||{}),image:data};
+      cropSelection=null; drawPaperEditorImage(data); renderPaperEditor();
+    };
+    window.resetPaperImage=function(){paperQuestionOverrides[paperEditorId]={...(paperQuestionOverrides[paperEditorId]||{}),image:paperOriginalImage};drawPaperEditorImage(paperOriginalImage);cropSelection=null;renderPaperEditor();};
+    window.closePaperQuestionEditor=function(){document.getElementById('paper-question-editor-overlay').style.display='none';paperEditorId=null;};
+
+    window.savePaperQuestion=function(){
+      if(!paperEditorId) return;
+      const old=paperQuestionOverrides[paperEditorId]||{};
+      paperQuestionOverrides[paperEditorId]={
+        ...old, paperType:document.getElementById('pe-type').value, marks:Number(document.getElementById('pe-marks').value)||0,
+        qText:document.getElementById('pe-qtext').value, optText:document.getElementById('pe-options').value, key:document.getElementById('pe-key').value,
+        sectionId:document.getElementById('pe-section').value, imageWidth:document.getElementById('pe-width').value, layout:document.getElementById('pe-layout').value,
+        showOptions:document.getElementById('pe-show-options').checked, keepImage:document.getElementById('pe-keep-image').checked, internalChoice:document.getElementById('pe-internal-choice').checked
+      };
+      closePaperQuestionEditor(); renderBuilderGrid(); if(document.getElementById('blueprint-modal-overlay').style.display==='flex') renderBlueprint();
+      showToast('✔ Paper-specific question settings saved');
+    };
+
+    function paperQuestionView(q) {
+      const o=paperQuestionOverrides[q.id]||{};
+      return {...q,...o,question:o.keepImage===false?'':(o.image||q.question||'')};
+    }
+
       const q = cloudVault.find(item => item.id === qId);
       if (!q) return;
 
@@ -503,7 +827,9 @@
       const instName = document.getElementById('print-inst-name').value.trim() || 'Future Scholar';
       const instLogo = document.getElementById('print-inst-logo').value.trim();
       const brandingTier = document.getElementById('print-branding-tier').value;
-      const selectedQuestions = cloudVault.filter(q => selectedIds.includes(q.id));
+      const selectedQuestions = cloudVault.filter(q => selectedIds.includes(q.id)).map(paperQuestionView);
+      ensureBlueprint();
+      const blueprintForPrint = paperBlueprint.sections.length ? paperBlueprint.sections : [{id:'A',title:'Questions',type:'SHORT',count:selectedQuestions.length,marks:1,layout:layoutMode,instruction:'',attempt:'all',internalChoice:false}];
 
       let printWindow = window.open('', '_blank');
       
@@ -548,16 +874,28 @@
             <div class="${layoutMode === '2col' ? 'layout-2col' : 'layout-1col'}">
         `;
 
-        selectedQuestions.forEach((q, idx) => {
-          let itemClass = layoutMode === '2col' ? 'q-item-2col' : 'q-item-1col';
+        let paperNo=0;
+        blueprintForPrint.forEach((section, sIdx) => {
+          const sectionQs=selectedQuestions.filter(q => ((paperQuestionOverrides[q.id]||{}).sectionId||'')===section.id);
+          if(!sectionQs.length && sIdx>0) return;
           htmlContent += `
-            <div class="${itemClass}">
-              <div class="q-header">Q.${idx + 1}</div>
-              ${q.qText ? `<div class="q-text">${q.qText}</div>` : ''}
-              ${q.question ? `<img src="${q.question}" class="q-img">` : ''}
-              ${q.optText ? `<div class="opt-text"><strong>Options:</strong> ${q.optText}</div>` : ''}
-            </div>
-          `;
+            <div style="grid-column:1/-1;margin:8px 0 2px;border-bottom:2px solid #000;padding:5px 0;page-break-after:avoid;">
+              <strong style="font-size:13px;">Section ${section.id}: ${section.title}</strong>
+              <div style="font-size:10px;margin-top:2px;">${section.instruction||''} ${section.attempt==='any'?'Attempt any as instructed.':''} ${section.internalChoice?'Internal choice available.':''}</div>
+            </div>`;
+          sectionQs.forEach(q=>{
+            paperNo++;
+            const itemClass = (q.layout||section.layout||layoutMode)==='2col'?'q-item-2col':'q-item-1col';
+            const showOptions = q.showOptions !== false && !!q.optText;
+            const width = q.imageWidth==='auto'?'auto':(q.imageWidth||'100')+'%';
+            htmlContent += `
+              <div class="${itemClass}">
+                <div class="q-header">Q.${paperNo} <span style="float:right;">[${q.marks??section.marks} Mark]</span></div>
+                ${q.qText ? `<div class="q-text">${q.qText}</div>` : ''}
+                ${q.question ? `<img src="${q.question}" class="q-img" style="width:${width};max-width:100%;">` : ''}
+                ${showOptions ? `<div class="opt-text">${String(q.optText).replace(/\n/g,'<br>')}</div>` : ''}
+              </div>`;
+          });
         });
 
         htmlContent += `
@@ -642,6 +980,8 @@
           marks: document.getElementById('test-marks').value,
           price: document.getElementById('test-price').value || "0", 
           questionIds: selectedIds,
+          paperBlueprint: paperBlueprint,
+          paperQuestionOverrides: paperQuestionOverrides,
           rules: {
             noReturn: document.getElementById('rule-no-return').checked,
             minTimer: document.getElementById('rule-min-timer').checked,
