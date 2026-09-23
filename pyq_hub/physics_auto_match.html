@@ -96,7 +96,12 @@ function findOptionGroup(all,i,keyMap){
   return opts.length===4?opts:[];
 }
 function parseQuestions(text,keyMap){
-  const all=ids(text), out=[], seen=new Set();
+  // Restrict a combined JEE Main Paper-1 PDF to the Physics section automatically.
+  // The official 2026 paper format exposes clear "Physics Section A/B" headings.
+  const pm=text.indexOf("Physics Section A");
+  const cm=text.indexOf("Chemistry Section A", pm>=0?pm:0);
+  const physicsText=pm>=0 ? text.slice(pm, cm>pm?cm:text.length) : text;
+  const all=ids(physicsText), out=[], seen=new Set();
   for(let i=0;i<all.length;i++){
     const q=all[i];
     if(!keyMap[q]||seen.has(q))continue;
@@ -106,7 +111,7 @@ function parseQuestions(text,keyMap){
     if(idx<0)continue;
     const letters=["A","B","C","D"];
     // Keep a short nearby text snippet for debugging/verification.
-    const pos=text.indexOf(q), snippet=pos>=0?clean(text.slice(pos,pos+650)).slice(0,500):"";
+    const pos=physicsText.indexOf(q), snippet=pos>=0?clean(physicsText.slice(pos,pos+650)).slice(0,500):"";
     out.push({questionId:q,optionIds:opts,correctOptionId:correct,answer:letters[idx],confidence:"Exact ID match",snippet});
     seen.add(q);
   }
@@ -131,7 +136,7 @@ window.runMatch=async()=>{
     setStatus("Question IDs और Option IDs match कर रहा हूँ...");
     results=parseQuestions(pt,lastKey);
     render();
-    setStatus("Done. Exact Question ID → Correct Option ID matching complete.\nPhysics-only filtering is safest when the uploaded paper is already Physics-only. For a combined Paper-1 PDF, this prototype matches official IDs but does not guess subject from question wording.");
+    setStatus("Done. Exact Question ID → Correct Option ID matching complete.\nPhysics section is auto-detected in a combined Paper-1 PDF. Section B numerical-answer questions are kept out of A/B/C/D matching.");
   }catch(e){console.error(e);setStatus("Processing failed: "+e.message)}
 };
 window.loadOfficialKey=()=>{window.open("https://www.nta.ac.in/Download/Notice/Notice_20260420132025.pdf","_blank","noopener");setStatus("Official NTA final key opened. Download it, then select it in the Answer Key box. It contains Question ID → Correct Option ID tables for each subject/shift.");};
