@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Firebase SDK for syncing with builder database if needed -->
+    <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -24,13 +24,24 @@
         const app = initializeApp(firebaseConfig);
         window.db = getFirestore(app);
     </script>
+    <style>
+        .blueprint-card { width: min(1150px, 96vw); max-height: 92vh; overflow-y: auto; background:#0b1120; border:2px solid #38bdf8; border-radius:14px; padding:18px; color:#f8fafc; }
+        .blueprint-grid { display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap:8px; }
+        .blueprint-grid input, .blueprint-grid select, .paper-editor-grid input, .paper-editor-grid select, .paper-editor-grid textarea { width:100%; padding:7px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; font-size:11px; }
+        .paper-editor-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+        .editor-panel { background:#060911; border:1px solid #1e293b; border-radius:8px; padding:10px; }
+        #paper-editor-preview { background:#fff; color:#000; border-radius:7px; padding:12px; min-height:170px; overflow:auto; }
+        #paper-editor-preview img { display:block; max-width:100%; height:auto; margin:6px 0; }
+        .crop-stage { background:#111827; border:1px solid #334155; border-radius:7px; padding:8px; text-align:center; overflow:auto; }
+        #paper-editor-canvas { max-width:100%; height:auto; background:#fff; cursor:crosshair; }
+        @media(max-width:800px){ .paper-editor-grid{grid-template-columns:1fr;} }
+    </style>
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
 
-    <!-- Top Navigation Bar with Back Option -->
+    <!-- Top Navigation Bar -->
     <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10">
         <div class="flex items-center space-x-4">
-            <!-- Back to Builder Button -->
             <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 border border-slate-600" title="Back to Test Builder">
                 <i class="fa-solid fa-arrow-left text-indigo-400"></i>
                 <span>Back to Builder</span>
@@ -46,7 +57,6 @@
             </div>
         </div>
         
-        <!-- Header Controls -->
         <div class="flex items-center space-x-3">
             <button onclick="openLibraryModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 border border-slate-600 shadow">
                 <i class="fa-solid fa-book-bookmark text-indigo-400"></i>
@@ -62,9 +72,8 @@
     <!-- Main Workspace Layout -->
     <div class="flex-1 flex overflow-hidden">
         
-        <!-- LEFT SIDEBAR: Structure, Sections & Controls -->
+        <!-- LEFT SIDEBAR: Sections -->
         <aside class="w-80 bg-slate-800/90 border-r border-slate-700 flex flex-col z-0">
-            <!-- Paper Info Summary -->
             <div class="p-4 border-b border-slate-700 bg-slate-800">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Paper Blueprint Summary</h2>
                 <div class="grid grid-cols-2 gap-2 text-center">
@@ -79,7 +88,6 @@
                 </div>
             </div>
 
-            <!-- Sections Control Panel -->
             <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/50">
                 <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Sections Setup</span>
                 <button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center space-x-1">
@@ -87,52 +95,86 @@
                 </button>
             </div>
 
-            <!-- Sections Tree List -->
-            <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3">
-                <!-- Dynamically populated section cards -->
-            </div>
+            <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
         </aside>
 
-        <!-- CENTER WORKSPACE: Active Section & Detailed Questions Canvas -->
+        <!-- CENTER WORKSPACE -->
         <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden relative">
-            <!-- Canvas Toolbar -->
             <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
                 <div>
                     <h2 id="activeSectionTitle" class="text-base font-bold text-slate-100">Select a Section</h2>
                     <p id="activeSectionMeta" class="text-xs text-slate-400">Manage questions inside the active section workspace.</p>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="openAddCustomQuestionModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow">
-                        <i class="fa-solid fa-circle-plus"></i>
-                        <span>Create Custom Question</span>
-                    </button>
-                </div>
             </div>
 
-            <!-- Questions Canvas Container with Full Visual View -->
             <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl mx-auto w-full">
-                <!-- Empty State Prompt -->
                 <div id="emptyCanvasState" class="h-full flex flex-col items-center justify-center text-center text-slate-500">
                     <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
                     <p class="text-base font-medium">No Questions Loaded</p>
-                    <p class="text-xs text-slate-600 mt-1">कृपया टेस्ट बिल्डर से सवाल सेलेक्ट करके 'Open Paper Designer' पर क्लिक करें।</p>
+                    <p class="text-xs text-slate-600 mt-1">कृपया टेस्ट बिल्डर से सवाल सेलेक्ट करके यहाँ आएं।</p>
                 </div>
             </div>
         </main>
 
-        <!-- RIGHT SIDEBAR: Quick Contextual Helper -->
+        <!-- RIGHT SIDEBAR -->
         <aside class="w-72 bg-slate-800/80 border-l border-slate-700 p-4 flex flex-col">
             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3"><i class="fa-solid fa-circle-info mr-1.5 text-indigo-400"></i>Designer Info</h3>
             <div class="bg-slate-900/90 border border-slate-700/50 p-3.5 rounded-lg text-xs text-slate-300 space-y-2">
-                <p>यहाँ आपके टेस्ट बिल्डर से सेलेक्ट किए गए सभी सवाल और ब्लूप्रिंट सेक्शन्स ऑटोमैटिक लोड हो चुके हैं।</p>
-                <p>आप किसी भी सवाल को एडिट कर सकते हैं, सेक्शन्स बदल सकते हैं या प्रिंट लेआउट देख सकते हैं।</p>
-            </div>
-            <div class="mt-auto bg-slate-900/60 border border-slate-700/50 p-3 rounded-lg text-xs text-slate-400">
-                <p class="font-semibold text-slate-300 mb-1"><i class="fa-solid fa-shield-halved mr-1 text-emerald-400"></i>Safe Modification</p>
-                यहाँ किए गए बदलाव सिर्फ इसी पेपर पर लागू होंगे।
+                <p>यहाँ आपके टेस्ट बिल्डर से सेलेक्ट किए गए सभी सवाल और ब्लूप्रिंट सेक्शन्स लोड हो चुके हैं।</p>
+                <p>एडिट बटन दबाकर आप इमेज क्रॉप कर सकते हैं, टेक्स्ट या ऑप्शन्स बदल सकते हैं।</p>
             </div>
         </aside>
 
+    </div>
+
+    <!-- ADVANCED PAPER QUESTION EDITOR MODAL (Same as Builder) -->
+    <div id="paper-question-editor-overlay" class="fixed inset-0 bg-black/88 hidden items-center justify-center z-80000 p-4">
+        <div class="blueprint-card" style="width:min(1150px,96vw);">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:8px;">
+                <div>
+                    <h3 style="color:#38bdf8;font-size:17px;">✏️ Advanced Paper Question Editor</h3>
+                    <div id="paper-editor-subtitle" style="font-size:10px;color:#94a3b8;">Paper-only changes (original Library question remains safe)</div>
+                </div>
+                <button class="bg-red-900 hover:bg-red-800 text-white px-3 py-1.5 rounded text-xs" onclick="closePaperQuestionEditor()">✕ Close</button>
+            </div>
+            <div class="paper-editor-grid" style="margin-top:10px;">
+                <div class="editor-panel">
+                    <input type="hidden" id="pe-qid">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+                        <div><label class="text-xs text-slate-400">Question Type</label>
+                        <select id="pe-type" onchange="renderPaperEditor()">
+                            <option value="MCQ">MCQ</option><option value="ASSERTION">Assertion–Reason</option><option value="SHORT">Short Answer</option><option value="LONG">Long Answer</option><option value="NUMERICAL">Numerical</option>
+                        </select></div>
+                        <div><label class="text-xs text-slate-400">Marks</label><input id="pe-marks" type="number" min="0" step="0.5" value="1"></div>
+                        <div><label class="text-xs text-slate-400">Section</label><select id="pe-section"></select></div>
+                        <div><label class="text-xs text-slate-400">Image Width</label><select id="pe-width"><option value="100">100%</option><option value="80">80%</option><option value="50">50%</option><option value="auto">Auto</option></select></div>
+                    </div>
+                    <div style="margin-top:8px;"><label class="text-xs text-slate-400">Question Text</label><textarea id="pe-qtext" rows="3" placeholder="Type or edit the question..."></textarea></div>
+                    <div style="margin-top:8px;"><label class="text-xs text-slate-400">Options / Answer Choices</label><textarea id="pe-options" rows="4" placeholder="A. ...&#10;B. ..."></textarea></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;">
+                        <div><label class="text-xs text-slate-400">Correct Answer</label><input id="pe-key" placeholder="A / B / C / D"></div>
+                        <div><label class="text-xs text-slate-400">Layout</label><select id="pe-layout"><option value="1col">1 Column</option><option value="2col">2 Columns</option></select></div>
+                    </div>
+                    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;">
+                        <label class="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs"><input id="pe-show-options" type="checkbox" checked> Show Options</label>
+                        <label class="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs"><input id="pe-keep-image" type="checkbox" checked> Keep Image</label>
+                    </div>
+                    <div style="margin-top:10px;display:flex;gap:6px;">
+                        <button class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded text-xs font-semibold" onclick="cropPaperImage()">✂️ Crop Image</button>
+                        <button class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded text-xs font-semibold" onclick="resetPaperImage()">↺ Reset Image</button>
+                        <button class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded text-xs font-bold flex-1" onclick="savePaperQuestion()">✔ Save Question</button>
+                    </div>
+                </div>
+                <div class="editor-panel flex flex-col">
+                    <div style="font-size:11px;font-weight:800;color:#38bdf8;margin-bottom:6px;">Live Paper Preview</div>
+                    <div id="paper-editor-preview"></div>
+                    <div class="crop-stage mt-2">
+                        <canvas id="paper-editor-canvas"></canvas>
+                    </div>
+                    <div style="font-size:9px;color:#64748b;margin-top:5px;">Crop: click-drag on image, then press “Crop Image”.</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL: Question Library Selection -->
@@ -145,51 +187,14 @@
                 </h3>
                 <button onclick="closeLibraryModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-4 flex-1 overflow-y-auto space-y-3" id="libraryQuestionsList">
-                <!-- Library items -->
-            </div>
+            <div class="p-4 flex-1 overflow-y-auto space-y-3" id="libraryQuestionsList"></div>
             <div class="p-4 border-t border-slate-800 flex justify-end">
                 <button onclick="closeLibraryModal()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm">Done</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL: Full Detailed View & Custom Editor (Popup) -->
-    <div id="questionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-xl flex flex-col shadow-2xl">
-            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-                <h3 id="questionModalTitle" class="font-bold text-base text-indigo-300">Question View & Editor</h3>
-                <button onclick="closeQuestionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-5 space-y-4">
-                <input type="hidden" id="editQuestionId">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Question Type (Editable)</label>
-                    <select id="qType" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                        <option value="MCQ">Multiple Choice Question (MCQ)</option>
-                        <option value="ASSERTION">Assertion & Reason</option>
-                        <option value="SHORT">Short Answer</option>
-                        <option value="LONG">Long Answer / Descriptive</option>
-                        <option value="NUMERICAL">Numerical</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Question Text / Statement & Options</label>
-                    <textarea id="qText" rows="4" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Enter full question statement here..."></textarea>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Marks Assigned</label>
-                    <input type="number" id="qMarks" min="1" value="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                </div>
-            </div>
-            <div class="p-4 border-t border-slate-800 flex justify-end space-x-3">
-                <button onclick="closeQuestionModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
-                <button onclick="saveQuestionData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium shadow">Save Changes in Paper</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Print & Layout Preview -->
+    <!-- MODAL: Print Preview -->
     <div id="printModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
         <div class="bg-white text-slate-900 rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-slate-100 p-4 border-b border-slate-300 flex items-center justify-between">
@@ -204,21 +209,22 @@
                     <button onclick="closePrintModal()" class="text-slate-500 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
             </div>
-            <div id="printPreviewContent" class="p-8 flex-1 overflow-y-auto space-y-6 font-serif">
-                <!-- Populated print layout -->
-            </div>
+            <div id="printPreviewContent" class="p-8 flex-1 overflow-y-auto space-y-6 font-serif"></div>
         </div>
     </div>
 
     <!-- JavaScript Application Logic -->
     <script>
-        let testPaper = {
-            title: "Question Paper",
-            sections: []
-        };
-
+        let testPaper = { title: "Question Paper", sections: [] };
         let activeSectionId = null;
-        let questionLibrary = []; // Loaded from firebase/cache
+        let questionLibrary = [];
+        let paperQuestionOverrides = {};
+        let cachedQuestionsMap = {};
+        
+        let paperEditorId = null;
+        let paperOriginalImage = '';
+        let cropSelection = null;
+        let cropDragStart = null;
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadBuilderDataIntoDesigner();
@@ -226,40 +232,36 @@
         });
 
         async function loadBuilderDataIntoDesigner() {
-            // 1. Load Paper Title
             const savedTitle = localStorage.getItem('AZ_BUILDER_PAPER_TITLE');
             if (savedTitle) {
                 testPaper.title = savedTitle;
                 document.getElementById('paperMainTitle').innerText = savedTitle;
             }
 
-            // 2. Load Blueprint State (Sections set in builder)
             let rawState = localStorage.getItem('AZ_PAPER_DESIGNER_STATE');
             let rawOverrides = localStorage.getItem('AZ_PAPER_DESIGNER_OVERRIDES');
             let selectedIds = JSON.parse(localStorage.getItem('AZ_BUILDER_SELECTED_IDS') || '[]');
             
-            let overrides = {};
-            try { overrides = JSON.parse(rawOverrides || '{}'); } catch(e){}
+            try { paperQuestionOverrides = JSON.parse(rawOverrides || '{}'); } catch(e){ paperQuestionOverrides = {}; }
 
-            // Fetch questions from IndexedDB cache stored by builder.html
             let cachedQuestions = await fetchQuestionsFromIndexedDB(selectedIds);
+            cachedQuestions.forEach(q => cachedQuestionsMap[q.id] = q);
 
             if (rawState) {
                 try {
                     let state = JSON.parse(rawState);
                     if (state.sections && state.sections.length > 0) {
                         testPaper.sections = state.sections.map(sec => {
-                            // Map question IDs to actual question objects
                             let qObjects = (sec.questions || []).map(id => {
-                                let found = cachedQuestions.find(q => q.id === id);
+                                let found = cachedQuestionsMap[id];
                                 if (found) {
-                                    let ov = overrides[id] || {};
+                                    let ov = paperQuestionOverrides[id] || {};
                                     return {
                                         id: found.id,
                                         type: ov.paperType || found.paperType || sec.type || 'SHORT',
-                                        text: ov.qText || found.qText || '',
+                                        text: ov.qText ?? found.qText ?? '',
                                         image: ov.keepImage !== false ? (ov.image || found.question || '') : '',
-                                        optText: ov.optText || found.optText || '',
+                                        optText: ov.optText ?? found.optText ?? '',
                                         marks: ov.marks ?? sec.marks ?? 1
                                     };
                                 }
@@ -275,33 +277,24 @@
                             };
                         });
                     }
-                } catch(e) { console.error("Error parsing blueprint state", e); }
+                } catch(e) {}
             }
 
-            // Fallback if sections weren't defined in blueprint but IDs exist
             if (testPaper.sections.length === 0 && selectedIds.length > 0) {
                 let fallbackQs = selectedIds.map(id => {
-                    let found = cachedQuestions.find(q => q.id === id);
-                    let ov = overrides[id] || {};
+                    let found = cachedQuestionsMap[id];
+                    let ov = paperQuestionOverrides[id] || {};
                     return found ? {
                         id: found.id,
                         type: ov.paperType || found.paperType || 'SHORT',
-                        text: ov.qText || found.qText || '',
+                        text: ov.qText ?? found.qText ?? '',
                         image: ov.keepImage !== false ? (ov.image || found.question || '') : '',
-                        optText: ov.optText || found.optText || '',
+                        optText: ov.optText ?? found.optText ?? '',
                         marks: ov.marks ?? 1
                     } : null;
                 }).filter(Boolean);
 
-                testPaper.sections = [
-                    {
-                        id: "A",
-                        name: "Section A - Selected Questions",
-                        type: "SHORT",
-                        marksPerQ: 1,
-                        questions: fallbackQs
-                    }
-                ];
+                testPaper.sections = [{ id: "A", name: "Section A - Selected Questions", type: "SHORT", marksPerQ: 1, questions: fallbackQs }];
             }
 
             if (testPaper.sections.length > 0) {
@@ -312,28 +305,18 @@
             renderActiveCanvas();
         }
 
-        // Helper to get questions from IndexedDB cache created by builder.html
         function fetchQuestionsFromIndexedDB(selectedIds) {
             return new Promise((resolve) => {
                 const req = indexedDB.open('AZExamMocksDesignerDB', 1);
                 req.onerror = () => resolve([]);
                 req.onsuccess = () => {
                     const db = req.result;
-                    if (!db.objectStoreNames.contains('questions')) {
-                        db.close();
-                        return resolve([]);
-                    }
+                    if (!db.objectStoreNames.contains('questions')) { db.close(); return resolve([]); }
                     const tx = db.transaction('questions', 'readonly');
                     const store = tx.objectStore('questions');
                     const getAllReq = store.getAll();
-                    getAllReq.onsuccess = () => {
-                        db.close();
-                        resolve(getAllReq.result || []);
-                    };
-                    getAllReq.onerror = () => {
-                        db.close();
-                        resolve([]);
-                    };
+                    getAllReq.onsuccess = () => { db.close(); resolve(getAllReq.result || []); };
+                    getAllReq.onerror = () => { db.close(); resolve([]); };
                 };
             });
         }
@@ -343,17 +326,15 @@
                 if (window.db) {
                     const snap = await getDocs(collection(window.db, "questions"));
                     questionLibrary = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    questionLibrary.forEach(q => cachedQuestionsMap[q.id] = q);
                 }
             } catch(e) {}
         }
 
-        function goBackToBuilder() {
-            window.location.href = "builder.html";
-        }
+        function goBackToBuilder() { window.location.href = "builder.html"; }
 
         function updateSummaryCounters() {
-            let totalQ = 0;
-            let totalM = 0;
+            let totalQ = 0, totalM = 0;
             testPaper.sections.forEach(sec => {
                 totalQ += sec.questions.length;
                 sec.questions.forEach(q => totalM += Number(q.marks || 1));
@@ -365,7 +346,6 @@
         function renderSidebarSections() {
             const listEl = document.getElementById('sectionsSidebarList');
             listEl.innerHTML = '';
-
             if (testPaper.sections.length === 0) {
                 listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No sections available.</p>`;
                 return;
@@ -405,15 +385,8 @@
 
         function addNewSection() {
             const newId = String.fromCharCode(65 + testPaper.sections.length);
-            const newSec = {
-                id: newId,
-                name: `Section ${newId} - New Section`,
-                type: "SHORT",
-                marksPerQ: 1,
-                questions: []
-            };
-            testPaper.sections.push(newSec);
-            selectSection(newSec.id);
+            testPaper.sections.push({ id: newId, name: `Section ${newId} - New Section`, type: "SHORT", marksPerQ: 1, questions: [] });
+            selectSection(newId);
         }
 
         function renameSection(secId, newName) {
@@ -433,9 +406,7 @@
 
         function deleteSection(secId) {
             testPaper.sections = testPaper.sections.filter(s => s.id !== secId);
-            if (activeSectionId === secId) {
-                activeSectionId = testPaper.sections.length > 0 ? testPaper.sections[0].id : null;
-            }
+            if (activeSectionId === secId) activeSectionId = testPaper.sections.length > 0 ? testPaper.sections[0].id : null;
             renderSidebarSections();
             renderActiveCanvas();
         }
@@ -444,30 +415,20 @@
             const container = document.getElementById('questionsCanvasContainer');
             const titleEl = document.getElementById('activeSectionTitle');
             const metaEl = document.getElementById('activeSectionMeta');
-            
             const activeSec = testPaper.sections.find(s => s.id === activeSectionId);
 
             if (!activeSec) {
                 titleEl.innerText = "No Section Selected";
                 metaEl.innerText = "Create or select a section from the left sidebar.";
-                container.innerHTML = `
-                    <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
-                        <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
-                        <p class="text-base font-medium">No Section Selected or Empty</p>
-                    </div>`;
+                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20"><p class="text-base font-medium">No Section Selected</p></div>`;
                 return;
             }
 
             titleEl.innerText = activeSec.name;
-            metaEl.innerText = `Displaying questions with full visual format • Total: ${activeSec.questions.length}`;
+            metaEl.innerText = `Displaying questions in full visual view • Total: ${activeSec.questions.length}`;
 
             if (activeSec.questions.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-16 text-slate-500 border border-dashed border-slate-800 rounded-xl">
-                        <i class="fa-solid fa-folder-open text-4xl mb-2 text-slate-600"></i>
-                        <p class="text-sm font-medium">This section is currently empty.</p>
-                        <p class="text-xs text-slate-600 mt-1">Use 'Add More from Library' above or create a custom question.</p>
-                    </div>`;
+                container.innerHTML = `<div class="text-center py-16 text-slate-500 border border-dashed border-slate-800 rounded-xl"><p class="text-sm font-medium">This section is empty.</p></div>`;
                 return;
             }
 
@@ -483,23 +444,18 @@
                     <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                         <div class="flex items-center space-x-2.5">
                             <span class="bg-indigo-600/20 text-indigo-400 font-bold px-3 py-1 rounded text-xs border border-indigo-500/30">Q.${idx + 1}</span>
-                            <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded font-medium">${q.type || 'Question'}</span>
+                            <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded font-medium">${q.type}</span>
                         </div>
                         <div class="flex items-center space-x-2 text-xs">
-                            <span class="text-emerald-400 font-bold bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-800/40">${q.marks || 1} Mark${(q.marks || 1) > 1 ? 's' : ''}</span>
+                            <span class="text-emerald-400 font-bold bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-800/40">${q.marks} Mark</span>
                             <div class="flex items-center space-x-1.5 border-l border-slate-800 pl-3">
-                                <button onclick="moveQuestion('${activeSec.id}', '${q.id}', 'up')" ${idx === 0 ? 'disabled class="opacity-30 cursor-not-allowed"' : ''} class="p-1.5 hover:text-indigo-400 text-slate-400" title="Move Up"><i class="fa-solid fa-arrow-up"></i></button>
-                                <button onclick="moveQuestion('${activeSec.id}', '${q.id}', 'down')" ${idx === activeSec.questions.length - 1 ? 'disabled class="opacity-30 cursor-not-allowed"' : ''} class="p-1.5 hover:text-indigo-400 text-slate-400" title="Move Down"><i class="fa-solid fa-arrow-down"></i></button>
-                                <select onchange="moveQuestionToSection('${activeSec.id}', '${q.id}', this.value)" class="bg-slate-800 text-xs text-slate-300 border border-slate-700 rounded px-2 py-1 ml-1 focus:outline-none">
-                                    <option value="">Move to...</option>
-                                    ${testPaper.sections.map(s => s.id !== activeSec.id ? `<option value="${s.id}">${s.name}</option>` : '').join('')}
-                                </select>
-                                <button onclick="openEditQuestionModal('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold ml-1 flex items-center space-x-1" title="View & Edit"><i class="fa-solid fa-pen-to-square"></i><span>Edit</span></button>
-                                <button onclick="removeQuestionFromSection('${activeSec.id}', '${q.id}')" class="text-slate-500 hover:text-rose-400 p-1.5 ml-1" title="Remove"><i class="fa-solid fa-trash"></i></button>
+                                <button onclick="moveQuestion('${activeSec.id}', '${q.id}', 'up')" ${idx===0?'disabled class="opacity-30 cursor-not-allowed"':''} class="p-1.5 hover:text-indigo-400 text-slate-400"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button onclick="moveQuestion('${activeSec.id}', '${q.id}', 'down')" ${idx===activeSec.questions.length-1?'disabled class="opacity-30 cursor-not-allowed"':''} class="p-1.5 hover:text-indigo-400 text-slate-400"><i class="fa-solid fa-arrow-down"></i></button>
+                                <button onclick="openPaperQuestionEditor('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold ml-1"><i class="fa-solid fa-pen-to-square"></i><span>Edit</span></button>
+                                <button onclick="removeQuestionFromSection('${activeSec.id}', '${q.id}')" class="text-slate-500 hover:text-rose-400 p-1.5 ml-1"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                     </div>
-                    <!-- Full Visual Question Content Display -->
                     <div class="text-sm text-slate-100 font-normal leading-relaxed pt-1 whitespace-pre-line bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/60">${q.text || 'Image-based Question'}</div>
                     ${imageHtml}
                     ${optionsHtml}
@@ -509,38 +465,169 @@
             updateSummaryCounters();
         }
 
+        // ADVANCED EDITOR LOGIC
+        window.openPaperQuestionEditor = function(qId) {
+            paperEditorId = qId;
+            let foundQ = null;
+            testPaper.sections.forEach(s => {
+                let found = s.questions.find(x => x.id === qId);
+                if (found) foundQ = found;
+            });
+            if (!foundQ && cachedQuestionsMap[qId]) foundQ = cachedQuestionsMap[qId];
+            if (!foundQ) return;
+
+            const o = paperQuestionOverrides[qId] || {};
+            document.getElementById('pe-qid').value = qId;
+            document.getElementById('pe-type').value = o.paperType || foundQ.type || 'SHORT';
+            document.getElementById('pe-marks').value = o.marks ?? foundQ.marks ?? 1;
+            document.getElementById('pe-qtext').value = o.qText ?? foundQ.text ?? foundQ.qText ?? '';
+            document.getElementById('pe-options').value = o.optText ?? foundQ.optText ?? '';
+            document.getElementById('pe-key').value = o.key ?? foundQ.key ?? '';
+            document.getElementById('pe-width').value = o.imageWidth || '100';
+            document.getElementById('pe-layout').value = o.layout || '1col';
+            document.getElementById('pe-show-options').checked = o.showOptions !== false;
+            document.getElementById('pe-keep-image').checked = o.keepImage !== false;
+
+            const sel = document.getElementById('pe-section');
+            sel.innerHTML = testPaper.sections.map(s => `<option value="${s.id}">Section ${s.id}</option>`).join('');
+            sel.value = activeSectionId;
+
+            paperOriginalImage = o.image || foundQ.image || foundQ.question || '';
+            drawPaperEditorImage(paperOriginalImage);
+            document.getElementById('paper-question-editor-overlay').style.display = 'flex';
+            renderPaperEditor();
+        };
+
+        function renderPaperEditor() {
+            if (!paperEditorId) return;
+            const img = document.getElementById('pe-keep-image').checked ? (paperQuestionOverrides[paperEditorId]?.image || paperOriginalImage) : '';
+            const width = document.getElementById('pe-width').value;
+            const show = document.getElementById('pe-show-options').checked;
+            const text = document.getElementById('pe-qtext').value;
+            const opts = document.getElementById('pe-options').value.replace(/\n/g, '<br>');
+
+            document.getElementById('paper-editor-preview').innerHTML = `
+                <div style="font-weight:800;font-size:12px;">Q. Preview</div>
+                <div style="font-weight:700;margin-top:5px;font-size:11px;">${text}</div>
+                ${img ? `<img src="${img}" style="width:${width==='auto'?'auto':width+'%'};max-width:100%;">` : ''}
+                ${show && opts ? `<div style="margin-top:7px;font-size:11px;line-height:1.4;">${opts}</div>` : ''}
+                <div style="margin-top:7px;font-size:10px;color:#475569;">Marks: ${document.getElementById('pe-marks').value} • Type: ${document.getElementById('pe-type').value}</div>`;
+        }
+
+        ['pe-qtext','pe-options','pe-width','pe-marks','pe-show-options','pe-keep-image','pe-type'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', renderPaperEditor);
+            if (el) el.addEventListener('change', renderPaperEditor);
+        });
+
+        function drawPaperEditorImage(src) {
+            const canvas = document.getElementById('paper-editor-canvas');
+            const ctx = canvas.getContext('2d');
+            if (!src) { canvas.width = 400; canvas.height = 100; ctx.clearRect(0,0,400,100); return; }
+            const img = new Image();
+            img.onload = () => { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0); };
+            img.src = src;
+        }
+
+        const peCanvas = () => document.getElementById('paper-editor-canvas');
+        document.addEventListener('mousedown', e => {
+            const c = peCanvas(); if (!c || e.target !== c) return;
+            const r = c.getBoundingClientRect();
+            cropDragStart = { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) };
+            cropSelection = null;
+        });
+        document.addEventListener('mouseup', e => {
+            const c = peCanvas(); if (!c || !cropDragStart || e.target !== c) return;
+            const r = c.getBoundingClientRect();
+            const end = { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) };
+            cropSelection = { x: Math.max(0, Math.min(cropDragStart.x, end.x)), y: Math.max(0, Math.min(cropDragStart.y, end.y)), w: Math.abs(end.x - cropDragStart.x), h: Math.abs(end.y - cropDragStart.y) };
+            cropDragStart = null;
+            const ctx = c.getContext('2d');
+            ctx.strokeStyle = '#ef4444'; ctx.lineWidth = Math.max(2, c.width / 400);
+            ctx.strokeRect(cropSelection.x, cropSelection.y, cropSelection.w, cropSelection.h);
+        });
+
+        window.cropPaperImage = function() {
+            if (!paperEditorId || !cropSelection || cropSelection.w < 5 || cropSelection.h < 5) return alert('कृपया इमेज पर क्लिक-ड्रैग करके क्रॉप एरिया सेलेक्ट करें।');
+            const c = peCanvas(), out = document.createElement('canvas');
+            out.width = Math.round(cropSelection.w); out.height = Math.round(cropSelection.h);
+            out.getContext('2d').drawImage(c, cropSelection.x, cropSelection.y, cropSelection.w, cropSelection.h, 0, 0, out.width, out.height);
+            const data = out.toDataURL('image/png');
+            paperQuestionOverrides[paperEditorId] = { ...(paperQuestionOverrides[paperEditorId] || {}), image: data };
+            cropSelection = null;
+            drawPaperEditorImage(data);
+            renderPaperEditor();
+        };
+
+        window.resetPaperImage = function() {
+            paperQuestionOverrides[paperEditorId] = { ...(paperQuestionOverrides[paperEditorId] || {}), image: paperOriginalImage };
+            drawPaperEditorImage(paperOriginalImage);
+            cropSelection = null;
+            renderPaperEditor();
+        };
+
+        window.closePaperQuestionEditor = function() {
+            document.getElementById('paper-question-editor-overlay').style.display = 'none';
+            paperEditorId = null;
+        };
+
+        window.savePaperQuestion = function() {
+            if (!paperEditorId) return;
+            const targetSecId = document.getElementById('pe-section').value;
+            const newType = document.getElementById('pe-type').value;
+            const newMarks = Number(document.getElementById('pe-marks').value) || 1;
+            const newText = document.getElementById('pe-qtext').value;
+            const newOpts = document.getElementById('pe-options').value;
+            const newKey = document.getElementById('pe-key').value;
+
+            paperQuestionOverrides[paperEditorId] = {
+                ...(paperQuestionOverrides[paperEditorId] || {}),
+                paperType: newType, marks: newMarks, qText: newText, optText: newOpts, key: newKey,
+                sectionId: targetSecId, imageWidth: document.getElementById('pe-width').value,
+                layout: document.getElementById('pe-layout').value, showOptions: document.getElementById('pe-show-options').checked,
+                keepImage: document.getElementById('pe-keep-image').checked
+            };
+
+            // Update in local testPaper state
+            let foundQObj = null;
+            testPaper.sections.forEach(s => {
+                let idx = s.questions.findIndex(x => x.id === paperEditorId);
+                if (idx !== -1) {
+                    let [removed] = s.questions.splice(idx, 1);
+                    foundQObj = removed;
+                }
+            });
+
+            if (foundQObj) {
+                foundQObj.type = newType;
+                foundQObj.marks = newMarks;
+                foundQObj.text = newText;
+                foundQObj.optText = newOpts;
+                if (paperQuestionOverrides[paperEditorId].image) foundQObj.image = paperQuestionOverrides[paperEditorId].image;
+                
+                let targetSec = testPaper.sections.find(s => s.id === targetSecId) || testPaper.sections[0];
+                targetSec.questions.push(foundQObj);
+            }
+
+            localStorage.setItem('AZ_PAPER_DESIGNER_OVERRIDES', JSON.stringify(paperQuestionOverrides));
+            closePaperQuestionEditor();
+            renderActiveCanvas();
+            renderSidebarSections();
+            alert("सवाल सफलतापूर्वक अपडेट कर दिया गया है!");
+        };
+
+        // Utility controls
         function moveQuestion(secId, qId, direction) {
             const sec = testPaper.sections.find(s => s.id === secId);
             if (!sec) return;
             const idx = sec.questions.findIndex(q => q.id === qId);
             if (idx === -1) return;
-
             const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
             if (targetIdx < 0 || targetIdx >= sec.questions.length) return;
-
-            const temp = sec.questions[idx];
+            let temp = sec.questions[idx];
             sec.questions[idx] = sec.questions[targetIdx];
             sec.questions[targetIdx] = temp;
-
             renderActiveCanvas();
-            renderSidebarSections();
-        }
-
-        function moveQuestionToSection(sourceSecId, qId, targetSecId) {
-            if (!targetSecId) return;
-            const sourceSec = testPaper.sections.find(s => s.id === sourceSecId);
-            const targetSec = testPaper.sections.find(s => s.id === targetSecId);
-            if (!sourceSec || !targetSec) return;
-
-            const qIdx = sourceSec.questions.findIndex(q => q.id === qId);
-            if (qIdx === -1) return;
-
-            const [qObj] = sourceSec.questions.splice(qIdx, 1);
-            qObj.marks = targetSec.marksPerQ; 
-            targetSec.questions.push(qObj);
-
-            renderActiveCanvas();
-            renderSidebarSections();
         }
 
         function removeQuestionFromSection(secId, qId) {
@@ -552,182 +639,42 @@
             }
         }
 
-        function openAddCustomQuestionModal() {
-            if (!activeSectionId) {
-                alert("Please select a section first!");
-                return;
-            }
-            document.getElementById('questionModalTitle').innerText = "Create Custom Question";
-            document.getElementById('editQuestionId').value = "";
-            document.getElementById('qText').value = "";
-            const activeSec = testPaper.sections.find(s => s.id === activeSectionId);
-            document.getElementById('qMarks').value = activeSec ? activeSec.marksPerQ : 1;
-            document.getElementById('questionModal').classList.remove('hidden');
-            document.getElementById('questionModal').classList.add('flex');
-        }
-
-        function openEditQuestionModal(qId) {
-            const activeSec = testPaper.sections.find(s => s.id === activeSectionId);
-            const q = activeSec.questions.find(item => item.id === qId);
-            if (!q) return;
-
-            document.getElementById('questionModalTitle').innerText = "View & Edit Question (Paper Specific)";
-            document.getElementById('editQuestionId').value = q.id;
-            document.getElementById('qType').value = q.type || 'SHORT';
-            document.getElementById('qText').value = q.text;
-            document.getElementById('qMarks').value = q.marks || 1;
-
-            document.getElementById('questionModal').classList.remove('hidden');
-            document.getElementById('questionModal').classList.add('flex');
-        }
-
-        function closeQuestionModal() {
-            document.getElementById('questionModal').classList.remove('flex');
-            document.getElementById('questionModal').classList.add('hidden');
-        }
-
-        function saveQuestionData() {
-            const qId = document.getElementById('editQuestionId').value;
-            const type = document.getElementById('qType').value;
-            const text = document.getElementById('qText').value;
-            const marks = Number(document.getElementById('qMarks').value);
-
-            if (!text.trim()) {
-                alert("Question text cannot be empty!");
-                return;
-            }
-
-            const activeSec = testPaper.sections.find(s => s.id === activeSectionId);
-            if (!activeSec) return;
-
-            if (qId) {
-                const q = activeSec.questions.find(item => item.id === qId);
-                if (q) {
-                    q.type = type;
-                    q.text = text;
-                    q.marks = marks;
-                }
-            } else {
-                const newQ = {
-                    id: "q_" + Date.now(),
-                    type,
-                    text,
-                    marks,
-                    image: '',
-                    optText: ''
-                };
-                activeSec.questions.push(newQ);
-            }
-
-            closeQuestionModal();
-            renderActiveCanvas();
-            renderSidebarSections();
-        }
-
         function openLibraryModal() {
-            if (!activeSectionId) {
-                alert("Please select a target section first!");
-                return;
-            }
             const listEl = document.getElementById('libraryQuestionsList');
-            listEl.innerHTML = '';
-
-            if (questionLibrary.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">Loading library items...</p>`;
-            }
-
-            questionLibrary.forEach((libQ, index) => {
-                const item = document.createElement('div');
-                item.className = "bg-slate-800/80 border border-slate-700/80 p-3.5 rounded-lg flex items-center justify-between";
-                item.innerHTML = `
-                    <div class="space-y-1.5 pr-4 flex-1">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs bg-indigo-900/50 text-indigo-300 px-2 py-0.5 rounded border border-indigo-700/50">Library Item #${index + 1}</span>
-                            <span class="text-xs text-slate-400">${libQ.paperType || 'MCQ'}</span>
-                        </div>
-                        <p class="text-xs text-slate-200 font-medium">${libQ.qText || 'Image-based question'}</p>
-                    </div>
-                    <button onclick="addFromLibrary('${libQ.id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold whitespace-nowrap shadow">Add to Paper</button>
-                `;
-                listEl.appendChild(item);
-            });
-
-            document.getElementById('libraryModal').classList.remove('hidden');
-            document.getElementById('libraryModal').classList.add('flex');
+            listEl.innerHTML = questionLibrary.map((libQ, index) => `
+                <div class="bg-slate-800 p-3 rounded flex justify-between items-center text-xs">
+                    <div><b>#${index+1}</b> ${libQ.qText || 'Image Question'}</div>
+                    <button onclick="addFromLibrary('${libQ.id}')" class="bg-indigo-600 px-3 py-1 rounded">Add</button>
+                </div>
+            `).join('');
+            document.getElementById('libraryModal').style.display = 'flex';
         }
-
-        function closeLibraryModal() {
-            document.getElementById('libraryModal').classList.remove('flex');
-            document.getElementById('libraryModal').classList.add('hidden');
-        }
-
-        function addFromLibrary(libQId) {
-            const libQ = questionLibrary.find(item => item.id === libQId);
-            const activeSec = testPaper.sections.find(s => s.id === activeSectionId);
-            if (libQ && activeSec) {
-                activeSec.questions.push({
-                    id: libQ.id,
-                    type: libQ.paperType || 'SHORT',
-                    text: libQ.qText || '',
-                    image: libQ.question || '',
-                    optText: libQ.optText || '',
-                    marks: activeSec.marksPerQ
-                });
+        function closeLibraryModal() { document.getElementById('libraryModal').style.display = 'none'; }
+        function addFromLibrary(id) {
+            let found = questionLibrary.find(x => x.id === id);
+            let sec = testPaper.sections.find(s => s.id === activeSectionId);
+            if (found && sec) {
+                sec.questions.push({ id: found.id, type: found.paperType || 'SHORT', text: found.qText || '', image: found.question || '', optText: found.optText || '', marks: sec.marksPerQ });
                 renderActiveCanvas();
                 renderSidebarSections();
-                alert("Question added to active section successfully!");
+                closeLibraryModal();
             }
         }
 
         function previewPrintLayout() {
-            const contentEl = document.getElementById('printPreviewContent');
-            let html = `
-                <div class="text-center border-b-2 border-slate-900 pb-4 mb-6">
-                    <h1 class="text-2xl font-bold uppercase tracking-wide">${testPaper.title}</h1>
-                    <div class="flex justify-between text-sm mt-3 text-slate-700 font-sans">
-                        <span><strong>Time Allowed:</strong> 3 Hours</span>
-                        <span><strong>Maximum Marks:</strong> ${document.getElementById('totalMarksCount').innerText}</span>
-                    </div>
-                </div>
-            `;
-
-            testPaper.sections.forEach((sec) => {
-                let secMarks = sec.questions.reduce((acc, q) => acc + Number(q.marks || 1), 0);
-                html += `
-                    <div class="mb-6">
-                        <h2 class="text-base font-bold bg-slate-200 px-3 py-1.5 border border-slate-400 mb-3 flex justify-between">
-                            <span>${sec.name}</span>
-                            <span>Total Marks: ${secMarks}</span>
-                        </h2>
-                        <div class="space-y-4 pl-2">
-                `;
-                sec.questions.forEach((q, qIdx) => {
-                    let imgP = q.image ? `<div style="margin:6px 0;"><img src="${q.image}" style="max-height:120px; max-width:100%;"></div>` : '';
-                    let optP = q.optText ? `<div style="font-size:12px; margin-top:4px;">${q.optText.replace(/\n/g,'<br>')}</div>` : '';
-                    html += `
-                        <div class="flex items-start space-x-3 text-sm mb-4">
-                            <span class="font-bold min-w-[24px]">${qIdx + 1}.</span>
-                            <div class="flex-1">
-                                <p class="text-slate-900 font-medium">${q.text || ''}</p>
-                                ${imgP}
-                                ${optP}
-                            </div>
-                            <span class="text-xs font-semibold text-slate-600 whitespace-nowrap">[${q.marks || 1} Mark]</span>
-                        </div>
-                    `;
+            let html = `<h2 style="text-align:center;">${testPaper.title}</h2>`;
+            testPaper.sections.forEach(s => {
+                html += `<h3>${s.name}</h3>`;
+                s.questions.forEach((q, i) => {
+                    html += `<p><b>${i+1}.</b> ${q.text || ''} [${q.marks} Marks]</p>`;
+                    if (q.image) html += `<img src="${q.image}" style="max-height:100px;"><br>`;
+                    if (q.optText) html += `<small>${q.optText.replace(/\n/g,'<br>')}</small><br>`;
                 });
-                html += `</div></div>`;
             });
-
-            contentEl.innerHTML = html;
-            document.getElementById('printModal').classList.remove('hidden');
-            document.getElementById('printModal').classList.add('flex');
+            document.getElementById('printPreviewContent').innerHTML = html;
+            document.getElementById('printModal').style.display = 'flex';
         }
-
-        function closePrintModal() {
-            document.getElementById('printModal').classList.remove('flex');
-            document.getElementById('printModal').classList.add('hidden');
-        }
+        function closePrintModal() { document.getElementById('printModal').style.display = 'none'; }
     </script>
 </body>
 </html>
