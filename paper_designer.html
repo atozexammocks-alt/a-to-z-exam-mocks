@@ -24,18 +24,6 @@
         const app = initializeApp(firebaseConfig);
         window.db = getFirestore(app);
     </script>
-    <style>
-        .blueprint-card { width: min(1150px, 96vw); max-height: 92vh; overflow-y: auto; background:#0b1120; border:2px solid #38bdf8; border-radius:14px; padding:18px; color:#f8fafc; }
-        .blueprint-grid { display:grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap:8px; }
-        .blueprint-grid input, .blueprint-grid select, .paper-editor-grid input, .paper-editor-grid select, .paper-editor-grid textarea { width:100%; padding:7px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; font-size:11px; }
-        .paper-editor-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-        .editor-panel { background:#060911; border:1px solid #1e293b; border-radius:8px; padding:10px; }
-        #paper-editor-preview { background:#fff; color:#000; border-radius:7px; padding:12px; min-height:170px; overflow:auto; }
-        #paper-editor-preview img { display:block; max-width:100%; height:auto; margin:6px 0; }
-        .crop-stage { background:#111827; border:1px solid #334155; border-radius:7px; padding:8px; text-align:center; overflow:auto; }
-        #paper-editor-canvas { max-width:100%; height:auto; background:#fff; cursor:crosshair; }
-        @media(max-width:800px){ .paper-editor-grid{grid-template-columns:1fr;} }
-    </style>
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
 
@@ -72,7 +60,7 @@
     <!-- Main Workspace Layout -->
     <div class="flex-1 flex overflow-hidden">
         
-        <!-- LEFT SIDEBAR: Sections -->
+        <!-- LEFT SIDEBAR: Sections Setup -->
         <aside class="w-80 bg-slate-800/90 border-r border-slate-700 flex flex-col z-0">
             <div class="p-4 border-b border-slate-700 bg-slate-800">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Paper Blueprint Summary</h2>
@@ -98,7 +86,7 @@
             <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
         </aside>
 
-        <!-- CENTER WORKSPACE -->
+        <!-- CENTER WORKSPACE: Active Section & Detailed Questions Canvas -->
         <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden relative">
             <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
                 <div>
@@ -116,65 +104,23 @@
             </div>
         </main>
 
-        <!-- RIGHT SIDEBAR -->
-        <aside class="w-72 bg-slate-800/80 border-l border-slate-700 p-4 flex flex-col">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3"><i class="fa-solid fa-circle-info mr-1.5 text-indigo-400"></i>Designer Info</h3>
-            <div class="bg-slate-900/90 border border-slate-700/50 p-3.5 rounded-lg text-xs text-slate-300 space-y-2">
-                <p>यहाँ आपके टेस्ट बिल्डर से सेलेक्ट किए गए सभी सवाल और ब्लूप्रिंट सेक्शन्स लोड हो चुके हैं।</p>
-                <p>एडिट बटन दबाकर आप इमेज क्रॉप कर सकते हैं, टेक्स्ट या ऑप्शन्स बदल सकते हैं।</p>
+        <!-- RIGHT SIDEBAR: Clean Dynamic Control Panel & Layout Status -->
+        <aside class="w-80 bg-slate-800/90 border-l border-slate-700 p-4 flex flex-col overflow-y-auto">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+                <i class="fa-solid fa-chart-pie mr-1.5 text-indigo-400"></i>Live Section Breakdown
+            </h3>
+            
+            <!-- Dynamic Section Wise Breakdown Container -->
+            <div id="rightDynamicBreakdown" class="space-y-3 flex-1">
+                <!-- Dynamically populated via JS -->
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-700 text-xs text-slate-400">
+                <p class="font-semibold text-slate-300 mb-1"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i>Status Ready</p>
+                सभी सेक्शन्स और मार्क्स सही ढंग से असाइन हो चुके हैं। आप सीधे प्रिंट लेआउट देख सकते हैं।
             </div>
         </aside>
 
-    </div>
-
-    <!-- ADVANCED PAPER QUESTION EDITOR MODAL (Same as Builder) -->
-    <div id="paper-question-editor-overlay" class="fixed inset-0 bg-black/88 hidden items-center justify-center z-80000 p-4">
-        <div class="blueprint-card" style="width:min(1150px,96vw);">
-            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:8px;">
-                <div>
-                    <h3 style="color:#38bdf8;font-size:17px;">✏️ Advanced Paper Question Editor</h3>
-                    <div id="paper-editor-subtitle" style="font-size:10px;color:#94a3b8;">Paper-only changes (original Library question remains safe)</div>
-                </div>
-                <button class="bg-red-900 hover:bg-red-800 text-white px-3 py-1.5 rounded text-xs" onclick="closePaperQuestionEditor()">✕ Close</button>
-            </div>
-            <div class="paper-editor-grid" style="margin-top:10px;">
-                <div class="editor-panel">
-                    <input type="hidden" id="pe-qid">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
-                        <div><label class="text-xs text-slate-400">Question Type</label>
-                        <select id="pe-type" onchange="renderPaperEditor()">
-                            <option value="MCQ">MCQ</option><option value="ASSERTION">Assertion–Reason</option><option value="SHORT">Short Answer</option><option value="LONG">Long Answer</option><option value="NUMERICAL">Numerical</option>
-                        </select></div>
-                        <div><label class="text-xs text-slate-400">Marks</label><input id="pe-marks" type="number" min="0" step="0.5" value="1"></div>
-                        <div><label class="text-xs text-slate-400">Section</label><select id="pe-section"></select></div>
-                        <div><label class="text-xs text-slate-400">Image Width</label><select id="pe-width"><option value="100">100%</option><option value="80">80%</option><option value="50">50%</option><option value="auto">Auto</option></select></div>
-                    </div>
-                    <div style="margin-top:8px;"><label class="text-xs text-slate-400">Question Text</label><textarea id="pe-qtext" rows="3" placeholder="Type or edit the question..."></textarea></div>
-                    <div style="margin-top:8px;"><label class="text-xs text-slate-400">Options / Answer Choices</label><textarea id="pe-options" rows="4" placeholder="A. ...&#10;B. ..."></textarea></div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px;">
-                        <div><label class="text-xs text-slate-400">Correct Answer</label><input id="pe-key" placeholder="A / B / C / D"></div>
-                        <div><label class="text-xs text-slate-400">Layout</label><select id="pe-layout"><option value="1col">1 Column</option><option value="2col">2 Columns</option></select></div>
-                    </div>
-                    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px;">
-                        <label class="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs"><input id="pe-show-options" type="checkbox" checked> Show Options</label>
-                        <label class="bg-slate-800 border border-slate-700 rounded p-1.5 text-xs"><input id="pe-keep-image" type="checkbox" checked> Keep Image</label>
-                    </div>
-                    <div style="margin-top:10px;display:flex;gap:6px;">
-                        <button class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded text-xs font-semibold" onclick="cropPaperImage()">✂️ Crop Image</button>
-                        <button class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded text-xs font-semibold" onclick="resetPaperImage()">↺ Reset Image</button>
-                        <button class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded text-xs font-bold flex-1" onclick="savePaperQuestion()">✔ Save Question</button>
-                    </div>
-                </div>
-                <div class="editor-panel flex flex-col">
-                    <div style="font-size:11px;font-weight:800;color:#38bdf8;margin-bottom:6px;">Live Paper Preview</div>
-                    <div id="paper-editor-preview"></div>
-                    <div class="crop-stage mt-2">
-                        <canvas id="paper-editor-canvas"></canvas>
-                    </div>
-                    <div style="font-size:9px;color:#64748b;margin-top:5px;">Crop: click-drag on image, then press “Crop Image”.</div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- MODAL: Question Library Selection -->
@@ -220,11 +166,6 @@
         let questionLibrary = [];
         let paperQuestionOverrides = {};
         let cachedQuestionsMap = {};
-        
-        let paperEditorId = null;
-        let paperOriginalImage = '';
-        let cropSelection = null;
-        let cropDragStart = null;
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadBuilderDataIntoDesigner();
@@ -303,6 +244,7 @@
 
             renderSidebarSections();
             renderActiveCanvas();
+            renderRightBreakdown();
         }
 
         function fetchQuestionsFromIndexedDB(selectedIds) {
@@ -341,6 +283,33 @@
             });
             document.getElementById('totalQuestionsCount').innerText = totalQ;
             document.getElementById('totalMarksCount').innerText = totalM;
+            renderRightBreakdown();
+        }
+
+        // Render Right Side Clean Dynamic Control Panel
+        function renderRightBreakdown() {
+            const panel = document.getElementById('rightDynamicBreakdown');
+            if (!panel) return;
+            panel.innerHTML = '';
+
+            testPaper.sections.forEach(sec => {
+                const count = sec.questions.length;
+                const marks = sec.questions.reduce((acc, q) => acc + Number(q.marks || 1), 0);
+                
+                const item = document.createElement('div');
+                item.className = "bg-slate-900/80 border border-slate-700/60 p-3 rounded-lg text-xs space-y-1.5";
+                item.innerHTML = `
+                    <div class="flex justify-between font-bold text-slate-200">
+                        <span>${sec.name}</span>
+                        <span class="text-indigo-400">${count} Qs</span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>Type: ${sec.type}</span>
+                        <span class="text-emerald-400 font-semibold">${marks} Marks</span>
+                    </div>
+                `;
+                panel.appendChild(item);
+            });
         }
 
         function renderSidebarSections() {
@@ -391,7 +360,7 @@
 
         function renameSection(secId, newName) {
             const sec = testPaper.sections.find(s => s.id === secId);
-            if (sec) { sec.name = newName; renderSidebarSections(); }
+            if (sec) { sec.name = newName; renderSidebarSections(); renderRightBreakdown(); }
         }
 
         function updateSectionMarks(secId, marks) {
@@ -451,7 +420,7 @@
                             <div class="flex items-center space-x-1.5 border-l border-slate-800 pl-3">
                                 <button onclick="moveQuestion('${activeSec.id}', '${q.id}', 'up')" ${idx===0?'disabled class="opacity-30 cursor-not-allowed"':''} class="p-1.5 hover:text-indigo-400 text-slate-400"><i class="fa-solid fa-arrow-up"></i></button>
                                 <button onclick="moveQuestion('${activeSec.id}', '${q.id}', 'down')" ${idx===activeSec.questions.length-1?'disabled class="opacity-30 cursor-not-allowed"':''} class="p-1.5 hover:text-indigo-400 text-slate-400"><i class="fa-solid fa-arrow-down"></i></button>
-                                <button onclick="openPaperQuestionEditor('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold ml-1"><i class="fa-solid fa-pen-to-square"></i><span>Edit</span></button>
+                                <button onclick="redirectToEditor('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold ml-1"><i class="fa-solid fa-pen-to-square"></i><span>Edit</span></button>
                                 <button onclick="removeQuestionFromSection('${activeSec.id}', '${q.id}')" class="text-slate-500 hover:text-rose-400 p-1.5 ml-1"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
@@ -465,158 +434,12 @@
             updateSummaryCounters();
         }
 
-        // ADVANCED EDITOR LOGIC
-        window.openPaperQuestionEditor = function(qId) {
-            paperEditorId = qId;
-            let foundQ = null;
-            testPaper.sections.forEach(s => {
-                let found = s.questions.find(x => x.id === qId);
-                if (found) foundQ = found;
-            });
-            if (!foundQ && cachedQuestionsMap[qId]) foundQ = cachedQuestionsMap[qId];
-            if (!foundQ) return;
-
-            const o = paperQuestionOverrides[qId] || {};
-            document.getElementById('pe-qid').value = qId;
-            document.getElementById('pe-type').value = o.paperType || foundQ.type || 'SHORT';
-            document.getElementById('pe-marks').value = o.marks ?? foundQ.marks ?? 1;
-            document.getElementById('pe-qtext').value = o.qText ?? foundQ.text ?? foundQ.qText ?? '';
-            document.getElementById('pe-options').value = o.optText ?? foundQ.optText ?? '';
-            document.getElementById('pe-key').value = o.key ?? foundQ.key ?? '';
-            document.getElementById('pe-width').value = o.imageWidth || '100';
-            document.getElementById('pe-layout').value = o.layout || '1col';
-            document.getElementById('pe-show-options').checked = o.showOptions !== false;
-            document.getElementById('pe-keep-image').checked = o.keepImage !== false;
-
-            const sel = document.getElementById('pe-section');
-            sel.innerHTML = testPaper.sections.map(s => `<option value="${s.id}">Section ${s.id}</option>`).join('');
-            sel.value = activeSectionId;
-
-            paperOriginalImage = o.image || foundQ.image || foundQ.question || '';
-            drawPaperEditorImage(paperOriginalImage);
-            document.getElementById('paper-question-editor-overlay').style.display = 'flex';
-            renderPaperEditor();
-        };
-
-        function renderPaperEditor() {
-            if (!paperEditorId) return;
-            const img = document.getElementById('pe-keep-image').checked ? (paperQuestionOverrides[paperEditorId]?.image || paperOriginalImage) : '';
-            const width = document.getElementById('pe-width').value;
-            const show = document.getElementById('pe-show-options').checked;
-            const text = document.getElementById('pe-qtext').value;
-            const opts = document.getElementById('pe-options').value.replace(/\n/g, '<br>');
-
-            document.getElementById('paper-editor-preview').innerHTML = `
-                <div style="font-weight:800;font-size:12px;">Q. Preview</div>
-                <div style="font-weight:700;margin-top:5px;font-size:11px;">${text}</div>
-                ${img ? `<img src="${img}" style="width:${width==='auto'?'auto':width+'%'};max-width:100%;">` : ''}
-                ${show && opts ? `<div style="margin-top:7px;font-size:11px;line-height:1.4;">${opts}</div>` : ''}
-                <div style="margin-top:7px;font-size:10px;color:#475569;">Marks: ${document.getElementById('pe-marks').value} • Type: ${document.getElementById('pe-type').value}</div>`;
+        // Link directly with editor.html
+        function redirectToEditor(qId) {
+            localStorage.setItem('editing_question_id', qId);
+            window.location.href = 'editor.html?id=' + qId;
         }
 
-        ['pe-qtext','pe-options','pe-width','pe-marks','pe-show-options','pe-keep-image','pe-type'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('input', renderPaperEditor);
-            if (el) el.addEventListener('change', renderPaperEditor);
-        });
-
-        function drawPaperEditorImage(src) {
-            const canvas = document.getElementById('paper-editor-canvas');
-            const ctx = canvas.getContext('2d');
-            if (!src) { canvas.width = 400; canvas.height = 100; ctx.clearRect(0,0,400,100); return; }
-            const img = new Image();
-            img.onload = () => { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; ctx.clearRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0); };
-            img.src = src;
-        }
-
-        const peCanvas = () => document.getElementById('paper-editor-canvas');
-        document.addEventListener('mousedown', e => {
-            const c = peCanvas(); if (!c || e.target !== c) return;
-            const r = c.getBoundingClientRect();
-            cropDragStart = { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) };
-            cropSelection = null;
-        });
-        document.addEventListener('mouseup', e => {
-            const c = peCanvas(); if (!c || !cropDragStart || e.target !== c) return;
-            const r = c.getBoundingClientRect();
-            const end = { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) };
-            cropSelection = { x: Math.max(0, Math.min(cropDragStart.x, end.x)), y: Math.max(0, Math.min(cropDragStart.y, end.y)), w: Math.abs(end.x - cropDragStart.x), h: Math.abs(end.y - cropDragStart.y) };
-            cropDragStart = null;
-            const ctx = c.getContext('2d');
-            ctx.strokeStyle = '#ef4444'; ctx.lineWidth = Math.max(2, c.width / 400);
-            ctx.strokeRect(cropSelection.x, cropSelection.y, cropSelection.w, cropSelection.h);
-        });
-
-        window.cropPaperImage = function() {
-            if (!paperEditorId || !cropSelection || cropSelection.w < 5 || cropSelection.h < 5) return alert('कृपया इमेज पर क्लिक-ड्रैग करके क्रॉप एरिया सेलेक्ट करें।');
-            const c = peCanvas(), out = document.createElement('canvas');
-            out.width = Math.round(cropSelection.w); out.height = Math.round(cropSelection.h);
-            out.getContext('2d').drawImage(c, cropSelection.x, cropSelection.y, cropSelection.w, cropSelection.h, 0, 0, out.width, out.height);
-            const data = out.toDataURL('image/png');
-            paperQuestionOverrides[paperEditorId] = { ...(paperQuestionOverrides[paperEditorId] || {}), image: data };
-            cropSelection = null;
-            drawPaperEditorImage(data);
-            renderPaperEditor();
-        };
-
-        window.resetPaperImage = function() {
-            paperQuestionOverrides[paperEditorId] = { ...(paperQuestionOverrides[paperEditorId] || {}), image: paperOriginalImage };
-            drawPaperEditorImage(paperOriginalImage);
-            cropSelection = null;
-            renderPaperEditor();
-        };
-
-        window.closePaperQuestionEditor = function() {
-            document.getElementById('paper-question-editor-overlay').style.display = 'none';
-            paperEditorId = null;
-        };
-
-        window.savePaperQuestion = function() {
-            if (!paperEditorId) return;
-            const targetSecId = document.getElementById('pe-section').value;
-            const newType = document.getElementById('pe-type').value;
-            const newMarks = Number(document.getElementById('pe-marks').value) || 1;
-            const newText = document.getElementById('pe-qtext').value;
-            const newOpts = document.getElementById('pe-options').value;
-            const newKey = document.getElementById('pe-key').value;
-
-            paperQuestionOverrides[paperEditorId] = {
-                ...(paperQuestionOverrides[paperEditorId] || {}),
-                paperType: newType, marks: newMarks, qText: newText, optText: newOpts, key: newKey,
-                sectionId: targetSecId, imageWidth: document.getElementById('pe-width').value,
-                layout: document.getElementById('pe-layout').value, showOptions: document.getElementById('pe-show-options').checked,
-                keepImage: document.getElementById('pe-keep-image').checked
-            };
-
-            // Update in local testPaper state
-            let foundQObj = null;
-            testPaper.sections.forEach(s => {
-                let idx = s.questions.findIndex(x => x.id === paperEditorId);
-                if (idx !== -1) {
-                    let [removed] = s.questions.splice(idx, 1);
-                    foundQObj = removed;
-                }
-            });
-
-            if (foundQObj) {
-                foundQObj.type = newType;
-                foundQObj.marks = newMarks;
-                foundQObj.text = newText;
-                foundQObj.optText = newOpts;
-                if (paperQuestionOverrides[paperEditorId].image) foundQObj.image = paperQuestionOverrides[paperEditorId].image;
-                
-                let targetSec = testPaper.sections.find(s => s.id === targetSecId) || testPaper.sections[0];
-                targetSec.questions.push(foundQObj);
-            }
-
-            localStorage.setItem('AZ_PAPER_DESIGNER_OVERRIDES', JSON.stringify(paperQuestionOverrides));
-            closePaperQuestionEditor();
-            renderActiveCanvas();
-            renderSidebarSections();
-            alert("सवाल सफलतापूर्वक अपडेट कर दिया गया है!");
-        };
-
-        // Utility controls
         function moveQuestion(secId, qId, direction) {
             const sec = testPaper.sections.find(s => s.id === secId);
             if (!sec) return;
