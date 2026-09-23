@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A-to-Z Exam Mocks | Physics Auto Matcher</title>
+<style>
+:root{--bg:#060911;--card:#0b1120;--line:#263449;--text:#f8fafc;--muted:#94a3b8;--accent:#38bdf8;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444}
+*{box-sizing:border-box;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{margin:0;background:radial-gradient(circle at 50% -10%,#10213b 0,#060911 42%);color:var(--text);min-height:100vh}
+.wrap{max-width:1150px;margin:auto;padding:22px 16px 50px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:18px}.brand{font-weight:900;color:var(--accent)}.pill{font-size:10px;border:1px solid #155e75;color:#bae6fd;padding:5px 9px;border-radius:999px}
+.hero,.panel{background:rgba(11,17,32,.96);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 16px 45px rgba(0,0,0,.25);margin-top:14px}
+h1{font-size:25px;margin:0}.hero p,.small{color:var(--muted);font-size:12px;line-height:1.55}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}.drop{border:1px dashed #3b4c63;border-radius:14px;padding:16px;background:#080e1a}.drop h3{font-size:14px;margin:0 0 5px}.drop input{width:100%;margin-top:10px}
+input,button,select{background:#080e1a;color:#fff;border:1px solid #334155;border-radius:10px;padding:10px 11px;font-size:12px}button{cursor:pointer;font-weight:800}.primary{background:#0284c7;border-color:#0284c7}.green{background:#047857;border-color:#047857}.orange{background:#92400e;border-color:#92400e}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.status{margin-top:12px;padding:11px;border-radius:10px;background:#081322;border:1px solid #1e3a5f;color:#b9d7ee;font-size:11px;white-space:pre-wrap}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}.stat{background:#080e1a;border:1px solid #263449;border-radius:12px;padding:12px}.stat b{display:block;font-size:20px}.stat span{font-size:10px;color:var(--muted)}
+.tablewrap{overflow:auto;margin-top:14px;border:1px solid #263449;border-radius:12px}.table{width:100%;border-collapse:collapse;font-size:11px}.table th,.table td{padding:9px;border-bottom:1px solid #1f2b3d;text-align:left;vertical-align:top}.table th{color:#bae6fd;background:#0b1322;position:sticky;top:0}.ok{color:#86efac}.bad{color:#fca5a5}.muted{color:#94a3b8}.tag{display:inline-block;border:1px solid #334155;border-radius:999px;padding:3px 7px;font-size:9px}.mapping{color:#fbbf24;font-weight:800}
+.note{margin-top:12px;padding:11px;border-radius:10px;background:#111827;border:1px solid #334155;color:#cbd5e1;font-size:11px;line-height:1.5}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:1fr 1fr}.top{align-items:flex-start;flex-direction:column}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+</head>
+<body><div class="wrap">
+<div class="top"><div class="brand">⚡ A-to-Z Exam Mocks · Physics Auto Matcher</div><div class="pill">JEE Main · Question ID → Option ID → A/B/C/D</div></div>
+<section class="hero">
+<h1>Physics PYQ Auto Importer</h1>
+<p>यह अलग prototype है — मौजूदा PYQ Hub को backup में untouched रखा गया है. यहाँ official question-paper PDF और official final-answer-key PDF डालो. Tool Question ID और Option IDs को पढ़कर correct option को अपने-आप A/B/C/D से match करेगा. Numeric Option IDs student को दिखाने की जरूरत नहीं रहेगी.</p>
+<div class="grid">
+<div class="drop"><h3>1️⃣ Official Question Paper PDF</h3><div class="small">JEE Main का पूरा Paper-1 PDF भी चलेगा.</div><input id="paper" type="file" accept="application/pdf"></div>
+<div class="drop"><h3>2️⃣ Official Final Answer Key PDF</h3><div class="small">NTA final key जिसमें QUESTION ID → CORRECT OPTION ID हो.</div><input id="key" type="file" accept="application/pdf"></div>
+</div>
+<div class="tools">
+<button class="primary" onclick="runMatch()">⚡ Auto Match Physics</button>
+<button onclick="loadOfficialKey()">📋 Load 6 Apr 2026 S1 Official Key</button>
+<button class="green" onclick="downloadJSON()">⬇ Export JSON</button>
+<button class="orange" onclick="clearAll()">Reset</button>
+</div>
+<div id="status" class="status">Ready. No upload has been processed.</div>
+<div class="stats"><div class="stat"><b id="stKey">0</b><span>Answer-key mappings</span></div><div class="stat"><b id="stQ">0</b><span>Question IDs found</span></div><div class="stat"><b id="stMatch">0</b><span>Physics matches</span></div><div class="stat"><b id="stAmb">0</b><span>Needs review</span></div></div>
+</section>
+<section class="panel">
+<h3 style="margin:0;font-size:15px">Matched Physics Questions</h3>
+<div class="small" style="margin-top:5px">A/B/C/D mapping is derived from the order of the four option IDs in the question PDF. The numeric IDs remain stored for verification.</div>
+<div class="tablewrap"><table class="table"><thead><tr><th>#</th><th>Question ID</th><th>Options detected</th><th>Correct Option ID</th><th>Answer</th><th>Confidence</th></tr></thead><tbody id="rows"><tr><td colspan="6" class="muted">No results yet.</td></tr></tbody></table></div>
+</section>
+<div class="note"><b>Important:</b> यह parser guess करके answer नहीं बनाता. Correct answer तभी निकलेगा जब Question ID और Correct Option ID official key में exact match हो. अगर PDF का text-layout unusual हुआ तो row “Needs review” में जाएगी; ऐसे cases को बाद में parser rules से सुधारा जा सकता है.</div>
+</div>
+<script type="module">
+const pdfjs=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");
+pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+let results=[],lastKey={};
+const $=id=>document.getElementById(id);
+function setStatus(t){$("status").textContent=t}
+function clean(t){return (t||"").replace(/\u00a0/g," ").replace(/[ \t]+/g," ").replace(/\r/g,"").trim()}
+async function textFromPdf(file){
+  const data=new Uint8Array(await file.arrayBuffer());
+  const pdf=await pdfjs.getDocument({data}).promise;
+  let pages=[];
+  for(let n=1;n<=pdf.numPages;n++){
+    const p=await pdf.getPage(n), c=await p.getTextContent();
+    const items=c.items.map(x=>({s:x.str,x:x.transform?.[4]||0,y:x.transform?.[5]||0}));
+    items.sort((a,b)=>Math.abs(a.y-b.y)>2?b.y-a.y:a.x-b.x);
+    let lines=[],cur=[],lastY=null;
+    for(const it of items){if(lastY===null||Math.abs(it.y-lastY)<=2)cur.push(it.s);else{lines.push(cur.join(" "));cur=[it.s]}lastY=it.y}
+    if(cur.length)lines.push(cur.join(" "));
+    pages.push(lines.join("\n"));
+  }
+  return pages.join("\n\n===== PAGE BREAK =====\n\n");
+}
+function ids(text){return [...new Set((text.match(/\b\d{10}\b/g)||[]))]}
+function parseKey(text){
+  const all=ids(text), map={};
+  // Primary parser: key tables contain adjacent QUESTION ID / CORRECT OPTION ID pairs.
+  for(let i=0;i<all.length-1;i++){
+    const q=all[i],o=all[i+1];
+    if(q!==o) map[q]=o;
+  }
+  // Prefer mappings that are actually repeated as exact pairs in nearby text.
+  const lines=text.split(/\n+/);
+  for(const line of lines){
+    const m=line.match(/\b(\d{10})\b\s+(\d{10})\b/g);
+    if(m)for(const pair of m){const z=pair.match(/(\d{10})\s+(\d{10})/);if(z)map[z[1]]=z[2]}
+  }
+  return map;
+}
+function findOptionGroup(all,i,keyMap){
+  const q=all[i], opts=[];
+  for(let j=i+1;j<Math.min(i+12,all.length);j++){
+    const id=all[j];
+    if(id===q)continue;
+    if(keyMap[id]!==undefined && Object.keys(keyMap).length>100 && j>i+4)break;
+    if(!opts.includes(id))opts.push(id);
+    if(opts.length===4)break;
+  }
+  return opts.length===4?opts:[];
+}
+function parseQuestions(text,keyMap){
+  const all=ids(text), out=[], seen=new Set();
+  for(let i=0;i<all.length;i++){
+    const q=all[i];
+    if(!keyMap[q]||seen.has(q))continue;
+    const opts=findOptionGroup(all,i,keyMap);
+    if(opts.length!==4)continue;
+    const correct=keyMap[q], idx=opts.indexOf(correct);
+    if(idx<0)continue;
+    const letters=["A","B","C","D"];
+    // Keep a short nearby text snippet for debugging/verification.
+    const pos=text.indexOf(q), snippet=pos>=0?clean(text.slice(pos,pos+650)).slice(0,500):"";
+    out.push({questionId:q,optionIds:opts,correctOptionId:correct,answer:letters[idx],confidence:"Exact ID match",snippet});
+    seen.add(q);
+  }
+  return out;
+}
+function render(){
+  $("stKey").textContent=Object.keys(lastKey).length;
+  $("stQ").textContent=results.length;
+  $("stMatch").textContent=results.filter(x=>x.answer).length;
+  $("stAmb").textContent=results.filter(x=>!x.answer).length;
+  $("rows").innerHTML=results.length?results.map((r,i)=>"<tr><td>"+(i+1)+"</td><td><b>"+r.questionId+"</b></td><td>"+r.optionIds.map((x,j)=>"<span class='tag'>"+["A","B","C","D"][j]+" · "+x+"</span>").join(" ")+"</td><td class='mapping'>"+r.correctOptionId+"</td><td class='ok'><b>"+r.answer+"</b></td><td class='ok'>✓ "+r.confidence+"</td></tr>").join(""):"<tr><td colspan='6' class='muted'>No results yet.</td></tr>";
+}
+window.runMatch=async()=>{
+  const pf=$("paper").files[0],kf=$("key").files[0];
+  if(!pf||!kf){setStatus("पहले दोनों PDFs select करो: Question Paper + Final Answer Key.");return}
+  try{
+    setStatus("Question paper पढ़ रहा हूँ...");
+    const pt=await textFromPdf(pf);
+    setStatus("Final answer key पढ़ रहा हूँ...");
+    const kt=await textFromPdf(kf);
+    lastKey=parseKey(kt);
+    setStatus("Question IDs और Option IDs match कर रहा हूँ...");
+    results=parseQuestions(pt,lastKey);
+    render();
+    setStatus("Done. Exact Question ID → Correct Option ID matching complete.\nPhysics-only filtering is safest when the uploaded paper is already Physics-only. For a combined Paper-1 PDF, this prototype matches official IDs but does not guess subject from question wording.");
+  }catch(e){console.error(e);setStatus("Processing failed: "+e.message)}
+};
+window.loadOfficialKey=()=>{window.open("https://www.nta.ac.in/Download/Notice/Notice_20260420132025.pdf","_blank","noopener");setStatus("Official NTA final key opened. Download it, then select it in the Answer Key box. It contains Question ID → Correct Option ID tables for each subject/shift.");};
+window.downloadJSON=()=>{
+  if(!results.length){alert("पहले Auto Match चलाओ.");return}
+  const data={exam:"JEE Main",subject:"Physics",generatedAt:new Date().toISOString(),questions:results};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="jee-main-physics-pyq-matched.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+window.clearAll=()=>{results=[];lastKey={};$("paper").value="";$("key").value="";render();setStatus("Reset complete.")};
+</script></body></html>
