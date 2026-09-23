@@ -1,706 +1,279 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>A-to-Z Paper Designer</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-    @media print {
-        body * { visibility: hidden !important; }
-        #printPreviewContent, #printPreviewContent * { visibility: visible !important; }
-        #printPreviewContent {
-            position: absolute !important;
-            left: 0; top: 0; right: 0;
-            width: 100%;
-            padding: 0 !important;
-            margin: 0 !important;
-            background: white !important;
-            color: black !important;
-        }
-        #printModal { position: static !important; background: white !important; padding: 0 !important; }
-        #printModal > div { box-shadow: none !important; max-height: none !important; border-radius: 0 !important; }
-        #printModalToolbar { display: none !important; }
-        .no-print { display: none !important; }
-        @page { margin: 1.5cm; }
-    }
+@media print{
+ body *{visibility:hidden!important}
+ #printPreviewContent,#printPreviewContent *{visibility:visible!important}
+ #printPreviewContent{position:absolute!important;left:0;top:0;width:100%;padding:0!important;margin:0!important;background:#fff!important;color:#000!important}
+ #printModal{position:static!important;background:#fff!important;padding:0!important}
+ #printModal>div{box-shadow:none!important;max-height:none!important;border-radius:0!important}
+ #printModalToolbar{display:none!important}
+ .no-print{display:none!important}
+ @page{margin:1.5cm}
+}
+.q-image{max-width:100%;max-height:420px;object-fit:contain;background:#fff;border-radius:6px}
+.print-q-image{display:block;max-width:100%;height:auto;margin:5px 0}
 </style>
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
-
-<!-- ============ TOP HEADER ============ -->
 <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10 no-print">
-    <div class="flex items-center space-x-4">
-        <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-slate-600 flex items-center space-x-2" title="Back to Test Builder">
-            <i class="fa-solid fa-arrow-left text-indigo-400"></i>
-            <span>Back to Builder</span>
-        </button>
-        <div class="flex items-center space-x-3 border-l border-slate-700 pl-4">
-            <div class="bg-indigo-600 p-2 rounded-lg text-white">
-                <i class="fa-solid fa-pen-ruler text-lg"></i>
-            </div>
-            <div>
-                <h1 class="text-lg font-bold tracking-wide">A-to-Z Paper Designer</h1>
-                <p class="text-xs text-slate-400">Custom Test & Question Paper Layout</p>
-            </div>
-        </div>
-    </div>
-    <div class="flex items-center space-x-3">
-        <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-slate-600">
-            <i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i> Refresh / Load Selected
-        </button>
-        <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 shadow">
-            <i class="fa-solid fa-print"></i>
-            <span>Print / Export Paper</span>
-        </button>
-    </div>
+ <div class="flex items-center space-x-4">
+  <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600 flex items-center space-x-2"><i class="fa-solid fa-arrow-left text-indigo-400"></i><span>Back to Builder</span></button>
+  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A-to-Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here automatically</p></div></div>
+ </div>
+ <div class="flex items-center space-x-3">
+  <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600"><i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i>Refresh / Load Selected</button>
+  <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"><i class="fa-solid fa-print"></i><span>Print / Export Paper</span></button>
+ </div>
 </header>
 
-<!-- ============ MAIN WORKSPACE ============ -->
 <div class="flex-1 flex overflow-hidden no-print">
+<aside class="w-80 bg-slate-800 border-r border-slate-700 flex flex-col">
+ <div class="p-4 border-b border-slate-700">
+  <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Blueprint Summary</h2>
+  <div class="grid grid-cols-2 gap-2 text-center">
+   <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50"><span class="block text-xs text-slate-400">Total Qs</span><span id="totalQuestionsCount" class="text-lg font-bold text-indigo-400">0</span></div>
+   <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50"><span class="block text-xs text-slate-400">Total Marks</span><span id="totalMarksCount" class="text-lg font-bold text-emerald-400">0</span></div>
+  </div>
+ </div>
+ <div class="p-4 border-b border-slate-700 flex items-center justify-between"><span class="text-sm font-bold"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Sections</span><button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs"><i class="fa-solid fa-plus"></i> Add Section</button></div>
+ <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-900/40"></div>
+</aside>
 
-    <!-- LEFT SIDEBAR -->
-    <aside class="w-80 bg-slate-800 border-r border-slate-700 flex flex-col">
-        <div class="p-4 border-b border-slate-700 bg-slate-800/90">
-            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Blueprint Summary</h2>
-            <div class="grid grid-cols-2 gap-2 text-center">
-                <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
-                    <span class="block text-xs text-slate-400">Total Qs</span>
-                    <span id="totalQuestionsCount" class="text-lg font-bold text-indigo-400">0</span>
-                </div>
-                <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
-                    <span class="block text-xs text-slate-400">Total Marks</span>
-                    <span id="totalMarksCount" class="text-lg font-bold text-emerald-400">0</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/60">
-            <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Sections</span>
-            <button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center space-x-1">
-                <i class="fa-solid fa-plus"></i><span>Add Section</span>
-            </button>
-        </div>
-
-        <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-900/40"></div>
-    </aside>
-
-    <!-- CENTER CANVAS -->
-    <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden">
-        <div class="bg-slate-800/80 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
-            <div>
-                <h2 id="activeSectionTitle" class="text-base font-bold text-slate-100">Section A</h2>
-                <p id="activeSectionMeta" class="text-xs text-slate-400">Manage questions inside this section.</p>
-            </div>
-            <div>
-                <button onclick="openAddCustomQuestionModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow">
-                    <i class="fa-solid fa-circle-plus"></i>
-                    <span>Add Custom Question</span>
-                </button>
-            </div>
-        </div>
-
-        <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl mx-auto w-full"></div>
-    </main>
+<main class="flex-1 bg-slate-950 flex flex-col overflow-hidden">
+ <div class="bg-slate-800/80 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
+  <div><h2 id="activeSectionTitle" class="text-base font-bold">Section A</h2><p id="activeSectionMeta" class="text-xs text-slate-400"></p></div>
+  <button onclick="openAddCustomQuestionModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold"><i class="fa-solid fa-circle-plus"></i> Add Custom Question</button>
+ </div>
+ <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full"></div>
+</main>
 </div>
 
-<!-- ============ MODAL: Section ============ -->
-<div id="sectionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print">
-    <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md flex flex-col shadow-2xl">
-        <div class="p-4 border-b border-slate-700 flex items-center justify-between">
-            <h3 class="font-bold text-base text-indigo-300">Add New Section</h3>
-            <button onclick="closeSectionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-        </div>
-        <div class="p-5 space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Section Name</label>
-                <input type="text" id="secNameInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="e.g. Section B">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Section Question Type</label>
-                <select id="secTypeInput" onchange="handleSecTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                    <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
-                    <option value="Assertion & Reason">Assertion & Reason</option>
-                    <option value="Short Answer Type">Short Answer Type</option>
-                    <option value="Long Answer / Descriptive">Long Answer / Descriptive</option>
-                    <option value="Custom / Other">Custom / Other</option>
-                </select>
-            </div>
-            <div id="customSecTypeContainer" class="hidden">
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Custom Section Type Name</label>
-                <input type="text" id="customSecTypeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="e.g. Case Study Based">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Default Marks Per Question</label>
-                <input type="number" id="secMarksInput" min="1" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-            </div>
-        </div>
-        <div class="p-4 border-t border-slate-700 flex justify-end space-x-3">
-            <button onclick="closeSectionModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
-            <button onclick="saveNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium">Save Section</button>
-        </div>
-    </div>
+<div id="sectionModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4 no-print">
+ <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
+  <div class="p-4 border-b border-slate-700 flex justify-between"><h3 class="font-bold text-indigo-300">Add New Section</h3><button onclick="closeSectionModal()"><i class="fa-solid fa-xmark"></i></button></div>
+  <div class="p-5 space-y-4">
+   <input id="secNameInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Section B">
+   <select id="secTypeInput" onchange="handleSecTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"><option value="MCQ">Multiple Choice Questions (MCQ)</option><option value="ASSERTION">Assertion & Reason</option><option value="SHORT">Short Answer Type</option><option value="LONG">Long Answer / Descriptive</option><option value="CUSTOM">Custom / Other</option></select>
+   <input id="customSecTypeInput" class="hidden w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Custom section type">
+   <input id="secMarksInput" type="number" min="0" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Default marks">
+  </div>
+  <div class="p-4 border-t border-slate-700 flex justify-end gap-3"><button onclick="closeSectionModal()" class="bg-slate-700 px-4 py-2 rounded-lg">Cancel</button><button onclick="saveNewSection()" class="bg-indigo-600 px-5 py-2 rounded-lg">Save Section</button></div>
+ </div>
 </div>
 
-<!-- ============ MODAL: Question ============ -->
-<div id="questionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print">
-    <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xl flex flex-col shadow-2xl">
-        <div class="p-4 border-b border-slate-700 flex items-center justify-between">
-            <h3 id="questionModalTitle" class="font-bold text-base text-indigo-300">Edit Question</h3>
-            <button onclick="closeQuestionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-        </div>
-        <div class="p-5 space-y-4">
-            <input type="hidden" id="editQuestionId">
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Question Type</label>
-                <select id="qType" onchange="handleQTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                    <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
-                    <option value="Assertion & Reason">Assertion & Reason</option>
-                    <option value="Short Answer Type">Short Answer Type</option>
-                    <option value="Long Answer / Descriptive">Long Answer / Descriptive</option>
-                    <option value="Custom / Other">Custom / Other</option>
-                </select>
-            </div>
-            <div id="customQTypeContainer" class="hidden">
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Custom Question Type</label>
-                <input type="text" id="customQTypeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Type custom name">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Question Statement & Options</label>
-                <textarea id="qText" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Enter question text..."></textarea>
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Marks</label>
-                <input type="number" id="qMarks" min="1" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-            </div>
-        </div>
-        <div class="p-4 border-t border-slate-700 flex justify-end space-x-3">
-            <button onclick="closeQuestionModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
-            <button onclick="saveQuestionData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium">Save Changes</button>
-        </div>
-    </div>
+<div id="questionModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4 no-print">
+ <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl">
+  <div class="p-4 border-b border-slate-700 flex justify-between"><h3 id="questionModalTitle" class="font-bold text-indigo-300">Edit Question</h3><button onclick="closeQuestionModal()"><i class="fa-solid fa-xmark"></i></button></div>
+  <div class="p-5 space-y-4">
+   <input type="hidden" id="editQuestionId">
+   <select id="qType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"><option value="MCQ">MCQ</option><option value="ASSERTION">Assertion & Reason</option><option value="SHORT">Short Answer</option><option value="LONG">Long Answer</option><option value="CUSTOM">Custom / Other</option></select>
+   <input id="customQTypeInput" class="hidden w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Custom question type">
+   <textarea id="qText" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Question text"></textarea>
+   <textarea id="qOptions" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Options / choices (optional)"></textarea>
+   <input id="qMarks" type="number" min="0" step="0.5" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
+  </div>
+  <div class="p-4 border-t border-slate-700 flex justify-end gap-3"><button onclick="closeQuestionModal()" class="bg-slate-700 px-4 py-2 rounded-lg">Cancel</button><button onclick="saveQuestionData()" class="bg-indigo-600 px-5 py-2 rounded-lg">Save Changes</button></div>
+ </div>
 </div>
 
-<!-- ============ MODAL: Print Preview ============ -->
-<div id="printModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
-    <div class="bg-white text-slate-900 rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-        <div id="printModalToolbar" class="bg-slate-100 p-4 border-b border-slate-300 flex items-center justify-between">
-            <h3 class="font-bold text-lg text-slate-800">Print Preview Layout</h3>
-            <div class="flex items-center space-x-2">
-                <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Print Paper</button>
-                <button onclick="closePrintModal()" class="text-slate-500 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-        </div>
-        <div id="printPreviewContent" class="p-8 flex-1 overflow-y-auto space-y-6 font-serif"></div>
-    </div>
+<div id="printModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-6">
+ <div class="bg-white text-slate-900 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+  <div id="printModalToolbar" class="bg-slate-100 p-4 border-b flex items-center justify-between"><h3 class="font-bold text-lg">Print Preview Layout</h3><div class="flex gap-2"><button onclick="window.print()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">Print Paper</button><button onclick="closePrintModal()" class="p-2"><i class="fa-solid fa-xmark text-xl"></i></button></div></div>
+  <div id="printPreviewContent" class="p-8 flex-1 overflow-y-auto font-serif"></div>
+ </div>
 </div>
 
-<!-- ============ SCRIPT ============ -->
 <script>
-/* =========================================================
-   GLOBAL STATE
-   ========================================================= */
-let testPaper = {
-    title: "Custom Assessment Test",
-    sections: []
-};
-let activeSectionId = null;
+const STATE_KEY='paperDesignerState';
+const SELECTED_ID_KEY='AZ_BUILDER_SELECTED_IDS';
+const BLUEPRINT_KEY='AZ_PAPER_DESIGNER_STATE';
+const OVERRIDE_KEY='AZ_PAPER_DESIGNER_OVERRIDES';
+const DB_NAME='AZExamMocksDesignerDB';
+const DB_STORE='questions';
 
-const STATE_KEY = "paperDesignerState";
-const SELECTED_KEYS = ["selectedBuilderQuestions", "selectedQuestions", "builderQuestions"];
+let testPaper={title:'Question Paper',sections:[]};
+let activeSectionId=null;
+let questionCache=new Map();
+let overrides={};
 
-/* =========================================================
-   UTILITIES
-   ========================================================= */
-function escapeHtml(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
+function uid(p){return p+'_'+Date.now()+'_'+Math.floor(Math.random()*10000)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function breaks(s){return esc(s).replace(/\n/g,'<br>')}
+function safeJSON(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch(e){return fallback}}
+
+function openDesignerDB(){
+ return new Promise(resolve=>{
+  try{
+   const req=indexedDB.open(DB_NAME,1);
+   req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE,{keyPath:'id'})};
+   req.onsuccess=()=>resolve(req.result); req.onerror=()=>resolve(null);
+  }catch(e){resolve(null)}
+ })
 }
-function escapeWithBreaks(s) {
-    return escapeHtml(s).replace(/\n/g, '<br>');
-}
-function uid(prefix) {
-    return prefix + "_" + Date.now() + "_" + Math.floor(Math.random()*1000);
+async function readCachedQuestions(ids){
+ const db=await openDesignerDB(); if(!db)return [];
+ return new Promise(resolve=>{
+  try{
+   const tx=db.transaction(DB_STORE,'readonly'),store=tx.objectStore(DB_STORE),out=[];
+   ids.forEach(id=>{const r=store.get(id);r.onsuccess=()=>{if(r.result)out.push(r.result)}});
+   tx.oncomplete=()=>{db.close();resolve(out)};tx.onerror=()=>{db.close();resolve(out)};
+  }catch(e){try{db.close()}catch(_e){}resolve([])}
+ })
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
-window.addEventListener('DOMContentLoaded', () => {
-    const restored = restoreState();
-    if (!restored) {
-        loadSelectedQuestions();
-    }
-    renderSidebar();
-    renderCanvas();
+function normalizeQuestion(q,id){
+ const o=overrides[q?.id||id]||{};
+ return {
+  id:q?.id||id||uid('q'),
+  type:o.paperType||q?.type||inferType(q),
+  text:o.qText??q?.qText??q?.text??'',
+  options:o.optText??q?.optText??q?.options??'',
+  image:o.keepImage===false?'':(o.image??q?.question??q?.image??''),
+  marks:Number(o.marks??q?.marks??1)||1,
+  key:o.key??q?.key??''
+ };
+}
+function inferType(q){
+ const t=String(q?.type||q?.questionType||'').toUpperCase();
+ if(t.includes('ASSERT'))return'ASSERTION';
+ if(t.includes('LONG'))return'LONG';
+ if(t.includes('SHORT')||t.includes('VSA'))return'SHORT';
+ return'MCQ';
+}
+
+async function loadFromBuilder(){
+ const ids=safeJSON(SELECTED_ID_KEY,[]);
+ if(!Array.isArray(ids)||!ids.length)return false;
+ overrides=safeJSON(OVERRIDE_KEY,{})||{};
+ const records=await readCachedQuestions(ids);
+ records.forEach(q=>questionCache.set(q.id,q));
+ // If IndexedDB has not populated yet, use any legacy localStorage question arrays as fallback.
+ const legacyKeys=['selectedBuilderQuestions','selectedQuestions','builderQuestions'];
+ for(const k of legacyKeys){
+  const arr=safeJSON(k,[]);
+  if(Array.isArray(arr))arr.forEach(q=>questionCache.set(q.id||uid('q'),q));
+ }
+ const blueprint=safeJSON(BLUEPRINT_KEY,null);
+ const selected=ids.map(id=>normalizeQuestion(questionCache.get(id),id)).filter(q=>q.id);
+ if(!selected.length)return false;
+
+ const sections=[];
+ const bpSections=Array.isArray(blueprint?.sections)?blueprint.sections:[];
+ const used=new Set();
+ bpSections.forEach((s,si)=>{
+  const qids=Array.isArray(s.questions)?s.questions:[];
+  const qs=qids.map(id=>selected.find(q=>q.id===id)).filter(Boolean);
+  qs.forEach(q=>used.add(q.id));
+  sections.push({id:String(s.id||String.fromCharCode(65+si)),name:s.title||('Section '+String.fromCharCode(65+si)),type:s.type||'MCQ',marksPerQ:Number(s.marks)||1,questions:qs});
+ });
+ let first=sections[0];
+ if(!first){first={id:'A',name:'Section A',type:'MCQ',marksPerQ:1,questions:[]};sections.push(first)}
+ selected.filter(q=>!used.has(q.id)).forEach(q=>first.questions.push(q));
+ testPaper={title:localStorage.getItem('AZ_PAPER_DESIGNER_TITLE')||blueprint?.title||safeJSON('AZ_PAPER_DESIGNER_STATE',{}).title||'Question Paper',sections};
+ activeSectionId=sections[0].id;
+ saveState();
+ return true;
+}
+
+function loadLegacy(){
+ overrides=safeJSON(OVERRIDE_KEY,{})||{};
+ const arr=[];
+ for(const k of ['selectedBuilderQuestions','selectedQuestions','builderQuestions']){
+  const a=safeJSON(k,[]);if(Array.isArray(a)&&a.length){a.forEach(q=>arr.push(normalizeQuestion(q,q.id)));break}
+ }
+ const old=safeJSON(STATE_KEY,null);
+ if(old?.sections?.length && !arr.length){testPaper=old;activeSectionId=testPaper.sections[0].id;return}
+ testPaper={title:old?.title||'Question Paper',sections:[{id:uid('sec'),name:'Section A',type:'MCQ',marksPerQ:1,questions:arr}]};
+ activeSectionId=testPaper.sections[0].id;saveState();
+}
+
+function saveState(){try{localStorage.setItem(STATE_KEY,JSON.stringify(testPaper))}catch(e){}}
+
+window.addEventListener('DOMContentLoaded',async()=>{
+ const loaded=await loadFromBuilder();
+ if(!loaded)loadLegacy();
+ renderSidebar();renderCanvas();
 });
 
-function goBackToBuilder() {
-    window.location.href = "builder.html";
+function goBackToBuilder(){window.location.href='builder.html'}
+async function refreshSelectedQuestions(){
+ const ok=await loadFromBuilder();
+ if(!ok)return alert('Builder selection not found. Select questions in Builder and click Open Paper Designer again.');
+ renderSidebar();renderCanvas();
 }
 
-/* =========================================================
-   LOAD FROM LOCALSTORAGE
-   ========================================================= */
-function readSelectedQuestionsRaw() {
-    let raw = null;
-    for (const k of SELECTED_KEYS) {
-        const v = localStorage.getItem(k);
-        if (v) { raw = v; break; }
-    }
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [];
-        return parsed.map((q, idx) => ({
-            id: q.id || uid('q') + "_" + idx,
-            type: q.type || "Multiple Choice Questions (MCQ)",
-            text: q.text || q.question || "Untitled Question",
-            marks: Number(q.marks || 1)
-        }));
-    } catch (e) {
-        return [];
-    }
+function renderSidebar(){
+ const list=document.getElementById('sectionsSidebarList');list.innerHTML='';
+ testPaper.sections.forEach(sec=>{
+  const active=sec.id===activeSectionId;
+  const d=document.createElement('div');
+  d.className='p-3 rounded-lg border cursor-pointer '+(active?'bg-indigo-950/40 border-indigo-500':'bg-slate-800/60 border-slate-700');
+  d.onclick=()=>{activeSectionId=sec.id;renderSidebar();renderCanvas()};
+  const marks=sec.questions.reduce((a,q)=>a+Number(q.marks||0),0);
+  d.innerHTML='<div class="flex items-center justify-between mb-1"><input value="'+esc(sec.name)+'" onclick="event.stopPropagation()" onchange="renameSec(\''+esc(sec.id)+'\',this.value)" class="bg-transparent text-sm font-semibold w-32 border border-transparent"><div class="flex gap-1"><span class="text-[10px] bg-slate-900 px-2 py-0.5 rounded">'+sec.questions.length+' Qs</span><button onclick="event.stopPropagation();deleteSec(\''+esc(sec.id)+'\')" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button></div></div><div class="flex justify-between text-xs text-slate-400"><span>'+esc(sec.type)+'</span><span>Marks: '+marks+'</span></div>';
+  list.appendChild(d);
+ });
+ updateTotals();
 }
 
-function loadSelectedQuestions() {
-    const questions = readSelectedQuestionsRaw();
-    // If no questions are found in localStorage, start with an empty section array instead of dummy questions
-    if (questions.length === 0) {
-        testPaper.sections = [{
-            id: uid('sec'),
-            name: "Section A",
-            type: "Multiple Choice Questions (MCQ)",
-            marksPerQ: 1,
-            questions: []
-        }];
-    } else {
-        testPaper.sections = [{
-            id: uid('sec'),
-            name: "Section A",
-            type: "Multiple Choice Questions (MCQ)",
-            marksPerQ: 1,
-            questions: questions
-        }];
-    }
-    activeSectionId = testPaper.sections[0].id;
-    saveState();
+function renderCanvas(){
+ const c=document.getElementById('questionsCanvasContainer'),sec=testPaper.sections.find(s=>s.id===activeSectionId);
+ if(!sec){c.innerHTML='<div class="text-center py-20 text-slate-500">No section found.</div>';return}
+ document.getElementById('activeSectionTitle').textContent=sec.name;
+ document.getElementById('activeSectionMeta').textContent='Type: '+sec.type+' • Total Questions: '+sec.questions.length+' • Marks: '+sec.questions.reduce((a,q)=>a+Number(q.marks||0),0);
+ if(!sec.questions.length){c.innerHTML='<div class="text-center py-20 text-slate-500"><i class="fa-solid fa-folder-open text-4xl text-slate-600 mb-3"></i><p>No questions in this section.</p><p class="text-xs mt-2">The Builder selection will appear here automatically.</p></div>';return}
+ c.innerHTML='';
+ sec.questions.forEach((q,i)=>{
+  const card=document.createElement('div');card.className='bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-md';
+  let move='<option value="">Move to...</option>';testPaper.sections.forEach(s=>{if(s.id!==sec.id)move+='<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'});
+  const img=q.image?'<div class="mt-3 bg-white rounded-lg p-2 border border-slate-700"><img class="q-image mx-auto" src="'+esc(q.image)+'" onerror="this.parentElement.style.display=\'none\'"></div>':'';
+  const opts=q.options?'<div class="mt-3 text-sm text-slate-300 bg-slate-950 p-3 rounded-lg border border-slate-800">'+breaks(q.options)+'</div>':'';
+  card.innerHTML='<div class="flex items-center justify-between border-b border-slate-800 pb-2.5 flex-wrap gap-2"><div class="flex items-center gap-2"><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2.5 py-0.5 rounded text-xs">Q.'+(i+1)+'</span><span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-1.5 text-xs"><span class="text-emerald-400 font-bold mr-1">'+q.marks+'m</span><button onclick="moveQUp(\''+sec.id+'\',\''+q.id+'\')" class="bg-slate-700 px-2 py-1 rounded"><i class="fa-solid fa-arrow-up"></i></button><button onclick="moveQDown(\''+sec.id+'\',\''+q.id+'\')" class="bg-slate-700 px-2 py-1 rounded"><i class="fa-solid fa-arrow-down"></i></button><select onchange="moveQToSection(\''+sec.id+'\',\''+q.id+'\',this.value)" class="bg-slate-700 text-slate-200 px-2 py-1 rounded">'+move+'</select><button onclick="openEditModal(\''+q.id+'\')" class="bg-sky-600/20 text-sky-400 px-2.5 py-1 rounded"><i class="fa-solid fa-pen mr-1"></i>Edit</button><button onclick="removeQ(\''+sec.id+'\',\''+q.id+'\')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button></div></div><div class="mt-3 text-sm text-slate-100 whitespace-pre-line">'+(q.text?breaks(q.text):'<span class="text-slate-500 italic">Image-based question</span>')+'</div>'+img+opts;
+  c.appendChild(card);
+ });
+ updateTotals();
 }
+function updateTotals(){let q=0,m=0;testPaper.sections.forEach(s=>{q+=s.questions.length;s.questions.forEach(x=>m+=Number(x.marks||0))});document.getElementById('totalQuestionsCount').textContent=q;document.getElementById('totalMarksCount').textContent=m}
 
-function refreshSelectedQuestions() {
-    const fresh = readSelectedQuestionsRaw();
-    if (fresh.length === 0) {
-        alert("No selected questions found in localStorage from the builder! Please select some questions in the builder first.");
-        return;
-    }
+function addNewSection(){document.getElementById('secNameInput').value='Section '+String.fromCharCode(65+testPaper.sections.length);document.getElementById('secMarksInput').value=1;document.getElementById('secTypeInput').value='MCQ';document.getElementById('customSecTypeInput').classList.add('hidden');showModal('sectionModal')}
+function handleSecTypeChange(){document.getElementById('customSecTypeInput').classList.toggle('hidden',document.getElementById('secTypeInput').value!=='CUSTOM')}
+function saveNewSection(){let name=document.getElementById('secNameInput').value.trim(),type=document.getElementById('secTypeInput').value;if(!name)return alert('Enter section name');if(type==='CUSTOM')type=document.getElementById('customSecTypeInput').value.trim()||'Custom';const s={id:uid('sec'),name,type,marksPerQ:Number(document.getElementById('secMarksInput').value)||1,questions:[]};testPaper.sections.push(s);activeSectionId=s.id;saveState();closeSectionModal();renderSidebar();renderCanvas()}
+function renameSec(id,n){const s=testPaper.sections.find(x=>x.id===id);if(s&&n.trim()){s.name=n.trim();saveState();renderSidebar();renderCanvas()}}
+function deleteSec(id){if(testPaper.sections.length<=1)return alert('At least one section is required.');if(!confirm('Delete this section and its questions?'))return;testPaper.sections=testPaper.sections.filter(s=>s.id!==id);activeSectionId=testPaper.sections[0].id;saveState();renderSidebar();renderCanvas()}
 
-    if (!confirm("Re-load selected questions from builder? Your current section structure will be preserved but question edits will be replaced.")) return;
+function removeQ(sid,qid){const s=testPaper.sections.find(x=>x.id===sid);if(!s)return;s.questions=s.questions.filter(q=>q.id!==qid);saveState();renderSidebar();renderCanvas()}
+function moveQUp(sid,qid){const s=testPaper.sections.find(x=>x.id===sid),i=s?.questions.findIndex(q=>q.id===qid);if(i>0){[s.questions[i-1],s.questions[i]]=[s.questions[i],s.questions[i-1]];saveState();renderCanvas()}}
+function moveQDown(sid,qid){const s=testPaper.sections.find(x=>x.id===sid),i=s?.questions.findIndex(q=>q.id===qid);if(i>=0&&i<s.questions.length-1){[s.questions[i+1],s.questions[i]]=[s.questions[i],s.questions[i+1]];saveState();renderCanvas()}}
+function moveQToSection(from,qid,to){if(!to)return;const a=testPaper.sections.find(s=>s.id===from),b=testPaper.sections.find(s=>s.id===to),i=a?.questions.findIndex(q=>q.id===qid);if(!a||!b||i<0)return;const q=a.questions.splice(i,1)[0];b.questions.push(q);saveState();renderSidebar();renderCanvas()}
 
-    const existingById = {};
-    testPaper.sections.forEach(sec => sec.questions.forEach(q => { existingById[q.id] = q; }));
-
-    // Preserve existing question data if same id, else use fresh
-    const merged = fresh.map(q => existingById[q.id] ? existingById[q.id] : q);
-
-    if (testPaper.sections.length === 0) {
-        testPaper.sections = [{
-            id: uid('sec'),
-            name: "Section A",
-            type: "Multiple Choice Questions (MCQ)",
-            marksPerQ: 1,
-            questions: merged
-        }];
-        activeSectionId = testPaper.sections[0].id;
-    } else {
-        // Put all fresh into first section, clear others
-        testPaper.sections.forEach((s, i) => { if (i > 0) s.questions = []; });
-        testPaper.sections[0].questions = merged;
-        activeSectionId = testPaper.sections[0].id;
-    }
-    saveState();
-    renderSidebar();
-    renderCanvas();
+function setType(type){
+ const known=['MCQ','ASSERTION','SHORT','LONG'].includes(type);document.getElementById('qType').value=known?type:'CUSTOM';document.getElementById('customQTypeInput').value=known?'':type;document.getElementById('customQTypeInput').classList.toggle('hidden',known)
 }
+function openAddCustomQuestionModal(){const s=testPaper.sections.find(x=>x.id===activeSectionId);document.getElementById('questionModalTitle').textContent='Add Custom Question';document.getElementById('editQuestionId').value='';document.getElementById('qText').value='';document.getElementById('qOptions').value='';document.getElementById('qMarks').value=s?.marksPerQ||1;setType(s?.type||'MCQ');showModal('questionModal')}
+function openEditModal(id){const s=testPaper.sections.find(x=>x.id===activeSectionId),q=s?.questions.find(x=>x.id===id);if(!q)return;document.getElementById('questionModalTitle').textContent='Edit Question';document.getElementById('editQuestionId').value=q.id;document.getElementById('qText').value=q.text||'';document.getElementById('qOptions').value=q.options||'';document.getElementById('qMarks').value=q.marks||1;setType(q.type);showModal('questionModal')}
+function saveQuestionData(){const s=testPaper.sections.find(x=>x.id===activeSectionId),id=document.getElementById('editQuestionId').value;let type=document.getElementById('qType').value;if(type==='CUSTOM')type=document.getElementById('customQTypeInput').value.trim()||'Custom';const text=document.getElementById('qText').value.trim(),options=document.getElementById('qOptions').value,marks=Number(document.getElementById('qMarks').value)||1;if(!s)return;if(!text&&!options)return alert('Enter question text or options.');if(id){const q=s.questions.find(x=>x.id===id);if(q){q.type=type;q.text=text;q.options=options;q.marks=marks}}else s.questions.push({id:uid('q'),type,text,options,marks});saveState();closeQuestionModal();renderSidebar();renderCanvas()}
 
-/* =========================================================
-   STATE PERSISTENCE
-   ========================================================= */
-function saveState() {
-    try {
-        localStorage.setItem(STATE_KEY, JSON.stringify(testPaper));
-    } catch (e) { /* ignore quota errors */ }
+function previewPrintLayout(){
+ const c=document.getElementById('printPreviewContent');let h='<div class="text-center border-b-2 border-black pb-4 mb-5"><h1 class="text-xl font-bold uppercase">'+esc(testPaper.title)+'</h1><p class="text-xs mt-1">Max Marks: '+computeTotalMarks()+' | Total Questions: '+computeTotalQuestions()+'</p></div>';
+ let n=0;
+ testPaper.sections.forEach(s=>{if(!s.questions.length)return;h+='<div class="mb-6"><h3 class="font-bold bg-slate-200 px-2 py-1 mb-3 text-sm">'+esc(s.name)+' <span class="font-normal italic">— '+esc(s.type)+'</span></h3>';s.questions.forEach(q=>{n++;h+='<div class="mb-5 text-sm" style="page-break-inside:avoid"><div><b>Q.'+n+'</b> <span style="float:right">['+esc(q.marks)+']</span></div>'+(q.text?'<div class="font-bold mt-1">'+breaks(q.text)+'</div>':'')+(q.image?'<img class="print-q-image" src="'+esc(q.image)+'">':'')+(q.options?'<div class="mt-1">'+breaks(q.options)+'</div>':'')+'</div>'});h+='</div>'});
+ c.innerHTML=h||'<p class="text-center text-slate-500">No questions to print.</p>';showModal('printModal')
 }
+function computeTotalMarks(){return testPaper.sections.reduce((a,s)=>a+s.questions.reduce((b,q)=>b+Number(q.marks||0),0),0)}
+function computeTotalQuestions(){return testPaper.sections.reduce((a,s)=>a+s.questions.length,0)}
 
-function restoreState() {
-    try {
-        const raw = localStorage.getItem(STATE_KEY);
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
-        if (!parsed || !Array.isArray(parsed.sections) || parsed.sections.length === 0) return false;
-        testPaper = parsed;
-        activeSectionId = testPaper.sections[0].id;
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-/* =========================================================
-   SIDEBAR RENDER
-   ========================================================= */
-function renderSidebar() {
-    const list = document.getElementById('sectionsSidebarList');
-    list.innerHTML = '';
-
-    testPaper.sections.forEach(sec => {
-        const isActive = sec.id === activeSectionId;
-        const marks = sec.questions.reduce((acc, q) => acc + Number(q.marks), 0);
-
-        const div = document.createElement('div');
-        div.className = `p-3 rounded-lg border transition cursor-pointer ${isActive ? 'bg-indigo-950/40 border-indigo-500 shadow-md' : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800'}`;
-        div.onclick = () => { activeSectionId = sec.id; renderSidebar(); renderCanvas(); };
-
-        div.innerHTML = `
-            <div class="flex items-center justify-between mb-1">
-                <input type="text" value="${escapeHtml(sec.name)}"
-                    onclick="event.stopPropagation()"
-                    onchange="renameSec('${sec.id}', this.value)"
-                    class="bg-transparent text-sm font-semibold text-slate-200 w-32 px-1 rounded border border-transparent focus:border-indigo-500">
-                <div class="flex items-center space-x-1">
-                    <span class="text-[10px] bg-slate-900 text-slate-300 px-2 py-0.5 rounded border border-slate-700">${sec.questions.length} Qs</span>
-                    <button onclick="event.stopPropagation(); deleteSec('${sec.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="flex items-center justify-between text-xs text-slate-400">
-                <span class="truncate max-w-[130px]">${escapeHtml(sec.type)}</span>
-                <span>Marks: ${marks}</span>
-            </div>
-        `;
-        list.appendChild(div);
-    });
-    updateTotals();
-}
-
-/* =========================================================
-   CANVAS RENDER
-   ========================================================= */
-function renderCanvas() {
-    const container = document.getElementById('questionsCanvasContainer');
-    const sec = testPaper.sections.find(s => s.id === activeSectionId);
-
-    // Always update header (even for empty section)
-    if (sec) {
-        document.getElementById('activeSectionTitle').innerText = sec.name;
-        document.getElementById('activeSectionMeta').innerText =
-            `Type: ${sec.type} • Total Questions: ${sec.questions.length} • Marks: ${sec.questions.reduce((a,q)=>a+Number(q.marks),0)}`;
-    }
-
-    if (!sec || sec.questions.length === 0) {
-        container.innerHTML = `
-            <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
-                <i class="fa-solid fa-folder-open text-4xl mb-2 text-slate-600"></i>
-                <p class="text-sm font-medium">No questions in this section.</p>
-                <p class="text-xs text-slate-600 mt-1">Add a custom question, or select from builder and click Refresh.</p>
-            </div>`;
-        updateTotals();
-        return;
-    }
-
-    container.innerHTML = '';
-    sec.questions.forEach((q, idx) => {
-        const card = document.createElement('div');
-        card.className = "bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col space-y-3 shadow-md";
-
-        // Build move-to-section dropdown
-        let moveOptions = '<option value="">Move to...</option>';
-        testPaper.sections.forEach(s => {
-            if (s.id !== sec.id) {
-                moveOptions += `<option value="${s.id}">${escapeHtml(s.name)}</option>`;
-            }
-        });
-
-        card.innerHTML = `
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 flex-wrap gap-2">
-                <div class="flex items-center space-x-2">
-                    <span class="bg-indigo-600/20 text-indigo-400 font-bold px-2.5 py-0.5 rounded text-xs">Q.${idx + 1}</span>
-                    <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">${escapeHtml(q.type)}</span>
-                </div>
-                <div class="flex items-center space-x-1.5 text-xs">
-                    <span class="text-emerald-400 font-bold mr-1">${q.marks}m</span>
-                    <button onclick="moveQUp('${sec.id}','${q.id}')" title="Move Up" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition"><i class="fa-solid fa-arrow-up"></i></button>
-                    <button onclick="moveQDown('${sec.id}','${q.id}')" title="Move Down" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition"><i class="fa-solid fa-arrow-down"></i></button>
-                    <select onchange="moveQToSection('${sec.id}','${q.id}', this.value)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition text-xs border border-slate-600 focus:outline-none">
-                        ${moveOptions}
-                    </select>
-                    <button onclick="openEditModal('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
-                    <button onclick="removeQ('${sec.id}','${q.id}')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button>
-                </div>
-            </div>
-            <div class="text-sm text-slate-100 whitespace-pre-line bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/60">${escapeWithBreaks(q.text)}</div>
-        `;
-        container.appendChild(card);
-    });
-    updateTotals();
-}
-
-/* =========================================================
-   TOTALS
-   ========================================================= */
-function updateTotals() {
-    let totalQ = 0, totalM = 0;
-    testPaper.sections.forEach(s => {
-        totalQ += s.questions.length;
-        s.questions.forEach(q => totalM += Number(q.marks));
-    });
-    document.getElementById('totalQuestionsCount').innerText = totalQ;
-    document.getElementById('totalMarksCount').innerText = totalM;
-}
-
-/* =========================================================
-   SECTION ACTIONS
-   ========================================================= */
-function addNewSection() {
-    document.getElementById('secNameInput').value = "Section " + String.fromCharCode(65 + testPaper.sections.length);
-    document.getElementById('secTypeInput').value = "Multiple Choice Questions (MCQ)";
-    document.getElementById('secMarksInput').value = 1;
-    document.getElementById('customSecTypeContainer').classList.add('hidden');
-    document.getElementById('customSecTypeInput').value = "";
-    showModal('sectionModal');
-}
-
-function closeSectionModal() { hideModal('sectionModal'); }
-
-function handleSecTypeChange() {
-    const val = document.getElementById('secTypeInput').value;
-    const c = document.getElementById('customSecTypeContainer');
-    if (val === "Custom / Other") c.classList.remove('hidden');
-    else c.classList.add('hidden');
-}
-
-function saveNewSection() {
-    const name = document.getElementById('secNameInput').value.trim();
-    let type = document.getElementById('secTypeInput').value;
-    if (type === "Custom / Other") type = document.getElementById('customSecTypeInput').value.trim() || "Custom Type";
-    const marks = Number(document.getElementById('secMarksInput').value) || 1;
-
-    if (!name) return alert("Enter section name");
-
-    const newSec = { id: uid('sec'), name, type, marksPerQ: marks, questions: [] };
-    testPaper.sections.push(newSec);
-    activeSectionId = newSec.id;
-    saveState();
-    closeSectionModal();
-    renderSidebar();
-    renderCanvas();
-}
-
-function renameSec(id, name) {
-    const s = testPaper.sections.find(sec => sec.id === id);
-    if (s && name.trim()) {
-        s.name = name.trim();
-        saveState();
-        renderSidebar();
-        renderCanvas();
-    }
-}
-
-function deleteSec(id) {
-    if (testPaper.sections.length <= 1) return alert("At least one section required.");
-    if (!confirm("Delete this section and all its questions?")) return;
-    testPaper.sections = testPaper.sections.filter(sec => sec.id !== id);
-    activeSectionId = testPaper.sections[0].id;
-    saveState();
-    renderSidebar();
-    renderCanvas();
-}
-
-/* =========================================================
-   QUESTION ACTIONS
-   ========================================================= */
-function removeQ(secId, qId) {
-    const s = testPaper.sections.find(sec => sec.id === secId);
-    if (!s) return;
-    s.questions = s.questions.filter(q => q.id !== qId);
-    saveState();
-    renderCanvas();
-    renderSidebar();
-}
-
-function moveQUp(secId, qId) {
-    const s = testPaper.sections.find(sec => sec.id === secId);
-    if (!s) return;
-    const i = s.questions.findIndex(q => q.id === qId);
-    if (i > 0) {
-        [s.questions[i-1], s.questions[i]] = [s.questions[i], s.questions[i-1]];
-        saveState();
-        renderCanvas();
-    }
-}
-
-function moveQDown(secId, qId) {
-    const s = testPaper.sections.find(sec => sec.id === secId);
-    if (!s) return;
-    const i = s.questions.findIndex(q => q.id === qId);
-    if (i >= 0 && i < s.questions.length - 1) {
-        [s.questions[i+1], s.questions[i]] = [s.questions[i], s.questions[i+1]];
-        saveState();
-        renderCanvas();
-    }
-}
-
-function moveQToSection(fromSecId, qId, toSecId) {
-    if (!toSecId) return;
-    const from = testPaper.sections.find(s => s.id === fromSecId);
-    const to = testPaper.sections.find(s => s.id === toSecId);
-    if (!from || !to) return;
-    const idx = from.questions.findIndex(q => q.id === qId);
-    if (idx === -1) return;
-    const [q] = from.questions.splice(idx, 1);
-    to.questions.push(q);
-    saveState();
-    renderSidebar();
-    renderCanvas();
-}
-
-/* =========================================================
-   QUESTION MODAL
-   ========================================================= */
-function setQTypeDropdown(type) {
-    const sel = document.getElementById('qType');
-    const known = [...sel.options].some(o => o.value === type);
-    if (known) {
-        sel.value = type;
-        document.getElementById('customQTypeInput').value = "";
-        document.getElementById('customQTypeContainer').classList.add('hidden');
-    } else {
-        sel.value = "Custom / Other";
-        document.getElementById('customQTypeInput').value = type || "";
-        document.getElementById('customQTypeContainer').classList.remove('hidden');
-    }
-}
-
-function openAddCustomQuestionModal() {
-    const sec = testPaper.sections.find(s => s.id === activeSectionId);
-    document.getElementById('questionModalTitle').innerText = "Add Custom Question";
-    document.getElementById('editQuestionId').value = "";
-    document.getElementById('qText').value = "";
-    document.getElementById('qMarks').value = sec ? (sec.marksPerQ || 1) : 1;
-    setQTypeDropdown(sec ? sec.type : "Multiple Choice Questions (MCQ)");
-    showModal('questionModal');
-}
-
-function openEditModal(qId) {
-    const sec = testPaper.sections.find(s => s.id === activeSectionId);
-    if (!sec) return;
-    const q = sec.questions.find(item => item.id === qId);
-    if (!q) return;
-
-    document.getElementById('questionModalTitle').innerText = "Edit Question";
-    document.getElementById('editQuestionId').value = q.id;
-    document.getElementById('qText').value = q.text;
-    document.getElementById('qMarks').value = q.marks;
-    setQTypeDropdown(q.type);
-    showModal('questionModal');
-}
-
-function closeQuestionModal() { hideModal('questionModal'); }
-
-function handleQTypeChange() {
-    const val = document.getElementById('qType').value;
-    const c = document.getElementById('customQTypeContainer');
-    if (val === "Custom / Other") c.classList.remove('hidden');
-    else c.classList.add('hidden');
-}
-
-function saveQuestionData() {
-    const qId = document.getElementById('editQuestionId').value;
-    let type = document.getElementById('qType').value;
-    if (type === "Custom / Other") type = document.getElementById('customQTypeInput').value.trim() || "Custom Type";
-    const text = document.getElementById('qText').value.trim();
-    const marks = Number(document.getElementById('qMarks').value) || 1;
-
-    const sec = testPaper.sections.find(s => s.id === activeSectionId);
-    if (!sec) return alert("No active section.");
-
-    if (!text) return alert("Question text cannot be empty");
-
-    if (qId) {
-        const q = sec.questions.find(item => item.id === qId);
-        if (q) { q.type = type; q.text = text; q.marks = marks; }
-    } else {
-        sec.questions.push({ id: uid('q'), type, text, marks });
-    }
-
-    saveState();
-    closeQuestionModal();
-    renderCanvas();
-    renderSidebar();
-}
-
-/* =========================================================
-   PRINT PREVIEW
-   ========================================================= */
-function previewPrintLayout() {
-    const content = document.getElementById('printPreviewContent');
-    let html = `
-        <div class="text-center border-b-2 border-slate-900 pb-4 mb-4">
-            <h1 class="text-xl font-bold uppercase tracking-wide">${escapeHtml(testPaper.title)}</h1>
-            <p class="text-xs text-slate-600 mt-1">Time: ______  |  Max Marks: ${computeTotalMarks()}</p>
-        </div>
-    `;
-
-    if (testPaper.sections.length === 0 || computeTotalQuestions() === 0) {
-        html += `<p class="text-center text-slate-500 italic py-8">No questions to print.</p>`;
-    } else {
-        testPaper.sections.forEach(sec => {
-            if (sec.questions.length === 0) return;
-            html += `<div class="mb-5">
-                <h3 class="font-bold bg-slate-200 px-2 py-1 mb-2 text-sm">${escapeHtml(sec.name)} — <span class="font-normal italic">${escapeHtml(sec.type)}</span></h3>
-                <div class="space-y-3 pl-2">`;
-            sec.questions.forEach((q, i) => {
-                html += `<div class="flex items-start gap-2 text-sm">
-                    <span class="font-bold min-w-[24px]">${i+1}.</span>
-                    <div class="flex-1">${escapeWithBreaks(q.text)}</div>
-                    <span class="text-xs font-semibold whitespace-nowrap">[${q.marks}]</span>
-                </div>`;
-            });
-            html += `</div></div>`;
-        });
-    }
-    content.innerHTML = html;
-    showModal('printModal');
-}
-
-function computeTotalMarks() {
-    let m = 0;
-    testPaper.sections.forEach(s => s.questions.forEach(q => m += Number(q.marks)));
-    return m;
-}
-function computeTotalQuestions() {
-    let n = 0;
-    testPaper.sections.forEach(s => n += s.questions.length);
-    return n;
-}
-
-function closePrintModal() { hideModal('printModal'); }
-
-/* =========================================================
-   MODAL HELPERS
-   ========================================================= */
-function showModal(id) {
-    const el = document.getElementById(id);
-    el.classList.remove('hidden');
-    el.classList.add('flex');
-}
-function hideModal(id) {
-    const el = document.getElementById(id);
-    el.classList.add('hidden');
-    el.classList.remove('flex');
-}
+function showModal(id){const e=document.getElementById(id);e.classList.remove('hidden');e.classList.add('flex')}
+function hideModal(id){const e=document.getElementById(id);e.classList.add('hidden');e.classList.remove('flex')}
+function closeSectionModal(){hideModal('sectionModal')}
+function closeQuestionModal(){hideModal('questionModal')}
+function closePrintModal(){hideModal('printModal')}
 </script>
 </body>
 </html>
