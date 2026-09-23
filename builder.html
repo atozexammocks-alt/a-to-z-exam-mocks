@@ -282,8 +282,7 @@
     async function initBuilderStudio() {
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
-        cloudVault = []; 
-        snap.forEach(d => cloudVault.push({ id: d.id, ...d.data() }));
+        cloudVault = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       } catch (e) {}
 
       document.getElementById('total-vault-count-badge').textContent = `${cloudVault.length} Qs`;
@@ -369,7 +368,7 @@
             </div>
           </div>
           <div class="q-img-holder" onclick="openQuestionPopup('${q.id}')">
-            <img src="${q.question}" loading="lazy" alt="Q">
+            <img src="${q.question}" loading="lazy" decoding="async" fetchpriority="low"
           </div>
           ${q.qText ? `<p style="font-size:11px; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><strong>Q:</strong> ${q.qText}</p>` : ''}
         `;
@@ -391,7 +390,7 @@
       
       modalBody.innerHTML = `
         ${q.qText ? `<div style="font-size:14px; font-weight:bold; color:#0f172a; margin-bottom:8px;">${q.qText}</div>` : ''}
-        ${q.question ? `<img src="${q.question}" style="max-width:100%; height:auto; display:block; margin-bottom:12px; border-radius:4px;">` : ''}
+        ${q.question ? `<img src="${q.question}" loading="lazy" decoding="async" fetchpriority="low"` : ''}
         ${q.optText ? `<div style="font-weight:bold; color:#0f172a; font-size:13px; margin-top:10px; border-top:1px solid #e2e8f0; padding-top:8px;">Options:</div><div style="font-size:13px; color:#334155; margin-top:4px;">${q.optText}</div>` : ''}
         <div style="margin-top:10px; font-size:12px; color:#64748b;">Correct Answer Key: <strong style="color:#10b981;">${q.key || 'A'}</strong></div>
       `;
@@ -555,7 +554,7 @@
             <div class="${itemClass}">
               <div class="q-header">Q.${idx + 1}</div>
               ${q.qText ? `<div class="q-text">${q.qText}</div>` : ''}
-              ${q.question ? `<img src="${q.question}" class="q-img">` : ''}
+              ${q.question ? `<img src="${q.question}" loading="lazy" decoding="async" fetchpriority="low"` : ''}
               ${q.optText ? `<div class="opt-text"><strong>Options:</strong> ${q.optText}</div>` : ''}
             </div>
           `;
@@ -631,6 +630,7 @@
     window.publishOnlineMockTest = async function() {
       if (!selectedIds.length) return alert('Select questions first!');
       const title = document.getElementById('test-title').value.trim();
+      if (!title) return alert('Please enter a test title before publishing.');
       
       document.getElementById('loading-overlay').style.display = 'flex';
       document.getElementById('loading-text').textContent = `🚀 Publishing Test Instantly...`;
