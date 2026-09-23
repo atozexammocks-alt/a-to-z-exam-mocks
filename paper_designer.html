@@ -255,7 +255,7 @@ function renderSidebar(){
   const d=document.createElement('div');
   d.className='p-3 rounded-lg border cursor-pointer '+(active?'bg-indigo-950/40 border-indigo-500':'bg-slate-800/60 border-slate-700');
   d.onclick=()=>{activeSectionId=sec.id;renderSidebar();renderCanvas()}; d.ondragover=e=>e.preventDefault(); d.ondrop=e=>handleSectionDrop(e,sec.id);
-  const marks=sec.questions.reduce((a,q)=>a+Number(q.marks||0),0);
+  const marks=sec.questions.reduce((a,q)=>a+Number(sec.marksPerQ||q.marks||0),0);
   d.innerHTML='<div class="flex items-center justify-between mb-1"><input value="'+esc(sec.name)+'" onclick="event.stopPropagation()" onchange="renameSec(\''+esc(sec.id)+'\',this.value)" class="bg-transparent text-sm font-semibold w-32 border border-transparent"><div class="flex gap-1"><span class="text-[10px] bg-slate-900 px-2 py-0.5 rounded">'+sec.questions.length+' Qs</span><button onclick="event.stopPropagation();deleteSec(\''+esc(sec.id)+'\')" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button></div></div><div class="flex justify-between text-xs text-slate-400"><span>'+esc(sec.type)+'</span><span>Marks: '+marks+'</span></div>';
   list.appendChild(d);
  });
@@ -320,7 +320,7 @@ function openEditAnywhere(id){
 }
 function handleSectionDrop(e,sectionId){e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)assignQuestion(id,sectionId)}
 
-function updateTotals(){let q=0,m=0;testPaper.sections.forEach(s=>{q+=s.questions.length;s.questions.forEach(x=>m+=Number(x.marks||0))});document.getElementById('totalQuestionsCount').textContent=q;document.getElementById('totalMarksCount').textContent=m}
+function updateTotals(){let q=0,m=0;testPaper.sections.forEach(s=>{q+=s.questions.length;s.questions.forEach(x=>m+=Number(s.marksPerQ||x.marks||0))});document.getElementById('totalQuestionsCount').textContent=q;document.getElementById('totalMarksCount').textContent=m}
 
 function addNewSection(){document.getElementById('secNameInput').value='Section '+String.fromCharCode(65+testPaper.sections.length);document.getElementById('secMarksInput').value=1;document.getElementById('secTypeInput').value='MCQ';document.getElementById('customSecTypeInput').classList.add('hidden');showModal('sectionModal')}
 function handleSecTypeChange(){document.getElementById('customSecTypeInput').classList.toggle('hidden',document.getElementById('secTypeInput').value!=='CUSTOM')}
@@ -363,7 +363,7 @@ function savePrintSettingsAndPreview(){
 function previewPrintLayout(){
  const c=document.getElementById('printPreviewContent');const ps=getPrintSettings();let h='<div class="text-center border-b-2 border-black pb-4 mb-5">'+(ps.logo?'<img src="'+esc(ps.logo)+'" style="max-height:75px;max-width:180px;margin:0 auto 8px;object-fit:contain" onerror="this.style.display=\'none\'">':'')+(ps.institute?'<div class="text-xl font-bold uppercase">'+esc(ps.institute)+'</div>':'')+'<h1 class="text-xl font-bold uppercase mt-1">'+esc(ps.examName||testPaper.title)+'</h1>'+(ps.subject||ps.className?'<p class="text-sm mt-1">'+esc([ps.subject,ps.className].filter(Boolean).join(' • '))+'</p>':'')+'<p class="text-xs mt-1">Max Marks: '+computeTotalMarks()+' | Total Questions: '+computeTotalQuestions()+(ps.duration?' | Duration: '+esc(ps.duration):'')+(ps.date?' | Date: '+esc(ps.date):'')+'</p>'+(ps.instructions?'<div class="text-xs text-left mt-3"><b>Instructions:</b> '+breaks(ps.instructions)+'</div>':'')+'</div>';
  let n=0;
- testPaper.sections.forEach(s=>{if(!s.questions.length)return;h+='<div class="mb-6"><h3 class="font-bold bg-slate-200 px-2 py-1 mb-3 text-sm">'+esc(s.name)+' <span class="font-normal italic">— '+esc(s.type)+'</span></h3>';s.questions.forEach(q=>{n++;h+='<div class="mb-5 text-sm" style="page-break-inside:avoid"><div><b>Q.'+n+'</b> <span style="float:right">['+esc(q.marks)+']</span></div>'+(q.text?'<div class="font-bold mt-1">'+breaks(q.text)+'</div>':'')+(q.image?'<img class="print-q-image" src="'+esc(q.image)+'">':'')+(q.options?'<div class="mt-1">'+breaks(q.options)+'</div>':'')+'</div>'});h+='</div>'});
+ testPaper.sections.forEach(s=>{if(!s.questions.length)return;h+='<div class="mb-6"><h3 class="font-bold bg-slate-200 px-2 py-1 mb-3 text-sm">'+esc(s.name)+' <span class="font-normal italic">— '+esc(s.type)+'</span></h3>';s.questions.forEach(q=>{n++;const qMarks=Number(s.marksPerQ||q.marks||0);h+='<div class="mb-5 text-sm" style="page-break-inside:avoid"><div><b>Q.'+n+'</b></div>'+(q.text?'<div class="font-bold mt-1">'+breaks(q.text)+'</div>':'')+(q.image?'<img class="print-q-image" src="'+esc(q.image)+'">':'')+(q.options?'<div class="mt-1">'+breaks(q.options)+'</div>':'')+'</div>'});h+='</div>'});
  c.innerHTML=h||'<p class="text-center text-slate-500">No questions to print.</p>';showModal('printModal')
 }
 function computeTotalMarks(){return testPaper.sections.reduce((a,s)=>a+s.questions.reduce((b,q)=>b+Number(q.marks||0),0),0)}
