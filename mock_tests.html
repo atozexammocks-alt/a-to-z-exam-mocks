@@ -77,7 +77,9 @@ function normalise(d){
    teacher:val(t,['teacherName','teacher','createdByName','authorName','publisherName'],val(t,['teacherEmail','createdByEmail','authorEmail','publisherEmail'],'Teacher')),
    teacherEmail:val(t,['teacherEmail','createdByEmail','authorEmail','publisherEmail'],''),
    price: Number(t.price || 0),
-   visibility:val(t,['visibility','status','access'],'public').toLowerCase(),
+   visibility:val(t,['visibility'],'').toLowerCase(),
+   status:val(t,['status'],'').toLowerCase(),
+   isPublic: t.isPublic !== false && t.isPublic !== 'false',
    source:val(t,['source','createdByRole','publisherRole'],'teacher').toLowerCase()
  };
 }
@@ -85,13 +87,14 @@ async function load(){
  try{
    const snap=await window.getDocs(window.collection(window.db,'published_tests'));
    tests=[]; snap.forEach(d=>tests.push(normalise(d)));
+   console.log('[Mock Tests] published_tests loaded:', tests.length, tests);
    const exams=[...new Set(tests.map(t=>t.exam).filter(Boolean))].sort();
    const ef=document.getElementById('examFilter');
    ef.innerHTML='<option value="">All Exams</option>'+exams.map(e=>'<option value="'+escapeHtml(e)+'">'+escapeHtml(e)+'</option>').join('');
    updateStats(); render();
  }catch(e){
    console.error(e);
-   document.getElementById('tests').innerHTML='<div class="empty" style="color:#ef4444">Unable to load published tests. Please check Firebase access/rules.</div>';
+   document.getElementById('tests').innerHTML='<div class="empty" style="color:#ef4444">Unable to load published tests. <br><small style="color:#94a3b8">'+escapeHtml(e?.message||'Firebase read failed')+'</small><br><button class="start" style="margin-top:12px;display:inline-block;width:auto;padding:8px 14px" onclick="load()">↻ Retry</button></div>';
  }
 }
 function updateStats(){
@@ -99,13 +102,14 @@ function updateStats(){
  document.getElementById('examCount').textContent=new Set(tests.map(t=>t.exam)).size;
  const pubs=new Set(tests.map(t=>t.teacherEmail||t.teacher).filter(Boolean));
  document.getElementById('teacherCount').textContent=pubs.size;
- const publicTests=tests.filter(t=>!['private','draft','restricted'].includes(t.visibility));
+ const publicTests=tests.filter(t=>t.isPublic && !['private','draft','restricted'].includes(t.visibility) && t.status!=='draft');
  document.getElementById('publicCount').textContent=publicTests.length;
 }
 function render(){
  const q=document.getElementById('search').value.toLowerCase().trim();
  const exam=document.getElementById('examFilter').value;
- const list=tests.filter(t=>(!exam||t.exam===exam)&&(!q||[t.title,t.exam,t.teacher,t.teacherEmail].join(' ').toLowerCase().includes(q)));
+ const list=tests.filter(t=>t.isPublic && !['private','draft','restricted'].includes(t.visibility) && t.status!=='draft')
+   .filter(t=>(!exam||t.exam===exam)&&(!q||[t.title,t.exam,t.teacher,t.teacherEmail].join(' ').toLowerCase().includes(q)));
  const box=document.getElementById('tests');
  if(!list.length){box.innerHTML='<div class="empty">No published mock tests match your selection.</div>';return}
  box.innerHTML=list.map(t=>{
@@ -129,7 +133,7 @@ async function buyTest(encodedId){
   alert('₹'+Number(test.price).toFixed(0)+' paid-test checkout is ready in the catalog, but the live payment gateway still needs to be connected before real money can be collected.');
 }
 window.buyTest=buyTest;
-window.onload=load;
+window.addEventListener('load', load);
 </script>
 </body>
 </html>
