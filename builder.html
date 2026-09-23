@@ -526,11 +526,13 @@
               .test-meta { text-align: center; font-size: 11px; margin-bottom: 15px; color: #334155; }
               .layout-1col { display: flex; flex-direction: column; gap: 14px; }
               .q-item-1col { border-bottom: 1px solid #cbd5e1; padding-bottom: 10px; page-break-inside: avoid; background: #fff; }
-              .layout-2col { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px 18px; width: 100%; }
-              .q-item-2col { flex: 0 0 calc(50% - 9px); width: calc(50% - 9px); border: 1px solid #cbd5e1; padding: 10px; border-radius: 4px; page-break-inside: avoid; break-inside: avoid; background: #fff; }
+              .layout-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; width: 100%; align-items: start; }
+              .print-column { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+              .q-item-2col { width: 100%; border: 1px solid #cbd5e1; padding: 10px; border-radius: 4px; break-inside: avoid; page-break-inside: avoid; background: #fff; }
               @media print {
-                .layout-2col { display: flex !important; flex-wrap: wrap !important; }
-                .q-item-2col { flex: 0 0 calc(50% - 9px) !important; width: calc(50% - 9px) !important; }
+                .layout-2col { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 18px !important; }
+                .print-column { display: flex !important; flex-direction: column !important; gap: 14px !important; }
+                .q-item-2col { width: 100% !important; break-inside: avoid !important; page-break-inside: avoid !important; }
               }
               .q-header { font-weight: bold; font-size: 12px; margin-bottom: 4px; color: #000; }
               .q-text { font-size: 11px; margin-bottom: 6px; font-weight: bold; color: #000; }
@@ -552,9 +554,35 @@
             <div class="${layoutMode === '2col' ? 'layout-2col' : 'layout-1col'}">
         `;
 
-        selectedQuestions.forEach((q, idx) => {
-          let itemClass = layoutMode === '2col' ? 'q-item-2col' : 'q-item-1col';
-          htmlContent += `
+        const renderPrintQuestion = (q, idx) => `
+          <div class="q-item-2col">
+            <div class="q-header">Q.${idx + 1}</div>
+            ${q.qText ? `<div class="q-text">${q.qText}</div>` : ''}
+            ${q.question ? `<img src="${q.question}" class="q-img">` : ''}
+            ${q.optText ? `<div class="opt-text"><strong>Options:</strong> ${q.optText}</div>` : ''}
+          </div>
+        `;
+
+        if (layoutMode === '2col') {
+          htmlContent += '<div class="print-column">';
+          selectedQuestions.forEach((q, idx) => { if (idx % 2 === 0) htmlContent += renderPrintQuestion(q, idx); });
+          htmlContent += '</div><div class="print-column">';
+          selectedQuestions.forEach((q, idx) => { if (idx % 2 === 1) htmlContent += renderPrintQuestion(q, idx); });
+          htmlContent += '</div>';
+        } else {
+          selectedQuestions.forEach((q, idx) => {
+            htmlContent += `
+              <div class="q-item-1col">
+                <div class="q-header">Q.${idx + 1}</div>
+                ${q.qText ? `<div class="q-text">${q.qText}</div>` : ''}
+                ${q.question ? `<img src="${q.question}" class="q-img">` : ''}
+                ${q.optText ? `<div class="opt-text"><strong>Options:</strong> ${q.optText}</div>` : ''}
+              </div>
+            `;
+          });
+        }
+
+        htmlContent += `
             <div class="${itemClass}">
               <div class="q-header">Q.${idx + 1}</div>
               ${q.qText ? `<div class="q-text">${q.qText}</div>` : ''}
