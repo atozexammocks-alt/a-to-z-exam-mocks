@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A to Z Exam Mocks - Mock Tests</title>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
+    authDomain: "physicsvault-80a10.firebaseapp.com",
+    projectId: "physicsvault-80a10",
+    storageBucket: "physicsvault-80a10.firebasestorage.app",
+    messagingSenderId: "1043166507399",
+    appId: "1:1043166507399:web:634efdac6f109273d42322"
+  };
+  const app = initializeApp(firebaseConfig);
+  window.db = getFirestore(app);
+  window.collection = collection;
+  window.getDocs = getDocs;
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{background:#060911;color:#f8fafc;min-height:100vh}
+header{height:64px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:10}
+.brand{color:#38bdf8;font-size:16px;font-weight:900;text-decoration:none}
+.nav{display:flex;gap:8px;align-items:center}
+.nav a{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:7px 12px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700}
+main{max-width:1100px;margin:0 auto;padding:28px 20px}
+.hero{background:linear-gradient(135deg,#0b1120,#0f172a);border:1px solid #1e293b;border-radius:16px;padding:24px;margin-bottom:20px}
+.hero h1{font-size:22px;font-weight:900}.hero p{color:#94a3b8;font-size:13px;margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+.stat{background:#060911;border:1px solid #334155;border-radius:10px;padding:14px}.stat b{display:block;color:#38bdf8;font-size:22px}.stat span{color:#94a3b8;font-size:11px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+input,select{background:#0b1120;border:1px solid #334155;color:#fff;border-radius:8px;padding:9px 11px;font-size:12px;outline:none}
+input{flex:1;min-width:220px}.tests{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.card{background:#0b1120;border:1px solid #1e293b;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.card h3{font-size:16px;color:#38bdf8}.meta{font-size:11px;color:#94a3b8;line-height:1.7}
+.badge{display:inline-block;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:#10b981;border-radius:5px;padding:3px 7px;font-size:10px;font-weight:800}
+.start{margin-top:auto;background:#2563eb;border:0;color:white;border-radius:8px;padding:10px;font-weight:800;cursor:pointer;text-decoration:none;text-align:center;font-size:12px}
+.empty{color:#64748b;text-align:center;padding:40px;border:1px dashed #334155;border-radius:12px}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)}header{padding:0 14px}}
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="student.html">🎓 A to Z Exam Mocks</a>
+  <div class="nav"><a href="student.html">🏠 Student Home</a></div>
+</header>
+<main>
+<section class="hero">
+  <h1>📝 Mock Test Library</h1>
+  <p>Choose an exam first, then select the available published mock test. Every test opens in the same secure Test Player.</p>
+  <div class="stats">
+    <div class="stat"><b id="totalCount">0</b><span>Published Mocks</span></div>
+    <div class="stat"><b id="examCount">0</b><span>Exams</span></div>
+    <div class="stat"><b id="teacherCount">0</b><span>Teachers / Publishers</span></div>
+    <div class="stat"><b id="publicCount">0</b><span>Public Mocks</span></div>
+  </div>
+</section>
+<div class="toolbar">
+  <input id="search" placeholder="Search mock test, exam or teacher..." oninput="render()">
+  <select id="examFilter" onchange="render()"><option value="">All Exams</option></select>
+</div>
+<div id="tests" class="tests"><div class="empty">Loading published mock tests...</div></div>
+</main>
+<script>
+let tests=[];
+const val=(o,keys,fb='')=>{for(const k of keys){if(o&&o[k]!==undefined&&o[k]!==null&&String(o[k]).trim()!=='')return String(o[k]).trim()}return fb};
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function normalise(d){
+ const t=d.data();
+ return {id:d.id,...t,
+   title:val(t,['title','name'],'Mock Test'),
+   exam:val(t,['exam','examName','examTitle','category','subject'],'General'),
+   teacher:val(t,['teacherName','teacher','createdByName','authorName','publisherName'],val(t,['teacherEmail','createdByEmail','authorEmail','publisherEmail'],'Teacher')),
+   teacherEmail:val(t,['teacherEmail','createdByEmail','authorEmail','publisherEmail'],''),
+   visibility:val(t,['visibility','status','access'],'public').toLowerCase(),
+   source:val(t,['source','createdByRole','publisherRole'],'teacher').toLowerCase()
+ };
+}
+async function load(){
+ try{
+   const snap=await window.getDocs(window.collection(window.db,'published_tests'));
+   tests=[]; snap.forEach(d=>tests.push(normalise(d)));
+   const exams=[...new Set(tests.map(t=>t.exam).filter(Boolean))].sort();
+   const ef=document.getElementById('examFilter');
+   ef.innerHTML='<option value="">All Exams</option>'+exams.map(e=>'<option value="'+escapeHtml(e)+'">'+escapeHtml(e)+'</option>').join('');
+   updateStats(); render();
+ }catch(e){
+   console.error(e);
+   document.getElementById('tests').innerHTML='<div class="empty" style="color:#ef4444">Unable to load published tests. Please check Firebase access/rules.</div>';
+ }
+}
+function updateStats(){
+ document.getElementById('totalCount').textContent=tests.length;
+ document.getElementById('examCount').textContent=new Set(tests.map(t=>t.exam)).size;
+ const pubs=new Set(tests.map(t=>t.teacherEmail||t.teacher).filter(Boolean));
+ document.getElementById('teacherCount').textContent=pubs.size;
+ const publicTests=tests.filter(t=>!['private','draft','restricted'].includes(t.visibility));
+ document.getElementById('publicCount').textContent=publicTests.length;
+}
+function render(){
+ const q=document.getElementById('search').value.toLowerCase().trim();
+ const exam=document.getElementById('examFilter').value;
+ const list=tests.filter(t=>(!exam||t.exam===exam)&&(!q||[t.title,t.exam,t.teacher,t.teacherEmail].join(' ').toLowerCase().includes(q)));
+ const box=document.getElementById('tests');
+ if(!list.length){box.innerHTML='<div class="empty">No published mock tests match your selection.</div>';return}
+ box.innerHTML=list.map(t=>{
+   const n=t.questionIds?.length || t.questions?.length || 0;
+   const publicBadge=!['private','draft','restricted'].includes(t.visibility)?'<span class="badge">PUBLIC</span>':'<span class="badge" style="color:#94a3b8;border-color:#334155;background:#0f172a">RESTRICTED</span>';
+   return '<article class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><h3>'+escapeHtml(t.title)+'</h3>'+publicBadge+'</div>'+
+   '<div class="meta">🎯 Exam: <b>'+escapeHtml(t.exam)+'</b><br>👨‍🏫 Publisher: '+escapeHtml(t.teacher)+
+   '<br>⏱ '+escapeHtml(t.time||60)+' mins • ❓ '+n+' questions • 🏆 '+escapeHtml(t.marks||100)+' marks</div>'+
+   '<a class="start" href="test_player.html?id='+encodeURIComponent(t.id)+'">Start Test ➜</a></article>';
+ }).join('');
+}
+window.render=render;
+window.onload=load;
+</script>
+</body>
+</html>
