@@ -54,8 +54,7 @@
         document.getElementById('auth-overlay').style.display = 'none';
         document.getElementById('current-user-tag').textContent = savedEmail;
         window.checkSuperAdminStatus(savedEmail);
-        await loadLibraryStateFromCloud();
-        initStudio();
+        await Promise.all([loadLibraryStateFromCloud(), initStudio()]);
       }
     };
   </script>
@@ -473,7 +472,11 @@
           await window.setDoc(ref, { email, pin, createdAt: new Date().toISOString() });
           onLoginSuccess(email);
         }
-      } catch (e) { onLoginSuccess(email); }
+      } catch (e) {
+        console.error("Teacher login failed:", e);
+        alert("Unable to verify your account right now. Please check your internet connection and try again.");
+        return;
+      }
     }
 
     async function onLoginSuccess(email) {
@@ -1035,7 +1038,7 @@
       renderFolderCards();
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
-        cloudVault = []; snap.forEach(d => cloudVault.push({ id: d.id, ...d.data() }));
+        cloudVault = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       } catch (e) {}
     }
 
