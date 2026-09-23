@@ -198,6 +198,7 @@
       <div id="blueprint-summary" style="margin-top:10px;padding:9px;border-radius:7px;background:#0f172a;border:1px solid #334155;font-size:11px;"></div>
       <div style="display:flex;gap:7px;margin-top:10px;justify-content:flex-end;">
         <button class="tool-btn" style="background:#475569;" onclick="autoArrangePaper()">⚡ Auto Arrange Selected</button>
+        <button class="tool-btn" style="background:#0284c7;padding:9px 14px;font-weight:800;" onclick="printBlueprintPaper()">🖨️ Print This Paper</button>
         <button class="tool-btn" style="background:#10b981;padding:9px 14px;font-weight:800;" onclick="saveBlueprint()">✔ Apply Paper Pattern</button>
       </div>
     </div>
@@ -623,6 +624,24 @@
       });
       renderBlueprint();
       showToast('⚡ Selected questions arranged by type');
+    };
+
+    window.printBlueprintPaper = function() {
+      if (!selectedIds.length) return alert('Select questions first!');
+      // Save the current blueprint values/assignments, then open the existing PDF print flow.
+      paperBlueprint.totalMarks=Number(document.getElementById('bp-total-marks').value)||0;
+      paperBlueprint.defaultLayout=document.getElementById('bp-default-layout').value;
+      paperBlueprint.style=document.getElementById('bp-style').value;
+      document.getElementById('test-marks').value=paperBlueprint.totalMarks;
+      selectedIds.forEach((id)=>{
+        if(paperQuestionOverrides[id]?.sectionId) return;
+        const q=cloudVault.find(x=>x.id===id); if(!q) return;
+        const type=inferQuestionType(q);
+        const s=paperBlueprint.sections.find(x=>x.type===type)||paperBlueprint.sections[0];
+        if(s) paperQuestionOverrides[id]={...(paperQuestionOverrides[id]||{}),sectionId:s.id,paperType:type,marks:Number(s.marks)||1};
+      });
+      closeBlueprint();
+      openPrintModal('qp');
     };
 
     window.saveBlueprint = function() {
