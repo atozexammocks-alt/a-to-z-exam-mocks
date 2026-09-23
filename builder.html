@@ -116,8 +116,15 @@
     .section-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .section-controls { display:flex; gap:5px; flex-wrap:wrap; }
     .section-q-list { margin-top:8px; display:flex; flex-direction:column; gap:5px; }
-    .section-q-row { display:flex; align-items:center; gap:6px; background:#0f172a; border:1px solid #1e293b; border-radius:6px; padding:6px; font-size:10px; }
-    .section-q-row img { width:44px; height:34px; object-fit:contain; background:#fff; border-radius:3px; }
+    .section-q-row { display:grid; grid-template-columns:72px 1fr auto; align-items:center; gap:8px; background:#0f172a; border:1px solid #1e293b; border-radius:7px; padding:7px; font-size:10px; cursor:grab; transition:.15s; }
+    .section-q-row:hover { border-color:#38bdf8; background:#111c31; }
+    .section-q-row.dragging { opacity:.45; border-color:#f59e0b; }
+    .section-q-row.drag-over { border-color:#10b981; box-shadow:0 0 0 1px #10b981 inset; }
+    .section-q-row img { width:72px; height:58px; object-fit:contain; background:#fff; border-radius:4px; }
+    .bp-q-main { min-width:0; display:flex; flex-direction:column; gap:4px; }
+    .bp-q-title { font-weight:800; color:#e2e8f0; line-height:1.25; }
+    .bp-q-meta { color:#64748b; font-size:9px; }
+    .bp-q-actions { display:flex; gap:4px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
     .paper-editor-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     .editor-panel { background:#060911; border:1px solid #1e293b; border-radius:8px; padding:10px; }
     #paper-editor-preview { background:#fff; color:#000; border-radius:7px; padding:12px; min-height:170px; overflow:auto; }
@@ -591,11 +598,11 @@
 
     function renderBlueprintQuestions(i) {
       const box=document.getElementById('bp-q-list-'+i); if(!box) return;
-      const ids=safeSectionQuestionIds(paperBlueprint.sections[i]);
+      const ids=orderedSectionQuestionIds(paperBlueprint.sections[i]);
       if(!ids.length){ box.innerHTML='<div style="font-size:10px;color:#64748b;">No questions assigned yet. Select questions and use Auto Arrange, or edit each question and choose its section.</div>'; return; }
       box.innerHTML=ids.map((id,n)=>{
         const q=cloudVault.find(x=>x.id===id); if(!q) return '';
-        return `<div class="section-q-row"><span style="font-weight:800;">Q${n+1}</span><img src="${q.question||''}"><span style="flex:1;">${escapeHtml(q.qText||'Image question')}</span><button class="f-btn" onclick="openPaperQuestionEditor('${id}')">✏️ Edit</button></div>`;
+        const o=paperQuestionOverrides[id]||{}; const view=paperQuestionView(q); const type=o.paperType||inferQuestionType(q); return `<div class="section-q-row" draggable="true" data-qid="${id}" data-section="${paperBlueprint.sections[i].id}" ondragstart="startBlueprintQuestionDrag(event,'${id}',${i})" ondragover="allowBlueprintQuestionDrop(event)" ondrop="dropBlueprintQuestion(event,'${id}',${i})" ondragend="endBlueprintQuestionDrag(event)"><img src="${view.question||''}" alt="Question preview"><div class="bp-q-main"><div class="bp-q-title">Q${n+1} • ${escapeHtml((q.qText||'Image-based question').slice(0,140))}</div><div class="bp-q-meta">${type} • ${o.marks??paperBlueprint.sections[i].marks} Mark • ID: ${escapeHtml(id.slice(0,12))}${id.length>12?'…':''}</div></div><div class="bp-q-actions"><button class="f-btn" title="Move up" onclick="moveBlueprintQuestion('${id}',-1)">↑</button><button class="f-btn" title="Move down" onclick="moveBlueprintQuestion('${id}',1)">↓</button><button class="f-btn" title="Edit question / change section" onclick="openPaperQuestionEditor('${id}')">✏️ Edit</button></div></div>`;
       }).join('');
     }
 
@@ -606,6 +613,32 @@
         return (o.sectionId||'')===section.id;
       });
     }
+
+    let blueprintDraggedQuestionId=null;
+    let blueprintDraggedSectionIndex=-1;
+    window.startBlueprintQuestionDrag=function(e,id,sectionIndex){ blueprintDraggedQuestionId=id; blueprintDraggedSectionIndex=sectionIndex; e.currentTarget.classList.add('dragging'); if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);} };
+    window.allowBlueprintQuestionDrop=function(e){ e.preventDefault(); if(e.dataTransfer)e.dataTransfer.dropEffect='move'; e.currentTarget.classList.add('drag-over'); };
+    window.dropBlueprintQuestion=function(e,targetId,sectionIndex){
+      e.preventDefault(); e.stopPropagation();
+      const sourceId=blueprintDraggedQuestionId || (e.dataTransfer&&e.dataTransfer.getData('text/plain'));
+      document.querySelectorAll('.section-q-row.drag-over').forEach(x=>x.classList.remove('drag-over'));
+      if(!sourceId||sourceId===targetId)return;
+      const sourceIndex=blueprintDraggedSectionIndex, targetSection=paperBlueprint.sections[sectionIndex]; if(!targetSection)return;
+      const sourceIds=safeSectionQuestionIds(paperBlueprint.sections[sourceIndex]).filter(id=>id!==sourceId);
+      const targetIds=safeSectionQuestionIds(targetSection).filter(id=>id!==sourceId);
+      const ti=Math.max(0,targetIds.indexOf(targetId)); targetIds.splice(ti,0,sourceId);
+      const old=paperQuestionOverrides[sourceId]||{};
+      paperQuestionOverrides[sourceId]={...old,sectionId:targetSection.id,paperType:old.paperType||inferQuestionType(cloudVault.find(q=>q.id===sourceId)),marks:old.marks??(Number(targetSection.marks)||1)};
+      paperBlueprint.sections[sourceIndex].questionOrder=sourceIds; paperBlueprint.sections[sectionIndex].questionOrder=targetIds;
+      blueprintDraggedQuestionId=null; blueprintDraggedSectionIndex=-1; renderBlueprint(); showToast('↕ Question moved / reordered');
+    };
+    window.endBlueprintQuestionDrag=function(e){ e.currentTarget.classList.remove('dragging'); document.querySelectorAll('.section-q-row.drag-over').forEach(x=>x.classList.remove('drag-over')); blueprintDraggedQuestionId=null; blueprintDraggedSectionIndex=-1; };
+    window.moveBlueprintQuestion=function(id,dir){
+      const sectionIndex=paperBlueprint.sections.findIndex(s=>safeSectionQuestionIds(s).includes(id)); if(sectionIndex<0)return;
+      const section=paperBlueprint.sections[sectionIndex], ids=safeSectionQuestionIds(section), pos=ids.indexOf(id), next=pos+dir; if(pos<0||next<0||next>=ids.length)return;
+      [ids[pos],ids[next]]=[ids[next],ids[pos]]; section.questionOrder=ids; renderBlueprint();
+    };
+    function orderedSectionQuestionIds(section){ const base=safeSectionQuestionIds(section); if(!Array.isArray(section.questionOrder)||!section.questionOrder.length)return base; const valid=new Set(base),ordered=section.questionOrder.filter(id=>valid.has(id)); base.forEach(id=>{if(!ordered.includes(id))ordered.push(id);}); return ordered; }
     function renderBlueprintSummary() {
       const total=paperBlueprint.sections.reduce((a,s)=>a+(Number(s.count)||0)*(Number(s.marks)||0),0);
       const target=Number(document.getElementById('bp-total-marks').value)||0;
@@ -893,7 +926,7 @@
 
         let paperNo=0;
         blueprintForPrint.forEach((section, sIdx) => {
-          const sectionQs=selectedQuestions.filter(q => ((paperQuestionOverrides[q.id]||{}).sectionId||'')===section.id);
+          const orderedIds=orderedSectionQuestionIds(section); const sectionQs=orderedIds.map(id=>selectedQuestions.find(q=>q.id===id)).filter(Boolean);
           if(!sectionQs.length && sIdx>0) return;
           htmlContent += `
             <div style="grid-column:1/-1;margin:8px 0 2px;border-bottom:2px solid #000;padding:5px 0;page-break-after:avoid;">
