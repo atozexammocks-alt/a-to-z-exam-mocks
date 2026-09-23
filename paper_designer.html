@@ -66,7 +66,7 @@
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Paper Blueprint Summary</h2>
                 <div class="grid grid-cols-2 gap-2 text-center">
                     <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
-                        <span class="block text-xs text-slate-400">Total Questions</span>
+                        <span class="block text-xs text-slate-400">Total Selected Qs</span>
                         <span id="totalQuestionsCount" class="text-lg font-bold text-indigo-400">0</span>
                     </div>
                     <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
@@ -76,8 +76,14 @@
                 </div>
             </div>
 
+            <!-- Special Option for Unassigned Questions Pool -->
+            <div onclick="selectSection('UNASSIGNED')" id="unassignedTab" class="p-3 bg-amber-950/40 border-b border-slate-700 cursor-pointer hover:bg-amber-900/40 transition flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-300"><i class="fa-solid fa-layer-group mr-2"></i>Unassigned Pool</span>
+                <span id="unassignedCountBadge" class="text-[10px] bg-amber-900 text-amber-200 px-2 py-0.5 rounded-full font-bold">0</span>
+            </div>
+
             <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/50">
-                <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Sections Setup</span>
+                <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-list-check mr-2 text-indigo-400"></i>Manage Sections</span>
                 <button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center space-x-1">
                     <i class="fa-solid fa-plus"></i><span>Add Section</span>
                 </button>
@@ -86,74 +92,40 @@
             <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
         </aside>
 
-        <!-- CENTER WORKSPACE: Active Section & Detailed Questions Canvas -->
+        <!-- CENTER WORKSPACE: Active Section & Questions Allocation Canvas -->
         <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden relative">
             <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
                 <div>
-                    <h2 id="activeSectionTitle" class="text-base font-bold text-slate-100">Select a Section</h2>
-                    <p id="activeSectionMeta" class="text-xs text-slate-400">Manage questions inside the active section workspace.</p>
+                    <h2 id="activeSectionTitle" class="text-base font-bold text-slate-100">Unassigned Questions Pool</h2>
+                    <p id="activeSectionMeta" class="text-xs text-slate-400">Yahan se aap decide karein ki kaun sa question kis section mein jayega.</p>
                 </div>
             </div>
 
             <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl mx-auto w-full">
-                <div id="emptyCanvasState" class="h-full flex flex-col items-center justify-center text-center text-slate-500">
-                    <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
-                    <p class="text-base font-medium">No Questions Loaded</p>
-                    <p class="text-xs text-slate-600 mt-1">कृपया टेस्ट बिल्डर से सवाल सेलेक्ट करके यहाँ आएं।</p>
-                </div>
+                <!-- Dynamically populated questions -->
             </div>
         </main>
 
-        <!-- RIGHT SIDEBAR: Clean Dynamic Control Panel & Layout Status -->
+        <!-- RIGHT SIDEBAR: Live Breakdown -->
         <aside class="w-80 bg-slate-800/90 border-l border-slate-700 p-4 flex flex-col overflow-y-auto">
             <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
-                <i class="fa-solid fa-chart-pie mr-1.5 text-indigo-400"></i>Live Section Breakdown
+                <i class="fa-solid fa-chart-pie mr-1.5 text-indigo-400"></i>Section Distribution Status
             </h3>
-            
-            <!-- Dynamic Section Wise Breakdown Container -->
-            <div id="rightDynamicBreakdown" class="space-y-3 flex-1">
-                <!-- Dynamically populated via JS -->
-            </div>
-
+            <div id="rightDynamicBreakdown" class="space-y-3 flex-1"></div>
             <div class="mt-4 pt-3 border-t border-slate-700 text-xs text-slate-400">
-                <p class="font-semibold text-slate-300 mb-1"><i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i>Status Ready</p>
-                सभी सेक्शन्स और मार्क्स सही ढंग से असाइन हो चुके हैं। आप सीधे प्रिंट लेआउट देख सकते हैं।
+                <p class="font-semibold text-slate-300 mb-1"><i class="fa-solid fa-circle-info text-sky-400 mr-1"></i>Guide</p>
+                Har question ke upar diye gaye dropdown se use apne manpasand section mein assign karein.
             </div>
         </aside>
 
     </div>
 
-    <!-- MODAL: Question Library Selection -->
-    <div id="libraryModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
-            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-                <h3 class="font-bold text-base flex items-center space-x-2">
-                    <i class="fa-solid fa-book-bookmark text-indigo-400"></i>
-                    <span>Question Bank / Library</span>
-                </h3>
-                <button onclick="closeLibraryModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div class="p-4 flex-1 overflow-y-auto space-y-3" id="libraryQuestionsList"></div>
-            <div class="p-4 border-t border-slate-800 flex justify-end">
-                <button onclick="closeLibraryModal()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm">Done</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: Print Preview -->
+    <!-- MODAL: Library & Print -->
     <div id="printModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
         <div class="bg-white text-slate-900 rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
             <div class="bg-slate-100 p-4 border-b border-slate-300 flex items-center justify-between">
-                <div>
-                    <h3 class="font-bold text-lg text-slate-800">Print Preview Layout</h3>
-                    <p class="text-xs text-slate-500">Ready-to-print format optimized for school/institute papers.</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-1.5 shadow">
-                        <i class="fa-solid fa-print"></i><span>Print Paper</span>
-                    </button>
-                    <button onclick="closePrintModal()" class="text-slate-500 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
-                </div>
+                <h3 class="font-bold text-lg text-slate-800">Print Preview Layout</h3>
+                <button onclick="closePrintModal()" class="text-slate-500 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
             </div>
             <div id="printPreviewContent" class="p-8 flex-1 overflow-y-auto space-y-6 font-serif"></div>
         </div>
@@ -161,15 +133,20 @@
 
     <!-- JavaScript Application Logic -->
     <script>
-        let testPaper = { title: "Question Paper", sections: [] };
-        let activeSectionId = null;
-        let questionLibrary = [];
-        let paperQuestionOverrides = {};
+        let testPaper = {
+            title: "Question Paper",
+            sections: [
+                { id: "A", name: "Section A", type: "SHORT", marksPerQ: 1, questions: [] },
+                { id: "B", name: "Section B", type: "SHORT", marksPerQ: 2, questions: [] }
+            ]
+        };
+        let unassignedQuestions = [];
+        let activeSectionId = 'UNASSIGNED';
         let cachedQuestionsMap = {};
+        let paperQuestionOverrides = {};
 
         window.addEventListener('DOMContentLoaded', async () => {
             await loadBuilderDataIntoDesigner();
-            await loadLibraryQuestions();
         });
 
         async function loadBuilderDataIntoDesigner() {
@@ -179,72 +156,30 @@
                 document.getElementById('paperMainTitle').innerText = savedTitle;
             }
 
-            let rawState = localStorage.getItem('AZ_PAPER_DESIGNER_STATE');
-            let rawOverrides = localStorage.getItem('AZ_PAPER_DESIGNER_OVERRIDES');
             let selectedIds = JSON.parse(localStorage.getItem('AZ_BUILDER_SELECTED_IDS') || '[]');
-            
-            try { paperQuestionOverrides = JSON.parse(rawOverrides || '{}'); } catch(e){ paperQuestionOverrides = {}; }
-
             let cachedQuestions = await fetchQuestionsFromIndexedDB(selectedIds);
             cachedQuestions.forEach(q => cachedQuestionsMap[q.id] = q);
 
-            if (rawState) {
-                try {
-                    let state = JSON.parse(rawState);
-                    if (state.sections && state.sections.length > 0) {
-                        testPaper.sections = state.sections.map(sec => {
-                            let qObjects = (sec.questions || []).map(id => {
-                                let found = cachedQuestionsMap[id];
-                                if (found) {
-                                    let ov = paperQuestionOverrides[id] || {};
-                                    return {
-                                        id: found.id,
-                                        type: ov.paperType || found.paperType || sec.type || 'SHORT',
-                                        text: ov.qText ?? found.qText ?? '',
-                                        image: ov.keepImage !== false ? (ov.image || found.question || '') : '',
-                                        optText: ov.optText ?? found.optText ?? '',
-                                        marks: ov.marks ?? sec.marks ?? 1
-                                    };
-                                }
-                                return null;
-                            }).filter(Boolean);
+            let rawOverrides = localStorage.getItem('AZ_PAPER_DESIGNER_OVERRIDES');
+            try { paperQuestionOverrides = JSON.parse(rawOverrides || '{}'); } catch(e){ paperQuestionOverrides = {}; }
 
-                            return {
-                                id: sec.id,
-                                name: `Section ${sec.id} - ${sec.title || 'Questions'}`,
-                                type: sec.type || 'SHORT',
-                                marksPerQ: sec.marks || 1,
-                                questions: qObjects
-                            };
-                        });
-                    }
-                } catch(e) {}
-            }
-
-            if (testPaper.sections.length === 0 && selectedIds.length > 0) {
-                let fallbackQs = selectedIds.map(id => {
-                    let found = cachedQuestionsMap[id];
-                    let ov = paperQuestionOverrides[id] || {};
-                    return found ? {
-                        id: found.id,
-                        type: ov.paperType || found.paperType || 'SHORT',
-                        text: ov.qText ?? found.qText ?? '',
-                        image: ov.keepImage !== false ? (ov.image || found.question || '') : '',
-                        optText: ov.optText ?? found.optText ?? '',
-                        marks: ov.marks ?? 1
-                    } : null;
-                }).filter(Boolean);
-
-                testPaper.sections = [{ id: "A", name: "Section A - Selected Questions", type: "SHORT", marksPerQ: 1, questions: fallbackQs }];
-            }
-
-            if (testPaper.sections.length > 0) {
-                activeSectionId = testPaper.sections[0].id;
-            }
+            // Sabhi selected questions ko pehle unassigned pool mein daalo taaki teacher khud section choose kare
+            unassignedQuestions = selectedIds.map(id => {
+                let found = cachedQuestionsMap[id];
+                let ov = paperQuestionOverrides[id] || {};
+                return found ? {
+                    id: found.id,
+                    type: ov.paperType || found.paperType || 'SHORT',
+                    text: ov.qText ?? found.qText ?? '',
+                    image: ov.keepImage !== false ? (ov.image || found.question || '') : '',
+                    optText: ov.optText ?? found.optText ?? '',
+                    marks: ov.marks ?? 1
+                } : null;
+            }).filter(Boolean);
 
             renderSidebarSections();
             renderActiveCanvas();
-            renderRightBreakdown();
+            updateSummaryCounters();
         }
 
         function fetchQuestionsFromIndexedDB(selectedIds) {
@@ -263,62 +198,76 @@
             });
         }
 
-        async function loadLibraryQuestions() {
-            try {
-                if (window.db) {
-                    const snap = await getDocs(collection(window.db, "questions"));
-                    questionLibrary = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                    questionLibrary.forEach(q => cachedQuestionsMap[q.id] = q);
-                }
-            } catch(e) {}
-        }
-
         function goBackToBuilder() { window.location.href = "builder.html"; }
 
-        function updateSummaryCounters() {
-            let totalQ = 0, totalM = 0;
-            testPaper.sections.forEach(sec => {
-                totalQ += sec.questions.length;
-                sec.questions.forEach(q => totalM += Number(q.marks || 1));
-            });
-            document.getElementById('totalQuestionsCount').innerText = totalQ;
-            document.getElementById('totalMarksCount').innerText = totalM;
-            renderRightBreakdown();
+        function selectSection(secId) {
+            activeSectionId = secId;
+            renderSidebarSections();
+            renderActiveCanvas();
         }
 
-        // Render Right Side Clean Dynamic Control Panel
-        function renderRightBreakdown() {
-            const panel = document.getElementById('rightDynamicBreakdown');
-            if (!panel) return;
-            panel.innerHTML = '';
+        function assignQuestionToSection(qId, targetSecId) {
+            if (!targetSecId) return;
+            
+            // Check in unassigned pool first
+            let qIdx = unassignedQuestions.findIndex(q => q.id === qId);
+            let qObj = null;
+            if (qIdx !== -1) {
+                [qObj] = unassignedQuestions.splice(qIdx, 1);
+            } else {
+                // Check across other sections
+                testPaper.sections.forEach(sec => {
+                    let idx = sec.questions.findIndex(q => q.id === qId);
+                    if (idx !== -1) {
+                        [qObj] = sec.questions.splice(idx, 1);
+                    }
+                });
+            }
 
-            testPaper.sections.forEach(sec => {
-                const count = sec.questions.length;
-                const marks = sec.questions.reduce((acc, q) => acc + Number(q.marks || 1), 0);
-                
-                const item = document.createElement('div');
-                item.className = "bg-slate-900/80 border border-slate-700/60 p-3 rounded-lg text-xs space-y-1.5";
-                item.innerHTML = `
-                    <div class="flex justify-between font-bold text-slate-200">
-                        <span>${sec.name}</span>
-                        <span class="text-indigo-400">${count} Qs</span>
-                    </div>
-                    <div class="flex justify-between text-slate-400">
-                        <span>Type: ${sec.type}</span>
-                        <span class="text-emerald-400 font-semibold">${marks} Marks</span>
-                    </div>
-                `;
-                panel.appendChild(item);
-            });
+            if (qObj) {
+                if (targetSecId === 'UNASSIGNED') {
+                    unassignedQuestions.push(qObj);
+                } else {
+                    let targetSec = testPaper.sections.find(s => s.id === targetSecId);
+                    if (targetSec) {
+                        qObj.marks = targetSec.marksPerQ;
+                        targetSec.questions.push(qObj);
+                    }
+                }
+            }
+
+            renderSidebarSections();
+            renderActiveCanvas();
+            updateSummaryCounters();
+        }
+
+        function addNewSection() {
+            const newId = String.fromCharCode(65 + testPaper.sections.length);
+            testPaper.sections.push({ id: newId, name: `Section ${newId}`, type: "SHORT", marksPerQ: 1, questions: [] });
+            selectSection(newId);
+        }
+
+        function updateSectionMarks(secId, marks) {
+            const sec = testPaper.sections.find(s => s.id === secId);
+            if (sec) {
+                sec.marksPerQ = Number(marks);
+                sec.questions.forEach(q => q.marks = sec.marksPerQ);
+                renderActiveCanvas();
+                updateSummaryCounters();
+            }
         }
 
         function renderSidebarSections() {
+            document.getElementById('unassignedCountBadge').innerText = unassignedQuestions.length;
+            const unassignedTab = document.getElementById('unassignedTab');
+            if (activeSectionId === 'UNASSIGNED') {
+                unassignedTab.className = "p-3 bg-amber-900/60 border-b border-amber-500 cursor-pointer transition flex items-center justify-between shadow";
+            } else {
+                unassignedTab.className = "p-3 bg-amber-950/40 border-b border-slate-700 cursor-pointer hover:bg-amber-900/40 transition flex items-center justify-between";
+            }
+
             const listEl = document.getElementById('sectionsSidebarList');
             listEl.innerHTML = '';
-            if (testPaper.sections.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No sections available.</p>`;
-                return;
-            }
 
             testPaper.sections.forEach(sec => {
                 const isActive = sec.id === activeSectionId;
@@ -330,11 +279,8 @@
 
                 card.innerHTML = `
                     <div class="flex items-center justify-between mb-1.5">
-                        <input type="text" value="${sec.name}" onclick="event.stopPropagation()" onchange="renameSection('${sec.id}', this.value)" class="bg-transparent text-sm font-semibold text-slate-200 focus:bg-slate-800 px-1 rounded border border-transparent focus:border-indigo-500 w-40">
-                        <div class="flex items-center space-x-1.5">
-                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">${sec.questions.length} Qs (${secMarks}m)</span>
-                            <button onclick="event.stopPropagation(); deleteSection('${sec.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs" title="Delete Section"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+                        <input type="text" value="${sec.name}" onclick="event.stopPropagation()" onchange="renameSection('${sec.id}', this.value)" class="bg-transparent text-sm font-semibold text-slate-200 focus:bg-slate-800 px-1 rounded border border-transparent focus:border-indigo-500 w-36">
+                        <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">${sec.questions.length} Qs (${secMarks}m)</span>
                     </div>
                     <div class="flex items-center justify-between text-xs text-slate-400">
                         <span>Type: ${sec.type}</span>
@@ -343,145 +289,102 @@
                 `;
                 listEl.appendChild(card);
             });
-            updateSummaryCounters();
-        }
-
-        function selectSection(secId) {
-            activeSectionId = secId;
-            renderSidebarSections();
-            renderActiveCanvas();
-        }
-
-        function addNewSection() {
-            const newId = String.fromCharCode(65 + testPaper.sections.length);
-            testPaper.sections.push({ id: newId, name: `Section ${newId} - New Section`, type: "SHORT", marksPerQ: 1, questions: [] });
-            selectSection(newId);
         }
 
         function renameSection(secId, newName) {
             const sec = testPaper.sections.find(s => s.id === secId);
-            if (sec) { sec.name = newName; renderSidebarSections(); renderRightBreakdown(); }
-        }
-
-        function updateSectionMarks(secId, marks) {
-            const sec = testPaper.sections.find(s => s.id === secId);
-            if (sec) {
-                sec.marksPerQ = Number(marks);
-                sec.questions.forEach(q => q.marks = sec.marksPerQ);
-                renderActiveCanvas();
-                renderSidebarSections();
-            }
-        }
-
-        function deleteSection(secId) {
-            testPaper.sections = testPaper.sections.filter(s => s.id !== secId);
-            if (activeSectionId === secId) activeSectionId = testPaper.sections.length > 0 ? testPaper.sections[0].id : null;
-            renderSidebarSections();
-            renderActiveCanvas();
+            if (sec) { sec.name = newName; renderSidebarSections(); updateSummaryCounters(); }
         }
 
         function renderActiveCanvas() {
             const container = document.getElementById('questionsCanvasContainer');
             const titleEl = document.getElementById('activeSectionTitle');
             const metaEl = document.getElementById('activeSectionMeta');
-            const activeSec = testPaper.sections.find(s => s.id === activeSectionId);
 
-            if (!activeSec) {
-                titleEl.innerText = "No Section Selected";
-                metaEl.innerText = "Create or select a section from the left sidebar.";
-                container.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20"><p class="text-base font-medium">No Section Selected</p></div>`;
-                return;
+            let currentQuestions = [];
+            if (activeSectionId === 'UNASSIGNED') {
+                titleEl.innerText = "Unassigned Questions Pool (Select Section for Each)";
+                metaEl.innerText = `Total unassigned questions waiting to be placed into sections: ${unassignedQuestions.length}`;
+                currentQuestions = unassignedQuestions;
+            } else {
+                let activeSec = testPaper.sections.find(s => s.id === activeSectionId);
+                titleEl.innerText = activeSec ? activeSec.name : "Section Workspace";
+                metaEl.innerText = `Questions assigned to this section.`;
+                currentQuestions = activeSec ? activeSec.questions : [];
             }
 
-            titleEl.innerText = activeSec.name;
-            metaEl.innerText = `Displaying questions in full visual view • Total: ${activeSec.questions.length}`;
-
-            if (activeSec.questions.length === 0) {
-                container.innerHTML = `<div class="text-center py-16 text-slate-500 border border-dashed border-slate-800 rounded-xl"><p class="text-sm font-medium">This section is empty.</p></div>`;
+            if (currentQuestions.length === 0) {
+                container.innerHTML = `<div class="text-center py-16 text-slate-500 border border-dashed border-slate-800 rounded-xl"><p class="text-sm font-medium">No questions in this view.</p></div>`;
                 return;
             }
 
             container.innerHTML = '';
-            activeSec.questions.forEach((q, idx) => {
+            currentQuestions.forEach((q, idx) => {
                 const card = document.createElement('div');
-                card.className = "bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col space-y-3 shadow-lg hover:border-slate-700 transition";
-                
-                let imageHtml = q.image ? `<div class="bg-white p-2 rounded-lg max-h-48 flex items-center justify-center overflow-hidden"><img src="${q.image}" class="max-h-44 object-contain"></div>` : '';
-                let optionsHtml = q.optText ? `<div class="text-xs text-slate-300 bg-slate-950 p-2.5 rounded border border-slate-800 whitespace-pre-line">${q.optText}</div>` : '';
+                card.className = "bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col space-y-3 shadow-lg";
+
+                let imageHtml = q.image ? `<div class="bg-white p-2 rounded-lg max-h-40 flex items-center justify-center overflow-hidden"><img src="${q.image}" class="max-h-36 object-contain"></div>` : '';
+                let optionsHtml = q.optText ? `<div class="text-xs text-slate-300 bg-slate-950 p-2 rounded border border-slate-800 whitespace-pre-line">${q.optText}</div>` : '';
+
+                // Section Assignment Dropdown options
+                let sectionOptions = `<option value="UNASSIGNED" ${activeSectionId==='UNASSIGNED'?'selected':''}>Unassigned Pool</option>`;
+                testPaper.sections.forEach(s => {
+                    sectionOptions += `<option value="${s.id}" ${activeSectionId===s.id?'selected':''}>Send to ${s.name}</option>`;
+                });
 
                 card.innerHTML = `
                     <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                         <div class="flex items-center space-x-2.5">
-                            <span class="bg-indigo-600/20 text-indigo-400 font-bold px-3 py-1 rounded text-xs border border-indigo-500/30">Q.${idx + 1}</span>
-                            <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded font-medium">${q.type}</span>
+                            <span class="bg-indigo-600/20 text-indigo-400 font-bold px-3 py-1 rounded text-xs border border-indigo-500/30">#${idx + 1}</span>
+                            <select onchange="assignQuestionToSection('${q.id}', this.value)" class="bg-slate-800 border border-slate-700 text-xs text-amber-300 font-bold rounded px-2 py-1 focus:outline-none">
+                                ${sectionOptions}
+                            </select>
                         </div>
                         <div class="flex items-center space-x-2 text-xs">
                             <span class="text-emerald-400 font-bold bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-800/40">${q.marks} Mark</span>
-                            <div class="flex items-center space-x-1.5 border-l border-slate-800 pl-3">
-                                <button onclick="moveQuestion('${activeSec.id}', '${q.id}', 'up')" ${idx===0?'disabled class="opacity-30 cursor-not-allowed"':''} class="p-1.5 hover:text-indigo-400 text-slate-400"><i class="fa-solid fa-arrow-up"></i></button>
-                                <button onclick="moveQuestion('${activeSec.id}', '${q.id}', 'down')" ${idx===activeSec.questions.length-1?'disabled class="opacity-30 cursor-not-allowed"':''} class="p-1.5 hover:text-indigo-400 text-slate-400"><i class="fa-solid fa-arrow-down"></i></button>
-                                <button onclick="redirectToEditor('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold ml-1"><i class="fa-solid fa-pen-to-square"></i><span>Edit</span></button>
-                                <button onclick="removeQuestionFromSection('${activeSec.id}', '${q.id}')" class="text-slate-500 hover:text-rose-400 p-1.5 ml-1"><i class="fa-solid fa-trash"></i></button>
-                            </div>
+                            <button onclick="redirectToEditor('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
                         </div>
                     </div>
-                    <div class="text-sm text-slate-100 font-normal leading-relaxed pt-1 whitespace-pre-line bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/60">${q.text || 'Image-based Question'}</div>
+                    <div class="text-sm text-slate-100 font-normal leading-relaxed pt-1 whitespace-pre-line bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/60">${q.text || 'Image Question'}</div>
                     ${imageHtml}
                     ${optionsHtml}
                 `;
                 container.appendChild(card);
             });
-            updateSummaryCounters();
         }
 
-        // Link directly with editor.html
+        function updateSummaryCounters() {
+            let totalQ = unassignedQuestions.length;
+            let totalM = 0;
+            testPaper.sections.forEach(sec => {
+                totalQ += sec.questions.length;
+                sec.questions.forEach(q => totalM += Number(q.marks || 1));
+            });
+            document.getElementById('totalQuestionsCount').innerText = totalQ;
+            document.getElementById('totalMarksCount').innerText = totalM;
+
+            // Render Right Breakdown
+            const panel = document.getElementById('rightDynamicBreakdown');
+            panel.innerHTML = `
+                <div class="bg-amber-950/40 border border-amber-800/60 p-3 rounded-lg text-xs space-y-1">
+                    <div class="flex justify-between font-bold text-amber-300"><span>Unassigned</span><span>${unassignedQuestions.length} Qs</span></div>
+                </div>
+            `;
+            testPaper.sections.forEach(sec => {
+                const count = sec.questions.length;
+                const marks = sec.questions.reduce((acc, q) => acc + Number(q.marks || 1), 0);
+                panel.innerHTML += `
+                    <div class="bg-slate-900/80 border border-slate-700/60 p-3 rounded-lg text-xs space-y-1">
+                        <div class="flex justify-between font-bold text-slate-200"><span>${sec.name}</span><span class="text-indigo-400">${count} Qs</span></div>
+                        <div class="flex justify-between text-slate-400"><span>Marks</span><span class="text-emerald-400 font-semibold">${marks}</span></div>
+                    </div>
+                `;
+            });
+        }
+
         function redirectToEditor(qId) {
             localStorage.setItem('editing_question_id', qId);
             window.location.href = 'editor.html?id=' + qId;
-        }
-
-        function moveQuestion(secId, qId, direction) {
-            const sec = testPaper.sections.find(s => s.id === secId);
-            if (!sec) return;
-            const idx = sec.questions.findIndex(q => q.id === qId);
-            if (idx === -1) return;
-            const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-            if (targetIdx < 0 || targetIdx >= sec.questions.length) return;
-            let temp = sec.questions[idx];
-            sec.questions[idx] = sec.questions[targetIdx];
-            sec.questions[targetIdx] = temp;
-            renderActiveCanvas();
-        }
-
-        function removeQuestionFromSection(secId, qId) {
-            const sec = testPaper.sections.find(s => s.id === secId);
-            if (sec) {
-                sec.questions = sec.questions.filter(q => q.id !== qId);
-                renderActiveCanvas();
-                renderSidebarSections();
-            }
-        }
-
-        function openLibraryModal() {
-            const listEl = document.getElementById('libraryQuestionsList');
-            listEl.innerHTML = questionLibrary.map((libQ, index) => `
-                <div class="bg-slate-800 p-3 rounded flex justify-between items-center text-xs">
-                    <div><b>#${index+1}</b> ${libQ.qText || 'Image Question'}</div>
-                    <button onclick="addFromLibrary('${libQ.id}')" class="bg-indigo-600 px-3 py-1 rounded">Add</button>
-                </div>
-            `).join('');
-            document.getElementById('libraryModal').style.display = 'flex';
-        }
-        function closeLibraryModal() { document.getElementById('libraryModal').style.display = 'none'; }
-        function addFromLibrary(id) {
-            let found = questionLibrary.find(x => x.id === id);
-            let sec = testPaper.sections.find(s => s.id === activeSectionId);
-            if (found && sec) {
-                sec.questions.push({ id: found.id, type: found.paperType || 'SHORT', text: found.qText || '', image: found.question || '', optText: found.optText || '', marks: sec.marksPerQ });
-                renderActiveCanvas();
-                renderSidebarSections();
-                closeLibraryModal();
-            }
         }
 
         function previewPrintLayout() {
@@ -491,7 +394,6 @@
                 s.questions.forEach((q, i) => {
                     html += `<p><b>${i+1}.</b> ${q.text || ''} [${q.marks} Marks]</p>`;
                     if (q.image) html += `<img src="${q.image}" style="max-height:100px;"><br>`;
-                    if (q.optText) html += `<small>${q.optText.replace(/\n/g,'<br>')}</small><br>`;
                 });
             });
             document.getElementById('printPreviewContent').innerHTML = html;
