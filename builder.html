@@ -671,8 +671,16 @@
       showToast('⚡ Selected questions arranged by type');
     };
 
-    window.openPaperDesigner = function() {
+    window.openPaperDesigner = async function() {
   if (!selectedIds.length) return alert('Select questions first!');
+  try {
+    await new Promise((resolve,reject)=>{
+      const req=indexedDB.open('AZExamMocksDesignerDB',1);
+      req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('questions'))db.createObjectStore('questions',{keyPath:'id'});};
+      req.onsuccess=()=>{const db=req.result;const tx=db.transaction('questions','readwrite');const store=tx.objectStore('questions');selectedIds.forEach(id=>{const item=cloudVault.find(x=>x.id===id);if(item)store.put(item)});tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();resolve()};};
+      req.onerror=()=>resolve();
+    });
+  } catch(e) { console.warn('Designer local question cache failed',e); }
   const normalizedSections = (paperBlueprint.sections || []).map(s => ({
     id: s.id,
     title: s.title,
