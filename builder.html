@@ -695,7 +695,7 @@
     sections: normalizedSections
   }));
   localStorage.setItem('AZ_PAPER_DESIGNER_OVERRIDES', JSON.stringify(paperQuestionOverrides || {}));
-  window.open('paper_designer.html', '_blank');
+  window.location.href = 'paper_designer.html';
 };
 
     window.printBlueprintPaper = function() {
