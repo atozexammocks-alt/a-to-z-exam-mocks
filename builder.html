@@ -513,6 +513,15 @@
 
     window.openBlueprint = function() {
       ensureBlueprint();
+      // Immediately make selected Library questions visible inside the Blueprint.
+      // Existing paper overrides are preserved; unassigned questions are placed by their detected type.
+      selectedIds.forEach((id)=>{
+        if(paperQuestionOverrides[id]?.sectionId) return;
+        const q=cloudVault.find(x=>x.id===id); if(!q) return;
+        const type=inferQuestionType(q);
+        const s=paperBlueprint.sections.find(x=>x.type===type) || paperBlueprint.sections[0];
+        if(s) paperQuestionOverrides[id]={...(paperQuestionOverrides[id]||{}),sectionId:s.id,paperType:type,marks:Number(s.marks)||1};
+      });
       document.getElementById('bp-total-marks').value = document.getElementById('test-marks').value || paperBlueprint.totalMarks;
       document.getElementById('bp-default-layout').value = paperBlueprint.defaultLayout || '2col';
       document.getElementById('bp-style').value = paperBlueprint.style || 'Custom Board Pattern';
