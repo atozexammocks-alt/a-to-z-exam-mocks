@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
+html,body{height:100%;min-height:0}
 @media print{
  body *{visibility:hidden!important}
  #printPreviewContent,#printPreviewContent *{visibility:visible!important}
@@ -33,7 +34,7 @@
  </div>
 </header>
 
-<div class="flex-1 flex overflow-hidden no-print">
+<div class="flex-1 flex overflow-hidden min-h-0 no-print">
 <aside class="w-80 bg-slate-800 border-r border-slate-700 flex flex-col">
  <div class="p-4 border-b border-slate-700">
   <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Blueprint Summary</h2>
@@ -46,7 +47,7 @@
  <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-900/40"></div>
 </aside>
 
-<main class="flex-1 bg-slate-950 flex flex-col overflow-hidden">
+<main class="flex-1 min-w-0 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
  <div class="bg-slate-800/80 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
   <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">All Builder-selected questions stay here. Only questions added to a section will print.</p></div>
   <div class="flex gap-2">
@@ -54,7 +55,7 @@
    <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-print mr-1"></i> Print / Export</button>
   </div>
  </div>
- <div class="flex-1 overflow-y-auto p-5">
+ <div class="flex-1 min-h-0 overflow-y-auto p-5">
   <div class="max-w-6xl mx-auto">
    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3 text-xs">
     <span class="font-bold text-slate-200">How to assign:</span><span class="text-slate-400">Tick <b class="text-emerald-400">Include</b>, choose a section, or drag a question onto a section in the left panel. Unticked/unassigned questions are NOT printed.</span>
@@ -151,8 +152,8 @@ function normalizeQuestion(q,id){
  return {
   id:q?.id||id||uid('q'),
   type:o.paperType||q?.type||inferType(q),
-  text:o.qText??q?.qText??q?.text??'',
-  options:o.optText??q?.optText??q?.options??'',
+  text:o.qText??o.text??q?.qText??q?.text??'',
+  options:o.optText??o.options??q?.optText??q?.options??'',
   image:o.keepImage===false?'':(o.image??q?.question??q?.image??''),
   marks:Number(o.marks??q?.marks??1)||1,
   key:o.key??q?.key??''
@@ -211,6 +212,13 @@ function loadLegacy(){
 function saveState(){try{localStorage.setItem(STATE_KEY,JSON.stringify(testPaper))}catch(e){}}
 
 window.addEventListener('DOMContentLoaded',async()=>{
+ const paperEditId=localStorage.getItem('AZ_PAPER_EDITOR_QID');
+ const paperEditDone=localStorage.getItem('AZ_PAPER_EDITOR_DONE')==='1';
+ if(paperEditDone&&paperEditId){
+  const result={image:localStorage.getItem('AZ_PAPER_EDITOR_RESULT_IMAGE')||'',text:localStorage.getItem('AZ_PAPER_EDITOR_RESULT_TEXT')||'',options:localStorage.getItem('AZ_PAPER_EDITOR_RESULT_OPTIONS')||''};
+  localStorage.setItem('AZ_PAPER_DESIGNER_OVERRIDES',JSON.stringify({...safeJSON(OVERRIDE_KEY,{}),[paperEditId]:{...(safeJSON(OVERRIDE_KEY,{})[paperEditId]||{}),image:result.image,text:result.text,options:result.options,qText:result.text,optText:result.options,keepImage:true}}));
+  localStorage.removeItem('AZ_PAPER_EDITOR_DONE');localStorage.removeItem('AZ_PAPER_EDITOR_RESULT_IMAGE');localStorage.removeItem('AZ_PAPER_EDITOR_RESULT_TEXT');localStorage.removeItem('AZ_PAPER_EDITOR_RESULT_OPTIONS');
+ }
  const loaded=await loadFromBuilder();
  if(!loaded)loadLegacy();
  renderSidebar();renderCanvas();
@@ -253,7 +261,7 @@ function renderCanvas(){
   testPaper.sections.forEach(s=>opts+='<option value="'+esc(s.id)+'" '+(sec?.id===s.id?'selected':'')+'>'+esc(s.name)+'</option>');
   const img=q.image?'<div class="mt-2 bg-white rounded-lg p-2"><img class="q-image mx-auto" src="'+esc(q.image)+'" onerror="this.parentElement.style.display=\'none\'"></div>':'';
   const options=q.options?'<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">'+breaks(q.options)+'</div>':'';
-  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+'</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditAnywhere(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i></button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic">Image-based question</span>')+'</div>'+img+options+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
+  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+'</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i></button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic">Image-based question</span>')+'</div>'+img+options+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
   c.appendChild(card);
  });
  updateTotals();
@@ -272,6 +280,22 @@ function assignQuestion(id,sectionId){
 function removeQuestionFromAll(id,rerender=true){
  testPaper.sections.forEach(s=>s.questions=s.questions.filter(q=>q.id!==id));
  saveState();if(rerender){renderSidebar();renderCanvas()}
+}
+function openEditorForPaper(id){
+ const q=allQuestions.find(x=>x.id===id); if(!q)return;
+ try{
+  localStorage.setItem('AZ_PAPER_EDITOR_RETURN','paper_designer.html');
+  localStorage.setItem('AZ_PAPER_EDITOR_QID',q.id);
+  localStorage.setItem('Temp_Editor_Image',q.image||'');
+  localStorage.setItem('Temp_QText',q.text||'');
+  const opts=String(q.options||'').split(/\\n|\\r\\n/);
+  localStorage.setItem('Temp_Opt_A',opts[0]||'');
+  localStorage.setItem('Temp_Opt_B',opts[1]||'');
+  localStorage.setItem('Temp_Opt_C',opts[2]||'');
+  localStorage.setItem('Temp_Opt_D',opts[3]||'');
+  localStorage.setItem('AZ_PAPER_EDITOR_TYPE',q.type||'MCQ');
+  window.location.href='editor.html?paperMode=1&qid='+encodeURIComponent(q.id);
+ }catch(e){alert('Could not open editor: '+e.message)}
 }
 function openEditAnywhere(id){
  const sec=sectionForQuestion(id),q=allQuestions.find(x=>x.id===id);if(!q)return;
