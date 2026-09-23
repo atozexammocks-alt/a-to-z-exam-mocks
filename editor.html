@@ -572,6 +572,10 @@
     };
 
     window.goBackToSlicer = function() {
+      if (new URLSearchParams(window.location.search).get('paperMode') === '1') {
+        window.location.href = 'paper_designer.html';
+        return;
+      }
       if (window.parent && typeof window.parent.closeStudioModal === 'function') {
         window.parent.closeStudioModal();
       } else {
@@ -673,6 +677,16 @@
         localStorage.setItem('Temp_Fallback_ShortAns', document.getElementById('fallback-shortans').value);
       }
 
+      if (new URLSearchParams(window.location.search).get('paperMode') === '1') {
+        localStorage.setItem('AZ_PAPER_EDITOR_DONE','1');
+        localStorage.setItem('AZ_PAPER_EDITOR_RESULT_IMAGE', finalUrl);
+        localStorage.setItem('AZ_PAPER_EDITOR_RESULT_TEXT', document.getElementById('fallback-qtext').value.trim());
+        const vals=[document.getElementById('fallback-opta').value,document.getElementById('fallback-optb').value,document.getElementById('fallback-optc').value,document.getElementById('fallback-optd').value].filter(Boolean);
+        localStorage.setItem('AZ_PAPER_EDITOR_RESULT_OPTIONS', vals.join('\\n'));
+        showToast("✔ Paper-only changes saved. Library unchanged.");
+        setTimeout(()=>{ window.location.href='paper_designer.html'; },800);
+        return;
+      }
       showToast("✔ Saved & Synced Successfully! Returning...");
       setTimeout(() => { 
         window.goBackToSlicer();
