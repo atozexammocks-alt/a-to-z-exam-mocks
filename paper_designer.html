@@ -308,7 +308,7 @@ function previewPrintLayout(){
 function computeTotalMarks(){return testPaper.sections.reduce((a,s)=>a+s.questions.reduce((b,q)=>b+Number(q.marks||0),0),0)}
 function computeTotalQuestions(){return testPaper.sections.reduce((a,s)=>a+s.questions.length,0)}
 
-\nasync function openLibraryModal(){showModal('libraryModal');renderLibraryModal()}
+async function openLibraryModal(){showModal('libraryModal');renderLibraryModal()}
 function closeLibraryModal(){hideModal('libraryModal')}
 function renderLibraryModal(){
  const term=(document.getElementById('librarySearch')?.value||'').toLowerCase();
