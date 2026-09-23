@@ -98,8 +98,8 @@
                 <!-- Empty State Prompt -->
                 <div id="emptyCanvasState" class="h-full flex flex-col items-center justify-center text-center text-slate-500">
                     <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
-                    <p class="text-base font-medium">No Questions Found</p>
-                    <p class="text-xs text-slate-600 mt-1">Please select questions from the builder or add a section/questions manually.</p>
+                    <p class="text-base font-medium">No Questions Found from Builder</p>
+                    <p class="text-xs text-slate-600 mt-1">Please select questions from the builder/dashboard first.</p>
                 </div>
             </div>
         </main>
@@ -236,8 +236,7 @@
 
         const questionLibrary = [
             { id: "lib_1", type: "Multiple Choice Questions (MCQ)", text: "Which material property is primarily evaluated using sol-gel and melt-quenching analysis?\n(A) Thermal stability\n(B) Elasticity", marks: 1 },
-            { id: "lib_2", type: "Multiple Choice Questions (MCQ)", text: "What is the typical use case of gel polymer electrolytes in advanced energy storage?\n(A) Solid-state batteries\n(B) Lighting", marks: 1 },
-            { id: "lib_3", type: "Short Answer Type", text: "Discuss the structural role of barium phosphate glasses in radiation shielding applications.", marks: 3 }
+            { id: "lib_2", type: "Multiple Choice Questions (MCQ)", text: "What is the typical use case of gel polymer electrolytes in advanced energy storage?\n(A) Solid-state batteries\n(B) Lighting", marks: 1 }
         ];
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -246,7 +245,17 @@
 
         function loadSelectedQuestionsFromBuilder() {
             let initialQuestions = [];
-            const possibleKeys = ['selectedBuilderQuestions', 'selectedQuestions', 'builderQuestions', 'examQuestions'];
+            
+            // Check all common localStorage keys where builder might store selected questions
+            const possibleKeys = [
+                'selectedBuilderQuestions', 
+                'selectedQuestions', 
+                'builderQuestions', 
+                'examQuestions',
+                'cartQuestions',
+                'selected_questions'
+            ];
+
             for (let key of possibleKeys) {
                 let data = localStorage.getItem(key);
                 if (data) {
@@ -260,7 +269,17 @@
                 }
             }
 
-            if (initialQuestions.length === 0) {
+            // Normalize question objects to ensure they have uniform text/type/marks properties
+            let formattedQuestions = initialQuestions.map((q, idx) => {
+                return {
+                    id: q.id || ("q_" + Date.now() + "_" + idx),
+                    type: q.type || q.questionType || "Multiple Choice Questions (MCQ)",
+                    text: q.text || q.question || q.statement || q.title || JSON.stringify(q),
+                    marks: Number(q.marks || q.mark || 1)
+                };
+            });
+
+            if (formattedQuestions.length === 0) {
                 testPaper.sections = [];
                 activeSectionId = null;
             } else {
@@ -270,7 +289,7 @@
                         name: "Section A - Main Selected Questions",
                         type: "Multiple Choice Questions (MCQ)",
                         marksPerQ: 1,
-                        questions: initialQuestions
+                        questions: formattedQuestions
                     }
                 ];
                 activeSectionId = "sec_a";
@@ -431,7 +450,7 @@
                     <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
                         <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
                         <p class="text-base font-medium">No Section Selected or Empty</p>
-                        <p class="text-xs text-slate-600 mt-1">Create a section on the left to start adding questions.</p>
+                        <p class="text-xs text-slate-600 mt-1">Create a section on the left or select questions from builder.</p>
                     </div>`;
                 return;
             }
