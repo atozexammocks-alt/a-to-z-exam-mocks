@@ -1,690 +1,883 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>A-to-Z Paper Designer</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-    @media print {
-        body * { visibility: hidden !important; }
-        #printPreviewContent, #printPreviewContent * { visibility: visible !important; }
-        #printPreviewContent {
-            position: absolute !important;
-            left: 0; top: 0; right: 0;
-            width: 100%;
-            padding: 0 !important;
-            margin: 0 !important;
-            background: white !important;
-            color: black !important;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Paper Designer</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#151f32',
+                            900: '#0f172a',
+                            950: '#090d16',
+                        }
+                    }
+                }
+            }
         }
-        #printModal { position: static !important; background: white !important; padding: 0 !important; }
-        #printModal > div { box-shadow: none !important; max-height: none !important; border-radius: 0 !important; }
-        #printModalToolbar { display: none !important; }
-        .no-print { display: none !important; }
-        @page { margin: 1.5cm; }
-    }
-</style>
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @media print {
+            body { background: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            .print-container { width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; background: white !important; color: black !important; }
+        }
+        .print-only { display: none; }
+    </style>
 </head>
-<body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500 selection:text-white">
 
-<!-- ============ TOP HEADER ============ -->
-<header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10 no-print">
-    <div class="flex items-center space-x-4">
-        <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-slate-600 flex items-center space-x-2" title="Back to Test Builder">
-            <i class="fa-solid fa-arrow-left text-indigo-400"></i>
-            <span>Back to Builder</span>
-        </button>
-        <div class="flex items-center space-x-3 border-l border-slate-700 pl-4">
-            <div class="bg-indigo-600 p-2 rounded-lg text-white">
-                <i class="fa-solid fa-pen-ruler text-lg"></i>
-            </div>
-            <div>
-                <h1 class="text-lg font-bold tracking-wide">A-to-Z Paper Designer</h1>
-                <p class="text-xs text-slate-400">Custom Test & Question Paper Layout</p>
-            </div>
-        </div>
-    </div>
-    <div class="flex items-center space-x-3">
-        <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-slate-600">
-            <i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i> Refresh / Load Selected
-        </button>
-        <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 shadow">
-            <i class="fa-solid fa-print"></i>
-            <span>Print / Export Paper</span>
-        </button>
-    </div>
-</header>
-
-<!-- ============ MAIN WORKSPACE ============ -->
-<div class="flex-1 flex overflow-hidden no-print">
-
-    <!-- LEFT SIDEBAR -->
-    <aside class="w-80 bg-slate-800 border-r border-slate-700 flex flex-col">
-        <div class="p-4 border-b border-slate-700 bg-slate-800/90">
-            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Blueprint Summary</h2>
-            <div class="grid grid-cols-2 gap-2 text-center">
-                <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
-                    <span class="block text-xs text-slate-400">Total Qs</span>
-                    <span id="totalQuestionsCount" class="text-lg font-bold text-indigo-400">0</span>
+    <!-- Top Header -->
+    <header class="no-print h-16 bg-slate-900 border-b border-slate-800 px-4 md:px-8 flex items-center justify-between sticky top-0 z-40">
+        <div class="flex items-center space-x-4">
+            <a href="builder.html" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-lg text-sm font-medium transition border border-slate-700">
+                <i class="fa-solid fa-arrow-left text-xs"></i>
+                <span class="hidden sm:inline">Back to Builder</span>
+            </a>
+            <div class="h-6 w-px bg-slate-800"></div>
+            <div class="flex items-center space-x-2">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <i class="fa-solid fa-file-pen text-sm"></i>
                 </div>
-                <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
-                    <span class="block text-xs text-slate-400">Total Marks</span>
-                    <span id="totalMarksCount" class="text-lg font-bold text-emerald-400">0</span>
+                <div>
+                    <h1 id="paperTitleDisplay" class="font-bold text-sm md:text-base text-slate-100 tracking-tight truncate max-w-[200px] sm:max-w-xs">Untitled Question Paper</h1>
+                    <p class="text-xs text-slate-400">Paper Designer Studio</p>
                 </div>
             </div>
         </div>
 
-        <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/60">
-            <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Sections</span>
-            <button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center space-x-1">
-                <i class="fa-solid fa-plus"></i><span>Add Section</span>
+        <div class="flex items-center space-x-3">
+            <button onclick="openSettingsModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-2 rounded-lg text-sm font-medium transition border border-slate-700 flex items-center space-x-2">
+                <i class="fa-solid fa-gear text-xs"></i>
+                <span class="hidden md:inline">Paper Settings</span>
+            </button>
+            <button onclick="openPrintModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-lg shadow-indigo-600/20 flex items-center space-x-2">
+                <i class="fa-solid fa-print text-xs"></i>
+                <span>Export / Print</span>
             </button>
         </div>
+    </header>
 
-        <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-900/40"></div>
-    </aside>
-
-    <!-- CENTER CANVAS -->
-    <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden">
-        <div class="bg-slate-800/80 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
-            <div>
-                <h2 id="activeSectionTitle" class="text-base font-bold text-slate-100">Section A</h2>
-                <p id="activeSectionMeta" class="text-xs text-slate-400">Manage questions inside this section.</p>
+    <!-- Main Workspace -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        
+        <!-- Left Sidebar: Sections & Blueprint Summary -->
+        <aside class="no-print w-full lg:w-80 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0">
+            <div class="p-4 border-b border-slate-800">
+                <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Blueprint Summary</h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block mb-1">Total Questions</span>
+                        <span id="statTotalQ" class="text-xl font-bold text-indigo-400">0</span>
+                    </div>
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block mb-1">Total Marks</span>
+                        <span id="statTotalMarks" class="text-xl font-bold text-emerald-400">0</span>
+                    </div>
+                </div>
             </div>
-            <div>
-                <button onclick="openAddCustomQuestionModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow">
-                    <i class="fa-solid fa-circle-plus"></i>
-                    <span>Add Custom Question</span>
+
+            <!-- Sections Manager -->
+            <div class="p-4 flex-1 overflow-y-auto">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Question Sections</h2>
+                    <button onclick="openAddSectionModal()" class="text-xs bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 px-2.5 py-1 rounded-md font-medium transition flex items-center space-x-1 border border-indigo-500/30">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                        <span>Add Section</span>
+                    </button>
+                </div>
+                <div id="sectionsListContainer" class="space-y-2">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-slate-800 bg-slate-950/50 text-xs text-slate-500 flex items-center justify-between">
+                <span>Auto-saved locally</span>
+                <button onclick="clearAllData()" class="text-rose-400 hover:text-rose-300 transition">Clear Paper</button>
+            </div>
+        </aside>
+
+        <!-- Center Canvas: Questions List -->
+        <main class="flex-1 overflow-y-auto bg-slate-950 p-4 md:p-8">
+            <div class="max-w-4xl mx-auto">
+                
+                <!-- Empty State (No Dummies) -->
+                <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 px-4 text-center bg-slate-900/50 rounded-2xl border border-slate-800/80">
+                    <div class="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-700">
+                        <i class="fa-solid fa-folder-open text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-slate-200 mb-1">No Questions Found</h3>
+                    <p class="text-sm text-slate-400 max-w-md mb-6">No selected questions were found in local storage. Please return to the test builder to select and add questions to your paper.</p>
+                    <a href="builder.html" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20 text-sm">
+                        Go to Test Builder
+                    </a>
+                </div>
+
+                <!-- Active Questions Canvas -->
+                <div id="canvasContainer" class="space-y-8">
+                    <!-- Paper Header Preview Card -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center relative shadow-lg">
+                        <div class="absolute top-4 right-4 flex space-x-2">
+                            <button onclick="openSettingsModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition" title="Edit Header">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                        </div>
+                        <h2 id="previewInstName" class="text-lg font-bold text-slate-100 uppercase tracking-wide">Delhi Public School</h2>
+                        <h3 id="previewExamTitle" class="text-sm font-medium text-indigo-400 mt-1">Terminal Examination</h3>
+                        <div class="flex flex-wrap justify-center gap-6 mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400">
+                            <div><span class="font-semibold text-slate-300">Subject:</span> <span id="previewSub">Mathematics</span></div>
+                            <div><span class="font-semibold text-slate-300">Class:</span> <span id="previewClass">Grade 10</span></div>
+                            <div><span class="font-semibold text-slate-300">Time Allowed:</span> <span id="previewTime">3 Hours</span></div>
+                            <div><span class="font-semibold text-slate-300">Max Marks:</span> <span id="previewMarks">100</span></div>
+                        </div>
+                        <div id="previewInstructions" class="mt-4 text-xs text-slate-400 italic bg-slate-950 p-3 rounded-lg border border-slate-800/60 text-left">
+                            <span class="font-semibold text-slate-300 not-italic">General Instructions:</span> All questions are compulsory. Read questions carefully.
+                        </div>
+                    </div>
+
+                    <!-- Sections & Questions Render Area -->
+                    <div id="sectionsCanvas" class="space-y-6">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Question Modal -->
+    <div id="editModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="font-bold text-slate-100 flex items-center space-x-2">
+                    <i class="fa-solid fa-pen-to-square text-indigo-400"></i>
+                    <span>Edit Question</span>
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
-        </div>
-
-        <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl mx-auto w-full"></div>
-    </main>
-</div>
-
-<!-- ============ MODAL: Section ============ -->
-<div id="sectionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print">
-    <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md flex flex-col shadow-2xl">
-        <div class="p-4 border-b border-slate-700 flex items-center justify-between">
-            <h3 class="font-bold text-base text-indigo-300">Add New Section</h3>
-            <button onclick="closeSectionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-        </div>
-        <div class="p-5 space-y-4">
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Section Name</label>
-                <input type="text" id="secNameInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="e.g. Section B">
+            <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <input type="hidden" id="editQId">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Question Text</label>
+                    <textarea id="editQText" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Marks</label>
+                        <input type="number" id="editQMarks" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Section</label>
+                        <select id="editQSection" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Section Question Type</label>
-                <select id="secTypeInput" onchange="handleSecTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                    <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
-                    <option value="Assertion & Reason">Assertion & Reason</option>
-                    <option value="Short Answer Type">Short Answer Type</option>
-                    <option value="Long Answer / Descriptive">Long Answer / Descriptive</option>
-                    <option value="Custom / Other">Custom / Other</option>
-                </select>
+            <div class="px-6 py-4 border-t border-slate-800 bg-slate-950/50 flex justify-end space-x-3">
+                <button onclick="closeEditModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">Cancel</button>
+                <button onclick="saveQuestionEdit()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition shadow-lg shadow-indigo-600/20">Save Changes</button>
             </div>
-            <div id="customSecTypeContainer" class="hidden">
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Custom Section Type Name</label>
-                <input type="text" id="customSecTypeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="e.g. Case Study Based">
-            </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Default Marks Per Question</label>
-                <input type="number" id="secMarksInput" min="1" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-            </div>
-        </div>
-        <div class="p-4 border-t border-slate-700 flex justify-end space-x-3">
-            <button onclick="closeSectionModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
-            <button onclick="saveNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium">Save Section</button>
         </div>
     </div>
-</div>
 
-<!-- ============ MODAL: Question ============ -->
-<div id="questionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4 no-print">
-    <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xl flex flex-col shadow-2xl">
-        <div class="p-4 border-b border-slate-700 flex items-center justify-between">
-            <h3 id="questionModalTitle" class="font-bold text-base text-indigo-300">Edit Question</h3>
-            <button onclick="closeQuestionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-        </div>
-        <div class="p-5 space-y-4">
-            <input type="hidden" id="editQuestionId">
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Question Type</label>
-                <select id="qType" onchange="handleQTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                    <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
-                    <option value="Assertion & Reason">Assertion & Reason</option>
-                    <option value="Short Answer Type">Short Answer Type</option>
-                    <option value="Long Answer / Descriptive">Long Answer / Descriptive</option>
-                    <option value="Custom / Other">Custom / Other</option>
-                </select>
+    <!-- Add/Rename Section Modal -->
+    <div id="sectionModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 id="sectionModalTitle" class="font-bold text-slate-100 flex items-center space-x-2">
+                    <i class="fa-solid fa-layer-group text-indigo-400"></i>
+                    <span>Add New Section</span>
+                </h3>
+                <button onclick="closeSectionModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
-            <div id="customQTypeContainer" class="hidden">
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Custom Question Type</label>
-                <input type="text" id="customQTypeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Type custom name">
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="sectionModalAction" value="add">
+                <input type="hidden" id="sectionModalOldKey" value="">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Section Name / Title</label>
+                    <input type="text" id="sectionNameInput" placeholder="e.g. Section D: Case Study" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Section Instructions</label>
+                    <input type="text" id="sectionInstrInput" placeholder="e.g. Attempt any 4 questions" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Question Statement & Options</label>
-                <textarea id="qText" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Enter question text..."></textarea>
+            <div class="px-6 py-4 border-t border-slate-800 bg-slate-950/50 flex justify-end space-x-3">
+                <button onclick="closeSectionModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">Cancel</button>
+                <button onclick="saveSectionModal()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition shadow-lg shadow-indigo-600/20">Confirm</button>
             </div>
-            <div>
-                <label class="block text-xs font-semibold text-slate-400 mb-1">Marks</label>
-                <input type="number" id="qMarks" min="1" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-            </div>
-        </div>
-        <div class="p-4 border-t border-slate-700 flex justify-end space-x-3">
-            <button onclick="closeQuestionModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
-            <button onclick="saveQuestionData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium">Save Changes</button>
         </div>
     </div>
-</div>
 
-<!-- ============ MODAL: Print Preview ============ -->
-<div id="printModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
-    <div class="bg-white text-slate-900 rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-        <div id="printModalToolbar" class="bg-slate-100 p-4 border-b border-slate-300 flex items-center justify-between">
-            <h3 class="font-bold text-lg text-slate-800">Print Preview Layout</h3>
-            <div class="flex items-center space-x-2">
-                <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Print Paper</button>
-                <button onclick="closePrintModal()" class="text-slate-500 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+    <!-- Paper Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="font-bold text-slate-100 flex items-center space-x-2">
+                    <i class="fa-solid fa-gear text-indigo-400"></i>
+                    <span>Paper Header & Settings</span>
+                </h3>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Institution / School Name</label>
+                    <input type="text" id="settingInstName" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Exam / Paper Title</label>
+                    <input type="text" id="settingExamTitle" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Subject</label>
+                        <input type="text" id="settingSubject" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Class / Grade</label>
+                        <input type="text" id="settingClass" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Time Allowed</label>
+                        <input type="text" id="settingTime" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Max Marks (Auto)</label>
+                        <input type="text" id="settingMarks" disabled class="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-400 text-sm cursor-not-allowed">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">General Instructions</label>
+                    <textarea id="settingInstructions" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-200 focus:outline-none focus:border-indigo-500 text-sm"></textarea>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-800 bg-slate-950/50 flex justify-end space-x-3">
+                <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl border border-slate-700 text-slate-300 hover:bg-slate-800 text-sm font-medium transition">Cancel</button>
+                <button onclick="saveSettings()" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition shadow-lg shadow-indigo-600/20">Save Settings</button>
             </div>
         </div>
-        <div id="printPreviewContent" class="p-8 flex-1 overflow-y-auto space-y-6 font-serif"></div>
     </div>
-</div>
 
-<!-- ============ SCRIPT ============ -->
-<script>
-/* =========================================================
-   GLOBAL STATE
-   ========================================================= */
-let testPaper = {
-    title: "Custom Assessment Test",
-    sections: []
-};
-let activeSectionId = null;
-
-const STATE_KEY = "paperDesignerState";
-const SELECTED_KEYS = ["selectedBuilderQuestions", "selectedQuestions", "builderQuestions"];
-
-/* =========================================================
-   UTILITIES
-   ========================================================= */
-function escapeHtml(s) {
-    return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
-}
-function escapeWithBreaks(s) {
-    return escapeHtml(s).replace(/\n/g, '<br>');
-}
-function uid(prefix) {
-    return prefix + "_" + Date.now() + "_" + Math.floor(Math.random()*1000);
-}
-
-/* =========================================================
-   INIT
-   ========================================================= */
-window.addEventListener('DOMContentLoaded', () => {
-    const restored = restoreState();
-    if (!restored) {
-        loadSelectedQuestions();
-    }
-    renderSidebar();
-    renderCanvas();
-});
-
-function goBackToBuilder() {
-    window.location.href = "builder.html";
-}
-
-/* =========================================================
-   LOAD FROM LOCALSTORAGE
-   ========================================================= */
-function readSelectedQuestionsRaw() {
-    let raw = null;
-    for (const k of SELECTED_KEYS) {
-        const v = localStorage.getItem(k);
-        if (v) { raw = v; break; }
-    }
-    if (!raw) return [];
-    try {
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed)) return [];
-        return parsed.map((q, idx) => ({
-            id: q.id || uid('q') + "_" + idx,
-            type: q.type || "Multiple Choice Questions (MCQ)",
-            text: q.text || q.question || "Untitled Question",
-            marks: Number(q.marks || 1)
-        }));
-    } catch (e) {
-        return [];
-    }
-}
-
-function loadSelectedQuestions() {
-    const questions = readSelectedQuestionsRaw();
-    testPaper.sections = [{
-        id: uid('sec'),
-        name: "Section A",
-        type: "Multiple Choice Questions (MCQ)",
-        marksPerQ: 1,
-        questions: questions
-    }];
-    activeSectionId = testPaper.sections[0].id;
-    saveState();
-}
-
-function refreshSelectedQuestions() {
-    if (!confirm("Re-load selected questions from builder? Your current section structure will be preserved but question edits will be replaced.")) return;
-
-    const fresh = readSelectedQuestionsRaw();
-    const existingById = {};
-    testPaper.sections.forEach(sec => sec.questions.forEach(q => { existingById[q.id] = q; }));
-
-    // Preserve existing question data if same id, else use fresh
-    const merged = fresh.map(q => existingById[q.id] ? existingById[q.id] : q);
-
-    if (testPaper.sections.length === 0) {
-        testPaper.sections = [{
-            id: uid('sec'),
-            name: "Section A",
-            type: "Multiple Choice Questions (MCQ)",
-            marksPerQ: 1,
-            questions: merged
-        }];
-        activeSectionId = testPaper.sections[0].id;
-    } else {
-        // Put all fresh into first section, clear others
-        testPaper.sections.forEach((s, i) => { if (i > 0) s.questions = []; });
-        testPaper.sections[0].questions = merged;
-        activeSectionId = testPaper.sections[0].id;
-    }
-    saveState();
-    renderSidebar();
-    renderCanvas();
-}
-
-/* =========================================================
-   STATE PERSISTENCE
-   ========================================================= */
-function saveState() {
-    try {
-        localStorage.setItem(STATE_KEY, JSON.stringify(testPaper));
-    } catch (e) { /* ignore quota errors */ }
-}
-
-function restoreState() {
-    try {
-        const raw = localStorage.getItem(STATE_KEY);
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
-        if (!parsed || !Array.isArray(parsed.sections) || parsed.sections.length === 0) return false;
-        testPaper = parsed;
-        activeSectionId = testPaper.sections[0].id;
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-/* =========================================================
-   SIDEBAR RENDER
-   ========================================================= */
-function renderSidebar() {
-    const list = document.getElementById('sectionsSidebarList');
-    list.innerHTML = '';
-
-    testPaper.sections.forEach(sec => {
-        const isActive = sec.id === activeSectionId;
-        const marks = sec.questions.reduce((acc, q) => acc + Number(q.marks), 0);
-
-        const div = document.createElement('div');
-        div.className = `p-3 rounded-lg border transition cursor-pointer ${isActive ? 'bg-indigo-950/40 border-indigo-500 shadow-md' : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800'}`;
-        div.onclick = () => { activeSectionId = sec.id; renderSidebar(); renderCanvas(); };
-
-        div.innerHTML = `
-            <div class="flex items-center justify-between mb-1">
-                <input type="text" value="${escapeHtml(sec.name)}"
-                    onclick="event.stopPropagation()"
-                    onchange="renameSec('${sec.id}', this.value)"
-                    class="bg-transparent text-sm font-semibold text-slate-200 w-32 px-1 rounded border border-transparent focus:border-indigo-500">
-                <div class="flex items-center space-x-1">
-                    <span class="text-[10px] bg-slate-900 text-slate-300 px-2 py-0.5 rounded border border-slate-700">${sec.questions.length} Qs</span>
-                    <button onclick="event.stopPropagation(); deleteSec('${sec.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs">
-                        <i class="fa-solid fa-trash"></i>
+    <!-- Print / Export Modal -->
+    <div id="printModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-2 md:p-6 overflow-y-auto">
+        <div class="bg-white text-slate-900 rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
+            <!-- Modal Header (No Print) -->
+            <div class="no-print px-6 py-4 bg-slate-900 text-white border-b border-slate-800 flex items-center justify-between">
+                <h3 class="font-bold flex items-center space-x-2">
+                    <i class="fa-solid fa-print text-indigo-400"></i>
+                    <span>Print & Export Paper Preview</span>
+                </h3>
+                <div class="flex items-center space-x-3">
+                    <button onclick="triggerBrowserPrint()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-xs font-semibold transition flex items-center space-x-2">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Print / Save PDF</span>
+                    </button>
+                    <button onclick="closePrintModal()" class="text-slate-400 hover:text-white transition">
+                        <i class="fa-solid fa-xmark text-lg"></i>
                     </button>
                 </div>
             </div>
-            <div class="flex items-center justify-between text-xs text-slate-400">
-                <span class="truncate max-w-[130px]">${escapeHtml(sec.type)}</span>
-                <span>Marks: ${marks}</span>
-            </div>
-        `;
-        list.appendChild(div);
-    });
-    updateTotals();
-}
 
-/* =========================================================
-   CANVAS RENDER
-   ========================================================= */
-function renderCanvas() {
-    const container = document.getElementById('questionsCanvasContainer');
-    const sec = testPaper.sections.find(s => s.id === activeSectionId);
+            <!-- Print Preview Document Area -->
+            <div class="flex-1 overflow-y-auto p-8 md:p-12 bg-slate-100 text-slate-900 font-sans">
+                <div id="printSheet" class="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-xl shadow-lg border border-slate-300 space-y-6">
+                    <!-- School Header -->
+                    <div class="text-center border-b-2 border-slate-900 pb-4">
+                        <h1 id="printInstName" class="text-xl font-bold uppercase tracking-wider">Delhi Public School</h1>
+                        <h2 id="printExamTitle" class="text-base font-semibold mt-1">Terminal Examination</h2>
+                        <div class="flex justify-between items-center mt-4 text-xs font-medium">
+                            <div>Subject: <span id="printSub" class="font-bold">Mathematics</span></div>
+                            <div>Class: <span id="printClass" class="font-bold">Grade 10</span></div>
+                            <div>Time Allowed: <span id="printTime" class="font-bold">3 Hours</span></div>
+                            <div>Max Marks: <span id="printMarks" class="font-bold">100</span></div>
+                        </div>
+                    </div>
 
-    // ✅ Always update header (even for empty section)
-    if (sec) {
-        document.getElementById('activeSectionTitle').innerText = sec.name;
-        document.getElementById('activeSectionMeta').innerText =
-            `Type: ${sec.type} • Total Questions: ${sec.questions.length} • Marks: ${sec.questions.reduce((a,q)=>a+Number(q.marks),0)}`;
-    }
+                    <!-- Instructions -->
+                    <div class="text-xs border-b border-slate-300 pb-4">
+                        <p class="font-bold mb-1">General Instructions:</p>
+                        <p id="printInstructions" class="italic text-slate-700 whitespace-pre-line">All questions are compulsory. Read questions carefully.</p>
+                    </div>
 
-    if (!sec || sec.questions.length === 0) {
-        container.innerHTML = `
-            <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
-                <i class="fa-solid fa-folder-open text-4xl mb-2 text-slate-600"></i>
-                <p class="text-sm font-medium">No questions in this section.</p>
-                <p class="text-xs text-slate-600 mt-1">Add a custom question, or select from builder and click Refresh.</p>
-            </div>`;
-        updateTotals();
-        return;
-    }
+                    <!-- Sections & Questions -->
+                    <div id="printSectionsContainer" class="space-y-6 text-sm">
+                        <!-- Populated dynamically -->
+                    </div>
 
-    container.innerHTML = '';
-    sec.questions.forEach((q, idx) => {
-        const card = document.createElement('div');
-        card.className = "bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col space-y-3 shadow-md";
-
-        // Build move-to-section dropdown
-        let moveOptions = '<option value="">Move to...</option>';
-        testPaper.sections.forEach(s => {
-            if (s.id !== sec.id) {
-                moveOptions += `<option value="${s.id}">${escapeHtml(s.name)}</option>`;
-            }
-        });
-
-        card.innerHTML = `
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5 flex-wrap gap-2">
-                <div class="flex items-center space-x-2">
-                    <span class="bg-indigo-600/20 text-indigo-400 font-bold px-2.5 py-0.5 rounded text-xs">Q.${idx + 1}</span>
-                    <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">${escapeHtml(q.type)}</span>
-                </div>
-                <div class="flex items-center space-x-1.5 text-xs">
-                    <span class="text-emerald-400 font-bold mr-1">${q.marks}m</span>
-                    <button onclick="moveQUp('${sec.id}','${q.id}')" title="Move Up" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition"><i class="fa-solid fa-arrow-up"></i></button>
-                    <button onclick="moveQDown('${sec.id}','${q.id}')" title="Move Down" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-1 rounded transition"><i class="fa-solid fa-arrow-down"></i></button>
-                    <select onchange="moveQToSection('${sec.id}','${q.id}', this.value)" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition text-xs border border-slate-600 focus:outline-none">
-                        ${moveOptions}
-                    </select>
-                    <button onclick="openEditModal('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
-                    <button onclick="removeQ('${sec.id}','${q.id}')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button>
+                    <div class="text-center pt-8 border-t border-slate-300 text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                        *** End of Question Paper ***
+                    </div>
                 </div>
             </div>
-            <div class="text-sm text-slate-100 whitespace-pre-line bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/60">${escapeWithBreaks(q.text)}</div>
-        `;
-        container.appendChild(card);
-    });
-    updateTotals();
-}
-
-/* =========================================================
-   TOTALS
-   ========================================================= */
-function updateTotals() {
-    let totalQ = 0, totalM = 0;
-    testPaper.sections.forEach(s => {
-        totalQ += s.questions.length;
-        s.questions.forEach(q => totalM += Number(q.marks));
-    });
-    document.getElementById('totalQuestionsCount').innerText = totalQ;
-    document.getElementById('totalMarksCount').innerText = totalM;
-}
-
-/* =========================================================
-   SECTION ACTIONS
-   ========================================================= */
-function addNewSection() {
-    document.getElementById('secNameInput').value = "Section " + String.fromCharCode(65 + testPaper.sections.length);
-    document.getElementById('secTypeInput').value = "Multiple Choice Questions (MCQ)";
-    document.getElementById('secMarksInput').value = 1;
-    document.getElementById('customSecTypeContainer').classList.add('hidden');
-    document.getElementById('customSecTypeInput').value = "";
-    showModal('sectionModal');
-}
-
-function closeSectionModal() { hideModal('sectionModal'); }
-
-function handleSecTypeChange() {
-    const val = document.getElementById('secTypeInput').value;
-    const c = document.getElementById('customSecTypeContainer');
-    if (val === "Custom / Other") c.classList.remove('hidden');
-    else c.classList.add('hidden');
-}
-
-function saveNewSection() {
-    const name = document.getElementById('secNameInput').value.trim();
-    let type = document.getElementById('secTypeInput').value;
-    if (type === "Custom / Other") type = document.getElementById('customSecTypeInput').value.trim() || "Custom Type";
-    const marks = Number(document.getElementById('secMarksInput').value) || 1;
-
-    if (!name) return alert("Enter section name");
-
-    const newSec = { id: uid('sec'), name, type, marksPerQ: marks, questions: [] };
-    testPaper.sections.push(newSec);
-    activeSectionId = newSec.id;
-    saveState();
-    closeSectionModal();
-    renderSidebar();
-    renderCanvas();
-}
-
-function renameSec(id, name) {
-    const s = testPaper.sections.find(sec => sec.id === id);
-    if (s && name.trim()) {
-        s.name = name.trim();
-        saveState();
-        renderSidebar();
-        renderCanvas();
-    }
-}
-
-function deleteSec(id) {
-    if (testPaper.sections.length <= 1) return alert("At least one section required.");
-    if (!confirm("Delete this section and all its questions?")) return;
-    testPaper.sections = testPaper.sections.filter(sec => sec.id !== id);
-    activeSectionId = testPaper.sections[0].id;
-    saveState();
-    renderSidebar();
-    renderCanvas();
-}
-
-/* =========================================================
-   QUESTION ACTIONS
-   ========================================================= */
-function removeQ(secId, qId) {
-    const s = testPaper.sections.find(sec => sec.id === secId);
-    if (!s) return;
-    s.questions = s.questions.filter(q => q.id !== qId);
-    saveState();
-    renderCanvas();
-    renderSidebar();
-}
-
-function moveQUp(secId, qId) {
-    const s = testPaper.sections.find(sec => sec.id === secId);
-    if (!s) return;
-    const i = s.questions.findIndex(q => q.id === qId);
-    if (i > 0) {
-        [s.questions[i-1], s.questions[i]] = [s.questions[i], s.questions[i-1]];
-        saveState();
-        renderCanvas();
-    }
-}
-
-function moveQDown(secId, qId) {
-    const s = testPaper.sections.find(sec => sec.id === secId);
-    if (!s) return;
-    const i = s.questions.findIndex(q => q.id === qId);
-    if (i >= 0 && i < s.questions.length - 1) {
-        [s.questions[i+1], s.questions[i]] = [s.questions[i], s.questions[i+1]];
-        saveState();
-        renderCanvas();
-    }
-}
-
-function moveQToSection(fromSecId, qId, toSecId) {
-    if (!toSecId) return;
-    const from = testPaper.sections.find(s => s.id === fromSecId);
-    const to = testPaper.sections.find(s => s.id === toSecId);
-    if (!from || !to) return;
-    const idx = from.questions.findIndex(q => q.id === qId);
-    if (idx === -1) return;
-    const [q] = from.questions.splice(idx, 1);
-    to.questions.push(q);
-    saveState();
-    renderSidebar();
-    renderCanvas();
-}
-
-/* =========================================================
-   QUESTION MODAL
-   ========================================================= */
-function setQTypeDropdown(type) {
-    const sel = document.getElementById('qType');
-    const known = [...sel.options].some(o => o.value === type);
-    if (known) {
-        sel.value = type;
-        document.getElementById('customQTypeInput').value = "";
-        document.getElementById('customQTypeContainer').classList.add('hidden');
-    } else {
-        sel.value = "Custom / Other";
-        document.getElementById('customQTypeInput').value = type || "";
-        document.getElementById('customQTypeContainer').classList.remove('hidden');
-    }
-}
-
-function openAddCustomQuestionModal() {
-    const sec = testPaper.sections.find(s => s.id === activeSectionId);
-    document.getElementById('questionModalTitle').innerText = "Add Custom Question";
-    document.getElementById('editQuestionId').value = "";
-    document.getElementById('qText').value = "";
-    document.getElementById('qMarks').value = sec ? (sec.marksPerQ || 1) : 1;
-    setQTypeDropdown(sec ? sec.type : "Multiple Choice Questions (MCQ)");
-    showModal('questionModal');
-}
-
-function openEditModal(qId) {
-    const sec = testPaper.sections.find(s => s.id === activeSectionId);
-    if (!sec) return;
-    const q = sec.questions.find(item => item.id === qId);
-    if (!q) return;
-
-    document.getElementById('questionModalTitle').innerText = "Edit Question";
-    document.getElementById('editQuestionId').value = q.id;
-    document.getElementById('qText').value = q.text;
-    document.getElementById('qMarks').value = q.marks;
-    setQTypeDropdown(q.type);
-    showModal('questionModal');
-}
-
-function closeQuestionModal() { hideModal('questionModal'); }
-
-function handleQTypeChange() {
-    const val = document.getElementById('qType').value;
-    const c = document.getElementById('customQTypeContainer');
-    if (val === "Custom / Other") c.classList.remove('hidden');
-    else c.classList.add('hidden');
-}
-
-function saveQuestionData() {
-    const qId = document.getElementById('editQuestionId').value;
-    let type = document.getElementById('qType').value;
-    if (type === "Custom / Other") type = document.getElementById('customQTypeInput').value.trim() || "Custom Type";
-    const text = document.getElementById('qText').value.trim();
-    const marks = Number(document.getElementById('qMarks').value) || 1;
-
-    const sec = testPaper.sections.find(s => s.id === activeSectionId);
-    if (!sec) return alert("No active section.");
-
-    if (!text) return alert("Question text cannot be empty");
-
-    if (qId) {
-        const q = sec.questions.find(item => item.id === qId);
-        if (q) { q.type = type; q.text = text; q.marks = marks; }
-    } else {
-        sec.questions.push({ id: uid('q'), type, text, marks });
-    }
-
-    saveState();
-    closeQuestionModal();
-    renderCanvas();
-    renderSidebar();
-}
-
-/* =========================================================
-   PRINT PREVIEW
-   ========================================================= */
-function previewPrintLayout() {
-    const content = document.getElementById('printPreviewContent');
-    let html = `
-        <div class="text-center border-b-2 border-slate-900 pb-4 mb-4">
-            <h1 class="text-xl font-bold uppercase tracking-wide">${escapeHtml(testPaper.title)}</h1>
-            <p class="text-xs text-slate-600 mt-1">Time: ______  |  Max Marks: ${computeTotalMarks()}</p>
         </div>
-    `;
+    </div>
 
-    if (testPaper.sections.length === 0 || computeTotalQuestions() === 0) {
-        html += `<p class="text-center text-slate-500 italic py-8">No questions to print.</p>`;
-    } else {
-        testPaper.sections.forEach(sec => {
-            if (sec.questions.length === 0) return;
-            html += `<div class="mb-5">
-                <h3 class="font-bold bg-slate-200 px-2 py-1 mb-2 text-sm">${escapeHtml(sec.name)} — <span class="font-normal italic">${escapeHtml(sec.type)}</span></h3>
-                <div class="space-y-3 pl-2">`;
-            sec.questions.forEach((q, i) => {
-                html += `<div class="flex items-start gap-2 text-sm">
-                    <span class="font-bold min-w-[24px]">${i+1}.</span>
-                    <div class="flex-1">${escapeWithBreaks(q.text)}</div>
-                    <span class="text-xs font-semibold whitespace-nowrap">[${q.marks}]</span>
-                </div>`;
-            });
-            html += `</div></div>`;
+    <!-- Application Script -->
+    <script>
+        // State Management
+        let appData = {
+            settings: {
+                institutionName: "Delhi Public School",
+                examTitle: "Terminal Examination",
+                subject: "Mathematics",
+                grade: "Grade 10",
+                timeAllowed: "3 Hours",
+                instructions: "1. All questions are compulsory.\n2. Figures to the right indicate full marks."
+            },
+            sections: {}
+        };
+
+        // Initialize on DOM Load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadQuestionsFromLocalStorage();
+            renderApp();
         });
-    }
-    content.innerHTML = html;
-    showModal('printModal');
-}
 
-function computeTotalMarks() {
-    let m = 0;
-    testPaper.sections.forEach(s => s.questions.forEach(q => m += Number(q.marks)));
-    return m;
-}
-function computeTotalQuestions() {
-    let n = 0;
-    testPaper.sections.forEach(s => n += s.questions.length);
-    return n;
-}
+        // Load and Normalize Questions from LocalStorage (No Dummies)
+        function loadQuestionsFromLocalStorage() {
+            let rawQuestions = [];
+            
+            // Check multiple potential keys as specified in requirements
+            const keysToCheck = ['selectedBuilderQuestions', 'selectedQuestions', 'builderQuestions'];
+            for (let i = 0; i < keysToCheck.length; i++) {
+                const key = keysToCheck[i];
+                const val = localStorage.getItem(key);
+                if (val) {
+                    try {
+                        const parsed = JSON.parse(val);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            rawQuestions = parsed;
+                            break;
+                        }
+                    } catch (e) {
+                        console.error("Error parsing localStorage key:", key, e);
+                    }
+                }
+            }
 
-function closePrintModal() { hideModal('printModal'); }
+            // Also check saved paper state if exists
+            const savedPaper = localStorage.getItem('paperDesignerState');
+            if (savedPaper) {
+                try {
+                    const parsedPaper = JSON.parse(savedPaper);
+                    if (parsedPaper && parsedPaper.settings && parsedPaper.sections) {
+                        appData = parsedPaper;
+                        if (Object.keys(appData.sections).length > 0) {
+                            return;
+                        }
+                    }
+                } catch(e) {
+                    console.error("Error loading saved paper state", e);
+                }
+            }
 
-/* =========================================================
-   MODAL HELPERS
-   ========================================================= */
-function showModal(id) {
-    const el = document.getElementById(id);
-    el.classList.remove('hidden');
-    el.classList.add('flex');
-}
-function hideModal(id) {
-    const el = document.getElementById(id);
-    el.classList.add('hidden');
-    el.classList.remove('flex');
-}
-</script>
+            // If we found raw questions from builder, organize them into default sections
+            if (rawQuestions.length > 0) {
+                appData.sections = {
+                    "Section A": {
+                        title: "Section A: Multiple Choice Questions",
+                        instructions: "Choose the correct option (1 Mark each)",
+                        questions: []
+                    },
+                    "Section B": {
+                        title: "Section B: Short Answer Questions",
+                        instructions: "Answer the following questions (2-3 Marks each)",
+                        questions: []
+                    },
+                    "Section C": {
+                        title: "Section C: Long Answer Questions",
+                        instructions: "Detailed answer questions (5 Marks each)",
+                        questions: []
+                    }
+                };
+
+                // Distribute raw questions into sections safely using standard loop
+                for (let j = 0; j < rawQuestions.length; j++) {
+                    const q = rawQuestions[j];
+                    const formattedQ = {
+                        id: q.id || 'q_' + Math.random().toString(36).substring(2, 9),
+                        text: q.text || q.questionText || q.title || "Question text not provided.",
+                        marks: parseInt(q.marks || q.defaultMarks || 1)
+                    };
+
+                    if (j < 5 && appData.sections["Section A"]) {
+                        appData.sections["Section A"].questions.push(formattedQ);
+                    } else if (j < 10 && appData.sections["Section B"]) {
+                        appData.sections["Section B"].questions.push(formattedQ);
+                    } else {
+                        if (!appData.sections["Section C"]) {
+                            appData.sections["Section C"] = { title: "Section C: Long Answer", instructions: "", questions: [] };
+                        }
+                        appData.sections["Section C"].questions.push(formattedQ);
+                    }
+                }
+            } else {
+                // Empty state initialization
+                appData.sections = {};
+            }
+            
+            savePaperState();
+        }
+
+        function savePaperState() {
+            localStorage.setItem('paperDesignerState', JSON.stringify(appData));
+        }
+
+        // Render entire application UI
+        function renderApp() {
+            renderHeaderAndSummary();
+            renderSectionsList();
+            renderCanvas();
+        }
+
+        function renderHeaderAndSummary() {
+            document.getElementById('paperTitleDisplay').innerText = appData.settings.examTitle || 'Question Paper';
+            document.getElementById('previewInstName').innerText = appData.settings.institutionName;
+            document.getElementById('previewExamTitle').innerText = appData.settings.examTitle;
+            document.getElementById('previewSub').innerText = appData.settings.subject;
+            document.getElementById('previewClass').innerText = appData.settings.grade;
+            document.getElementById('previewTime').innerText = appData.settings.timeAllowed;
+            document.getElementById('previewInstructions').innerHTML = '<span class="font-semibold text-slate-300 not-italic">General Instructions:</span> ' + escapeHtml(appData.settings.instructions).replace(/\n/g, '<br>');
+
+            // Calculate totals
+            let totalQ = 0;
+            let totalMarks = 0;
+
+            const sectionKeys = Object.keys(appData.sections);
+            for (let k = 0; k < sectionKeys.length; k++) {
+                const sec = appData.sections[sectionKeys[k]];
+                if (sec && sec.questions) {
+                    totalQ += sec.questions.length;
+                    for (let m = 0; m < sec.questions.length; m++) {
+                        totalMarks += parseInt(sec.questions[m].marks || 0);
+                    }
+                }
+            }
+
+            document.getElementById('statTotalQ').innerText = totalQ;
+            document.getElementById('statTotalMarks').innerText = totalMarks;
+            document.getElementById('previewMarks').innerText = totalMarks;
+            document.getElementById('settingMarks').value = totalMarks + ' Marks';
+        }
+
+        function renderSectionsList() {
+            const container = document.getElementById('sectionsListContainer');
+            const sectionKeys = Object.keys(appData.sections);
+
+            if (sectionKeys.length === 0) {
+                container.innerHTML = '<div class="text-xs text-slate-500 italic p-2">No sections created yet. Click \'Add Section\' above.</div>';
+                return;
+            }
+
+            let html = '';
+            for (let i = 0; i < sectionKeys.length; i++) {
+                const key = sectionKeys[i];
+                const sec = appData.sections[key];
+                const count = sec.questions ? sec.questions.length : 0;
+                html += '<div class="bg-slate-950 border border-slate-800 rounded-xl p-3 flex items-center justify-between group hover:border-slate-700 transition">' +
+                            '<div>' +
+                                '<h4 class="text-xs font-bold text-slate-200 truncate max-w-[140px]">' + escapeHtml(key) + '</h4>' +
+                                '<span class="text-[10px] text-slate-400">' + count + ' Questions</span>' +
+                            '</div>' +
+                            '<div class="flex items-center space-x-1 opacity-80 group-hover:opacity-100 transition">' +
+                                '<button onclick="openEditSectionModal(\'' + key + '\')" class="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition" title="Rename Section">' +
+                                    '<i class="fa-solid fa-pen text-xs"></i>' +
+                                '</button>' +
+                                '<button onclick="deleteSection(\'' + key + '\')" class="p-1.5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-lg transition" title="Delete Section">' +
+                                    '<i class="fa-solid fa-trash text-xs"></i>' +
+                                '</button>' +
+                            '</div>' +
+                        '</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        function renderCanvas() {
+            const canvas = document.getElementById('sectionsCanvas');
+            const emptyState = document.getElementById('emptyState');
+            const sectionKeys = Object.keys(appData.sections);
+
+            let totalQCount = 0;
+            for (let i = 0; i < sectionKeys.length; i++) {
+                const s = appData.sections[sectionKeys[i]];
+                if (s && s.questions) totalQCount += s.questions.length;
+            }
+
+            if (totalQCount === 0 || sectionKeys.length === 0) {
+                emptyState.classList.remove('hidden');
+                canvas.innerHTML = '';
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            let html = '';
+            for (let j = 0; j < sectionKeys.length; j++) {
+                const secKey = sectionKeys[j];
+                const sec = appData.sections[secKey];
+                const questions = sec.questions || [];
+
+                html += '<div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-md">' +
+                            '<div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-2">' +
+                                '<div>' +
+                                    '<h3 class="font-bold text-base text-slate-100">' + escapeHtml(sec.title || secKey) + '</h3>' +
+                                    (sec.instructions ? '<p class="text-xs text-slate-400 mt-0.5">' + escapeHtml(sec.instructions) + '</p>' : '') +
+                                '</div>' +
+                                '<span class="text-xs font-semibold bg-slate-800 text-indigo-400 px-3 py-1 rounded-full border border-slate-700 w-fit">' +
+                                    questions.length + ' Questions' +
+                                '</span>' +
+                            '</div>';
+
+                if (questions.length === 0) {
+                    html += '<div class="text-center py-6 text-xs text-slate-500 italic bg-slate-950/50 rounded-xl border border-slate-800/60">No questions in this section.</div>';
+                } else {
+                    html += '<div class="space-y-4">';
+                    for (let qIndex = 0; qIndex < questions.length; qIndex++) {
+                        const q = questions[qIndex];
+                        html += '<div class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 hover:border-slate-700 transition flex flex-col md:flex-row items-start justify-between gap-4 group">' +
+                                    '<div class="flex items-start space-x-3 flex-1">' +
+                                        '<span class="bg-slate-800 text-slate-300 font-bold text-xs h-6 w-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5">' + (qIndex + 1) + '</span>' +
+                                        '<div class="space-y-1 flex-1">' +
+                                            '<p class="text-sm text-slate-200 leading-relaxed">' + escapeHtml(q.text) + '</p>' +
+                                            '<div class="flex items-center space-x-3 pt-1">' +
+                                                '<span class="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Marks: ' + q.marks + '</span>' +
+                                                '<span class="text-[11px] text-slate-400">Section: ' + escapeHtml(secKey) + '</span>' +
+                                            '</div>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="flex items-center space-x-1.5 shrink-0 self-end md:self-start opacity-90 group-hover:opacity-100 transition">' +
+                                        '<button onclick="moveQuestion(\'' + secKey + '\', ' + qIndex + ', \'up\')" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition text-xs border border-slate-800" title="Move Up">' +
+                                            '<i class="fa-solid fa-arrow-up"></i>' +
+                                        '</button>' +
+                                        '<button onclick="moveQuestion(\'' + secKey + '\', ' + qIndex + ', \'down\')" class="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white transition text-xs border border-slate-800" title="Move Down">' +
+                                            '<i class="fa-solid fa-arrow-down"></i>' +
+                                        '</button>' +
+                                        '<button onclick="openEditModal(\'' + secKey + '\', ' + qIndex + ')" class="p-2 rounded-lg bg-slate-900 hover:bg-indigo-600/20 text-slate-400 hover:text-indigo-400 transition text-xs border border-slate-800" title="Edit Question">' +
+                                            '<i class="fa-solid fa-pen"></i>' +
+                                        '</button>' +
+                                        '<button onclick="deleteQuestion(\'' + secKey + '\', ' + qIndex + ')" class="p-2 rounded-lg bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition text-xs border border-slate-800" title="Delete Question">' +
+                                            '<i class="fa-solid fa-trash"></i>' +
+                                        '</button>' +
+                                    '</div>' +
+                                '</div>';
+                    }
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            }
+
+            canvas.innerHTML = html;
+        }
+
+        // Question Customization Actions
+        function moveQuestion(secKey, index, direction) {
+            const list = appData.sections[secKey].questions;
+            if (direction === 'up' && index > 0) {
+                const temp = list[index];
+                list[index] = list[index - 1];
+                list[index - 1] = temp;
+            } else if (direction === 'down' && index < list.length - 1) {
+                const temp = list[index];
+                list[index] = list[index + 1];
+                list[index + 1] = temp;
+            }
+            savePaperState();
+            renderApp();
+        }
+
+        function deleteQuestion(secKey, index) {
+            if (confirm("Are you sure you want to delete this question?")) {
+                appData.sections[secKey].questions.splice(index, 1);
+                savePaperState();
+                renderApp();
+            }
+        }
+
+        // Edit Question Modal Logic
+        let currentEditContext = { secKey: null, index: null };
+        function openEditModal(secKey, index) {
+            currentEditContext = { secKey: secKey, index: index };
+            const q = appData.sections[secKey].questions[index];
+            
+            document.getElementById('editQText').value = q.text;
+            document.getElementById('editQMarks').value = q.marks;
+
+            const select = document.getElementById('editQSection');
+            select.innerHTML = '';
+            const sectionKeys = Object.keys(appData.sections);
+            for (let i = 0; i < sectionKeys.length; i++) {
+                const key = sectionKeys[i];
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.innerText = key;
+                if (key === secKey) opt.selected = true;
+                select.appendChild(opt);
+            }
+
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.add('hidden');
+        }
+
+        function saveQuestionEdit() {
+            const newText = document.getElementById('editQText').value.trim();
+            const newMarks = parseInt(document.getElementById('editQMarks').value) || 1;
+            const newSec = document.getElementById('editQSection').value;
+
+            if (!newText) {
+                alert("Question text cannot be empty.");
+                return;
+            }
+
+            const oldSecKey = currentEditContext.secKey;
+            const oldIndex = currentEditContext.index;
+            const qObj = appData.sections[oldSecKey].questions[oldIndex];
+            qObj.text = newText;
+            qObj.marks = newMarks;
+
+            if (oldSecKey !== newSec) {
+                appData.sections[oldSecKey].questions.splice(oldIndex, 1);
+                appData.sections[newSec].questions.push(qObj);
+            }
+
+            savePaperState();
+            closeEditModal();
+            renderApp();
+        }
+
+        // Section Management Modal Logic
+        function openAddSectionModal() {
+            document.getElementById('sectionModalTitle').innerHTML = '<i class="fa-solid fa-layer-group text-indigo-400"></i><span>Add New Section</span>';
+            document.getElementById('sectionModalAction').value = 'add';
+            document.getElementById('sectionModalOldKey').value = '';
+            document.getElementById('sectionNameInput').value = '';
+            document.getElementById('sectionInstrInput').value = '';
+            document.getElementById('sectionModal').classList.remove('hidden');
+        }
+
+        function openEditSectionModal(secKey) {
+            document.getElementById('sectionModalTitle').innerHTML = '<i class="fa-solid fa-pen text-indigo-400"></i><span>Rename Section</span>';
+            document.getElementById('sectionModalAction').value = 'edit';
+            document.getElementById('sectionModalOldKey').value = secKey;
+            document.getElementById('sectionNameInput').value = secKey;
+            document.getElementById('sectionInstrInput').value = appData.sections[secKey].instructions || '';
+            document.getElementById('sectionModal').classList.remove('hidden');
+        }
+
+        function closeSectionModal() {
+            document.getElementById('sectionModal').classList.add('hidden');
+        }
+
+        function saveSectionModal() {
+            const action = document.getElementById('sectionModalAction').value;
+            const oldKey = document.getElementById('sectionModalOldKey').value;
+            const newName = document.getElementById('sectionNameInput').value.trim();
+            const newInstr = document.getElementById('sectionInstrInput').value.trim();
+
+            if (!newName) {
+                alert("Section name cannot be empty.");
+                return;
+            }
+
+            if (action === 'add') {
+                if (appData.sections[newName]) {
+                    alert("A section with this name already exists.");
+                    return;
+                }
+                appData.sections[newName] = {
+                    title: newName,
+                    instructions: newInstr,
+                    questions: []
+                };
+            } else if (action === 'edit') {
+                if (oldKey !== newName) {
+                    if (appData.sections[newName]) {
+                        alert("A section with this name already exists.");
+                        return;
+                    }
+                    appData.sections[newName] = appData.sections[oldKey];
+                    appData.sections[newName].title = newName;
+                    delete appData.sections[oldKey];
+                }
+                appData.sections[newName].instructions = newInstr;
+            }
+
+            savePaperState();
+            closeSectionModal();
+            renderApp();
+        }
+
+        function deleteSection(secKey) {
+            const count = appData.sections[secKey].questions ? appData.sections[secKey].questions.length : 0;
+            if (count > 0) {
+                if (!confirm("Section \"" + secKey + "\" contains " + count + " questions. Deleting it will remove all questions inside it. Proceed?")) {
+                    return;
+                }
+            } else {
+                if (!confirm("Delete section \"" + secKey + "\"?")) return;
+            }
+
+            delete appData.sections[secKey];
+            savePaperState();
+            renderApp();
+        }
+
+        // Paper Settings Modal Logic
+        function openSettingsModal() {
+            document.getElementById('settingInstName').value = appData.settings.institutionName;
+            document.getElementById('settingExamTitle').value = appData.settings.examTitle;
+            document.getElementById('settingSubject').value = appData.settings.subject;
+            document.getElementById('settingClass').value = appData.settings.grade;
+            document.getElementById('settingTime').value = appData.settings.timeAllowed;
+            document.getElementById('settingInstructions').value = appData.settings.instructions;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function saveSettings() {
+            appData.settings.institutionName = document.getElementById('settingInstName').value.trim() || 'Institution Name';
+            appData.settings.examTitle = document.getElementById('settingExamTitle').value.trim() || 'Examination';
+            appData.settings.subject = document.getElementById('settingSubject').value.trim() || 'Subject';
+            appData.settings.grade = document.getElementById('settingClass').value.trim() || 'Class';
+            appData.settings.timeAllowed = document.getElementById('settingTime').value.trim() || '3 Hours';
+            appData.settings.instructions = document.getElementById('settingInstructions').value.trim();
+
+            savePaperState();
+            closeSettingsModal();
+            renderApp();
+        }
+
+        // Print / Export Modal Logic
+        function openPrintModal() {
+            document.getElementById('printInstName').innerText = appData.settings.institutionName;
+            document.getElementById('printExamTitle').innerText = appData.settings.examTitle;
+            document.getElementById('printSub').innerText = appData.settings.subject;
+            document.getElementById('printClass').innerText = appData.settings.grade;
+            document.getElementById('printTime').innerText = appData.settings.timeAllowed;
+            
+            let totalMarks = 0;
+            const sectionKeys = Object.keys(appData.sections);
+            for (let i = 0; i < sectionKeys.length; i++) {
+                const sec = appData.sections[sectionKeys[i]];
+                if (sec && sec.questions) {
+                    for (let j = 0; j < sec.questions.length; j++) {
+                        totalMarks += parseInt(sec.questions[j].marks || 0);
+                    }
+                }
+            }
+            document.getElementById('printMarks').innerText = totalMarks;
+            document.getElementById('printInstructions').innerText = appData.settings.instructions;
+
+            const printContainer = document.getElementById('printSectionsContainer');
+            if (sectionKeys.length === 0) {
+                printContainer.innerHTML = '<p class="text-center text-slate-500 italic">No questions available to print.</p>';
+            } else {
+                let pHtml = '';
+                for (let k = 0; k < sectionKeys.length; k++) {
+                    const secKey = sectionKeys[k];
+                    const sec = appData.sections[secKey];
+                    const questions = sec.questions || [];
+                    
+                    pHtml += '<div class="space-y-3">' +
+                                '<div class="border-b border-slate-900 pb-1">' +
+                                    '<h3 class="font-bold text-base uppercase text-slate-900">' + escapeHtml(sec.title || secKey) + '</h3>' +
+                                    (sec.instructions ? '<p class="text-xs italic text-slate-600">' + escapeHtml(sec.instructions) + '</p>' : '') +
+                                '</div>';
+
+                    if (questions.length === 0) {
+                        pHtml += '<p class="text-xs text-slate-500 italic">No questions in this section.</p>';
+                    } else {
+                        pHtml += '<div class="space-y-4 pl-2">';
+                        for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+                            const q = questions[qIdx];
+                            pHtml += '<div class="flex items-start justify-between gap-4">' +
+                                        '<div class="flex items-start space-x-2 flex-1">' +
+                                            '<span class="font-bold shrink-0">' + (qIdx + 1) + '.</span>' +
+                                            '<p class="text-slate-900 flex-1 leading-relaxed">' + escapeHtml(q.text) + '</p>' +
+                                        '</div>' +
+                                        '<span class="font-bold shrink-0 text-xs">(' + q.marks + ')</span>' +
+                                    '</div>';
+                        }
+                        pHtml += '</div>';
+                    }
+                    pHtml += '</div>';
+                }
+                printContainer.innerHTML = pHtml;
+            }
+
+            document.getElementById('printModal').classList.remove('hidden');
+        }
+
+        function closePrintModal() {
+            document.getElementById('printModal').classList.add('hidden');
+        }
+
+        function triggerBrowserPrint() {
+            window.print();
+        }
+
+        function clearAllData() {
+            if (confirm("Are you sure you want to clear all questions and reset the paper?")) {
+                localStorage.removeItem('paperDesignerState');
+                localStorage.removeItem('selectedBuilderQuestions');
+                localStorage.removeItem('selectedQuestions');
+                localStorage.removeItem('builderQuestions');
+                appData = {
+                    settings: {
+                        institutionName: "Delhi Public School",
+                        examTitle: "Terminal Examination",
+                        subject: "Mathematics",
+                        grade: "Grade 10",
+                        timeAllowed: "3 Hours",
+                        instructions: "1. All questions are compulsory.\n2. Figures to the right indicate full marks."
+                    },
+                    sections: {}
+                };
+                renderApp();
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, '&#039;');
+        }
+    </script>
 </body>
 </html>
