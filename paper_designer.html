@@ -3,111 +3,424 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Builder - A-to-Z Mocks</title>
+    <title>A-to-Z Paper Designer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="h-full bg-slate-900 text-slate-100 flex flex-col font-sans">
+<body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
 
     <!-- Top Bar -->
-    <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 flex items-center justify-between shadow-md">
+    <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10">
         <div class="flex items-center space-x-3">
             <div class="bg-indigo-600 p-2 rounded-lg text-white">
-                <i class="fa-solid fa-list-check text-lg"></i>
+                <i class="fa-solid fa-pen-ruler text-lg"></i>
             </div>
             <div>
-                <h1 class="text-lg font-bold">A-to-Z Test Builder</h1>
-                <p class="text-xs text-slate-400">Select questions from your library to design your paper</p>
+                <h1 class="text-lg font-bold tracking-wide">A-to-Z Paper Designer</h1>
+                <p class="text-xs text-slate-400">Custom Test & Question Paper Layout</p>
             </div>
         </div>
-        <div>
-            <button onclick="proceedToDesigner()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-lg flex items-center space-x-2 transition">
-                <span>Proceed to Paper Designer</span>
-                <i class="fa-solid fa-arrow-right"></i>
+        <div class="flex items-center space-x-3">
+            <button onclick="loadFromLocalStorage()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-slate-600">
+                <i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i> Refresh / Load Selected
+            </button>
+            <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 shadow">
+                <i class="fa-solid fa-print"></i>
+                <span>Print / Export Paper</span>
             </button>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 p-6 max-w-5xl mx-auto w-full overflow-y-auto">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-sm font-bold text-slate-300 uppercase tracking-wider">Available Question Bank</h2>
-            <span id="selectedCountBadge" class="text-xs bg-indigo-900/60 text-indigo-300 border border-indigo-700/50 px-3 py-1 rounded-full font-medium">0 Questions Selected</span>
-        </div>
+    <!-- Main Workspace -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- Left Sidebar: Sections Management -->
+        <aside class="w-80 bg-slate-800/90 border-r border-slate-700 flex flex-col">
+            <div class="p-4 border-b border-slate-700 bg-slate-800">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Blueprint Summary</h2>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
+                        <span class="block text-xs text-slate-400">Total Qs</span>
+                        <span id="totalQuestionsCount" class="text-lg font-bold text-indigo-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
+                        <span class="block text-xs text-slate-400">Total Marks</span>
+                        <span id="totalMarksCount" class="text-lg font-bold text-emerald-400">0</span>
+                    </div>
+                </div>
+            </div>
 
-        <!-- Question List Container -->
-        <div id="builderQuestionList" class="space-y-3">
-            <!-- Dynamically populated questions -->
-        </div>
-    </main>
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/50">
+                <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Sections</span>
+                <button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center space-x-1">
+                    <i class="fa-solid fa-plus"></i><span>Add Section</span>
+                </button>
+            </div>
 
+            <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
+        </aside>
+
+        <!-- Center Workspace: Questions Canvas -->
+        <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden">
+            <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
+                <div>
+                    <h2 id="activeSectionTitle" class="text-base font-bold text-slate-100">Section A</h2>
+                    <p id="activeSectionMeta" class="text-xs text-slate-400">Manage questions inside this section.</p>
+                </div>
+                <div>
+                    <button onclick="openAddCustomQuestionModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow">
+                        <i class="fa-solid fa-circle-plus"></i>
+                        <span>Add Custom Question</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl mx-auto w-full">
+                <div id="emptyCanvasState" class="h-full flex flex-col items-center justify-center text-center text-slate-500">
+                    <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
+                    <p class="text-base font-medium">No Questions Found</p>
+                    <p class="text-xs text-slate-600 mt-1">Please select questions from your builder or click 'Refresh / Load Selected'.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: Section Management -->
+    <div id="sectionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="font-bold text-base text-indigo-300">Add New Section</h3>
+                <button onclick="closeSectionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Section Name</label>
+                    <input type="text" id="secNameInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100" placeholder="e.g. Section B">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Section Question Type</label>
+                    <select id="secTypeInput" onchange="handleSecTypeChange()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
+                        <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
+                        <option value="Assertion & Reason">Assertion & Reason</option>
+                        <option value="Short Answer Type">Short Answer Type</option>
+                        <option value="Long Answer / Descriptive">Long Answer / Descriptive</option>
+                        <option value="Custom / Other">Custom / Other</option>
+                    </select>
+                </div>
+                <div id="customSecTypeContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Custom Section Type Name (Printed on Paper)</label>
+                    <input type="text" id="customSecTypeInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100" placeholder="e.g. Case Study Based">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Default Marks Per Question</label>
+                    <input type="number" id="secMarksInput" min="1" value="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-800 flex justify-end space-x-3">
+                <button onclick="closeSectionModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
+                <button onclick="saveNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium">Save Section</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Question Edit Popup -->
+    <div id="questionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-xl flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 id="questionModalTitle" class="font-bold text-base text-indigo-300">Edit Question</h3>
+                <button onclick="closeQuestionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="editQuestionId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Question Type</label>
+                    <select id="qType" onchange="handleQTypeChange()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
+                        <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
+                        <option value="Assertion & Reason">Assertion & Reason</option>
+                        <option value="Short Answer Type">Short Answer Type</option>
+                        <option value="Long Answer / Descriptive">Long Answer / Descriptive</option>
+                        <option value="Custom / Other">Custom / Other</option>
+                    </select>
+                </div>
+                <div id="customQTypeContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Custom Question Type</label>
+                    <input type="text" id="customQTypeInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100" placeholder="Type custom name">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Question Statement & Options</label>
+                    <textarea id="qText" rows="4" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100" placeholder="Enter question text..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Marks</label>
+                    <input type="number" id="qMarks" min="1" value="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-800 flex justify-end space-x-3">
+                <button onclick="closeQuestionModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
+                <button onclick="saveQuestionData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Print Layout -->
+    <div id="printModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-6">
+        <div class="bg-white text-slate-900 rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="bg-slate-100 p-4 border-b border-slate-300 flex items-center justify-between">
+                <h3 class="font-bold text-lg text-slate-800">Print Preview Layout</h3>
+                <div class="flex items-center space-x-2">
+                    <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium">Print Paper</button>
+                    <button onclick="closePrintModal()" class="text-slate-500 hover:text-slate-800 p-2"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+            </div>
+            <div id="printPreviewContent" class="p-8 flex-1 overflow-y-auto space-y-6 font-serif"></div>
+        </div>
+    </div>
+
+    <!-- Script Logic -->
     <script>
-        // Sample Question Library available in Builder
-        const availableQuestions = [
-            { id: "q_1", type: "Multiple Choice Questions (MCQ)", text: "What is the primary material used in bismuth borate glass ceramics?\n(A) Bismuth oxide\n(B) Silica sand\n(C) Pure copper\n(D) Sodium chloride", marks: 1 },
-            { id: "q_2", type: "Multiple Choice Questions (MCQ)", text: "Which electrochemical platform is commonly used for volatile crypto futures market orders?\n(A) Binance\n(B) CoinDCX\n(C) WazirX\n(D) CoinSwitch", marks: 1 },
-            { id: "q_3", type: "Short Answer Type", text: "Explain the melt-quenching technique in glass ceramics synthesis and its role in materials science research.", marks: 3 },
-            { id: "q_4", type: "Long Answer / Descriptive", text: "Analyze the market volatility and risk management protocols for trading cryptocurrency futures.", marks: 5 },
-            { id: "q_5", type: "Assertion & Reason", text: "Assertion: Barium phosphate glasses exhibit high radiation shielding.\nReason: Barium has a high atomic number.", marks: 2 }
-        ];
+        let testPaper = {
+            title: "Custom Assessment Test",
+            sections: []
+        };
 
-        let selectedQuestionIds = new Set();
+        let activeSectionId = null;
 
         window.addEventListener('DOMContentLoaded', () => {
-            renderBuilderList();
+            loadFromLocalStorage();
         });
 
-        function renderBuilderList() {
-            const container = document.getElementById('builderQuestionList');
-            container.innerHTML = '';
+        function loadFromLocalStorage() {
+            let rawData = localStorage.getItem('selectedBuilderQuestions') || localStorage.getItem('selectedQuestions') || '[]';
+            let parsed = [];
+            try {
+                parsed = JSON.parse(rawData);
+            } catch(e) { parsed = []; }
 
-            availableQuestions.forEach((q, idx) => {
-                const isSelected = selectedQuestionIds.has(q.id);
-                const card = document.createElement('div');
-                card.className = `bg-slate-800/80 border rounded-xl p-4 flex items-start space-x-4 cursor-pointer transition ${isSelected ? 'border-indigo-500 bg-indigo-950/20 shadow-md' : 'border-slate-700/80 hover:border-slate-600'}`;
-                card.onclick = () => toggleSelectQuestion(q.id);
+            let questions = parsed.map((q, idx) => ({
+                id: q.id || ('q_' + idx),
+                type: q.type || "Multiple Choice Questions (MCQ)",
+                text: q.text || q.question || "Untitled Question",
+                marks: Number(q.marks || 1)
+            }));
 
-                card.innerHTML = `
-                    <div class="pt-1">
-                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="event.stopPropagation(); toggleSelectQuestion('${q.id}')" class="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700 focus:ring-indigo-500 cursor-pointer">
-                    </div>
-                    <div class="flex-1 space-y-1">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-xs bg-slate-900 text-slate-400 px-2 py-0.5 rounded border border-slate-700">Q.${idx + 1}</span>
-                            <span class="text-xs text-indigo-400 font-medium">${q.type}</span>
-                            <span class="text-xs text-emerald-400 font-semibold ml-auto">[${q.marks} Mark]</span>
+            testPaper.sections = [
+                {
+                    id: "sec_a",
+                    name: "Section A",
+                    type: "Multiple Choice Questions (MCQ)",
+                    marksPerQ: 1,
+                    questions: questions
+                }
+            ];
+            activeSectionId = "sec_a";
+
+            renderSidebar();
+            renderCanvas();
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('sectionsSidebarList');
+            list.innerHTML = '';
+            testPaper.sections.forEach(sec => {
+                let isActive = sec.id === activeSectionId;
+                let marks = sec.questions.reduce((acc, q) => acc + Number(q.marks), 0);
+                
+                let div = document.createElement('div');
+                div.className = `p-3 rounded-lg border transition cursor-pointer ${isActive ? 'bg-indigo-950/40 border-indigo-500' : 'bg-slate-900/60 border-slate-700 hover:bg-slate-900'}`;
+                div.onclick = () => { activeSectionId = sec.id; renderSidebar(); renderCanvas(); };
+
+                div.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <input type="text" value="${sec.name}" onclick="event.stopPropagation()" onchange="renameSec('${sec.id}', this.value)" class="bg-transparent text-sm font-semibold text-slate-200 w-32 px-1 rounded border border-transparent focus:border-indigo-500">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">${sec.questions.length} Qs</span>
+                            <button onclick="event.stopPropagation(); deleteSec('${sec.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                        <p class="text-sm text-slate-200 whitespace-pre-line leading-relaxed">${q.text}</p>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-slate-400">
+                        <span class="truncate max-w-[130px]">${sec.type}</span>
+                        <span>Marks: ${marks}</span>
                     </div>
                 `;
-                container.appendChild(card);
+                list.appendChild(div);
             });
+            updateTotals();
         }
 
-        function toggleSelectQuestion(id) {
-            if (selectedQuestionIds.has(id)) {
-                selectedQuestionIds.delete(id);
-            } else {
-                selectedQuestionIds.add(id);
-            }
-            document.getElementById('selectedCountBadge').innerText = `${selectedQuestionIds.size} Questions Selected`;
-            renderBuilderList();
-        }
-
-        function proceedToDesigner() {
-            if (selectedQuestionIds.size === 0) {
-                alert("Please select at least one question before proceeding to Paper Designer!");
+        function renderCanvas() {
+            const container = document.getElementById('questionsCanvasContainer');
+            const sec = testPaper.sections.find(s => s.id === activeSectionId);
+            
+            if (!sec || sec.questions.length === 0) {
+                container.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
+                        <i class="fa-solid fa-folder-open text-4xl mb-2 text-slate-600"></i>
+                        <p class="text-sm font-medium">No questions in this section.</p>
+                        <p class="text-xs text-slate-600 mt-1">Click 'Refresh / Load Selected' above or add custom questions.</p>
+                    </div>`;
+                updateTotals();
                 return;
             }
 
-            // Filter selected questions objects
-            const selectedObjects = availableQuestions.filter(q => selectedQuestionIds.has(q.id));
+            document.getElementById('activeSectionTitle').innerText = sec.name;
+            document.getElementById('activeSectionMeta').innerText = `Type: ${sec.type} • Total Questions: ${sec.questions.length}`;
 
-            // Save precisely to localStorage with the exact key expected by paper_designer.html
-            localStorage.setItem('selectedBuilderQuestions', JSON.stringify(selectedObjects));
+            container.innerHTML = '';
+            sec.questions.forEach((q, idx) => {
+                let card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col space-y-3 shadow-md";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                        <div class="flex items-center space-x-2">
+                            <span class="bg-indigo-600/20 text-indigo-400 font-bold px-2.5 py-0.5 rounded text-xs">Q.${idx + 1}</span>
+                            <span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">${q.type}</span>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs">
+                            <span class="text-emerald-400 font-bold">${q.marks} Mark(s)</span>
+                            <button onclick="openEditModal('${q.id}')" class="bg-sky-600/20 text-sky-400 hover:bg-sky-600 hover:text-white px-2.5 py-1 rounded transition text-xs font-semibold"><i class="fa-solid fa-pen mr-1"></i>Edit</button>
+                            <button onclick="removeQ('${sec.id}', '${q.id}')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="text-sm text-slate-100 whitespace-pre-line bg-slate-950/50 p-3.5 rounded-lg border border-slate-800/60">${q.text}</div>
+                `;
+                container.appendChild(card);
+            });
+            updateTotals();
+        }
 
-            // Redirect to paper designer page
-            window.location.href = "paper_designer.html";
+        function updateTotals() {
+            let totalQ = 0, totalM = 0;
+            testPaper.sections.forEach(s => {
+                totalQ += s.questions.length;
+                s.questions.forEach(q => totalM += Number(q.marks));
+            });
+            document.getElementById('totalQuestionsCount').innerText = totalQ;
+            document.getElementById('totalMarksCount').innerText = totalM;
+        }
+
+        function addNewSection() {
+            document.getElementById('secNameInput').value = "Section " + String.fromCharCode(65 + testPaper.sections.length);
+            document.getElementById('sectionModal').classList.remove('hidden');
+            document.getElementById('sectionModal').classList.add('flex');
+        }
+
+        function closeSectionModal() {
+            document.getElementById('sectionModal').classList.remove('flex');
+            document.getElementById('sectionModal').classList.add('hidden');
+        }
+
+        function handleSecTypeChange() {
+            let val = document.getElementById('secTypeInput').value;
+            let c = document.getElementById('customSecTypeContainer');
+            if (val === "Custom / Other") c.classList.remove('hidden');
+            else c.classList.add('hidden');
+        }
+
+        function saveNewSection() {
+            let name = document.getElementById('secNameInput').value.trim();
+            let type = document.getElementById('secTypeInput').value;
+            if (type === "Custom / Other") type = document.getElementById('customSecTypeInput').value.trim() || "Custom Type";
+            let marks = Number(document.getElementById('secMarksInput').value) || 1;
+
+            if (!name) return alert("Enter section name");
+
+            let newSec = { id: 'sec_' + Date.now(), name, type, marksPerQ: marks, questions: [] };
+            testPaper.sections.push(newSec);
+            activeSectionId = newSec.id;
+            closeSectionModal();
+            renderSidebar();
+            renderCanvas();
+        }
+
+        function renameSec(id, name) {
+            let s = testPaper.sections.find(sec => sec.id === id);
+            if (s && name.trim()) { s.name = name.trim(); renderSidebar(); }
+        }
+
+        function deleteSec(id) {
+            if (testPaper.sections.length <= 1) return alert("At least one section required.");
+            if (confirm("Delete this section?")) {
+                testPaper.sections = testPaper.sections.filter(sec => sec.id !== id);
+                activeSectionId = testPaper.sections[0].id;
+                renderSidebar();
+                renderCanvas();
+            }
+        }
+
+        function removeQ(secId, qId) {
+            let s = testPaper.sections.find(sec => sec.id === secId);
+            if (s) {
+                s.questions = s.questions.filter(q => q.id !== qId);
+                renderCanvas();
+                renderSidebar();
+            }
+        }
+
+        function openAddCustomQuestionModal() {
+            document.getElementById('questionModalTitle').innerText = "Add Custom Question";
+            document.getElementById('editQuestionId').value = "";
+            document.getElementById('qText').value = "";
+            document.getElementById('qMarks').value = 1;
+            document.getElementById('questionModal').classList.remove('hidden');
+            document.getElementById('questionModal').classList.add('flex');
+        }
+
+        function openEditModal(qId) {
+            let sec = testPaper.sections.find(s => s.id === activeSectionId);
+            let q = sec.questions.find(item => item.id === qId);
+            if (!q) return;
+
+            document.getElementById('questionModalTitle').innerText = "Edit Question";
+            document.getElementById('editQuestionId').value = q.id;
+            document.getElementById('qText').value = q.text;
+            document.getElementById('qMarks').value = q.marks;
+            document.getElementById('questionModal').classList.remove('hidden');
+            document.getElementById('questionModal').classList.add('flex');
+        }
+
+        function closeQuestionModal() {
+            document.getElementById('questionModal').classList.remove('flex');
+            document.getElementById('questionModal').classList.add('hidden');
+        }
+
+        function saveQuestionData() {
+            let qId = document.getElementById('editQuestionId').value;
+            let text = document.getElementById('qText').value.trim();
+            let marks = Number(document.getElementById('qMarks').value) || 1;
+            let sec = testPaper.sections.find(s => s.id === activeSectionId);
+
+            if (!text) return alert("Question text cannot be empty");
+
+            if (qId) {
+                let q = sec.questions.find(item => item.id === qId);
+                if (q) { q.text = text; q.marks = marks; }
+            } else {
+                sec.questions.push({ id: 'q_' + Date.now(), type: sec.type, text, marks });
+            }
+
+            closeQuestionModal();
+            renderCanvas();
+            renderSidebar();
+        }
+
+        function previewPrintLayout() {
+            let content = document.getElementById('printPreviewContent');
+            let html = `<div class="text-center border-b-2 border-slate-900 pb-3 mb-4"><h1 class="text-xl font-bold uppercase">${testPaper.title}</h1></div>`;
+            testPaper.sections.forEach(sec => {
+                html += `<div class="mb-4"><h3 class="font-bold bg-slate-200 p-1 mb-2">${sec.name} (${sec.type})</h3><div class="space-y-2 pl-2">`;
+                sec.questions.forEach((q, i) => {
+                    html += `<div class="flex items-start space-x-2 text-sm"><span class="font-bold">${i+1}.</span><div class="flex-1">${q.text.replace(/\n/g, '<br>')}</div><span>[${q.marks}m]</span></div>`;
+                });
+                html += `</div></div>`;
+            });
+            content.innerHTML = html;
+            document.getElementById('printModal').classList.remove('hidden');
+            document.getElementById('printModal').classList.add('flex');
+        }
+
+        function closePrintModal() {
+            document.getElementById('printModal').classList.remove('flex');
+            document.getElementById('printModal').classList.add('hidden');
         }
     </script>
 </body>
