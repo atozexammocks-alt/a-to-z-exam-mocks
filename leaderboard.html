@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A to Z Exam Mocks - Test Leaderboard</title>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const app=initializeApp(firebaseConfig);
+window.db=getFirestore(app); window.collection=collection; window.getDocs=getDocs; window.doc=doc; window.getDoc=getDoc;
+</script>
+<style>
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{margin:0;background:#060911;color:#f8fafc;min-height:100vh}
+.nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+.brand{color:#38bdf8;font-weight:900;font-size:16px;text-decoration:none}.btn{background:#0f172a;border:1px solid #334155;color:#cbd5e1;border-radius:7px;padding:7px 12px;text-decoration:none;font-size:12px;font-weight:800}
+.main{max-width:1050px;margin:auto;padding:28px 18px}.hero{background:#0b1120;border:1px solid #1e293b;border-radius:16px;padding:22px;margin-bottom:16px}
+.hero h1{margin:0;color:#38bdf8;font-size:22px}.muted{color:#94a3b8;font-size:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}.stat{background:#0f172a;border:1px solid #334155;border-radius:10px;padding:14px}.stat small{display:block;color:#94a3b8;font-size:10px;margin-bottom:5px}.stat strong{font-size:20px}
+.board{background:#0b1120;border:1px solid #1e293b;border-radius:14px;overflow:hidden}.row{display:grid;grid-template-columns:70px 1fr 130px 110px 120px;gap:10px;align-items:center;padding:13px 16px;border-bottom:1px solid #1e293b;font-size:12px}.head{background:#0f172a;color:#94a3b8;font-size:10px;font-weight:900;text-transform:uppercase}.me{background:rgba(245,158,11,.10);border-left:3px solid #f59e0b}.medal{font-size:17px}.student{font-weight:800;color:#f8fafc}.score{color:#10b981;font-weight:900}.rank{color:#fbbf24;font-weight:900}
+@media(max-width:700px){.row{grid-template-columns:48px 1fr 90px 70px}.time{display:none}.stats{grid-template-columns:1fr 1fr 1fr}.head{font-size:9px}}
+</style>
+</head>
+<body>
+<div class="nav"><a class="brand" href="student.html">🏆 A to Z Exam Mocks</a><a class="btn" href="student.html">🎯 Student Portal</a></div>
+<div class="main">
+<div class="hero">
+<h1 id="test-title">Test Leaderboard</h1>
+<p class="muted" id="test-subtitle">Loading rankings...</p>
+<div class="stats"><div class="stat"><small>YOUR RANK</small><strong id="my-rank">—</strong></div><div class="stat"><small>PARTICIPANTS</small><strong id="participant-count">—</strong></div><div class="stat"><small>YOUR SCORE</small><strong id="my-score">—</strong></div></div>
+</div>
+<div class="board"><div class="row head"><span>Rank</span><span>Student</span><span>Score</span><span>%</span><span class="time">Time</span></div><div id="leaderboard-body"><div style="padding:30px;text-align:center;color:#64748b">Loading leaderboard...</div></div></div>
+</div>
+<script>
+function maskName(name){
+ name=(name||"Student").trim()||"Student";
+ if(name.length<=2)return name[0]+"•";
+ return name.slice(0,1)+"•".repeat(Math.min(3,Math.max(1,name.length-2)))+name.slice(-1);
+}
+function formatTime(sec){
+ sec=Number(sec); if(!Number.isFinite(sec)||sec<0)return "—";
+ const m=Math.floor(sec/60), s=sec%60; return m+"m "+String(s).padStart(2,"0")+"s";
+}
+async function loadLeaderboard(){
+ const params=new URLSearchParams(location.search), testId=params.get("id");
+ const body=document.getElementById("leaderboard-body");
+ const email=(localStorage.getItem("ExamVault_Student_Email")||"").trim().toLowerCase();
+ if(!testId){body.innerHTML='<div style="padding:30px;text-align:center;color:#ef4444">No test selected.</div>';return}
+ try{
+  const ts=await window.getDoc(window.doc(window.db,"published_tests",testId));
+  const title=ts.exists()?(ts.data().title||"Test Leaderboard"):"Test Leaderboard";
+  document.getElementById("test-title").textContent="🏆 "+title;
+  const snap=await window.getDocs(window.collection(window.db,"student_results"));
+  const rows=[];
+  snap.forEach(d=>{const r={id:d.id,...d.data()};if(r.testId===testId)rows.push(r)});
+  rows.sort((a,b)=>{
+   const sd=Number(b.score||0)-Number(a.score||0); if(sd!==0)return sd;
+   const ta=Number.isFinite(Number(a.timeTaken))?Number(a.timeTaken):Number.MAX_SAFE_INTEGER;
+   const tb=Number.isFinite(Number(b.timeTaken))?Number(b.timeTaken):Number.MAX_SAFE_INTEGER;
+   return ta-tb;
+  });
+  document.getElementById("participant-count").textContent=rows.length;
+  const mine=rows.findIndex(r=>(r.studentEmail||"").toLowerCase()===email);
+  document.getElementById("my-rank").textContent=mine>=0?(mine+1)+"/"+rows.length:"—";
+  document.getElementById("my-score").textContent=mine>=0?(Number(rows[mine].score||0)+"/"+Number(rows[mine].totalMarks||100)):"—";
+  document.getElementById("test-subtitle").textContent=rows.length+" submission(s) • Ranking: score first, then faster completion time";
+  if(!rows.length){body.innerHTML='<div style="padding:30px;text-align:center;color:#64748b">No attempts recorded yet.</div>';return}
+  body.innerHTML="";
+  rows.forEach((r,i)=>{
+   const total=Number(r.totalMarks||100),score=Number(r.score||0),pct=Number.isFinite(Number(r.percentage))?Number(r.percentage):Math.round(score/total*100);
+   const isMe=(r.studentEmail||"").toLowerCase()===email;
+   const row=document.createElement("div");row.className="row"+(isMe?" me":"");
+   const rankText=i===0?"🥇":i===1?"🥈":i===2?"🥉":"#"+(i+1);
+   row.innerHTML='<span class="rank medal">'+rankText+'</span><span class="student">'+maskName(r.studentName) +(isMe?' <span style="color:#fbbf24;font-size:10px;">(YOU)</span>':'')+'</span><span class="score">'+score+" / "+total+'</span><span>'+pct+'%</span><span class="time">'+formatTime(r.timeTaken)+'</span>';
+   body.appendChild(row);
+  });
+ }catch(e){body.innerHTML='<div style="padding:30px;text-align:center;color:#ef4444">Failed to load leaderboard. Please refresh.</div>'}
+}
+window.onload=loadLeaderboard;
+</script>
+</body>
+</html>
