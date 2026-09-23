@@ -21,11 +21,13 @@ body{background:radial-gradient(circle at 50% -10%,#10213b 0,#060911 42%);color:
 <section class="hero"><h1>Previous Year Questions — Physics</h1><p>Select the exam and year. This first version keeps the source links curated and prioritises official exam websites. Later we can connect an automatic collector and question-level practice database.</p>
 <div class="filters"><select id="exam"><option value="all">All Exams</option><option>JEE Main</option><option>JEE Advanced</option><option>NEET</option></select><select id="year"><option value="all">All Years</option></select><select id="session"><option value="all">All Sessions / Papers</option></select><input id="search" type="search" placeholder="Search year, paper, session..."><button class="search" onclick="render()">🔎 Search</button><button class="reset" onclick="resetFilters()">Reset</button></div></section>
 <div class="summary"><span id="count">0 papers</span><span>Physics only</span></div><section id="results" class="results"></section>
-<div class="note"><b>Source policy:</b> Official authority links are prioritised. Where a stable public year-by-year PDF is not exposed by the authority, the card opens the official document/archive area rather than inventing a PDF URL.</div>
+<div class="note"><b>Download policy:</b> “View PDF” and “Download” are shown only where a direct official PDF has been verified. For years/shifts where the authority does not expose a stable public PDF link, the card opens the official document/archive page. No guessed PDF URLs are used.</div>
 </main><div class="footer">A-to-Z Exam Mocks · PYQ Hub MVP. Standalone frontend; no paid API or external JavaScript library required.</div>
 <script>
 const O={jm:"https://jeemain.nta.nic.in/documents/",jh:"https://jeemain.nta.nic.in/",ja:"https://jeeadv.ac.in/archive.html",n25:"https://neet.nta.nic.in/document-category/neetug-2025-public-notices/",nh:"https://neet.nta.nic.in/"};
 const papers=[
+{e:"JEE Advanced",y:2026,s:"Paper 1 — English",p:"https://jeeadv.ac.in/documents/p1_english.pdf"},
+{e:"JEE Advanced",y:2026,s:"Paper 2 — English",p:"https://jeeadv.ac.in/documents/p2_english.pdf"},
 {e:"JEE Advanced",y:2025,s:"Paper 1 — English",p:"https://jeeadv.ac.in/past_qps/2025_1_English.pdf"},
 {e:"JEE Advanced",y:2025,s:"Paper 2 — English",p:"https://jeeadv.ac.in/past_qps/2025_2_English.pdf"},
 {e:"JEE Advanced",y:2024,s:"Paper 1 — English",p:"https://jeeadv.ac.in/past_qps/2024_1_English.pdf"},
@@ -34,9 +36,18 @@ const papers=[
 {e:"JEE Advanced",y:2023,s:"Paper 2 — English",p:"https://jeeadv.ac.in/past_qps/2023_2_English.pdf"},
 {e:"JEE Advanced",y:2022,s:"Paper 1 — English",p:"https://jeeadv.ac.in/past_qps/2022_1_English.pdf"},
 {e:"JEE Advanced",y:2022,s:"Paper 2 — English",p:"https://jeeadv.ac.in/past_qps/2022_2_English.pdf"},
-...[2026,2021,2020,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010,2009,2008,2007].map(y=>({e:"JEE Advanced",y,s:"Official archive — Paper 1 / Paper 2",p:"",src:O.ja})),
-...[2026,2025,2024,2023,2022,2021,2020,2019].map(y=>({e:"JEE Main",y,s:"Paper 1 (B.E./B.Tech.) — Physics",p:"",src:O.jm})),
-...[2026,2025,2024,2023,2022,2021,2020,2019].map(y=>({e:"NEET",y,s:"UG — Physics",p:"",src:y===2025?O.n25:O.nh}))
+{e:"JEE Main",y:2026,s:"2 Apr — Shift 2",p:"https://cdnbbsr.s3waas.gov.in/s3f8e59f4b2fe7c5705bf878bbd494ccdf/uploads/2026/04/20260409481957146.pdf"},
+{e:"JEE Main",y:2026,s:"4 Apr — Shift 1",p:"https://cdnbbsr.s3waas.gov.in/s3f8e59f4b2fe7c5705bf878bbd494ccdf/uploads/2026/04/202604091916616339.pdf"},
+{e:"JEE Main",y:2026,s:"4 Apr — Shift 2",p:"https://cdnbbsr.s3waas.gov.in/s3f8e59f4b2fe7c5705bf878bbd494ccdf/uploads/2026/04/20260409432593766.pdf"},
+{e:"JEE Main",y:2026,s:"5 Apr — Shift 1",p:"https://cdnbbsr.s3waas.gov.in/s3f8e59f4b2fe7c5705bf878bbd494ccdf/uploads/2026/04/20260409828731207.pdf"},
+{e:"JEE Main",y:2026,s:"6 Apr — Shift 2",p:"https://cdnbbsr.s3waas.gov.in/s3f8e59f4b2fe7c5705bf878bbd494ccdf/uploads/2026/04/202604092007095665.pdf"},
+{e:"JEE Main",y:2026,s:"8 Apr — Shift 2 / Official page",p:"",src:O.jm},
+{e:"JEE Main",y:2025,s:"Paper 1 (B.E./B.Tech.) — Official documents",p:"",src:O.jm},
+{e:"NEET",y:2025,s:"UG — Physics / Official documents",p:"",src:O.n25},
+{e:"NEET",y:2026,s:"UG — Physics / Official website",p:"",src:O.nh},
+...[2021,2020,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010,2009,2008,2007].map(y=>({e:"JEE Advanced",y,s:"Official archive — Paper 1 / Paper 2",p:"",src:O.ja})),
+...[2024,2023,2022,2021,2020,2019].map(y=>({e:"JEE Main",y,s:"Paper 1 (B.E./B.Tech.) — Official documents",p:"",src:O.jm})),
+...[2024,2023,2022,2021,2020,2019].map(y=>({e:"NEET",y,s:"UG — Physics / Official website",p:"",src:O.nh}))
 ];
 const ys=[...new Set(papers.map(x=>x.y))].sort((a,b)=>b-a);const ye=document.getElementById("year");ys.forEach(y=>{let o=document.createElement("option");o.value=y;o.textContent=y;ye.appendChild(o)});
 function sessions(){let e=exam.value,y=year.value;session.innerHTML='<option value="all">All Sessions / Papers</option>';[...new Set(papers.filter(x=>(e==="all"||x.e===e)&&(y==="all"||x.y==y)).map(x=>x.s))].forEach(s=>{let o=document.createElement("option");o.value=s;o.textContent=s;session.appendChild(o)})}
