@@ -589,7 +589,7 @@
               <input value="${s.instruction||''}" oninput="updateBlueprintField(${i},'instruction',this.value)" placeholder="Section instruction">
             </div>
             <div style="font-size:10px;color:#94a3b8;margin-top:6px;">${total} marks • ${s.count} questions • ${s.type} • ${s.layout}</div>
-            <div class="section-q-list" id="bp-q-list-${i}"></div>
+            <div class="section-q-list" id="bp-q-list-${i}" ondragover="allowBlueprintSectionDrop(event)" ondrop="dropBlueprintSection(event,${i})"></div>
           </div>`;
       });
       paperBlueprint.sections.forEach((s,i)=>renderBlueprintQuestions(i));
@@ -618,6 +618,18 @@
     let blueprintDraggedSectionIndex=-1;
     window.startBlueprintQuestionDrag=function(e,id,sectionIndex){ blueprintDraggedQuestionId=id; blueprintDraggedSectionIndex=sectionIndex; e.currentTarget.classList.add('dragging'); if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);} };
     window.allowBlueprintQuestionDrop=function(e){ e.preventDefault(); if(e.dataTransfer)e.dataTransfer.dropEffect='move'; e.currentTarget.classList.add('drag-over'); };
+    window.allowBlueprintSectionDrop=function(e){ e.preventDefault(); if(e.dataTransfer)e.dataTransfer.dropEffect='move'; e.currentTarget.style.outline='1px dashed #10b981'; };
+    window.dropBlueprintSection=function(e,sectionIndex){
+      e.preventDefault(); e.stopPropagation(); e.currentTarget.style.outline='';
+      const sourceId=blueprintDraggedQuestionId || (e.dataTransfer&&e.dataTransfer.getData('text/plain')); if(!sourceId)return;
+      const sourceIndex=blueprintDraggedSectionIndex, targetSection=paperBlueprint.sections[sectionIndex]; if(!targetSection)return;
+      const sourceIds=safeSectionQuestionIds(paperBlueprint.sections[sourceIndex]).filter(id=>id!==sourceId);
+      const targetIds=safeSectionQuestionIds(targetSection).filter(id=>id!==sourceId); targetIds.push(sourceId);
+      const old=paperQuestionOverrides[sourceId]||{};
+      paperQuestionOverrides[sourceId]={...old,sectionId:targetSection.id,paperType:old.paperType||inferQuestionType(cloudVault.find(q=>q.id===sourceId)),marks:old.marks??(Number(targetSection.marks)||1)};
+      paperBlueprint.sections[sourceIndex].questionOrder=sourceIds; paperBlueprint.sections[sectionIndex].questionOrder=targetIds;
+      blueprintDraggedQuestionId=null; blueprintDraggedSectionIndex=-1; renderBlueprint(); showToast('↗ Question moved to '+targetSection.id);
+    };
     window.dropBlueprintQuestion=function(e,targetId,sectionIndex){
       e.preventDefault(); e.stopPropagation();
       const sourceId=blueprintDraggedQuestionId || (e.dataTransfer&&e.dataTransfer.getData('text/plain'));
