@@ -267,21 +267,37 @@ function readSelectedQuestionsRaw() {
 
 function loadSelectedQuestions() {
     const questions = readSelectedQuestionsRaw();
-    testPaper.sections = [{
-        id: uid('sec'),
-        name: "Section A",
-        type: "Multiple Choice Questions (MCQ)",
-        marksPerQ: 1,
-        questions: questions
-    }];
+    // If no questions are found in localStorage, start with an empty section array instead of dummy questions
+    if (questions.length === 0) {
+        testPaper.sections = [{
+            id: uid('sec'),
+            name: "Section A",
+            type: "Multiple Choice Questions (MCQ)",
+            marksPerQ: 1,
+            questions: []
+        }];
+    } else {
+        testPaper.sections = [{
+            id: uid('sec'),
+            name: "Section A",
+            type: "Multiple Choice Questions (MCQ)",
+            marksPerQ: 1,
+            questions: questions
+        }];
+    }
     activeSectionId = testPaper.sections[0].id;
     saveState();
 }
 
 function refreshSelectedQuestions() {
+    const fresh = readSelectedQuestionsRaw();
+    if (fresh.length === 0) {
+        alert("No selected questions found in localStorage from the builder! Please select some questions in the builder first.");
+        return;
+    }
+
     if (!confirm("Re-load selected questions from builder? Your current section structure will be preserved but question edits will be replaced.")) return;
 
-    const fresh = readSelectedQuestionsRaw();
     const existingById = {};
     testPaper.sections.forEach(sec => sec.questions.forEach(q => { existingById[q.id] = q; }));
 
