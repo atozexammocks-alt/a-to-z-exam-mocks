@@ -79,7 +79,7 @@
                 <div id="emptyCanvasState" class="h-full flex flex-col items-center justify-center text-center text-slate-500">
                     <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
                     <p class="text-base font-medium">No Questions Found</p>
-                    <p class="text-xs text-slate-600 mt-1">Please select questions from your builder or click 'Refresh / Load Selected'.</p>
+                    <p class="text-xs text-slate-600 mt-1">Please select questions from your builder first.</p>
                 </div>
             </div>
         </main>
@@ -196,6 +196,7 @@
                 parsed = JSON.parse(rawData);
             } catch(e) { parsed = []; }
 
+            // Strictly using actual selected questions without any dummy placeholders
             let questions = parsed.map((q, idx) => ({
                 id: q.id || ('q_' + idx),
                 type: q.type || "Multiple Choice Questions (MCQ)",
@@ -255,8 +256,8 @@
                 container.innerHTML = `
                     <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
                         <i class="fa-solid fa-folder-open text-4xl mb-2 text-slate-600"></i>
-                        <p class="text-sm font-medium">No questions in this section.</p>
-                        <p class="text-xs text-slate-600 mt-1">Click 'Refresh / Load Selected' above or add custom questions.</p>
+                        <p class="text-sm font-medium">No questions selected.</p>
+                        <p class="text-xs text-slate-600 mt-1">Please select questions from your builder or test dashboard first.</p>
                     </div>`;
                 updateTotals();
                 return;
