@@ -621,6 +621,14 @@
       paperBlueprint.defaultLayout=document.getElementById('bp-default-layout').value;
       paperBlueprint.style=document.getElementById('bp-style').value;
       document.getElementById('test-marks').value=paperBlueprint.totalMarks;
+      // Give every selected question a paper section so a first-time teacher gets a usable paper immediately.
+      selectedIds.forEach((id)=>{
+        if(paperQuestionOverrides[id]?.sectionId) return;
+        const q=cloudVault.find(x=>x.id===id); if(!q) return;
+        const type=inferQuestionType(q);
+        const s=paperBlueprint.sections.find(x=>x.type===type)||paperBlueprint.sections[0];
+        if(s) paperQuestionOverrides[id]={...(paperQuestionOverrides[id]||{}),sectionId:s.id,paperType:type,marks:Number(s.marks)||1};
+      });
       closeBlueprint();
       showToast('✔ Paper Blueprint applied');
     };
