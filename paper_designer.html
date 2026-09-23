@@ -9,15 +9,21 @@
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
 
-    <!-- Top Bar -->
+    <!-- Top Bar with Uniform Styling and Back Button -->
     <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10">
-        <div class="flex items-center space-x-3">
-            <div class="bg-indigo-600 p-2 rounded-lg text-white">
-                <i class="fa-solid fa-pen-ruler text-lg"></i>
-            </div>
-            <div>
-                <h1 class="text-lg font-bold tracking-wide">A-to-Z Paper Designer</h1>
-                <p class="text-xs text-slate-400">Custom Test & Question Paper Layout</p>
+        <div class="flex items-center space-x-4">
+            <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold transition border border-slate-600 flex items-center space-x-2" title="Back to Test Builder">
+                <i class="fa-solid fa-arrow-left text-indigo-400"></i>
+                <span>Back to Builder</span>
+            </button>
+            <div class="flex items-center space-x-3 border-l border-slate-700 pl-4">
+                <div class="bg-indigo-600 p-2 rounded-lg text-white">
+                    <i class="fa-solid fa-pen-ruler text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wide">A-to-Z Paper Designer</h1>
+                    <p class="text-xs text-slate-400">Custom Test & Question Paper Layout</p>
+                </div>
             </div>
         </div>
         <div class="flex items-center space-x-3">
@@ -35,8 +41,8 @@
     <div class="flex-1 flex overflow-hidden">
         
         <!-- Left Sidebar: Sections Management -->
-        <aside class="w-80 bg-slate-800/90 border-r border-slate-700 flex flex-col">
-            <div class="p-4 border-b border-slate-700 bg-slate-800">
+        <aside class="w-80 bg-slate-800 border-r border-slate-700 flex flex-col">
+            <div class="p-4 border-b border-slate-700 bg-slate-800/90">
                 <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Blueprint Summary</h2>
                 <div class="grid grid-cols-2 gap-2 text-center">
                     <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50">
@@ -50,19 +56,19 @@
                 </div>
             </div>
 
-            <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/50">
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/60">
                 <span class="text-sm font-bold text-slate-200"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Sections</span>
                 <button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-medium transition flex items-center space-x-1">
                     <i class="fa-solid fa-plus"></i><span>Add Section</span>
                 </button>
             </div>
 
-            <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
+            <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-900/40"></div>
         </aside>
 
         <!-- Center Workspace: Questions Canvas -->
         <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden">
-            <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
+            <div class="bg-slate-800/80 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
                 <div>
                     <h2 id="activeSectionTitle" class="text-base font-bold text-slate-100">Section A</h2>
                     <p id="activeSectionMeta" class="text-xs text-slate-400">Manage questions inside this section.</p>
@@ -87,19 +93,19 @@
 
     <!-- MODAL: Section Management -->
     <div id="sectionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md flex flex-col shadow-2xl">
-            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between">
                 <h3 class="font-bold text-base text-indigo-300">Add New Section</h3>
                 <button onclick="closeSectionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-5 space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Section Name</label>
-                    <input type="text" id="secNameInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100" placeholder="e.g. Section B">
+                    <input type="text" id="secNameInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="e.g. Section B">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Section Question Type</label>
-                    <select id="secTypeInput" onchange="handleSecTypeChange()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
+                    <select id="secTypeInput" onchange="handleSecTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                         <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
                         <option value="Assertion & Reason">Assertion & Reason</option>
                         <option value="Short Answer Type">Short Answer Type</option>
@@ -109,15 +115,15 @@
                 </div>
                 <div id="customSecTypeContainer" class="hidden">
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Custom Section Type Name (Printed on Paper)</label>
-                    <input type="text" id="customSecTypeInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100" placeholder="e.g. Case Study Based">
+                    <input type="text" id="customSecTypeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="e.g. Case Study Based">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Default Marks Per Question</label>
-                    <input type="number" id="secMarksInput" min="1" value="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
+                    <input type="number" id="secMarksInput" min="1" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                 </div>
             </div>
-            <div class="p-4 border-t border-slate-800 flex justify-end space-x-3">
-                <button onclick="closeSectionModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
+            <div class="p-4 border-t border-slate-700 flex justify-end space-x-3">
+                <button onclick="closeSectionModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
                 <button onclick="saveNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium">Save Section</button>
             </div>
         </div>
@@ -125,8 +131,8 @@
 
     <!-- MODAL: Question Edit Popup -->
     <div id="questionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-xl flex flex-col shadow-2xl">
-            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-xl flex flex-col shadow-2xl">
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between">
                 <h3 id="questionModalTitle" class="font-bold text-base text-indigo-300">Edit Question</h3>
                 <button onclick="closeQuestionModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
@@ -134,7 +140,7 @@
                 <input type="hidden" id="editQuestionId">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Question Type</label>
-                    <select id="qType" onchange="handleQTypeChange()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
+                    <select id="qType" onchange="handleQTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                         <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
                         <option value="Assertion & Reason">Assertion & Reason</option>
                         <option value="Short Answer Type">Short Answer Type</option>
@@ -144,19 +150,19 @@
                 </div>
                 <div id="customQTypeContainer" class="hidden">
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Custom Question Type</label>
-                    <input type="text" id="customQTypeInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100" placeholder="Type custom name">
+                    <input type="text" id="customQTypeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Type custom name">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Question Statement & Options</label>
-                    <textarea id="qText" rows="4" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100" placeholder="Enter question text..."></textarea>
+                    <textarea id="qText" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="Enter question text..."></textarea>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Marks</label>
-                    <input type="number" id="qMarks" min="1" value="1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
+                    <input type="number" id="qMarks" min="1" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                 </div>
             </div>
-            <div class="p-4 border-t border-slate-800 flex justify-end space-x-3">
-                <button onclick="closeQuestionModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
+            <div class="p-4 border-t border-slate-700 flex justify-end space-x-3">
+                <button onclick="closeQuestionModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-4 py-2 rounded-lg text-sm">Cancel</button>
                 <button onclick="saveQuestionData()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-medium">Save Changes</button>
             </div>
         </div>
@@ -189,14 +195,19 @@
             loadFromLocalStorage();
         });
 
+        function goBackToBuilder() {
+            window.location.href = "builder.html";
+        }
+
         function loadFromLocalStorage() {
-            let rawData = localStorage.getItem('selectedBuilderQuestions') || localStorage.getItem('selectedQuestions') || '[]';
+            // Checking multiple keys to catch selected questions accurately from builder
+            let rawData = localStorage.getItem('selectedBuilderQuestions') || localStorage.getItem('selectedQuestions') || localStorage.getItem('builderQuestions') || '[]';
             let parsed = [];
             try {
                 parsed = JSON.parse(rawData);
             } catch(e) { parsed = []; }
 
-            // Strictly using actual selected questions without any dummy placeholders
+            // Extracting only the real selected questions without any mock data
             let questions = parsed.map((q, idx) => ({
                 id: q.id || ('q_' + idx),
                 type: q.type || "Multiple Choice Questions (MCQ)",
@@ -227,14 +238,14 @@
                 let marks = sec.questions.reduce((acc, q) => acc + Number(q.marks), 0);
                 
                 let div = document.createElement('div');
-                div.className = `p-3 rounded-lg border transition cursor-pointer ${isActive ? 'bg-indigo-950/40 border-indigo-500' : 'bg-slate-900/60 border-slate-700 hover:bg-slate-900'}`;
+                div.className = `p-3 rounded-lg border transition cursor-pointer ${isActive ? 'bg-indigo-950/40 border-indigo-500 shadow-md' : 'bg-slate-800/60 border-slate-700 hover:bg-slate-800'}`;
                 div.onclick = () => { activeSectionId = sec.id; renderSidebar(); renderCanvas(); };
 
                 div.innerHTML = `
                     <div class="flex items-center justify-between mb-1">
                         <input type="text" value="${sec.name}" onclick="event.stopPropagation()" onchange="renameSec('${sec.id}', this.value)" class="bg-transparent text-sm font-semibold text-slate-200 w-32 px-1 rounded border border-transparent focus:border-indigo-500">
                         <div class="flex items-center space-x-1">
-                            <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded">${sec.questions.length} Qs</span>
+                            <span class="text-[10px] bg-slate-900 text-slate-300 px-2 py-0.5 rounded border border-slate-700">${sec.questions.length} Qs</span>
                             <button onclick="event.stopPropagation(); deleteSec('${sec.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
@@ -257,7 +268,7 @@
                     <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
                         <i class="fa-solid fa-folder-open text-4xl mb-2 text-slate-600"></i>
                         <p class="text-sm font-medium">No questions selected.</p>
-                        <p class="text-xs text-slate-600 mt-1">Please select questions from your builder or test dashboard first.</p>
+                        <p class="text-xs text-slate-600 mt-1">Please select questions from your builder page first.</p>
                     </div>`;
                 updateTotals();
                 return;
@@ -384,8 +395,17 @@
             document.getElementById('questionModal').classList.add('hidden');
         }
 
+        function handleQTypeChange() {
+            let val = document.getElementById('qType').value;
+            let c = document.getElementById('customQTypeContainer');
+            if (val === "Custom / Other") c.classList.remove('hidden');
+            else c.classList.add('hidden');
+        }
+
         function saveQuestionData() {
             let qId = document.getElementById('editQuestionId').value;
+            let type = document.getElementById('qType').value;
+            if (type === "Custom / Other") type = document.getElementById('customQTypeInput').value.trim() || "Custom Type";
             let text = document.getElementById('qText').value.trim();
             let marks = Number(document.getElementById('qMarks').value) || 1;
             let sec = testPaper.sections.find(s => s.id === activeSectionId);
@@ -394,9 +414,9 @@
 
             if (qId) {
                 let q = sec.questions.find(item => item.id === qId);
-                if (q) { q.text = text; q.marks = marks; }
+                if (q) { q.type = type; q.text = text; q.marks = marks; }
             } else {
-                sec.questions.push({ id: 'q_' + Date.now(), type: sec.type, text, marks });
+                sec.questions.push({ id: 'q_' + Date.now(), type, text, marks });
             }
 
             closeQuestionModal();
