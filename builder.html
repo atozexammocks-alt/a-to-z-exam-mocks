@@ -205,7 +205,7 @@
       <div id="blueprint-summary" style="margin-top:10px;padding:9px;border-radius:7px;background:#0f172a;border:1px solid #334155;font-size:11px;"></div>
       <div style="display:flex;gap:7px;margin-top:10px;justify-content:flex-end;">
         <button class="tool-btn" style="background:#475569;" onclick="autoArrangePaper()">⚡ Auto Arrange Selected</button>
-        <button class="tool-btn" style="background:#0284c7;padding:9px 14px;font-weight:800;" onclick="printBlueprintPaper()">🖨️ Print This Paper</button>
+        <button class="tool-btn" style="background:#0284c7;padding:9px 14px;font-weight:800;" onclick="printBlueprintPaper()">🖨️ Print This Paper</button><button class="tool-btn" style="background:#7c3aed;padding:9px 14px;font-weight:800;" onclick="openPaperDesigner()">🧩 Open Paper Designer</button>
         <button class="tool-btn" style="background:#10b981;padding:9px 14px;font-weight:800;" onclick="saveBlueprint()">✔ Apply Paper Pattern</button>
       </div>
     </div>
@@ -669,6 +669,13 @@
       });
       renderBlueprint();
       showToast('⚡ Selected questions arranged by type');
+    };
+
+    window.openPaperDesigner = function() {
+      if (!selectedIds.length) return alert('Select questions first!');
+      localStorage.setItem('AZ_BUILDER_SELECTED_IDS', JSON.stringify(selectedIds));
+      localStorage.setItem('AZ_PAPER_DESIGNER_STATE', JSON.stringify({paperBlueprint:paperBlueprint,paperQuestionOverrides:paperQuestionOverrides}));
+      window.open('paper_designer.html','_blank');
     };
 
     window.printBlueprintPaper = function() {
