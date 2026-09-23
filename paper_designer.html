@@ -286,7 +286,7 @@ function openEditorForPaper(id){
  try{
   localStorage.setItem('AZ_PAPER_EDITOR_RETURN','paper_designer.html');
   localStorage.setItem('AZ_PAPER_EDITOR_QID',q.id);
-  localStorage.setItem('Temp_Editor_Image',q.image||'');
+  localStorage.setItem('Temp_Editor_Image',q.image||'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
   localStorage.setItem('Temp_QText',q.text||'');
   const opts=String(q.options||'').split(/\\n|\\r\\n/);
   localStorage.setItem('Temp_Opt_A',opts[0]||'');
