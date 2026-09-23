@@ -583,17 +583,8 @@
         }
 
         htmlContent += `
-            <div class="${itemClass}">
-              <div class="q-header">Q.${idx + 1}</div>
-              ${q.qText ? `<div class="q-text">${q.qText}</div>` : ''}
-              ${q.question ? `<img src="${q.question}" class="q-img">` : ''}
-              ${q.optText ? `<div class="opt-text"><strong>Options:</strong> ${q.optText}</div>` : ''}
-            </div>
-          `;
-        });
+            </div>`;
 
-        htmlContent += `
-            </div>
             <div class="pdf-footer">
               ${brandingTier === 'standard' ? 'Powered by A to Z Exam Mocks & ' + instName : 'Exclusive Study Material provided by ' + instName}
             </div>
