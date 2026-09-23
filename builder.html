@@ -739,25 +739,6 @@
       return {...q,...o,question:o.keepImage===false?'':(o.image||q.question||'')};
     }
 
-      const q = cloudVault.find(item => item.id === qId);
-      if (!q) return;
-
-      localStorage.setItem('Temp_Editor_Image', q.question || '');
-      localStorage.setItem('Temp_QText', q.qText || '');
-      localStorage.setItem('Temp_Opt_A', '');
-      localStorage.setItem('Temp_Opt_B', '');
-      localStorage.setItem('Temp_Opt_C', '');
-      localStorage.setItem('Temp_Opt_D', '');
-
-      window.editingCloudQuestionId = qId;
-
-      const modal = document.getElementById('studio-modal-overlay');
-      const iframe = document.getElementById('studio-iframe');
-      if (modal && iframe) {
-        iframe.src = 'editor.html';
-        modal.style.display = 'flex';
-      }
-    };
 
     window.closeStudioModal = async function() {
       const modal = document.getElementById('studio-modal-overlay');
