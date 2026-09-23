@@ -32,9 +32,6 @@
         
         <!-- Header Controls & Library Integration -->
         <div class="flex items-center space-x-3">
-            <button onclick="loadSampleDataForTesting()" class="bg-amber-600/80 hover:bg-amber-600 text-white px-3 py-2 rounded-lg text-xs font-semibold transition" title="Load sample questions if empty">
-                <i class="fa-solid fa-bolt mr-1"></i> Load Test Data
-            </button>
             <button onclick="openLibraryModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center space-x-2 border border-slate-600 shadow">
                 <i class="fa-solid fa-book-bookmark text-indigo-400"></i>
                 <span>Add More from Library</span>
@@ -46,7 +43,7 @@
         </div>
     </header>
 
-    <!-- Main Workspace Layout -->
+    <!-- Main Workspace Layout (Full Clean Center Area) -->
     <div class="flex-1 flex overflow-hidden">
         
         <!-- LEFT SIDEBAR: Structure, Sections & Controls -->
@@ -80,7 +77,7 @@
             </div>
         </aside>
 
-        <!-- CENTER WORKSPACE: Active Section & Detailed Questions Canvas -->
+        <!-- CENTER WORKSPACE: Active Section & Detailed Questions Canvas (Clean & Wide) -->
         <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden relative">
             <!-- Canvas Toolbar -->
             <div class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between">
@@ -97,32 +94,19 @@
             </div>
 
             <!-- Questions Canvas Container with Full Visual View -->
-            <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-4xl mx-auto w-full">
+            <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full">
                 <!-- Empty State Prompt -->
                 <div id="emptyCanvasState" class="h-full flex flex-col items-center justify-center text-center text-slate-500">
                     <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
-                    <p class="text-base font-medium">No Questions Found from Builder</p>
-                    <p class="text-xs text-slate-600 mt-1">Please select questions from the builder/dashboard or click 'Load Test Data' above.</p>
+                    <p class="text-base font-medium">No Questions Found</p>
+                    <p class="text-xs text-slate-600 mt-1">Please select questions from the builder or add a section/questions manually.</p>
                 </div>
             </div>
         </main>
 
-        <!-- RIGHT SIDEBAR: Quick Contextual Helper -->
-        <aside class="w-72 bg-slate-800/80 border-l border-slate-700 p-4 flex flex-col">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3"><i class="fa-solid fa-circle-info mr-1.5 text-indigo-400"></i>Selection Info</h3>
-            <div class="bg-slate-900/90 border border-slate-700/50 p-3.5 rounded-lg text-xs text-slate-300 space-y-2">
-                <p>बाहर टेस्ट बिल्डर से चुने गए सभी सवाल यहाँ सेक्शन में लोड हो जाएंगे।</p>
-                <p>आप बाएं पैनल से नए सेक्शन जोड़ सकते हैं, उनके नाम बदल सकते हैं या गलत सेक्शन को डिलीट कर सकते हैं।</p>
-            </div>
-            <div class="mt-auto bg-slate-900/60 border border-slate-700/50 p-3 rounded-lg text-xs text-slate-400">
-                <p class="font-semibold text-slate-300 mb-1"><i class="fa-solid fa-shield-halved mr-1 text-emerald-400"></i>Safe Modification</p>
-                यहाँ किए गए बदलाव सिर्फ इसी पेपर पर लागू होंगे, मुख्य लाइब्रेरी सुरक्षित रहेगी।
-            </div>
-        </aside>
-
     </div>
 
-    <!-- MODAL: Add/Manage Section Modal -->
+    <!-- MODAL: Add/Manage Section Modal with Custom Option Handling -->
     <div id="sectionModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md flex flex-col shadow-2xl">
             <div class="p-4 border-b border-slate-800 flex items-center justify-between">
@@ -136,7 +120,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Section Question Type</label>
-                    <select id="secTypeInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    <select id="secTypeInput" onchange="handleSectionTypeChange()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                         <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
                         <option value="Assertion & Reason">Assertion & Reason</option>
                         <option value="Short Answer Type">Short Answer Type</option>
@@ -145,6 +129,11 @@
                         <option value="Case Study / Passage Based">Case Study / Passage Based</option>
                         <option value="Custom / Other">Custom / Other</option>
                     </select>
+                </div>
+                <!-- Dynamic Custom Type Input Field -->
+                <div id="customSecTypeContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Specify Custom Section Type (What will print on paper)</label>
+                    <input type="text" id="customSecTypeInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="e.g. Matrix Matching Type">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Default Marks Per Question</label>
@@ -186,7 +175,7 @@
                 <input type="hidden" id="editQuestionId">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Question Type (Editable)</label>
-                    <select id="qType" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                    <select id="qType" onchange="handleQTypeChange()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                         <option value="Multiple Choice Questions (MCQ)">Multiple Choice Questions (MCQ)</option>
                         <option value="Assertion & Reason">Assertion & Reason</option>
                         <option value="Short Answer Type">Short Answer Type</option>
@@ -195,6 +184,11 @@
                         <option value="Case Study / Passage Based">Case Study / Passage Based</option>
                         <option value="Custom / Other">Custom / Other</option>
                     </select>
+                </div>
+                <!-- Dynamic Custom Question Type Input -->
+                <div id="customQTypeContainer" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Specify Custom Question Type</label>
+                    <input type="text" id="customQTypeInput" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" placeholder="e.g. Fill in the blanks">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Question Text / Statement & Options / Image Support</label>
@@ -243,8 +237,7 @@
         const questionLibrary = [
             { id: "lib_1", type: "Multiple Choice Questions (MCQ)", text: "Which material property is primarily evaluated using sol-gel and melt-quenching analysis?\n(A) Thermal stability\n(B) Elasticity", marks: 1 },
             { id: "lib_2", type: "Multiple Choice Questions (MCQ)", text: "What is the typical use case of gel polymer electrolytes in advanced energy storage?\n(A) Solid-state batteries\n(B) Lighting", marks: 1 },
-            { id: "lib_3", type: "Short Answer Type", text: "Discuss the structural role of barium phosphate glasses in radiation shielding applications.", marks: 3 },
-            { id: "lib_4", type: "Long Answer / Descriptive", text: "Analyze the market volatility and risk management protocols for trading cryptocurrency futures.", marks: 5 }
+            { id: "lib_3", type: "Short Answer Type", text: "Discuss the structural role of barium phosphate glasses in radiation shielding applications.", marks: 3 }
         ];
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -268,15 +261,8 @@
             }
 
             if (initialQuestions.length === 0) {
-                testPaper.sections = [
-                    {
-                        id: "sec_a",
-                        name: "Section A - Main Questions",
-                        type: "Multiple Choice Questions (MCQ)",
-                        marksPerQ: 1,
-                        questions: []
-                    }
-                ];
+                testPaper.sections = [];
+                activeSectionId = null;
             } else {
                 testPaper.sections = [
                     {
@@ -287,20 +273,11 @@
                         questions: initialQuestions
                     }
                 ];
+                activeSectionId = "sec_a";
             }
 
-            activeSectionId = testPaper.sections[0].id;
             renderSidebarSections();
             renderActiveCanvas();
-        }
-
-        function loadSampleDataForTesting() {
-            let sampleQuestions = [
-                { id: "sample_1", type: "Multiple Choice Questions (MCQ)", text: "Sample Question 1: What is the primary material used in bismuth borate glass ceramics?\n(A) Bismuth oxide\n(B) Silica sand", marks: 1 },
-                { id: "sample_2", type: "Multiple Choice Questions (MCQ)", text: "Sample Question 2: Which electrochemical platform is used for volatile crypto futures orders?\n(A) Binance\n(B) CoinDCX", marks: 1 }
-            ];
-            localStorage.setItem('selectedBuilderQuestions', JSON.stringify(sampleQuestions));
-            loadSelectedQuestionsFromBuilder();
         }
 
         function goBackToBuilder() {
@@ -325,7 +302,7 @@
             listEl.innerHTML = '';
 
             if (testPaper.sections.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No sections available.</p>`;
+                listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No sections available. Add a section to start.</p>`;
                 return;
             }
 
@@ -363,6 +340,8 @@
 
         function openAddSectionModal() {
             document.getElementById('secNameInput').value = "Section " + String.fromCharCode(65 + testPaper.sections.length);
+            document.getElementById('secTypeInput').value = "Multiple Choice Questions (MCQ)";
+            document.getElementById('customSecTypeContainer').classList.add('hidden');
             document.getElementById('secMarksInput').value = 1;
             document.getElementById('sectionModal').classList.remove('hidden');
             document.getElementById('sectionModal').classList.add('flex');
@@ -373,9 +352,22 @@
             document.getElementById('sectionModal').classList.add('hidden');
         }
 
+        function handleSectionTypeChange() {
+            const val = document.getElementById('secTypeInput').value;
+            const container = document.getElementById('customSecTypeContainer');
+            if (val === "Custom / Other") {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
         function saveNewSection() {
             const name = document.getElementById('secNameInput').value.trim();
-            const type = document.getElementById('secTypeInput').value;
+            let type = document.getElementById('secTypeInput').value;
+            if (type === "Custom / Other") {
+                type = document.getElementById('customSecTypeInput').value.trim() || "Custom Type";
+            }
             const marksPerQ = Number(document.getElementById('secMarksInput').value) || 1;
 
             if (!name) {
@@ -415,14 +407,10 @@
         }
 
         function deleteSection(secId) {
-            if (testPaper.sections.length <= 1) {
-                alert("You must keep at least one section in the paper!");
-                return;
-            }
             if (confirm("Are you sure you want to delete this section? Questions inside it will be removed.")) {
                 testPaper.sections = testPaper.sections.filter(s => s.id !== secId);
                 if (activeSectionId === secId) {
-                    activeSectionId = testPaper.sections[0].id;
+                    activeSectionId = testPaper.sections.length > 0 ? testPaper.sections[0].id : null;
                 }
                 renderSidebarSections();
                 renderActiveCanvas();
@@ -443,6 +431,7 @@
                     <div class="h-full flex flex-col items-center justify-center text-center text-slate-500 py-20">
                         <i class="fa-solid fa-clipboard-question text-5xl mb-3 text-slate-600"></i>
                         <p class="text-base font-medium">No Section Selected or Empty</p>
+                        <p class="text-xs text-slate-600 mt-1">Create a section on the left to start adding questions.</p>
                     </div>`;
                 return;
             }
@@ -543,8 +532,9 @@
             document.getElementById('questionModalTitle').innerText = "Create Custom Question";
             document.getElementById('editQuestionId').value = "";
             document.getElementById('qText').value = "";
+            document.getElementById('qType').value = "Multiple Choice Questions (MCQ)";
+            document.getElementById('customQTypeContainer').classList.add('hidden');
             const activeSec = testPaper.sections.find(s => s.id === activeSectionId);
-            document.getElementById('qType').value = activeSec ? activeSec.type : 'Multiple Choice Questions (MCQ)';
             document.getElementById('qMarks').value = activeSec ? activeSec.marksPerQ : 1;
             document.getElementById('questionModal').classList.remove('hidden');
             document.getElementById('questionModal').classList.add('flex');
@@ -555,14 +545,34 @@
             const q = activeSec.questions.find(item => item.id === qId);
             if (!q) return;
 
-            document.getElementById('questionModalTitle').innerText = "View & Edit Question (Paper Specific)";
+            document.getElementById('questionModalTitle').innerText = "View & Edit Question";
             document.getElementById('editQuestionId').value = q.id;
-            document.getElementById('qType').value = q.type || activeSec.type;
+            
+            const standardTypes = ["Multiple Choice Questions (MCQ)", "Assertion & Reason", "Short Answer Type", "Long Answer / Descriptive", "Numerical Value Type", "Case Study / Passage Based"];
+            if (standardTypes.includes(q.type)) {
+                document.getElementById('qType').value = q.type;
+                document.getElementById('customQTypeContainer').classList.add('hidden');
+            } else {
+                document.getElementById('qType').value = "Custom / Other";
+                document.getElementById('customQTypeContainer').classList.remove('hidden');
+                document.getElementById('customQTypeInput').value = q.type;
+            }
+
             document.getElementById('qText').value = q.text;
             document.getElementById('qMarks').value = q.marks || activeSec.marksPerQ;
 
             document.getElementById('questionModal').classList.remove('hidden');
             document.getElementById('questionModal').classList.add('flex');
+        }
+
+        function handleQTypeChange() {
+            const val = document.getElementById('qType').value;
+            const container = document.getElementById('customQTypeContainer');
+            if (val === "Custom / Other") {
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
         }
 
         function closeQuestionModal() {
@@ -572,7 +582,10 @@
 
         function saveQuestionData() {
             const qId = document.getElementById('editQuestionId').value;
-            const type = document.getElementById('qType').value;
+            let type = document.getElementById('qType').value;
+            if (type === "Custom / Other") {
+                type = document.getElementById('customQTypeInput').value.trim() || "Custom Type";
+            }
             const text = document.getElementById('qText').value;
             const marks = Number(document.getElementById('qMarks').value);
 
