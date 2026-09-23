@@ -184,6 +184,16 @@
           }
 
           testData.questions = assembledQuestions;
+          const price = Number(rawTestData.price || 0);
+          if (price > 0) {
+            const email=(localStorage.getItem('ExamVault_Student_Email')||'').trim().toLowerCase();
+            const purchaseId=encodeURIComponent(email)+'_'+encodeURIComponent(testId);
+            const purchaseSnap=await window.getDoc(window.doc(window.db,'purchases',purchaseId));
+            if(!email || !purchaseSnap.exists() || purchaseSnap.data().status!=='paid'){
+              alert('This is a paid mock test. Please purchase it before starting.');
+              window.location.href='mock_tests.html'; return;
+            }
+          }
           timeLeftSeconds = (parseInt(testData.time) || 60) * 60;
           startTestEngine();
           initAntiCheating();
