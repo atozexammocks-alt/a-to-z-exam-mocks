@@ -47,11 +47,21 @@
 </aside>
 
 <main class="flex-1 bg-slate-950 flex flex-col overflow-hidden">
- <div class="bg-slate-800/80 border-b border-slate-700 px-6 py-3 flex items-center justify-between">
-  <div><h2 id="activeSectionTitle" class="text-base font-bold">Section A</h2><p id="activeSectionMeta" class="text-xs text-slate-400"></p></div>
-  <button onclick="openAddCustomQuestionModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold"><i class="fa-solid fa-circle-plus"></i> Add Custom Question</button>
+ <div class="bg-slate-800/80 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
+  <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">All Builder-selected questions stay here. Only questions added to a section will print.</p></div>
+  <div class="flex gap-2">
+   <button onclick="openLibraryModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-book-open mr-1"></i> Insert Question from Library</button>
+   <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-print mr-1"></i> Print / Export</button>
+  </div>
  </div>
- <div id="questionsCanvasContainer" class="flex-1 overflow-y-auto p-6 space-y-4 max-w-5xl mx-auto w-full"></div>
+ <div class="flex-1 overflow-y-auto p-5">
+  <div class="max-w-6xl mx-auto">
+   <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3 text-xs">
+    <span class="font-bold text-slate-200">How to assign:</span><span class="text-slate-400">Tick <b class="text-emerald-400">Include</b>, choose a section, or drag a question onto a section in the left panel. Unticked/unassigned questions are NOT printed.</span>
+   </div>
+   <div id="questionsCanvasContainer" class="space-y-3"></div>
+  </div>
+ </div>
 </main>
 </div>
 
@@ -83,6 +93,13 @@
  </div>
 </div>
 
+<div id="libraryModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 no-print">
+ <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-5xl max-h-[88vh] flex flex-col shadow-2xl">
+  <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><h3 class="font-bold text-emerald-300">Question Library</h3><p class="text-xs text-slate-400">Insert any cached question directly into this paper.</p></div><button onclick="closeLibraryModal()"><i class="fa-solid fa-xmark text-xl"></i></button></div>
+  <div class="p-3 border-b border-slate-700"><input id="librarySearch" oninput="renderLibraryModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Search question text..."></div>
+  <div id="libraryList" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+ </div>
+</div>
 <div id="printModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-6">
  <div class="bg-white text-slate-900 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
   <div id="printModalToolbar" class="bg-slate-100 p-4 border-b flex items-center justify-between"><h3 class="font-bold text-lg">Print Preview Layout</h3><div class="flex gap-2"><button onclick="window.print()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">Print Paper</button><button onclick="closePrintModal()" class="p-2"><i class="fa-solid fa-xmark text-xl"></i></button></div></div>
@@ -101,6 +118,7 @@ const DB_STORE='questions';
 let testPaper={title:'Question Paper',sections:[]};
 let activeSectionId=null;
 let questionCache=new Map();
+let allQuestions=[];
 let overrides={};
 
 function uid(p){return p+'_'+Date.now()+'_'+Math.floor(Math.random()*10000)}
@@ -154,34 +172,30 @@ async function loadFromBuilder(){
  overrides=safeJSON(OVERRIDE_KEY,{})||{};
  const records=await readCachedQuestions(ids);
  records.forEach(q=>questionCache.set(q.id,q));
- // If IndexedDB has not populated yet, use any legacy localStorage question arrays as fallback.
- const legacyKeys=['selectedBuilderQuestions','selectedQuestions','builderQuestions'];
- for(const k of legacyKeys){
-  const arr=safeJSON(k,[]);
-  if(Array.isArray(arr))arr.forEach(q=>questionCache.set(q.id||uid('q'),q));
+ // Load the complete cached library too (Builder now stores the full vault here).
+ const db=await openDesignerDB();
+ if(db){
+  await new Promise(resolve=>{
+   try{const tx=db.transaction(DB_STORE,'readonly'),store=tx.objectStore(DB_STORE),req=store.getAll();req.onsuccess=()=>{(req.result||[]).forEach(q=>questionCache.set(q.id,q));};tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{try{db.close()}catch(_e){}resolve()}}catch(e){try{db.close()}catch(_e){}resolve()}
+  });
  }
+ allQuestions=ids.map(id=>normalizeQuestion(questionCache.get(id),id)).filter(q=>q.id);
+ // Keep every selected question in the pool. Existing blueprint assignments are preserved,
+ // but unassigned questions remain unassigned instead of being forced into Section A.
  const blueprint=safeJSON(BLUEPRINT_KEY,null);
- const selected=ids.map(id=>normalizeQuestion(questionCache.get(id),id)).filter(q=>q.id);
- if(!selected.length)return false;
-
- const sections=[];
  const bpSections=Array.isArray(blueprint?.sections)?blueprint.sections:[];
- const used=new Set();
+ const sections=bpSections.length?bpSections.map((s,si)=>({id:String(s.id||String.fromCharCode(65+si)),name:s.title||('Section '+String.fromCharCode(65+si)),type:s.type||'MCQ',marksPerQ:Number(s.marks)||1,questions:[]})):[{id:'A',name:'Section A',type:'MCQ',marksPerQ:1,questions:[]}];
+ const byId=new Map(allQuestions.map(q=>[q.id,q]));
+ const assigned=new Set();
  bpSections.forEach((s,si)=>{
-  const qids=Array.isArray(s.questions)?s.questions:[];
-  const qs=qids.map(id=>selected.find(q=>q.id===id)).filter(Boolean);
-  qs.forEach(q=>used.add(q.id));
-  sections.push({id:String(s.id||String.fromCharCode(65+si)),name:s.title||('Section '+String.fromCharCode(65+si)),type:s.type||'MCQ',marksPerQ:Number(s.marks)||1,questions:qs});
+  const target=sections[si];
+  (Array.isArray(s.questions)?s.questions:[]).forEach(id=>{const q=byId.get(id);if(q&&!assigned.has(id)){target.questions.push(q);assigned.add(id)}});
  });
- let first=sections[0];
- if(!first){first={id:'A',name:'Section A',type:'MCQ',marksPerQ:1,questions:[]};sections.push(first)}
- selected.filter(q=>!used.has(q.id)).forEach(q=>first.questions.push(q));
- testPaper={title:localStorage.getItem('AZ_PAPER_DESIGNER_TITLE')||blueprint?.title||safeJSON('AZ_PAPER_DESIGNER_STATE',{}).title||'Question Paper',sections};
+ testPaper={title:blueprint?.title||safeJSON(BLUEPRINT_KEY,{})?.title||localStorage.getItem('AZ_BUILDER_PAPER_TITLE')||'Question Paper',sections};
  activeSectionId=sections[0].id;
  saveState();
  return true;
 }
-
 function loadLegacy(){
  overrides=safeJSON(OVERRIDE_KEY,{})||{};
  const arr=[];
@@ -215,7 +229,7 @@ function renderSidebar(){
   const active=sec.id===activeSectionId;
   const d=document.createElement('div');
   d.className='p-3 rounded-lg border cursor-pointer '+(active?'bg-indigo-950/40 border-indigo-500':'bg-slate-800/60 border-slate-700');
-  d.onclick=()=>{activeSectionId=sec.id;renderSidebar();renderCanvas()};
+  d.onclick=()=>{activeSectionId=sec.id;renderSidebar();renderCanvas()}; d.ondragover=e=>e.preventDefault(); d.ondrop=e=>handleSectionDrop(e,sec.id);
   const marks=sec.questions.reduce((a,q)=>a+Number(q.marks||0),0);
   d.innerHTML='<div class="flex items-center justify-between mb-1"><input value="'+esc(sec.name)+'" onclick="event.stopPropagation()" onchange="renameSec(\''+esc(sec.id)+'\',this.value)" class="bg-transparent text-sm font-semibold w-32 border border-transparent"><div class="flex gap-1"><span class="text-[10px] bg-slate-900 px-2 py-0.5 rounded">'+sec.questions.length+' Qs</span><button onclick="event.stopPropagation();deleteSec(\''+esc(sec.id)+'\')" class="text-slate-500 hover:text-rose-400"><i class="fa-solid fa-trash"></i></button></div></div><div class="flex justify-between text-xs text-slate-400"><span>'+esc(sec.type)+'</span><span>Marks: '+marks+'</span></div>';
   list.appendChild(d);
@@ -223,23 +237,48 @@ function renderSidebar(){
  updateTotals();
 }
 
+function sectionForQuestion(id){return testPaper.sections.find(s=>s.questions.some(q=>q.id===id))||null}
 function renderCanvas(){
- const c=document.getElementById('questionsCanvasContainer'),sec=testPaper.sections.find(s=>s.id===activeSectionId);
- if(!sec){c.innerHTML='<div class="text-center py-20 text-slate-500">No section found.</div>';return}
- document.getElementById('activeSectionTitle').textContent=sec.name;
- document.getElementById('activeSectionMeta').textContent='Type: '+sec.type+' • Total Questions: '+sec.questions.length+' • Marks: '+sec.questions.reduce((a,q)=>a+Number(q.marks||0),0);
- if(!sec.questions.length){c.innerHTML='<div class="text-center py-20 text-slate-500"><i class="fa-solid fa-folder-open text-4xl text-slate-600 mb-3"></i><p>No questions in this section.</p><p class="text-xs mt-2">The Builder selection will appear here automatically.</p></div>';return}
+ const c=document.getElementById('questionsCanvasContainer');
+ if(!allQuestions.length){c.innerHTML='<div class="text-center py-20 text-slate-500">No Builder-selected questions found.</div>';return}
  c.innerHTML='';
- sec.questions.forEach((q,i)=>{
-  const card=document.createElement('div');card.className='bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-md';
-  let move='<option value="">Move to...</option>';testPaper.sections.forEach(s=>{if(s.id!==sec.id)move+='<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'});
-  const img=q.image?'<div class="mt-3 bg-white rounded-lg p-2 border border-slate-700"><img class="q-image mx-auto" src="'+esc(q.image)+'" onerror="this.parentElement.style.display=\'none\'"></div>':'';
-  const opts=q.options?'<div class="mt-3 text-sm text-slate-300 bg-slate-950 p-3 rounded-lg border border-slate-800">'+breaks(q.options)+'</div>':'';
-  card.innerHTML='<div class="flex items-center justify-between border-b border-slate-800 pb-2.5 flex-wrap gap-2"><div class="flex items-center gap-2"><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2.5 py-0.5 rounded text-xs">Q.'+(i+1)+'</span><span class="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-1.5 text-xs"><span class="text-emerald-400 font-bold mr-1">'+q.marks+'m</span><button onclick="moveQUp(\''+sec.id+'\',\''+q.id+'\')" class="bg-slate-700 px-2 py-1 rounded"><i class="fa-solid fa-arrow-up"></i></button><button onclick="moveQDown(\''+sec.id+'\',\''+q.id+'\')" class="bg-slate-700 px-2 py-1 rounded"><i class="fa-solid fa-arrow-down"></i></button><select onchange="moveQToSection(\''+sec.id+'\',\''+q.id+'\',this.value)" class="bg-slate-700 text-slate-200 px-2 py-1 rounded">'+move+'</select><button onclick="openEditModal(\''+q.id+'\')" class="bg-sky-600/20 text-sky-400 px-2.5 py-1 rounded"><i class="fa-solid fa-pen mr-1"></i>Edit</button><button onclick="removeQ(\''+sec.id+'\',\''+q.id+'\')" class="text-slate-500 hover:text-rose-400 p-1"><i class="fa-solid fa-trash"></i></button></div></div><div class="mt-3 text-sm text-slate-100 whitespace-pre-line">'+(q.text?breaks(q.text):'<span class="text-slate-500 italic">Image-based question</span>')+'</div>'+img+opts;
+ allQuestions.forEach((q,i)=>{
+  const sec=sectionForQuestion(q.id);
+  const included=!!sec;
+  const card=document.createElement('div');
+  card.draggable=true;
+  card.ondragstart=e=>{e.dataTransfer.setData('text/plain',q.id)};
+  card.className='bg-slate-900 border '+(included?'border-emerald-700/60':'border-slate-700')+' rounded-xl p-4 shadow-sm';
+  let opts='<option value="">Choose section…</option>';
+  testPaper.sections.forEach(s=>opts+='<option value="'+esc(s.id)+'" '+(sec?.id===s.id?'selected':'')+'>'+esc(s.name)+'</option>');
+  const img=q.image?'<div class="mt-2 bg-white rounded-lg p-2"><img class="q-image mx-auto" src="'+esc(q.image)+'" onerror="this.parentElement.style.display=\'none\'"></div>':'';
+  const options=q.options?'<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">'+breaks(q.options)+'</div>':'';
+  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+'</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditAnywhere(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i></button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic">Image-based question</span>')+'</div>'+img+options+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
   c.appendChild(card);
  });
  updateTotals();
 }
+function toggleQuestionInclude(id,on){
+ if(on){const s=testPaper.sections.find(x=>x.id===activeSectionId)||testPaper.sections[0];if(s)assignQuestion(id,s.id)}
+ else removeQuestionFromAll(id);
+}
+function assignQuestion(id,sectionId){
+ const q=allQuestions.find(x=>x.id===id);if(!q)return;
+ removeQuestionFromAll(id,false);
+ const s=testPaper.sections.find(x=>x.id===sectionId);
+ if(s)s.questions.push(q);
+ saveState();renderSidebar();renderCanvas();
+}
+function removeQuestionFromAll(id,rerender=true){
+ testPaper.sections.forEach(s=>s.questions=s.questions.filter(q=>q.id!==id));
+ saveState();if(rerender){renderSidebar();renderCanvas()}
+}
+function openEditAnywhere(id){
+ const sec=sectionForQuestion(id),q=allQuestions.find(x=>x.id===id);if(!q)return;
+ activeSectionId=sec?.id||activeSectionId;openEditModal(id);
+}
+function handleSectionDrop(e,sectionId){e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)assignQuestion(id,sectionId)}
+
 function updateTotals(){let q=0,m=0;testPaper.sections.forEach(s=>{q+=s.questions.length;s.questions.forEach(x=>m+=Number(x.marks||0))});document.getElementById('totalQuestionsCount').textContent=q;document.getElementById('totalMarksCount').textContent=m}
 
 function addNewSection(){document.getElementById('secNameInput').value='Section '+String.fromCharCode(65+testPaper.sections.length);document.getElementById('secMarksInput').value=1;document.getElementById('secTypeInput').value='MCQ';document.getElementById('customSecTypeInput').classList.add('hidden');showModal('sectionModal')}
@@ -248,7 +287,7 @@ function saveNewSection(){let name=document.getElementById('secNameInput').value
 function renameSec(id,n){const s=testPaper.sections.find(x=>x.id===id);if(s&&n.trim()){s.name=n.trim();saveState();renderSidebar();renderCanvas()}}
 function deleteSec(id){if(testPaper.sections.length<=1)return alert('At least one section is required.');if(!confirm('Delete this section and its questions?'))return;testPaper.sections=testPaper.sections.filter(s=>s.id!==id);activeSectionId=testPaper.sections[0].id;saveState();renderSidebar();renderCanvas()}
 
-function removeQ(sid,qid){const s=testPaper.sections.find(x=>x.id===sid);if(!s)return;s.questions=s.questions.filter(q=>q.id!==qid);saveState();renderSidebar();renderCanvas()}
+function removeQ(sid,qid){removeQuestionFromAll(qid)}
 function moveQUp(sid,qid){const s=testPaper.sections.find(x=>x.id===sid),i=s?.questions.findIndex(q=>q.id===qid);if(i>0){[s.questions[i-1],s.questions[i]]=[s.questions[i],s.questions[i-1]];saveState();renderCanvas()}}
 function moveQDown(sid,qid){const s=testPaper.sections.find(x=>x.id===sid),i=s?.questions.findIndex(q=>q.id===qid);if(i>=0&&i<s.questions.length-1){[s.questions[i+1],s.questions[i]]=[s.questions[i],s.questions[i+1]];saveState();renderCanvas()}}
 function moveQToSection(from,qid,to){if(!to)return;const a=testPaper.sections.find(s=>s.id===from),b=testPaper.sections.find(s=>s.id===to),i=a?.questions.findIndex(q=>q.id===qid);if(!a||!b||i<0)return;const q=a.questions.splice(i,1)[0];b.questions.push(q);saveState();renderSidebar();renderCanvas()}
@@ -268,6 +307,25 @@ function previewPrintLayout(){
 }
 function computeTotalMarks(){return testPaper.sections.reduce((a,s)=>a+s.questions.reduce((b,q)=>b+Number(q.marks||0),0),0)}
 function computeTotalQuestions(){return testPaper.sections.reduce((a,s)=>a+s.questions.length,0)}
+
+\nasync function openLibraryModal(){showModal('libraryModal');renderLibraryModal()}
+function closeLibraryModal(){hideModal('libraryModal')}
+function renderLibraryModal(){
+ const term=(document.getElementById('librarySearch')?.value||'').toLowerCase();
+ const list=document.getElementById('libraryList'); if(!list)return;
+ const pool=[...questionCache.values()].map(q=>normalizeQuestion(q,q.id)).filter(q=>!term||String(q.text).toLowerCase().includes(term));
+ list.innerHTML=pool.slice(0,300).map(q=>{
+  const already=!!sectionForQuestion(q.id);
+  let opts='<option value="">Choose section…</option>';testPaper.sections.forEach(s=>opts+='<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>');
+  return '<div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-start"><div class="flex-1"><div class="text-sm">'+(q.text?breaks(q.text):'<span class="text-slate-500">Image-based question</span>')+'</div><div class="text-[10px] text-slate-500 mt-1">'+esc(q.type)+' • '+q.marks+' marks'+(already?' • Already included':'')+'</div></div><select id="lib_'+esc(q.id)+'" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">'+opts+'</select><button onclick="insertLibraryQuestion(\''+esc(q.id)+'\')" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-semibold">Insert</button></div>'
+ }).join('') || '<div class="text-center text-slate-500 py-10">No library questions found.</div>';
+}
+function insertLibraryQuestion(id){
+ const q=questionCache.get(id);if(!q)return;
+ const target=document.getElementById('lib_'+id)?.value||activeSectionId;
+ if(!allQuestions.some(x=>x.id===id)){allQuestions.push(normalizeQuestion(q,id))}
+ assignQuestion(id,target);renderLibraryModal();
+}
 
 function showModal(id){const e=document.getElementById(id);e.classList.remove('hidden');e.classList.add('flex')}
 function hideModal(id){const e=document.getElementById(id);e.classList.add('hidden');e.classList.remove('flex')}
