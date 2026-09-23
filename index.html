@@ -39,18 +39,6 @@
       gap: 8px;
     }
     .brand-logo span { color: #38bdf8; }
-    .btn-top-partner {
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      color: #38bdf8;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .btn-top-partner:hover { background: #38bdf8; color: #060911; }
 
     /* Main Grid Layout (Left PYQ, Right Portals) */
     .main-wrapper {
@@ -221,40 +209,9 @@
 </head>
 <body>
 
-  <!-- Partner Application Modal -->
-  <div id="partner-page">
-    <div class="partner-content">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2>🤝 Teacher Partnership Program</h2>
-        <button onclick="closePartnerPage()" style="background:#1e293b; border:none; color:white; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer;">✖ Close</button>
-      </div>
-      
-      <p style="font-size:13px; color:#94a3b8;">Publish your test series on A to Z Exam Mocks and monetize your question banks.</p>
-
-      <div class="terms-box">
-        <strong style="color:#38bdf8;">📋 Revenue Model & Terms:</strong>
-        <p style="font-size:12px; color:#94a3b8; margin-top:6px;">You receive <strong>85%</strong> of every test sale. Only a <strong>15% platform fee</strong> is deducted for gateway and server maintenance. Instant settlements directly to your UPI/Bank account.</p>
-      </div>
-
-      <div class="form-grid">
-        <label>Your Name / Institute Name</label>
-        <input type="text" id="tp-name" placeholder="e.g. Apex Academy">
-
-        <label>WhatsApp / Phone Number</label>
-        <input type="text" id="tp-phone" placeholder="e.g. 98123XXXXX">
-
-        <label>Exam Category / Subjects</label>
-        <input type="text" id="tp-exam" placeholder="e.g. UPPSC, HSSC, RAS">
-
-        <button onclick="submitPartnerForm()" style="background:linear-gradient(135deg, #10b981, #059669); border:none; color:white; padding:13px; border-radius:8px; font-weight:900; font-size:14px; cursor:pointer; margin-top:4px;">Submit Application ➔</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Top Navbar -->
   <header class="top-navbar">
     <div class="brand-logo">🎯 A to Z <span>Exam Mocks</span></div>
-    <button class="btn-top-partner" onclick="openPartnerPage()">💼 Partner With Us</button>
   </header>
 
   <!-- Main Split Section -->
@@ -329,15 +286,6 @@
         list.style.display = 'flex';
         arrow.textContent = '▲';
       }
-    }
-    function openPartnerPage() { document.getElementById('partner-page').style.display = 'block'; }
-    function closePartnerPage() { document.getElementById('partner-page').style.display = 'none'; }
-    function submitPartnerForm() {
-      const name = document.getElementById('tp-name').value.trim();
-      const phone = document.getElementById('tp-phone').value.trim();
-      if (!name || !phone) return alert("Please fill in your name and phone number!");
-      alert(`Thank you ${name}! Application submitted successfully. We will contact you on ${phone} within 24 hours.`);
-      closePartnerPage();
     }
   </script>
 </body>
