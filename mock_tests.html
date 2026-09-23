@@ -76,6 +76,7 @@ function normalise(d){
    exam:val(t,['exam','examName','examTitle','category','subject'],'General'),
    teacher:val(t,['teacherName','teacher','createdByName','authorName','publisherName'],val(t,['teacherEmail','createdByEmail','authorEmail','publisherEmail'],'Teacher')),
    teacherEmail:val(t,['teacherEmail','createdByEmail','authorEmail','publisherEmail'],''),
+   price: Number(t.price || 0),
    visibility:val(t,['visibility','status','access'],'public').toLowerCase(),
    source:val(t,['source','createdByRole','publisherRole'],'teacher').toLowerCase()
  };
@@ -113,10 +114,21 @@ function render(){
    return '<article class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><h3>'+escapeHtml(t.title)+'</h3>'+publicBadge+'</div>'+
    '<div class="meta">🎯 Exam: <b>'+escapeHtml(t.exam)+'</b><br>👨‍🏫 Publisher: '+escapeHtml(t.teacher)+
    '<br>⏱ '+escapeHtml(t.time||60)+' mins • ❓ '+n+' questions • 🏆 '+escapeHtml(t.marks||100)+' marks</div>'+
-   '<a class="start" href="test_player.html?id='+encodeURIComponent(t.id)+'">Start Test ➜</a></article>';
+   '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:4px"><strong style="font-size:16px;color:'+(Number(t.price)>0?'#fbbf24':'#10b981')+'">'+(Number(t.price)>0?'₹'+Number(t.price).toFixed(0):'FREE')+'</strong>'+
+   (Number(t.price)>0 ? '<button class="start" style="border:0" onclick="buyTest(\''+encodeURIComponent(t.id)+'\')">🔒 Buy Test</button>' : '<a class="start" href="test_player.html?id='+encodeURIComponent(t.id)+'">Start Test ➜</a>')+
+   '</div></article>';
  }).join('');
 }
 window.render=render;
+async function buyTest(encodedId){
+  const testId=decodeURIComponent(encodedId);
+  const email=(localStorage.getItem('ExamVault_Student_Email')||'').trim().toLowerCase();
+  if(!email){ alert('Please login from the Student Portal first.'); location.href='student.html'; return; }
+  const test=tests.find(x=>x.id===testId);
+  if(!test) return;
+  alert('₹'+Number(test.price).toFixed(0)+' paid-test checkout is ready in the catalog, but the live payment gateway still needs to be connected before real money can be collected.');
+}
+window.buyTest=buyTest;
 window.onload=load;
 </script>
 </body>
