@@ -328,7 +328,7 @@
           </div>
 
           <button class="tool-btn" style="background:#2563eb; padding:8px; justify-content:center; font-weight:700; margin-top:4px;" onclick="document.getElementById('rules-modal-overlay').style.display='flex'">⚙️ Configure Test Rules & Settings</button>
-          <button class="tool-btn" style="background:#7c3aed; padding:9px; justify-content:center; font-weight:800; margin-top:4px;" onclick="openBlueprint()">📋 Paper Pattern / Blueprint</button>
+          <button class="tool-btn" style="background:#7c3aed; padding:9px; justify-content:center; font-weight:800; margin-top:4px;" onclick="openPaperDesigner()">📋 Paper Pattern / Blueprint</button>
 
           <div class="rev-split-box" style="display:none; margin-top:6px;">
             <div>💰 Price: <strong id="split-price" style="color:#fff;">₹99</strong></div>
@@ -672,11 +672,31 @@
     };
 
     window.openPaperDesigner = function() {
-      if (!selectedIds.length) return alert('Select questions first!');
-      localStorage.setItem('AZ_BUILDER_SELECTED_IDS', JSON.stringify(selectedIds));
-      localStorage.setItem('AZ_PAPER_DESIGNER_STATE', JSON.stringify({paperBlueprint:paperBlueprint,paperQuestionOverrides:paperQuestionOverrides}));
-      window.open('paper_designer.html','_blank');
-    };
+  if (!selectedIds.length) return alert('Select questions first!');
+  const normalizedSections = (paperBlueprint.sections || []).map(s => ({
+    id: s.id,
+    title: s.title,
+    type: s.type || 'SHORT',
+    count: Number(s.count) || 0,
+    marks: Number(s.marks) || 1,
+    layout: s.layout || paperBlueprint.defaultLayout || '1col',
+    attempt: s.attempt || 'all',
+    internalChoice: !!s.internalChoice,
+    instruction: s.instruction || '',
+    questions: orderedSectionQuestionIds(s)
+  }));
+  localStorage.setItem('AZ_BUILDER_SELECTED_IDS', JSON.stringify(selectedIds));
+  localStorage.setItem('AZ_BUILDER_PAPER_TITLE', document.getElementById('test-title')?.value || 'Question Paper');
+  localStorage.setItem('AZ_PAPER_DESIGNER_STATE', JSON.stringify({
+    title: document.getElementById('test-title')?.value || 'Question Paper',
+    totalMarks: Number(paperBlueprint.totalMarks) || Number(document.getElementById('test-marks')?.value) || 100,
+    layout: paperBlueprint.defaultLayout || '1col',
+    style: paperBlueprint.style || 'Custom Board Pattern',
+    sections: normalizedSections
+  }));
+  localStorage.setItem('AZ_PAPER_DESIGNER_OVERRIDES', JSON.stringify(paperQuestionOverrides || {}));
+  window.open('paper_designer.html', '_blank');
+};
 
     window.printBlueprintPaper = function() {
       if (!selectedIds.length) return alert('Select questions first!');
