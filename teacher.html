@@ -17,7 +17,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -45,109 +45,32 @@
       if (adminBtn) adminBtn.style.display = email && SUPER_ADMINS.includes(email.toLowerCase()) ? "inline-flex" : "none";
     };
 
-    async function completeTeacherEmailLinkSignIn() {
-      if (!isSignInWithEmailLink(window.auth, window.location.href)) return;
-      let email = localStorage.getItem("ExamVault_Auth_Email") || "";
-      if (!email) email = window.prompt("Enter your teacher email to complete secure sign-in:") || "";
-      email = email.trim().toLowerCase();
-      if (!email) return;
-      try {
-        await signInWithEmailLink(window.auth, email, window.location.href);
-        localStorage.removeItem("ExamVault_Auth_Email");
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (e) {
-        console.error("Firebase email-link sign-in failed:", e);
-        alert("Secure login link is invalid or expired. Please request a new link.");
-      }
-    }
-
-    onAuthStateChanged(window.auth, async (user) => {
-      const overlay = document.getElementById("auth-overlay");
-      if (!user) {
-        window.currentTeacherEmail = "";
-        window.currentTeacherUid = "";
-        if (overlay) overlay.style.display = "flex";
-        return;
-      }
-      const email = (user.email || "").trim().toLowerCase();
-      try {
-        const teacherRef = doc(window.db, "registered_teachers", teacherEmailDocId(email));
-        const teacherSnap = await getDoc(teacherRef);
-        if (!teacherSnap.exists() || teacherSnap.data().active === false) {
-          await signOut(window.auth);
-          if (overlay) overlay.style.display = "flex";
-          alert("This Firebase account is not an approved teacher account. Please contact the administrator.");
-          return;
-        }
-        window.currentTeacherEmail = email;
-        window.currentTeacherUid = user.uid;
-        localStorage.setItem("ExamVault_Teacher_Email", email);
-        localStorage.setItem("ExamVault_Teacher_UID", user.uid);
-        if (overlay) overlay.style.display = "none";
-        const tag = document.getElementById("current-user-tag");
-        if (tag) tag.textContent = email;
-        window.checkSuperAdminStatus(email);
-        await Promise.all([loadLibraryStateFromCloud(), initStudio()]);
-      } catch (e) {
-        console.error("Teacher authorization check failed:", e);
-        await signOut(window.auth);
-        if (overlay) overlay.style.display = "flex";
-        alert("Teacher authorization could not be verified. Please try again.");
-      }
-    });
-
-    // Expose the login handler to the inline HTML button.
-    // ES module imports are scoped, so an inline onclick cannot call imported
-    // Firebase functions directly unless we bridge the handler through window.
     window.handleTeacherLogin = async function() {
-      const email = (document.getElementById("teacher-auth-email")?.value || "").trim().toLowerCase();
-      const password = document.getElementById("teacher-auth-password")?.value || "";
-      const status = document.getElementById("teacher-auth-status");
-      if (!email || !email.includes("@")) { if(status) status.textContent="Please enter a valid teacher email."; return; }
-      if (!password) { if(status) status.textContent="Please enter your password."; return; }
+      const email=(document.getElementById('teacher-auth-email')?.value||'').trim().toLowerCase();
+      const pin=(document.getElementById('teacher-auth-password')?.value||'').trim();
+      const status=document.getElementById('teacher-auth-status');
+      if(!email || !email.includes('@')) { if(status) status.textContent='Please enter a valid teacher email.'; return; }
+      if(!pin) { if(status) status.textContent='Please enter your PIN.'; return; }
       try {
-        if(status) status.textContent="Signing in securely…";
-        await signInWithEmailAndPassword(window.auth,email,password);
-        if(status) status.textContent="✔ Login successful.";
-      } catch(e) {
-        console.error("Firebase password login failed:",e);
-        const code=e?.code||"unknown";
-        if(status) status.textContent="Login failed: "+code;
-        if(code==="auth/invalid-credential" || code==="auth/wrong-password" || code==="auth/user-not-found")
-          alert("Email or password is incorrect.");
-        else if(code==="auth/too-many-requests")
-          alert("Too many attempts. Please wait a little and try again.");
-        else
-          alert("Firebase Error: "+code+"\n\n"+(e?.message||e));
-      }
+        const ref=doc(window.db,'registered_teachers',teacherEmailDocId(email));
+        const snap=await getDoc(ref);
+        if(!snap.exists() || snap.data().active===false) { if(status) status.textContent='Login failed.'; return; }
+        const data=snap.data();
+        const correctPin=String(data.pin ?? data.PIN ?? data.password ?? '').trim();
+        if(!correctPin || pin!==correctPin) { if(status) status.textContent='Login failed.'; return; }
+        window.currentTeacherEmail=email;
+        window.currentTeacherUid='pin:'+teacherEmailDocId(email);
+        localStorage.setItem('ExamVault_Teacher_Email',email);
+        localStorage.setItem('ExamVault_Teacher_UID',window.currentTeacherUid);
+        if(status) status.textContent='✔ Login successful.';
+        const overlay=document.getElementById('auth-overlay'); if(overlay) overlay.style.display='none';
+        const tag=document.getElementById('current-user-tag'); if(tag) tag.textContent=email;
+        window.checkSuperAdminStatus(email);
+        await Promise.all([loadLibraryStateFromCloud(),initStudio()]);
+      } catch(e) { console.error('Teacher PIN login failed:',e); if(status) status.textContent='Login failed.'; }
     };
-
-    window.handleTeacherEmailLinkLogin = async function() {
-      const email=(document.getElementById("teacher-auth-email")?.value||"").trim().toLowerCase();
-      const status=document.getElementById("teacher-auth-status");
-      if(!email || !email.includes("@")) return alert("Enter your registered teacher email first.");
-      try {
-        const actionCodeSettings={url:window.location.origin+window.location.pathname,handleCodeInApp:true};
-        await sendSignInLinkToEmail(window.auth,email,actionCodeSettings);
-        localStorage.setItem("ExamVault_Auth_Email",email);
-        if(status) status.textContent="✔ Secure email link sent. Open it to continue on this browser.";
-      } catch(e) {
-        alert("Firebase Error: "+(e?.code||"unknown")+"\n\n"+(e?.message||e));
-      }
-    };
-
-    window.handleTeacherResetPassword = async function() {
-      const email=(document.getElementById("teacher-auth-email")?.value||"").trim().toLowerCase();
-      if(!email || !email.includes("@")) return alert("Enter your registered teacher email first.");
-      try {
-        await sendPasswordResetEmail(window.auth,email);
-        alert("📧 Password setup/reset link sent to "+email+". Set your password from the email, then return here and log in.");
-      } catch(e) {
-        alert("Firebase Error: "+(e?.code||"unknown")+"\n\n"+(e?.message||e));
-      }
-    };
-
-    completeTeacherEmailLinkSignIn();
+    window.handleTeacherEmailLinkLogin=function(){};
+    window.handleTeacherResetPassword=function(){};
   </script>
 
   <style>
@@ -317,17 +240,16 @@ try{
         <input type="email" id="teacher-auth-email" placeholder="educator@gmail.com" autocomplete="username" required>
       </div>
       <div class="auth-input-group">
-        <label>Password</label>
-        <input type="password" id="teacher-auth-password" placeholder="Enter your password" autocomplete="current-password" required>
+        <label>PIN</label>
+  <input type="password" id="teacher-auth-password" inputmode="numeric" placeholder="Enter your PIN" autocomplete="off" required>
       </div>
 
       <button class="btn-auth-unlock" onclick="handleTeacherLogin()">🔐 Login to Teacher Studio</button>
-      <button type="button" class="nav-btn" style="justify-content:center;" onclick="handleTeacherEmailLinkLogin()">📧 Send Secure Email Link</button>
-      <button type="button" class="nav-btn" style="justify-content:center;" onclick="handleTeacherResetPassword()">🔑 Set / Reset Password by Email</button>
+      <button type="button" class="nav-btn" style="justify-content:center;" onclick="alert(&quot;Please contact the administrator to reset your PIN.&quot;)">🔑 Forgot PIN?</button>
       <div id="teacher-auth-status" style="font-size:11px;color:#94a3b8;min-height:16px;"></div>
       <div style="background:#07101f;border:1px solid #1e3a5f;border-radius:10px;padding:10px 12px;text-align:left;color:#94a3b8;font-size:11px;line-height:1.5;">
-        🔐 <strong style="color:#38bdf8;">Email + Password</strong><br>
-        Log in from any laptop, desktop, tablet or phone. The secure email link remains available as a backup/recovery method.
+        🔐 <strong style="color:#38bdf8;">Email + PIN</strong><br>
+        Enter your registered teacher email and PIN to open Teacher Studio.
       </div>
       
       <!-- HOME BUTTON ADDED HERE -->
