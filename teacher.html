@@ -17,7 +17,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -32,6 +32,7 @@
     const app = initializeApp(firebaseConfig);
     window.db = getFirestore(app);
     window.auth = getAuth(app);
+    window.teacherAuthReady = signInAnonymously(window.auth).catch(e => { console.warn("Anonymous Firebase session unavailable:", e); return null; });
     window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
     window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc; window.deleteDoc = deleteDoc;
     window.updateDoc = updateDoc;
@@ -52,6 +53,7 @@
       if(!email || !email.includes('@')) { if(status) status.textContent='Please enter a valid teacher email.'; return; }
       if(!pin) { if(status) status.textContent='Please enter your PIN.'; return; }
       try {
+        await window.teacherAuthReady;
         const ref=doc(window.db,'registered_teachers',teacherEmailDocId(email));
         const snap=await getDoc(ref);
         if(!snap.exists() || snap.data().active===false) { if(status) status.textContent='Login failed.'; return; }
