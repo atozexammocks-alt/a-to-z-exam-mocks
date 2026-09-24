@@ -102,7 +102,20 @@ async function renderPageImage(p){const v=p.getViewport({scale:1.45}),c=document
 function dataUrlImage(dataUrl){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=dataUrl})}
 async function cropImage(dataUrl,b){if(!dataUrl||!b||[b.x,b.y,b.w,b.h].some(v=>typeof v!=='number'))return dataUrl;try{const im=await dataUrlImage(dataUrl),c=document.createElement('canvas');const x=Math.max(0,Math.min(1000,b.x)),y=Math.max(0,Math.min(1000,b.y)),w=Math.max(1,Math.min(1000-x,b.w)),h=Math.max(1,Math.min(1000-y,b.h));c.width=Math.max(1,Math.round(im.width*w/1000));c.height=Math.max(1,Math.round(im.height*h/1000));c.getContext('2d').drawImage(im,im.width*x/1000,im.height*y/1000,im.width*w/1000,im.height*h/1000,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.82)}catch(e){return dataUrl}}
 file.onchange=async e=>{const f=e.target.files[0];if(!f)return;items=[];pageImages={};list.innerHTML='';count.textContent='0 questions';stopRequested=false;stopBtn.disabled=false;setProgress(0,1);try{const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer(),useWorkerFetch:true,isEvalSupported:true}).promise;for(let n=1;n<=pdf.numPages;n++){if(stopRequested){status.textContent='⏹ Stopped at page '+(n-1)+'/'+pdf.numPages;break}status.textContent='⚡ Processing page '+n+'/'+pdf.numPages;setProgress(n-1,pdf.numPages);const p=await pdf.getPage(n),tc=await p.getTextContent(),text=tc.items.map(x=>x.str).join(' ').trim(),imageDataUrl=await renderPageImage(p);pageImages[n]=imageDataUrl;const got=await extractWithBackend({mode:'extract',pageText:text,imageDataUrl,folders:folders.join(', ')});for(const x of got){x.sourcePage=n;x.confirmed=false;x.questionImage=await cropImage(imageDataUrl,x.questionBox);items.push(x)}setProgress(n,pdf.numPages);render();await new Promise(r=>setTimeout(r,1200))}if(!stopRequested)status.textContent='✔ Extracted '+items.length+' questions from '+pdf.numPages+' pages';stopBtn.disabled=true}catch(err){console.error(err);status.textContent='❌ '+err.message;alert(err.message);stopBtn.disabled=true}};
-async function extractWithBackend(body){let last='';for(let attempt=0;attempt<4;attempt++){try{const r=await fetch('/api/gemini-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});let d={};try{d=await r.json()}catch(_){}if(!r.ok)throw new Error(d.error||('Server error '+r.status));return Array.isArray(d.items)?d.items:[]}catch(e){last=e.message;if(attempt<3)await new Promise(r=>setTimeout(r,1000*2**attempt))}}throw new Error(last)}
+async function extractWithBackend(body){
+ let last='';
+ for(let attempt=0;attempt<5;attempt++){
+  try{
+   status.textContent='🤖 Gemini: attempt '+(attempt+1)+'/5…';
+   const r=await fetch('/api/gemini-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+   const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch(_){d={raw:raw.slice(0,1200)}}
+   if(!r.ok){last='Server error '+r.status+': '+(d.error||d.message||d.raw||'Unknown server error');console.error('[Gemini backend]',{status:r.status,response:d});if(attempt<4)await new Promise(x=>setTimeout(x,1200*Math.pow(2,attempt)));continue}
+   if(!Array.isArray(d.items))throw new Error('Gemini returned an unexpected response format.');
+   return d.items;
+  }catch(e){last=e?.message||String(e);console.error('[Gemini request]',e);if(attempt<4)await new Promise(x=>setTimeout(x,1200*Math.pow(2,attempt)))}
+ }
+ throw new Error(last||'Gemini request failed after 5 attempts.');
+}
 function getOptText(o){if(!o)return'';if(typeof o==='string')return o;if(typeof o==='object')return o.text||o.value||'';return String(o)}
 function optionText(x,k){return getOptText(x['opt'+k]||x['option'+k])}
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
