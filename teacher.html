@@ -17,7 +17,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -100,28 +100,50 @@
     // ES module imports are scoped, so an inline onclick cannot call imported
     // Firebase functions directly unless we bridge the handler through window.
     window.handleTeacherLogin = async function() {
-      const input = document.getElementById("teacher-auth-email");
+      const email = (document.getElementById("teacher-auth-email")?.value || "").trim().toLowerCase();
+      const password = document.getElementById("teacher-auth-password")?.value || "";
       const status = document.getElementById("teacher-auth-status");
-      const email = (input?.value || "").trim().toLowerCase();
-      if (!email || !email.includes("@")) {
-        if (status) status.textContent = "Please enter a valid teacher email.";
-        return;
-      }
+      if (!email || !email.includes("@")) { if(status) status.textContent="Please enter a valid teacher email."; return; }
+      if (!password) { if(status) status.textContent="Please enter your password."; return; }
       try {
-        if (status) status.textContent = "Sending secure login link…";
-        const actionCodeSettings = {
-          url: window.location.origin + window.location.pathname,
-          handleCodeInApp: true
-        };
-        await sendSignInLinkToEmail(window.auth, email, actionCodeSettings);
-        localStorage.setItem("ExamVault_Auth_Email", email);
-        if (status) status.textContent = "✔ Login link sent. Check your email (including Spam/Junk).";
-      } catch (e) {
-        console.error("Firebase sendSignInLinkToEmail failed:", e);
-        const code = e?.code || "unknown";
-        const message = e?.message || String(e);
-        if (status) status.textContent = "Firebase error: " + code;
-        alert("Firebase Error: " + code + "\\n\\n" + message);
+        if(status) status.textContent="Signing in securely…";
+        await signInWithEmailAndPassword(window.auth,email,password);
+        if(status) status.textContent="✔ Login successful.";
+      } catch(e) {
+        console.error("Firebase password login failed:",e);
+        const code=e?.code||"unknown";
+        if(status) status.textContent="Login failed: "+code;
+        if(code==="auth/invalid-credential" || code==="auth/wrong-password" || code==="auth/user-not-found")
+          alert("Email or password is incorrect.");
+        else if(code==="auth/too-many-requests")
+          alert("Too many attempts. Please wait a little and try again.");
+        else
+          alert("Firebase Error: "+code+"\n\n"+(e?.message||e));
+      }
+    };
+
+    window.handleTeacherEmailLinkLogin = async function() {
+      const email=(document.getElementById("teacher-auth-email")?.value||"").trim().toLowerCase();
+      const status=document.getElementById("teacher-auth-status");
+      if(!email || !email.includes("@")) return alert("Enter your registered teacher email first.");
+      try {
+        const actionCodeSettings={url:window.location.origin+window.location.pathname,handleCodeInApp:true};
+        await sendSignInLinkToEmail(window.auth,email,actionCodeSettings);
+        localStorage.setItem("ExamVault_Auth_Email",email);
+        if(status) status.textContent="✔ Secure email link sent. Open it to continue on this browser.";
+      } catch(e) {
+        alert("Firebase Error: "+(e?.code||"unknown")+"\n\n"+(e?.message||e));
+      }
+    };
+
+    window.handleTeacherResetPassword = async function() {
+      const email=(document.getElementById("teacher-auth-email")?.value||"").trim().toLowerCase();
+      if(!email || !email.includes("@")) return alert("Enter your registered teacher email first.");
+      try {
+        await sendPasswordResetEmail(window.auth,email);
+        alert("📧 Password setup/reset link sent to "+email+". Set your password from the email, then return here and log in.");
+      } catch(e) {
+        alert("Firebase Error: "+(e?.code||"unknown")+"\n\n"+(e?.message||e));
       }
     };
 
@@ -292,16 +314,21 @@ try{
       
       <div class="auth-input-group">
         <label>Teacher Email</label>
-        <input type="email" id="teacher-auth-email" placeholder="educator@gmail.com" autocomplete="email" required>
+        <input type="email" id="teacher-auth-email" placeholder="educator@gmail.com" autocomplete="username" required>
+      </div>
+      <div class="auth-input-group">
+        <label>Password</label>
+        <input type="password" id="teacher-auth-password" placeholder="Enter your password" autocomplete="current-password" required>
       </div>
 
-      <div style="background:#07101f;border:1px solid #1e3a5f;border-radius:10px;padding:10px 12px;text-align:left;color:#94a3b8;font-size:11px;line-height:1.5;">
-        🔐 <strong style="color:#38bdf8;">Secure Firebase Login</strong><br>
-        We'll send a one-time sign-in link to your registered teacher email. No PIN is stored or used for authentication.
-      </div>
-
-      <button class="btn-auth-unlock" onclick="handleTeacherLogin()">📧 Send Secure Login Link ➔</button>
+      <button class="btn-auth-unlock" onclick="handleTeacherLogin()">🔐 Login to Teacher Studio</button>
+      <button type="button" class="nav-btn" style="justify-content:center;" onclick="handleTeacherEmailLinkLogin()">📧 Send Secure Email Link</button>
+      <button type="button" class="nav-btn" style="justify-content:center;" onclick="handleTeacherResetPassword()">🔑 Set / Reset Password by Email</button>
       <div id="teacher-auth-status" style="font-size:11px;color:#94a3b8;min-height:16px;"></div>
+      <div style="background:#07101f;border:1px solid #1e3a5f;border-radius:10px;padding:10px 12px;text-align:left;color:#94a3b8;font-size:11px;line-height:1.5;">
+        🔐 <strong style="color:#38bdf8;">Email + Password</strong><br>
+        Log in from any laptop, desktop, tablet or phone. The secure email link remains available as a backup/recovery method.
+      </div>
       
       <!-- HOME BUTTON ADDED HERE -->
       <a href="index.html" class="btn-auth-home">🏠 Back to Home</a>
