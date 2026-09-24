@@ -42,10 +42,44 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 .card-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.confirm{display:flex;align-items:center;gap:7px;background:#0f172a;border:1px solid #334155;border-radius:6px;padding:7px;color:#cbd5e1;font-size:11px;font-weight:700}
 .img-tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px}.img-preview{background:#111827;border:1px solid #334155;border-radius:6px;padding:7px}.img-preview img{max-width:180px;max-height:100px;display:block}
 @media(max-width:850px){.q{grid-template-columns:1fr}.qright{border-left:0;border-top:1px solid #1e293b;padding-left:0;padding-top:10px}}
+
+.img-editor{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.img-editor.show{display:flex}.img-modal{width:min(1100px,96vw);height:min(88vh,900px);background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.img-head{padding:10px 12px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.img-body{display:grid;grid-template-columns:1fr 260px;gap:10px;flex:1;min-height:0;padding:10px}.page-stage{position:relative;background:#020617;border:1px solid #334155;border-radius:8px;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:10px}
+#editCanvas{max-width:100%;height:auto;display:block;cursor:crosshair}.selection{position:absolute;border:2px solid #38bdf8;background:rgba(56,189,248,.12);pointer-events:none}
+.img-side{overflow:auto}.img-side label{display:block;margin-bottom:8px}.img-side input,.img-side select{margin-top:4px}
+.img-note{font-size:10px;color:#94a3b8;line-height:1.45}.img-footer{padding:10px 12px;border-top:1px solid #1e293b;display:flex;gap:7px;justify-content:flex-end}
+@media(max-width:800px){.img-body{grid-template-columns:1fr}.img-modal{height:94vh}.img-side{max-height:260px}}
 </style>
 </head>
 <body>
 <header><div class="brand">🤖 Gemini AI Exam PDF Uploader</div><button onclick="location.href='teacher.html'">🏠 Dashboard</button></header>
+
+<div id="imgEditor" class="img-editor">
+ <div class="img-modal">
+  <div class="img-head"><b>🖼️ Question Image Editor</b><button onclick="closeImageEditor()">✕ Close</button></div>
+  <div class="img-body">
+   <div class="page-stage" id="pageStage"><canvas id="editCanvas"></canvas><div id="selection" class="selection"></div></div>
+   <div class="img-side">
+    <label>PDF Page<select id="editPage" onchange="loadEditorPage()"></select></label>
+    <div class="img-note">Drag on the page to cut/paste any question or figure from this page. You can also choose a different PDF page and crop from there.</div>
+    <hr style="border:0;border-top:1px solid #1e293b;margin:10px 0">
+    <label>Crop X (0–1000)<input id="cx" type="number" min="0" max="1000"></label>
+    <label>Crop Y (0–1000)<input id="cy" type="number" min="0" max="1000"></label>
+    <label>Crop Width<input id="cw" type="number" min="1" max="1000"></label>
+    <label>Crop Height<input id="ch" type="number" min="1" max="1000"></label>
+    <button onclick="applyManualCrop()" class="primary" style="width:100%">✂ Apply Crop</button>
+    <hr style="border:0;border-top:1px solid #1e293b;margin:10px 0">
+    <label>Image Width <span id="iwv">100%</span><input id="iw" type="range" min="20" max="100" value="100" oninput="updateImageStyle()"></label>
+    <label>Margin Top <input id="imt" type="number" min="0" max="200" value="8" oninput="updateImageStyle()"></label>
+    <label>Margin Bottom <input id="imb" type="number" min="0" max="200" value="8" oninput="updateImageStyle()"></label>
+    <label>Alignment<select id="ialign" onchange="updateImageStyle()"><option value="center">Center</option><option value="left">Left</option><option value="right">Right</option></select></label>
+   </div>
+  </div>
+  <div class="img-footer"><button onclick="closeImageEditor()">Cancel</button><button class="green" onclick="saveImageEditor()">✔ Use This Image</button></div>
+ </div>
+</div>
 <main class="wrap">
 <div class="box">
 <p style="color:#94a3b8;margin:0 0 9px">Upload a PDF. AI extracts questions and preserves scientific equations as LaTeX. You can correct text, replace the question image, review each item, confirm it, and then send confirmed questions to Library.</p>
@@ -81,19 +115,43 @@ function render(){count.textContent=items.length+' questions';list.innerHTML=ite
 <label>Library<select id="p${i}">${folders.map(f=>`<option ${f===x.targetPath?'selected':''}>${esc(f)}</option>`).join('')}</select></label>
 <label>Correct / Edit Question Text<textarea id="q${i}" rows="5">${esc(x.qText||'')}</textarea></label>
 <div class="grid"><input id="a${i}" placeholder="Option A" value="${esc(a)}"><input id="b${i}" placeholder="Option B" value="${esc(b)}"><input id="c${i}" placeholder="Option C" value="${esc(c)}"><input id="d${i}" placeholder="Option D" value="${esc(d)}"></div>
-<div class="card-actions"><button onclick="applyCorrection(${i})">✏️ Save Correction</button><button onclick="document.getElementById('img${i}').click()">🖼️ Add / Replace Question Image</button><button onclick="removeImage(${i})">🗑 Remove Image</button><input id="img${i}" type="file" accept="image/*" hidden onchange="replaceImage(event,${i})"></div>
-<div class="img-tools"><span class="muted">Question image:</span><div class="img-preview">${x.questionImage?`<img src="${x.questionImage}" alt="Question image">`:'<span class="muted">No image</span>'}</div></div>
+<div class="card-actions"><button onclick="applyCorrection(${i})">✏️ Save Correction</button><button onclick="document.getElementById('img${i}').click()">🖼️ Add / Replace Question Image</button><button onclick="openImageEditor(${i})">🛠️ Edit from PDF Page</button><button onclick="removeImage(${i})">🗑 Remove Image</button><input id="img${i}" type="file" accept="image/*" hidden onchange="replaceImage(event,${i})"></div>
+<div class="img-tools"><span class="muted">Question image:</span><div class="img-preview">${x.questionImage?`<img src="${x.questionImage}" alt="Question image" style="width:${Number(x.imageWidth||100)}%;max-width:100%;margin:${Number(x.imageMarginTop??8)}px 0 ${Number(x.imageMarginBottom??8)}px ${x.imageAlign==='right'?'auto 0':x.imageAlign==='left'?'0 auto':'auto'}">`:'<span class="muted">No image</span>'}</div></div>
 <div class="card-actions"><label class="confirm"><input type="checkbox" id="ok${i}" ${x.confirmed?'checked':''} onchange="items[${i}].confirmed=this.checked"> ✔ I reviewed and confirm this question</label></div>
 </div>
-<div class="qright"><div class="preview"><div><b>Q${esc(x.qNo||i+1)}.</b> ${esc(x.qText||'')}</div><div class="opts"><div class="op"><b>(A)</b> ${esc(a)}</div><div class="op"><b>(B)</b> ${esc(b)}</div><div class="op"><b>(C)</b> ${esc(c)}</div><div class="op"><b>(D)</b> ${esc(d)}</div></div>${x.questionImage?`<img src="${x.questionImage}" alt="Question image">`:''}</div></div>
+<div class="qright"><div class="preview"><div><b>Q${esc(x.qNo||i+1)}.</b> ${esc(x.qText||'')}</div><div class="opts"><div class="op"><b>(A)</b> ${esc(a)}</div><div class="op"><b>(B)</b> ${esc(b)}</div><div class="op"><b>(C)</b> ${esc(c)}</div><div class="op"><b>(D)</b> ${esc(d)}</div></div>${x.questionImage?`<img src="${x.questionImage}" alt="Question image" style="width:${Number(x.imageWidth||100)}%;max-width:100%;margin:${Number(x.imageMarginTop??8)}px 0 ${Number(x.imageMarginBottom??8)}px ${x.imageAlign==='right'?'auto 0':x.imageAlign==='left'?'0 auto':'auto'}">`:''}</div></div>
 </div>`}).join('');renderMath()}
 function renderMath(){if(window.MathJax&&MathJax.typesetPromise)MathJax.typesetPromise([list]).catch(e=>console.warn('MathJax',e))}
 function applyCorrection(i){const x=items[i];x.qNo=+document.getElementById('n'+i).value||i+1;x.key=document.getElementById('k'+i).value;x.topic=document.getElementById('t'+i).value;x.targetPath=document.getElementById('p'+i).value;x.qText=document.getElementById('q'+i).value;x.optA=document.getElementById('a'+i).value;x.optB=document.getElementById('b'+i).value;x.optC=document.getElementById('c'+i).value;x.optD=document.getElementById('d'+i).value;status.textContent='✔ Correction saved for Q'+x.qNo;render()}
 async function replaceImage(e,i){const f=e.target.files[0];if(!f)return;if(f.size>900000){alert('Image is too large. Please use an image below 900 KB.');return}const r=new FileReader();r.onload=()=>{items[i].questionImage=r.result;status.textContent='✔ Question image updated for Q'+(items[i].qNo||i+1);render()};r.readAsDataURL(f)}
+
 function removeImage(i){items[i].questionImage='';status.textContent='Image removed for Q'+(items[i].qNo||i+1);render()}
+let editIndex=-1,editPageImage='',dragStart=null;
+const editCanvas=document.getElementById('editCanvas'),selection=document.getElementById('selection');
+function openImageEditor(i){
+  editIndex=i; const x=items[i]; const sel=document.getElementById('editPage'); sel.innerHTML=Object.keys(pageImages).sort((a,b)=>+a-+b).map(p=>'<option value="'+p+'">PDF page '+p+'</option>').join('');
+  if(!sel.options.length){alert('PDF page images are not available. Please keep the PDF loaded and try again.');return}
+  sel.value=String(x.sourcePage||sel.options[0].value);
+  document.getElementById('iw').value=Number(x.imageWidth||100);document.getElementById('imt').value=Number(x.imageMarginTop??8);document.getElementById('imb').value=Number(x.imageMarginBottom??8);document.getElementById('ialign').value=x.imageAlign||'center';updateImageStyle();document.getElementById('imgEditor').classList.add('show');loadEditorPage();
+}
+async function loadEditorPage(){
+  const p=document.getElementById('editPage').value; editPageImage=pageImages[p]; if(!editPageImage)return;
+  const im=await dataUrlImage(editPageImage); editCanvas.width=im.naturalWidth||im.width; editCanvas.height=im.naturalHeight||im.height; editCanvas.getContext('2d').drawImage(im,0,0);
+  const x=items[editIndex]; let b=(+p===+x.sourcePage&&x.questionBox)?x.questionBox:{x:0,y:0,w:1000,h:1000}; setCropInputs(b); drawSelectionFromInputs();
+}
+function setCropInputs(b){cx.value=Math.round(b.x||0);cy.value=Math.round(b.y||0);cw.value=Math.round(b.w||1000);ch.value=Math.round(b.h||1000)}
+function getCrop(){return{x:Math.max(0,Math.min(1000,+cx.value||0)),y:Math.max(0,Math.min(1000,+cy.value||0)),w:Math.max(1,Math.min(1000-(+cx.value||0),+cw.value||1)),h:Math.max(1,Math.min(1000-(+cy.value||0),+ch.value||1))}}
+function drawSelectionFromInputs(){const b=getCrop(),r=editCanvas.getBoundingClientRect(),s=selection.getBoundingClientRect();selection.style.left=(b.x/1000*editCanvas.clientWidth+10)+'px';selection.style.top=(b.y/1000*editCanvas.clientHeight+10)+'px';selection.style.width=(b.w/1000*editCanvas.clientWidth)+'px';selection.style.height=(b.h/1000*editCanvas.clientHeight)+'px'}
+function applyManualCrop(){drawSelectionFromInputs();status.textContent='Crop selected. Drag on the page to change it.'}
+editCanvas.addEventListener('mousedown',e=>{const r=editCanvas.getBoundingClientRect();dragStart={x:(e.clientX-r.left)/r.width*1000,y:(e.clientY-r.top)/r.height*1000}});
+window.addEventListener('mouseup',e=>{if(!dragStart||editIndex<0)return;const r=editCanvas.getBoundingClientRect();let x=(e.clientX-r.left)/r.width*1000,y=(e.clientY-r.top)/r.height*1000;let x2=Math.max(0,Math.min(1000,x)),y2=Math.max(0,Math.min(1000,y));let sx=Math.max(0,Math.min(1000,dragStart.x)),sy=Math.max(0,Math.min(1000,dragStart.y));let b={x:Math.round(Math.min(sx,x2)),y:Math.round(Math.min(sy,y2)),w:Math.round(Math.abs(x2-sx)),h:Math.round(Math.abs(y2-sy))};if(b.w>5&&b.h>5){setCropInputs(b);drawSelectionFromInputs()}dragStart=null});
+function updateImageStyle(){const v=document.getElementById('iw').value;iwv.textContent=v+'%';if(editIndex>=0){items[editIndex].imageWidth=+v;items[editIndex].imageMarginTop=+document.getElementById('imt').value;items[editIndex].imageMarginBottom=+document.getElementById('imb').value;items[editIndex].imageAlign=document.getElementById('ialign').value}}
+async function saveImageEditor(){if(editIndex<0)return;const p=+document.getElementById('editPage').value,b=getCrop();const x=items[editIndex];const img=await cropImage(editPageImage,b);x.questionImage=img;x.questionBox=b;x.sourcePage=p;x.imageWidth=+iw.value;x.imageMarginTop=+imt.value;x.imageMarginBottom=+imb.value;x.imageAlign=ialign.value;closeImageEditor();status.textContent='✔ Image edited for Q'+(x.qNo||editIndex+1)+' from PDF page '+p;render()}
+function closeImageEditor(){document.getElementById('imgEditor').classList.remove('show');editIndex=-1}
+
 function confirmAll(){items.forEach(x=>x.confirmed=true);render();status.textContent='☑ All questions confirmed. Review once, then send to Library.'}
 function collectFromForm(i){const x=items[i];x.qNo=+document.getElementById('n'+i).value||i+1;x.key=document.getElementById('k'+i).value;x.topic=document.getElementById('t'+i).value;x.targetPath=document.getElementById('p'+i).value;x.qText=document.getElementById('q'+i).value;x.optA=document.getElementById('a'+i).value;x.optB=document.getElementById('b'+i).value;x.optC=document.getElementById('c'+i).value;x.optD=document.getElementById('d'+i).value}
-async function saveConfirmed(){if(!items.length)return alert('Nothing to save.');for(let i=0;i<items.length;i++)collectFromForm(i);const pending=items.filter(x=>x.confirmed);if(!pending.length)return alert('Please confirm at least one question first.');status.textContent='⏳ Sending '+pending.length+' confirmed questions to Library...';try{let saved=0;for(const x of pending){await addDoc(collection(db,'questions'),{qNo:x.qNo||saved+1,subject:x.targetPath||'General / General',topic:x.topic||'General',qText:x.qText||'',optText:`(A) ${getOptText(x.optA)} | (B) ${getOptText(x.optB)} | (C) ${getOptText(x.optC)} | (D) ${getOptText(x.optD)}`,key:x.key||'',questionImage:x.questionImage||'',questionBox:x.questionBox||null,solutionBox:x.solutionBox||null,sourcePage:x.sourcePage||null,creatorEmail:window.currentTeacherEmail,createdAt:new Date().toISOString()});saved++}items=items.filter(x=>!x.confirmed);render();status.textContent='✔ Sent '+saved+' confirmed questions to Library.'}catch(e){console.error(e);alert('Save failed: '+e.message);status.textContent='❌ Save failed'}}
+async function saveConfirmed(){if(!items.length)return alert('Nothing to save.');for(let i=0;i<items.length;i++)collectFromForm(i);const pending=items.filter(x=>x.confirmed);if(!pending.length)return alert('Please confirm at least one question first.');status.textContent='⏳ Sending '+pending.length+' confirmed questions to Library...';try{let saved=0;for(const x of pending){await addDoc(collection(db,'questions'),{qNo:x.qNo||saved+1,subject:x.targetPath||'General / General',topic:x.topic||'General',qText:x.qText||'',optText:`(A) ${getOptText(x.optA)} | (B) ${getOptText(x.optB)} | (C) ${getOptText(x.optC)} | (D) ${getOptText(x.optD)}`,key:x.key||'',questionImage:x.questionImage||'',imageWidth:Number(x.imageWidth||100),imageMarginTop:Number(x.imageMarginTop??8),imageMarginBottom:Number(x.imageMarginBottom??8),imageAlign:x.imageAlign||'center',questionBox:x.questionBox||null,solutionBox:x.solutionBox||null,sourcePage:x.sourcePage||null,creatorEmail:window.currentTeacherEmail,createdAt:new Date().toISOString()});saved++}items=items.filter(x=>!x.confirmed);render();status.textContent='✔ Sent '+saved+' confirmed questions to Library.'}catch(e){console.error(e);alert('Save failed: '+e.message);status.textContent='❌ Save failed'}}
 </script>
 </body>
 </html>
