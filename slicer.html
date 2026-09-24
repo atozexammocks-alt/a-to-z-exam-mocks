@@ -978,6 +978,7 @@
           }
 
           const newQ = {
+          ownerEmail: (localStorage.getItem("ExamVault_Teacher_Email") || "").trim().toLowerCase(),
             qNo, subject: chosenSub, topic: 'General',
             qText: qTextEl ? qTextEl.value.trim() : '',
             qTextImage: qTextImage || '',
