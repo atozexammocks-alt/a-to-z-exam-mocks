@@ -44,20 +44,26 @@ input{flex:1;min-width:220px}.tests{display:grid;grid-template-columns:repeat(au
 </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-const __visitorFirebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const __auditConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 try{
- const __visitorDb=getFirestore(initializeApp(__visitorFirebaseConfig,"visitorTracker"));
- let __visitorId=localStorage.getItem("AZ_VISITOR_ID");
- if(!__visitorId){__visitorId=(crypto.randomUUID?crypto.randomUUID():"v_"+Date.now()+"_"+Math.random().toString(36).slice(2));localStorage.setItem("AZ_VISITOR_ID",__visitorId);}
- const __email=localStorage.getItem("ExamVault_Student_Email")||localStorage.getItem("ExamVault_Teacher_Email")||"";
- const __name=localStorage.getItem("ExamVault_Student_Name")||"";
- await addDoc(collection(__visitorDb,"visitor_logs"),{
-   visitorId:__visitorId,name:__name,email:__email,path:location.pathname||"/",pageTitle:document.title,
-   visitedAt:new Date().toISOString(),device:/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"Mobile":"Desktop",
-   language:navigator.language||"",referrer:document.referrer||"Direct"
- });
-}catch(__visitorError){console.debug("Visitor analytics:",__visitorError)}
+ const __auditDb=getFirestore(initializeApp(__auditConfig,"activityTracker"));
+ const __path=location.pathname||"/";
+ const __teacher=!!localStorage.getItem("ExamVault_Teacher_Email");
+ const __student=!!localStorage.getItem("ExamVault_Student_Email");
+ const __type=/teacher\.html$/i.test(__path) ? "teacher" : (__teacher&&!__student ? "teacher" : "student");
+ const __email=__type==="teacher"?(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase():(localStorage.getItem("ExamVault_Student_Email")||"").trim().toLowerCase();
+ const __name=__type==="teacher"?"":(localStorage.getItem("ExamVault_Student_Name")||"");
+ const __userId=__email||localStorage.getItem("AZ_VISITOR_ID")||("v_"+Date.now());
+ const __collection=__type==="teacher"?"teacher_activity_logs":"student_activity_logs";
+ const __now=Date.now(),__expiry=new Date(__now+15*24*60*60*1000).toISOString();
+ const __cleanOld=async()=>{try{const snap=await getDocs(collection(__auditDb,__collection));const old=snap.docs.filter(d=>{const x=d.data(),t=Date.parse(x.timestamp||x.visitedAt||"");return t&&t<__now-15*24*60*60*1000});await Promise.all(old.map(d=>deleteDoc(doc(__auditDb,__collection,d.id))))}catch(e){console.debug("Audit cleanup:",e)}};
+ const __log=async(activityType,element="",details="")=>{try{await addDoc(collection(__auditDb,__collection),{userType:__type,userId:__userId,name:__name,email:__email,activityType,element:String(element||"").slice(0,200),details:String(details||"").slice(0,500),path:__path,pageTitle:document.title,device:/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"Mobile":"Desktop",language:navigator.language||"",referrer:document.referrer||"Direct",timestamp:new Date().toISOString(),expiresAt:__expiry})}catch(e){console.debug("Audit log:",e)}};
+ await __cleanOld();
+ await __log("page_view","",document.title);
+ window.AZ_AUDIT_LOG=__log;
+ document.addEventListener("click",e=>{const el=e.target.closest("button,a,[role='button'],input[type='submit'],input[type='button'],select");if(!el)return;const label=(el.innerText||el.value||el.getAttribute("aria-label")||el.getAttribute("title")||el.id||"click").trim();const href=el.getAttribute("href");__log("click",label,href?("href="+href):"")});
+}catch(e){console.debug("Activity analytics:",e)}
 </script>\n</head>
 <body>
 <header>
