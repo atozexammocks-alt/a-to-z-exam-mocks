@@ -434,6 +434,18 @@ try{
   </div>
 
   <script>
+    (function restoreTeacherSession() {
+      const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+      if (!savedEmail) return;
+      window.currentTeacherEmail = savedEmail;
+      window.currentTeacherUid = localStorage.getItem('ExamVault_Teacher_UID') || ('pin:' + savedEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+      const overlay = document.getElementById('auth-overlay');
+      if (overlay) overlay.style.display = 'none';
+      const tag = document.getElementById('current-user-tag');
+      if (tag) tag.textContent = savedEmail;
+      if (window.checkSuperAdminStatus) window.checkSuperAdminStatus(savedEmail);
+    })();
+
     function showToast(text) {
       const el = document.getElementById('toast-msg');
       el.textContent = text; el.style.display = 'block';
@@ -593,15 +605,37 @@ try{
     async function loadLibraryStateFromCloud() {
       try {
         if (!window.db) return;
-        const ref = window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey()));
-        const snap = await window.getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.mainFolders && data.mainFolders.length > 0) mainFolders = data.mainFolders;
-          if (data.subFolders) subFolders = data.subFolders;
-          if (data.folderPdfs) folderPdfs = data.folderPdfs;
+        const privateRef = window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey()));
+        const privateSnap = await window.getDoc(privateRef);
+        const privateData = privateSnap.exists() ? privateSnap.data() : {};
+        let legacyData = {};
+        try {
+          const legacySnap = await window.getDoc(window.doc(window.db, "folder_configs", "shared_registry_v4"));
+          if (legacySnap.exists()) legacyData = legacySnap.data() || {};
+        } catch (legacyErr) { console.warn("Legacy library registry unavailable:", legacyErr); }
+
+        const mergedMain = [...new Set([
+          ...(Array.isArray(privateData.mainFolders) ? privateData.mainFolders : []),
+          ...(Array.isArray(legacyData.mainFolders) ? legacyData.mainFolders : [])
+        ])];
+        const mergedSubs = { ...(legacyData.subFolders || {}), ...(privateData.subFolders || {}) };
+        const mergedPdfs = { ...(legacyData.folderPdfs || {}), ...(privateData.folderPdfs || {}) };
+
+        if (mergedMain.length) mainFolders = mergedMain;
+        if (Object.keys(mergedSubs).length) subFolders = mergedSubs;
+        if (Object.keys(mergedPdfs).length) folderPdfs = mergedPdfs;
+
+        if (mergedMain.length && (!privateSnap.exists() || JSON.stringify(privateData.mainFolders || []) !== JSON.stringify(mergedMain))) {
+          await window.setDoc(privateRef, {
+            ownerEmail: teacherEmailKey(), mainFolders: mergedMain, subFolders: mergedSubs,
+            folderPdfs: mergedPdfs, updatedAt: new Date().toISOString(), migratedFromLegacyRegistry: true
+          }, { merge: true });
         }
-      } catch (e) {}
+      } catch (e) { console.error("Library registry load failed:", e); }
+    }
+
+    function getQuestionLibraryPath(q) {
+      return String(q?.subject || q?.libraryPath || q?.targetPath || q?.folderPath || "").trim();
     }
 
     async function saveLibraryState() {
@@ -870,7 +904,7 @@ try{
       subs.forEach(s => {
         const fullKey = `${currentMainFolder} / ${s}`;
         const pdfCount = (folderPdfs[fullKey] || []).length;
-        const qCount = cloudVault.filter(q => q.subject === fullKey).length;
+        const qCount = cloudVault.filter(q => getQuestionLibraryPath(q) === fullKey).length;
         const totalCount = pdfCount + qCount;
 
         const row = document.createElement('div');
@@ -937,7 +971,7 @@ try{
       const fullKey = `${currentMainFolder} / ${currentSubFolder}`;
       heading.textContent = `🖼️ Extracted Questions in: ${fullKey} (Topic-wise)`;
 
-      const matched = cloudVault.filter(q => q.subject === fullKey);
+      const matched = cloudVault.filter(q => getQuestionLibraryPath(q) === fullKey);
       container.innerHTML = '';
 
       if (matched.length === 0) {
@@ -1124,7 +1158,7 @@ try{
         const allowedOwners = await getApprovedLibraryOwners();
         const me = teacherEmailKey();
         cloudVault = rawQuestions.filter(q => {
-          const owner = String(q.ownerEmail || "").trim().toLowerCase();
+          const owner = String(q.ownerEmail || q.creatorEmail || "").trim().toLowerCase();
           if (owner) return allowedOwners.includes(owner);
           // Keep legacy/unowned questions visible to Super Admins.
           return (window.SUPER_ADMINS || []).includes(me);
