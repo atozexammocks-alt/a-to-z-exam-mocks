@@ -107,7 +107,7 @@ async function extractWithBackend(body){
  for(let attempt=0;attempt<5;attempt++){
   try{
    status.textContent='🤖 Gemini: attempt '+(attempt+1)+'/5…';
-   const r=await fetch('/api/gemini-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+   const r=await fetch('/api/gemini-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,retryAttempt:attempt})});
    const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch(_){d={raw:raw.slice(0,1200)}}
    if(!r.ok){last='Server error '+r.status+': '+(d.error||d.message||d.raw||'Unknown server error');console.error('[Gemini backend]',{status:r.status,response:d});if(attempt<4)await new Promise(x=>setTimeout(x,1200*Math.pow(2,attempt)));continue}
    if(!Array.isArray(d.items))throw new Error('Gemini returned an unexpected response format.');
