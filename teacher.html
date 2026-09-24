@@ -195,7 +195,7 @@ try{
 <body>
 
   <div id="toast-msg">✔ Action Successful!</div>
-<div id="library-access-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:95000;padding:18px;"><div style="background:#0b1120;border:2px solid #38bdf8;border-radius:16px;width:min(850px,100%);max-height:90vh;overflow-y:auto;padding:20px;"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:12px;"><div><h3 style="color:#38bdf8;font-size:18px;">🤝 Central / Group Library</h3><p style="color:#94a3b8;font-size:11px;margin-top:4px;">Share your question library with selected teachers, or request access to another teacher's library.</p></div><button class="tool-btn" style="background:#7f1d1d;" onclick="closeLibraryAccessModal()">✕ Close</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;"><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#10b981;font-size:13px;">📤 Share My Library</h4><p style="color:#94a3b8;font-size:11px;margin:5px 0 10px;">The other teacher must approve the request before your questions become available to them.</p><input id="share-teacher-email" class="pdf-input" placeholder="teacher@gmail.com"><select id="share-permission" class="filter-select" style="width:100%;margin-top:8px;"><option value="use">Use in papers / tests (read-only)</option><option value="view">View only</option></select><button class="tool-btn" style="background:#2563eb;width:100%;margin-top:8px;" onclick="sendLibraryShareRequest()">📨 Send Access Request</button><div id="outgoing-library-requests" style="margin-top:12px;"></div></div><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#f59e0b;font-size:13px;">📥 Requests & Shared Libraries</h4><div id="incoming-library-requests" style="margin-top:8px;"></div><div id="approved-library-list" style="margin-top:14px;"></div></div></div><div style="margin-top:14px;background:#060911;border:1px solid #1e293b;border-radius:10px;padding:12px;"><strong style="color:#38bdf8;font-size:12px;">How it works</strong><div style="color:#94a3b8;font-size:11px;line-height:1.6;margin-top:5px;">1. Teacher A sends access request → 2. Teacher B approves → 3. Teacher A can use Teacher B's shared library in Builder / Paper Designer → 4. Either side can revoke access later.</div></div></div></div>
+<div id="library-access-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:95000;padding:18px;"><div style="background:#0b1120;border:2px solid #38bdf8;border-radius:16px;width:min(850px,100%);max-height:90vh;overflow-y:auto;padding:20px;"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:12px;"><div><h3 style="color:#38bdf8;font-size:18px;">🤝 Central / Group Library</h3><p style="color:#94a3b8;font-size:11px;margin-top:4px;">Share your question library with selected teachers, or request access to another teacher's library.</p></div><button class="tool-btn" style="background:#7f1d1d;" onclick="closeLibraryAccessModal()">✕ Close</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;"><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#10b981;font-size:13px;">📥 Request Another Teacher's Library</h4><p style="color:#94a3b8;font-size:11px;margin:5px 0 10px;">The library owner must approve your request. Your private library remains private.</p><input id="share-teacher-email" class="pdf-input" placeholder="Library owner teacher@gmail.com"><select id="share-permission" class="filter-select" style="width:100%;margin-top:8px;"><option value="use">Use in papers / tests (read-only)</option><option value="view">View only</option></select><button class="tool-btn" style="background:#2563eb;width:100%;margin-top:8px;" onclick="sendLibraryShareRequest()">📨 Request Access</button><div id="outgoing-library-requests" style="margin-top:12px;"></div></div><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#f59e0b;font-size:13px;">📥 My Requests & My Library Access</h4><div id="incoming-library-requests" style="margin-top:8px;"></div><div id="approved-library-list" style="margin-top:14px;"></div></div></div><div style="margin-top:14px;background:#060911;border:1px solid #1e293b;border-radius:10px;padding:12px;"><strong style="color:#38bdf8;font-size:12px;">How it works</strong><div style="color:#94a3b8;font-size:11px;line-height:1.6;margin-top:5px;">1. Teacher A sends access request → 2. Teacher B approves → 3. Teacher A can use Teacher B's shared library in Builder / Paper Designer → 4. Either side can revoke access later.</div></div></div></div>
 
   <div id="studio-modal-overlay">
     <iframe id="studio-iframe" src=""></iframe>
@@ -522,42 +522,67 @@ try{
     async function getApprovedLibraryOwners() {
       const email=teacherEmailKey(), owners=[email];
       if(!email||!window.db)return owners;
-      try{const snap=await window.getDocs(window.collection(window.db,"library_shares"));snap.forEach(d=>{const x=d.data();if(x.recipientEmail===email&&x.status==="approved")owners.push(x.ownerEmail);});}catch(e){}
+      try{
+        const snap=await window.getDocs(window.collection(window.db,"library_shares"));
+        snap.forEach(d=>{const x=d.data();if(x.recipientEmail===email&&x.status==="approved"&&x.permission!=="blocked")owners.push(x.ownerEmail);});
+      }catch(e){}
       return [...new Set(owners.filter(Boolean))];
     }
-
     async function getLibraryAccessData(){
       const email=teacherEmailKey(),out={incoming:[],outgoing:[],approved:[]};
       if(!email||!window.db)return out;
-      try{const snap=await window.getDocs(window.collection(window.db,"library_shares"));snap.forEach(d=>{const x={id:d.id,...d.data()};if(x.ownerEmail===email){out.outgoing.push(x);if(x.status==="approved")out.approved.push(x.recipientEmail);}if(x.recipientEmail===email){if(x.status==="pending")out.incoming.push(x);if(x.status==="approved")out.approved.push(x.ownerEmail);}});}catch(e){}
+      try{
+        const snap=await window.getDocs(window.collection(window.db,"library_shares"));
+        snap.forEach(d=>{
+          const x={id:d.id,...d.data()};
+          if(x.ownerEmail===email){if(x.status==="pending")out.incoming.push(x);if(x.status==="approved")out.approved.push(x.recipientEmail);}
+          if(x.recipientEmail===email){out.outgoing.push(x);if(x.status==="approved")out.approved.push(x.ownerEmail);}
+        });
+      }catch(e){}
       return out;
     }
-
     window.openLibraryAccessModal=async function(){document.getElementById("library-access-modal").style.display="flex";await renderLibraryAccess();};
     window.closeLibraryAccessModal=function(){document.getElementById("library-access-modal").style.display="none";};
 
     window.sendLibraryShareRequest=async function(){
-      const owner=teacherEmailKey(),recipient=document.getElementById("share-teacher-email").value.trim().toLowerCase(),permission=document.getElementById("share-permission").value;
-      if(!owner)return alert("Please login first.");if(!recipient||!recipient.includes("@"))return alert("Enter a valid teacher email.");if(recipient===owner)return alert("You cannot share your library with yourself.");
-      try{const id=teacherDocId(owner)+"__"+teacherDocId(recipient),ref=window.doc(window.db,"library_shares",id),existing=await window.getDoc(ref);if(existing.exists()&&existing.data().status==="approved")return alert("Access is already approved for this teacher.");await window.setDoc(ref,{ownerEmail:owner,recipientEmail:recipient,permission:permission,status:"pending",requestedAt:new Date().toISOString(),requestedBy:owner});document.getElementById("share-teacher-email").value="";showToast("📨 Access request sent!");logTeacherActivity("LIBRARY_SHARE_REQUEST","Requested library access for "+recipient);await renderLibraryAccess();}catch(e){alert("Could not send access request: "+e.message);}
+      const requester=teacherEmailKey(),owner=document.getElementById("share-teacher-email").value.trim().toLowerCase(),permission=document.getElementById("share-permission").value;
+      if(!requester)return alert("Please login first.");
+      if(!owner||!owner.includes("@"))return alert("Enter the library owner's email.");
+      if(owner===requester)return alert("You cannot request your own library.");
+      try{
+        const id=teacherDocId(owner)+"__"+teacherDocId(requester),ref=window.doc(window.db,"library_shares",id),existing=await window.getDoc(ref);
+        if(existing.exists()&&existing.data().status==="approved")return alert("Access is already approved.");
+        await window.setDoc(ref,{ownerEmail:owner,recipientEmail:requester,permission,status:"pending",requestedAt:new Date().toISOString(),requestedBy:requester});
+        document.getElementById("share-teacher-email").value="";
+        showToast("📨 Request sent to the library owner.");
+        await renderLibraryAccess();
+      }catch(e){alert("Could not send request: "+e.message);}
     };
-
     window.approveLibraryShare=async function(id){
-      try{const ref=window.doc(window.db,"library_shares",id),snap=await window.getDoc(ref);if(!snap.exists())return;const x=snap.data();if(x.recipientEmail!==teacherEmailKey())return alert("Only the requested teacher can approve this.");await window.updateDoc(ref,{status:"approved",approvedAt:new Date().toISOString()});showToast("✔ Library access approved!");logTeacherActivity("LIBRARY_ACCESS_APPROVED","Approved library access from "+x.ownerEmail);await renderLibraryAccess();}catch(e){alert("Approval failed: "+e.message);}
+      try{
+        const ref=window.doc(window.db,"library_shares",id),snap=await window.getDoc(ref);if(!snap.exists())return;
+        const x=snap.data();if(x.ownerEmail!==teacherEmailKey())return alert("Only the library owner can approve this request.");
+        await window.updateDoc(ref,{status:"approved",approvedAt:new Date().toISOString()});
+        showToast("✔ Teacher access approved.");await renderLibraryAccess();
+      }catch(e){alert("Approval failed: "+e.message);}
     };
-
     window.revokeLibraryShare=async function(id){
-      if(!confirm("Revoke this library access?"))return;
-      try{const ref=window.doc(window.db,"library_shares",id),snap=await window.getDoc(ref);if(!snap.exists())return;const x=snap.data(),me=teacherEmailKey();if(x.ownerEmail!==me&&x.recipientEmail!==me)return alert("You are not allowed to revoke this access.");await window.deleteDoc(ref);showToast("🔒 Library access revoked.");await renderLibraryAccess();}catch(e){alert("Could not revoke access: "+e.message);}
+      if(!confirm("Revoke/cancel this library access?"))return;
+      try{
+        const ref=window.doc(window.db,"library_shares",id),snap=await window.getDoc(ref);if(!snap.exists())return;
+        const x=snap.data(),me=teacherEmailKey();if(x.ownerEmail!==me&&x.recipientEmail!==me)return alert("You are not allowed to change this access.");
+        await window.deleteDoc(ref);showToast("🔒 Library access removed.");await renderLibraryAccess();
+      }catch(e){alert("Could not change access: "+e.message);}
     };
-
     async function renderLibraryAccess(){
-      const d=await getLibraryAccessData(),incoming=document.getElementById("incoming-library-requests"),outgoing=document.getElementById("outgoing-library-requests"),approved=document.getElementById("approved-library-list");if(!incoming||!outgoing||!approved)return;
-      incoming.innerHTML=d.incoming.length?d.incoming.map(x=>"<div style='background:#060911;border:1px solid #334155;border-radius:8px;padding:9px;margin-bottom:7px;'><div style='font-size:11px;color:#f8fafc;'><strong>"+x.ownerEmail+"</strong> wants to share a library with you.</div><div style='font-size:10px;color:#94a3b8;margin-top:3px;'>Permission: "+(x.permission==="use"?"Use in papers/tests":"View only")+"</div><div style='display:flex;gap:6px;margin-top:7px;'><button class='tool-btn' style='background:#059669;' onclick='approveLibraryShare(\""+x.id+"\")'>✔ Approve</button><button class='tool-btn' style='background:#7f1d1d;' onclick='revokeLibraryShare(\""+x.id+"\")'>✕ Reject</button></div></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No pending requests.</div>";
-      const pending=d.outgoing.filter(x=>x.status==="pending");outgoing.innerHTML=pending.length?"<div style='font-size:10px;color:#94a3b8;margin-bottom:5px;'>Pending requests:</div>"+pending.map(x=>"<div style='display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e293b;font-size:11px;'><span>"+x.recipientEmail+"</span><button class='f-btn' onclick='revokeLibraryShare(\""+x.id+"\")'>Cancel</button></div>").join(""):"";
-      const list=[...new Set(d.approved.filter(x=>x&&x!==teacherEmailKey()))];approved.innerHTML="<h5 style='color:#38bdf8;font-size:11px;margin-bottom:6px;'>🔓 Approved Shared Libraries</h5>"+(list.length?list.map(e=>"<div style='display:flex;justify-content:space-between;padding:7px 8px;background:#060911;border:1px solid #1e293b;border-radius:7px;margin-bottom:5px;font-size:11px;'><span>"+e+"</span><span style='color:#10b981;font-weight:800;'>ACCESS</span></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No shared libraries yet.</div>");
+      const d=await getLibraryAccessData(),incoming=document.getElementById("incoming-library-requests"),outgoing=document.getElementById("outgoing-library-requests"),approved=document.getElementById("approved-library-list");
+      if(!incoming||!outgoing||!approved)return;
+      incoming.innerHTML=d.incoming.length?d.incoming.map(x=>"<div style='background:#060911;border:1px solid #334155;border-radius:8px;padding:9px;margin-bottom:7px;'><strong>"+x.recipientEmail+"</strong> requested access to your library.<div style='font-size:10px;color:#94a3b8;margin-top:3px;'>"+(x.permission==="use"?"Use in papers/tests (read-only)":"View only")+"</div><div style='display:flex;gap:6px;margin-top:7px;'><button class='tool-btn' style='background:#059669;' onclick="approveLibraryShare('"+x.id+"')">✔ Approve</button><button class='tool-btn' style='background:#7f1d1d;' onclick="revokeLibraryShare('"+x.id+"')">✕ Reject</button></div></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No incoming access requests.</div>";
+      const pending=d.outgoing.filter(x=>x.status==="pending");
+      outgoing.innerHTML=pending.length?"<div style='font-size:10px;color:#94a3b8;'>My pending requests:</div>"+pending.map(x=>"<div style='display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e293b;font-size:11px;'><span>"+x.ownerEmail+"</span><button class='f-btn' onclick="revokeLibraryShare('"+x.id+"')">Cancel</button></div>").join(""):"";
+      const list=[...new Set(d.approved.filter(x=>x&&x!==teacherEmailKey()))];
+      approved.innerHTML="<h5 style='color:#38bdf8;font-size:11px;'>🔓 Libraries I can access</h5>"+(list.length?list.map(e=>"<div style='padding:7px 8px;background:#060911;border:1px solid #1e293b;border-radius:7px;margin-bottom:5px;font-size:11px;'>"+e+" <span style='color:#10b981;font-weight:800;'>APPROVED</span></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No approved shared libraries yet.</div>");
     }
-
     let mainFolders = ["Classical Mechanics", "Quantum Mechanics", "Mathematical Physics", "Electronics", "EMT", "Solid State Mechanics", "Thermo & Statical", "Atomic", "Nuclear", "PYP"];
     let subFolders = {
       "Classical Mechanics": ["General", "Lagrangian", "Hamiltonian"],
@@ -573,7 +598,7 @@ try{
     async function loadLibraryStateFromCloud() {
       try {
         if (!window.db) return;
-        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        const ref = window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey()));
         const snap = await window.getDoc(ref);
         if (snap.exists()) {
           const data = snap.data();
@@ -587,8 +612,8 @@ try{
     async function saveLibraryState() {
       try {
         if (window.db) {
-          await window.setDoc(window.doc(window.db, "folder_configs", "shared_registry_v4"), {
-            mainFolders, subFolders, folderPdfs, updatedAt: new Date().toISOString()
+          await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
+            ownerEmail: teacherEmailKey(), mainFolders, subFolders, folderPdfs, updatedAt: new Date().toISOString()
           });
         }
       } catch (e) {}
@@ -1100,7 +1125,7 @@ try{
         const snap = await window.getDocs(window.collection(window.db, "questions"));
         const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         const allowedOwners = await getApprovedLibraryOwners();
-        cloudVault = rawQuestions.filter(q => !q.ownerEmail || allowedOwners.includes(String(q.ownerEmail).toLowerCase()));
+        cloudVault = rawQuestions.filter(q => { const owner=String(q.ownerEmail||"").toLowerCase(); if(owner) return allowedOwners.includes(owner); return SUPER_ADMINS.includes(teacherEmailKey()); });
       } catch (e) {}
     }
 
@@ -1253,6 +1278,86 @@ try{
         `;
       });
     }
+    /* PRIVATE LIBRARY + CENTRAL + GROUP COLLAB V2 */
+    (function(){
+      function me(){return teacherEmailKey();}
+      function esc(s){return String(s||"").replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m];});}
+      window.toggleQuestionCentralPublish=async function(qId){
+        const q=cloudVault.find(function(x){return x.id===qId;});
+        if(!q||String(q.ownerEmail||"").toLowerCase()!==me())return alert("Only the question owner can change Central visibility.");
+        const next=!q.centralPublished;
+        await window.updateDoc(window.doc(window.db,"questions",qId),{centralPublished:next,centralPublishedAt:next?new Date().toISOString():""});
+        q.centralPublished=next;showToast(next?"🌐 Published to Central Library":"🔒 Removed from Central Library");
+        if(typeof window.renderSubfolderTopicWiseQuestions==="function")window.renderSubfolderTopicWiseQuestions();
+      };
+      async function myGroups(){
+        if(!window.db||!me())return [];
+        const snap=await window.getDocs(window.collection(window.db,"teacher_groups")),arr=[];
+        snap.forEach(function(d){const x=Object.assign({id:d.id},d.data());const m=Array.isArray(x.memberEmails)?x.memberEmails:[];if(x.ownerEmail===me()||m.includes(me()))arr.push(x);});
+        return arr;
+      }
+      window.createTeacherGroup=async function(){
+        const name=prompt("Group / Institute name:");if(!name||!name.trim())return;
+        const id=teacherDocId(me())+"__"+Date.now();
+        await window.setDoc(window.doc(window.db,"teacher_groups",id),{name:name.trim(),ownerEmail:me(),memberEmails:[me()],pendingEmails:[],createdAt:new Date().toISOString()});
+        showToast("👥 Group created.");openGroupManager();
+      };
+      window.inviteTeacherToGroup=async function(groupId){
+        const email=(prompt("Teacher email to invite:")||"").trim().toLowerCase();if(!email||!email.includes("@"))return;
+        const ref=window.doc(window.db,"teacher_groups",groupId),snap=await window.getDoc(ref);if(!snap.exists())return;const g=snap.data();if(g.ownerEmail!==me())return alert("Only group owner can invite.");
+        const p=[...(g.pendingEmails||[])];if(!p.includes(email)&&!(g.memberEmails||[]).includes(email))p.push(email);
+        await window.updateDoc(ref,{pendingEmails:p});showToast("📨 Invitation sent.");openGroupManager();
+      };
+      window.acceptTeacherGroup=async function(groupId){
+        const ref=window.doc(window.db,"teacher_groups",groupId),snap=await window.getDoc(ref);if(!snap.exists())return;const g=snap.data();if(!(g.pendingEmails||[]).includes(me()))return;
+        const m=[...(g.memberEmails||[])];if(!m.includes(me()))m.push(me());await window.updateDoc(ref,{memberEmails:m,pendingEmails:(g.pendingEmails||[]).filter(function(x){return x!==me();})});showToast("✔ Joined group.");openGroupManager();
+      };
+      window.shareQuestionToGroup=async function(qId,groupId){
+        const q=cloudVault.find(function(x){return x.id===qId;});if(!q||String(q.ownerEmail||"").toLowerCase()!==me())return alert("Only the question owner can share it to a group.");
+        const ids=[...(q.sharedGroupIds||[])];if(!ids.includes(groupId))ids.push(groupId);await window.updateDoc(window.doc(window.db,"questions",qId),{sharedGroupIds:ids});q.sharedGroupIds=ids;showToast("👥 Question shared with group.");
+      };
+      window.shareQuestionToAnyGroup=async function(qId){
+        const gs=await myGroups();if(!gs.length)return alert("Create or join a teacher group first.");
+        const choice=prompt(gs.map(function(g,i){return (i+1)+". "+g.name;}).join("\n"));const g=gs[Number(choice)-1];if(g)await shareQuestionToGroup(qId,g.id);
+      };
+      window.openGroupManager=async function(){
+        let modal=document.getElementById("teacher-group-modal");
+        if(!modal){modal=document.createElement("div");modal.id="teacher-group-modal";modal.style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:97000;padding:16px;";modal.innerHTML="<div id='teacher-group-box' style='background:#0b1120;border:2px solid #a78bfa;border-radius:16px;width:min(900px,100%);max-height:90vh;overflow:auto;padding:20px;'></div>";document.body.appendChild(modal);}
+        const box=document.getElementById("teacher-group-box"),gs=await myGroups();
+        box.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;'><div><h3 style='color:#c4b5fd;'>👥 Teacher Groups / Institute Teams</h3><p style='color:#94a3b8;font-size:11px;'>Private collaboration, question sharing and group chat.</p></div><div><button class='tool-btn' style='background:#7c3aed;' onclick='createTeacherGroup()'>＋ New Group</button><button class='tool-btn' style='background:#7f1d1d;margin-left:6px;' onclick=\"document.getElementById('teacher-group-modal').remove()\">✕</button></div></div>";
+        if(!gs.length){box.innerHTML+="<p style='color:#64748b;margin-top:20px;'>No groups yet.</p>";return;}
+        gs.forEach(function(g){
+          const owner=g.ownerEmail===me(),pending=(g.pendingEmails||[]).includes(me());
+          box.innerHTML+="<div style='margin-top:14px;background:#060911;border:1px solid #334155;border-radius:12px;padding:13px;'><div style='display:flex;justify-content:space-between;gap:8px;'><div><strong style='color:#f8fafc;'>👥 "+esc(g.name)+"</strong><div style='font-size:10px;color:#64748b;'>Owner: "+esc(g.ownerEmail)+" · "+(g.memberEmails||[]).length+" members</div></div>"+(pending?"<button class='tool-btn' style='background:#059669;' onclick=\"acceptTeacherGroup('"+g.id+"')\">✔ Accept</button>":owner?"<button class='tool-btn' style='background:#2563eb;' onclick=\"inviteTeacherToGroup('"+g.id+"')\">＋ Invite Teacher</button>":"")+"</div><div style='margin-top:8px;color:#94a3b8;font-size:11px;'>Members: "+(g.memberEmails||[]).map(esc).join(", ")+"</div><div style='margin-top:9px;display:flex;gap:6px;'><button class='tool-btn' onclick=\"openGroupChat('"+g.id+"')\">💬 Group Chat</button><button class='tool-btn' onclick=\"openGroupSharedQuestions('"+g.id+"')\">📚 Shared Questions</button></div></div>";
+        });
+      };
+      window.openGroupChat=async function(groupId){
+        const g=await window.getDoc(window.doc(window.db,"teacher_groups",groupId));if(!g.exists())return;const data=g.data();
+        const snap=await window.getDocs(window.query(window.collection(window.db,"teacher_groups",groupId,"messages"),window.orderBy("createdAt","asc")));
+        let h="<h3 style='color:#c4b5fd;'>💬 "+esc(data.name)+"</h3><div style='max-height:320px;overflow:auto;background:#060911;border:1px solid #334155;border-radius:10px;padding:10px;'>";
+        snap.forEach(function(d){const x=d.data();h+="<div style='padding:6px 0;border-bottom:1px solid #1e293b;'><strong style='color:#38bdf8;font-size:10px;'>"+esc(x.email)+"</strong><div style='color:#cbd5e1;font-size:12px;'>"+esc(x.text)+"</div></div>";});
+        h+="</div><div style='display:flex;gap:6px;margin-top:8px;'><input id='grp-chat-input' class='pdf-input' placeholder='Message the group...'><button class='tool-btn' style='background:#7c3aed;' onclick=\"sendGroupChat('"+groupId+"')\">Send</button></div><button class='tool-btn' style='margin-top:8px;' onclick='openGroupManager()'>← Back</button>";
+        document.getElementById("teacher-group-box").innerHTML=h;
+      };
+      window.sendGroupChat=async function(groupId){const i=document.getElementById("grp-chat-input"),v=(i&&i.value||"").trim();if(!v)return;await window.addDoc(window.collection(window.db,"teacher_groups",groupId,"messages"),{email:me(),text:v,createdAt:new Date().toISOString()});await openGroupChat(groupId);};
+      window.openGroupSharedQuestions=async function(groupId){
+        const qs=cloudVault.filter(function(q){return (q.sharedGroupIds||[]).includes(groupId);});
+        let h="<h3 style='color:#c4b5fd;'>📚 Group Shared Questions</h3>";h+=qs.length?qs.map(function(q){return "<div style='padding:8px;border:1px solid #334155;border-radius:8px;margin:6px 0;font-size:11px;'><strong>"+esc(q.subject||"")+"</strong> · "+esc(q.topic||"General")+" · Owner: "+esc(q.ownerEmail||"")+"</div>";}).join(""):"<p style='color:#64748b;'>No questions shared yet.</p>";
+        h+="<button class='tool-btn' style='margin-top:8px;' onclick='openGroupManager()'>← Back</button>";document.getElementById("teacher-group-box").innerHTML=h;
+      };
+      window.openCentralLibrary=async function(){
+        const all=cloudVault.filter(function(q){return q.centralPublished;});let m=document.getElementById("central-library-modal");
+        if(!m){m=document.createElement("div");m.id="central-library-modal";m.style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:96000;padding:16px;";m.innerHTML="<div id='central-library-box' style='background:#0b1120;border:2px solid #10b981;border-radius:16px;width:min(900px,100%);max-height:90vh;overflow:auto;padding:20px;'></div>";document.body.appendChild(m);}
+        const box=document.getElementById("central-library-box");box.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;'><h3 style='color:#34d399;'>🌐 Central Library</h3><button class='tool-btn' style='background:#7f1d1d;' onclick=\"document.getElementById('central-library-modal').remove()\">✕</button></div><p style='color:#94a3b8;font-size:11px;'>Only questions explicitly published by their owners appear here.</p>";
+        box.innerHTML+=all.length?all.map(function(q){return "<div style='padding:8px;border:1px solid #334155;border-radius:8px;margin:6px 0;font-size:11px;'><strong>"+esc(q.subject||"")+"</strong> · "+esc(q.topic||"General")+" · Owner: "+esc(q.ownerEmail||"")+"</div>";}).join(""):"<p style='color:#64748b;'>Central Library is empty.</p>";
+      };
+      const nav=document.querySelector(".nav-tabs");
+      if(nav&&!document.getElementById("teacher-group-nav-btn")){const b=document.createElement("button");b.id="teacher-group-nav-btn";b.className="nav-btn";b.textContent="👥 Groups";b.onclick=openGroupManager;nav.insertBefore(b,nav.querySelector(".user-pill"));}
+      if(nav&&!document.getElementById("central-lib-nav-btn")){const b=document.createElement("button");b.id="central-lib-nav-btn";b.className="nav-btn";b.textContent="🌐 Central";b.onclick=openCentralLibrary;nav.insertBefore(b,nav.querySelector(".user-pill"));}
+      const oldRender=window.renderSubfolderTopicWiseQuestions;
+      if(typeof oldRender==="function"){window.renderSubfolderTopicWiseQuestions=function(){oldRender();const cards=document.querySelectorAll("#lib-topic-groups-container .lib-q-card");const key=currentMainFolder+" / "+currentSubFolder;const list=cloudVault.filter(function(q){return q.subject===key;});cards.forEach(function(card,i){const q=list[i];if(!q)return;const own=String(q.ownerEmail||"").toLowerCase()===me();const ctl=document.createElement("div");ctl.className="central-publish-control";ctl.style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;";if(own){ctl.innerHTML="<button class='f-btn' style='color:"+(q.centralPublished?"#34d399":"#94a3b8")+";border:1px solid #334155;padding:4px 7px;' onclick=\"toggleQuestionCentralPublish('"+q.id+"')\">"+(q.centralPublished?"🌐 Central Published":"🔒 Publish to Central")+"</button><button class='f-btn' style='color:#c4b5fd;border:1px solid #334155;padding:4px 7px;' onclick=\"shareQuestionToAnyGroup('"+q.id+"')\">👥 Share to Group</button>";}else if(q.centralPublished){ctl.innerHTML="<span style='color:#34d399;font-size:10px;font-weight:800;'>🌐 CENTRAL LIBRARY</span>";}card.appendChild(ctl);});};}
+      const oldOnload=window.onload;window.onload=async function(){if(typeof oldOnload==="function")await oldOnload();setTimeout(function(){try{renderFolderCards();}catch(e){}},300);};
+    })();
   </script>
 </body>
 </html>
