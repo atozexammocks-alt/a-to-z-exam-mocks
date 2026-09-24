@@ -363,6 +363,17 @@
     let currentPrintType = 'qp';
     let adminPlatformSharePercent = 10;
 
+    async function getBuilderAccessibleOwners() {
+      const me=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase();
+      const owners=[me];
+      if(!me||!window.db)return owners;
+      try{
+        const snap=await window.getDocs(window.collection(window.db,"library_shares"));
+        snap.forEach(d=>{const x=d.data();if(x.recipientEmail===me&&x.status==="approved"&&x.permission==="use")owners.push(x.ownerEmail);});
+      }catch(e){}
+      return [...new Set(owners.filter(Boolean))];
+    }
+
     let paperBlueprint = { totalMarks: 100, defaultLayout: '2col', style: 'Custom Board Pattern', sections: [] };
     let paperQuestionOverrides = {};
     let paperEditorId = null;
@@ -386,7 +397,9 @@
     async function initBuilderStudio() {
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
-        cloudVault = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const allowedOwners = await getBuilderAccessibleOwners();
+        cloudVault = rawQuestions.filter(q => !q.ownerEmail || allowedOwners.includes(String(q.ownerEmail).toLowerCase()));
       } catch (e) {}
 
       document.getElementById('total-vault-count-badge').textContent = `${cloudVault.length} Qs`;
