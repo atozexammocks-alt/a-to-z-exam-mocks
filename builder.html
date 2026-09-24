@@ -383,12 +383,12 @@
 
     async function loadLibraryState() {
       try {
-        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        const ref = window.doc(window.db, "folder_configs_private", teacherDocId((localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase()));
         const snap = await window.getDoc(ref);
         if (snap.exists()) {
           const data = snap.data();
-          if (data.mainFolders) mainFolders = data.mainFolders;
-          if (data.subFolders) subFolders = data.subFolders;
+          if (Array.isArray(data.mainFolders)) mainFolders = data.mainFolders;
+          if (data.subFolders && typeof data.subFolders === "object") subFolders = data.subFolders;
           if (data.platformSharePercent) adminPlatformSharePercent = data.platformSharePercent;
         }
       } catch (e) {}
@@ -398,7 +398,6 @@
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
         const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const allowedOwners = await getBuilderAccessibleOwners();
         const access=await getBuilderAccessContext();
         const allowedOwners=access.owners, allowedGroups=access.groupIds;
         cloudVault = rawQuestions.filter(q => { const owner=String(q.ownerEmail||'').toLowerCase(); if(owner&&allowedOwners.includes(owner)) return true; if(q.centralPublished===true) return true; if(Array.isArray(q.sharedGroupIds)&&q.sharedGroupIds.some(g=>allowedGroups.includes(g))) return true; return false; });
@@ -414,7 +413,7 @@
       tabsContainer.innerHTML += '<button class="builder-main-tab" onclick="selectBuilderSource(\'GROUPS\')">👥 Group Shared</button>';
       
       mainFolders.forEach(m => {
-        const mCount = cloudVault.filter(q => q.subject && q.subject.startsWith(m)).length;
+        const mCount = cloudVault.filter(q => { const p=String(q.subject||q.libraryPath||q.targetPath||q.folderPath||''); return p===m || p.startsWith(m+' / '); }).length;
         tabsContainer.innerHTML += `<button class="builder-main-tab ${activeBuilderMain===m?'active':''}" onclick="selectBuilderMain('${m}')">📁 ${m} (${mCount})</button>`;
       });
 
@@ -430,7 +429,7 @@
 
     function renderBuilderTopicsSidebar() {
       const topicsList = document.getElementById('builder-topics-list');
-      const allSubCount = activeBuilderMain === 'ALL' ? cloudVault.length : cloudVault.filter(q => q.subject && q.subject.startsWith(activeBuilderMain)).length;
+      const allSubCount = activeBuilderMain === 'ALL' ? cloudVault.length : cloudVault.filter(q => { const p=String(q.subject||q.libraryPath||q.targetPath||q.folderPath||''); return p===activeBuilderMain || p.startsWith(activeBuilderMain+' / '); }).length;
       topicsList.innerHTML = `<button class="nav-item-btn ${activeBuilderSub==='ALL'?'active':''}" onclick="selectBuilderSub('ALL')"><span>All Sections</span> <span style="font-size:10px; opacity:0.7;">(${allSubCount})</span></button>`;
 
       let targetSubs = [];
@@ -441,7 +440,7 @@
       }
 
       targetSubs.forEach(fullKey => {
-        const sCount = cloudVault.filter(q => q.subject === fullKey).length;
+        const sCount = cloudVault.filter(q => String(q.subject||q.libraryPath||q.targetPath||q.folderPath||'') === fullKey).length;
         topicsList.innerHTML += `<button class="nav-item-btn ${activeBuilderSub===fullKey?'active':''}" onclick="selectBuilderSub('${fullKey}')"><span>📂 ${fullKey}</span> <span style="font-size:10px; opacity:0.7;">(${sCount})</span></button>`;
       });
     }
