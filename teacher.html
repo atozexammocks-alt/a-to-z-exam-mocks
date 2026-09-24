@@ -608,28 +608,13 @@ try{
         const privateRef = window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey()));
         const privateSnap = await window.getDoc(privateRef);
         const privateData = privateSnap.exists() ? privateSnap.data() : {};
-        let legacyData = {};
-        try {
-          const legacySnap = await window.getDoc(window.doc(window.db, "folder_configs", "shared_registry_v4"));
-          if (legacySnap.exists()) legacyData = legacySnap.data() || {};
-        } catch (legacyErr) { console.warn("Legacy library registry unavailable:", legacyErr); }
 
-        const mergedMain = [...new Set([
-          ...(Array.isArray(privateData.mainFolders) ? privateData.mainFolders : []),
-          ...(Array.isArray(legacyData.mainFolders) ? legacyData.mainFolders : [])
-        ])];
-        const mergedSubs = { ...(legacyData.subFolders || {}), ...(privateData.subFolders || {}) };
-        const mergedPdfs = { ...(legacyData.folderPdfs || {}), ...(privateData.folderPdfs || {}) };
-
-        if (mergedMain.length) mainFolders = mergedMain;
-        if (Object.keys(mergedSubs).length) subFolders = mergedSubs;
-        if (Object.keys(mergedPdfs).length) folderPdfs = mergedPdfs;
-
-        if (mergedMain.length && (!privateSnap.exists() || JSON.stringify(privateData.mainFolders || []) !== JSON.stringify(mergedMain))) {
-          await window.setDoc(privateRef, {
-            ownerEmail: teacherEmailKey(), mainFolders: mergedMain, subFolders: mergedSubs,
-            folderPdfs: mergedPdfs, updatedAt: new Date().toISOString(), migratedFromLegacyRegistry: true
-          }, { merge: true });
+        // SOURCE OF TRUTH: only the teacher's current private library is loaded.
+        // Legacy/shared registries are intentionally ignored so deleted folders never return.
+        if (privateSnap.exists()) {
+          if (Array.isArray(privateData.mainFolders)) mainFolders = privateData.mainFolders.slice();
+          if (privateData.subFolders && typeof privateData.subFolders === "object") subFolders = {...privateData.subFolders};
+          if (privateData.folderPdfs && typeof privateData.folderPdfs === "object") folderPdfs = {...privateData.folderPdfs};
         }
       } catch (e) { console.error("Library registry load failed:", e); }
     }
@@ -738,7 +723,7 @@ try{
           let batchDeletes = [];
           qSnap.forEach(d => {
             const data = d.data();
-            if (data.subject && data.subject.startsWith(mName)) {
+            if (getQuestionLibraryPath(data) === mName || getQuestionLibraryPath(data).startsWith(mName + " / ")) {
               batchDeletes.push(window.deleteDoc(window.doc(window.db, "questions", d.id)));
             }
           });
@@ -789,7 +774,7 @@ try{
           let batchDeletes = [];
           qSnap.forEach(d => {
             const data = d.data();
-            if (data.subject === fullKey) {
+            if (getQuestionLibraryPath(data) === fullKey) {
               batchDeletes.push(window.deleteDoc(window.doc(window.db, "questions", d.id)));
             }
           });
