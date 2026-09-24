@@ -96,6 +96,35 @@
       }
     });
 
+    // Expose the login handler to the inline HTML button.
+    // ES module imports are scoped, so an inline onclick cannot call imported
+    // Firebase functions directly unless we bridge the handler through window.
+    window.handleTeacherLogin = async function() {
+      const input = document.getElementById("teacher-auth-email");
+      const status = document.getElementById("teacher-auth-status");
+      const email = (input?.value || "").trim().toLowerCase();
+      if (!email || !email.includes("@")) {
+        if (status) status.textContent = "Please enter a valid teacher email.";
+        return;
+      }
+      try {
+        if (status) status.textContent = "Sending secure login link…";
+        const actionCodeSettings = {
+          url: window.location.origin + window.location.pathname,
+          handleCodeInApp: true
+        };
+        await sendSignInLinkToEmail(window.auth, email, actionCodeSettings);
+        localStorage.setItem("ExamVault_Auth_Email", email);
+        if (status) status.textContent = "✔ Login link sent. Check your email (including Spam/Junk).";
+      } catch (e) {
+        console.error("Firebase sendSignInLinkToEmail failed:", e);
+        const code = e?.code || "unknown";
+        const message = e?.message || String(e);
+        if (status) status.textContent = "Firebase error: " + code;
+        alert("Firebase Error: " + code + "\\n\\n" + message);
+      }
+    };
+
     completeTeacherEmailLinkSignIn();
   </script>
 
