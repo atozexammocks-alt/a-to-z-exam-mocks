@@ -394,14 +394,35 @@
       } catch (e) {}
     }
 
+    function getBuilderQuestionPath(q) {
+      return String(q?.subject || q?.libraryPath || q?.targetPath || q?.folderPath || q?.path || '').trim();
+    }
+
+    function getBuilderQuestionOwner(q) {
+      return String(q?.ownerEmail || q?.creatorEmail || q?.createdBy || '').trim().toLowerCase();
+    }
+
     async function initBuilderStudio() {
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
         const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         const access=await getBuilderAccessContext();
         const allowedOwners=access.owners, allowedGroups=access.groupIds;
-        cloudVault = rawQuestions.filter(q => { const owner=String(q.ownerEmail||'').toLowerCase(); if(owner&&allowedOwners.includes(owner)) return true; if(q.centralPublished===true) return true; if(Array.isArray(q.sharedGroupIds)&&q.sharedGroupIds.some(g=>allowedGroups.includes(g))) return true; return false; });
-      } catch (e) {}
+
+        // QUESTION VISIBILITY FIX ONLY:
+        // keep the current Library as source of truth, but accept the owner/path
+        // field names already used by older 11th/12th questions.
+        cloudVault = rawQuestions.filter(q => {
+          const owner=getBuilderQuestionOwner(q);
+          if(owner && allowedOwners.includes(owner)) return true;
+          if(q.centralPublished===true) return true;
+          if(Array.isArray(q.sharedGroupIds)&&q.sharedGroupIds.some(g=>allowedGroups.includes(g))) return true;
+          return false;
+        });
+      } catch (e) {
+        console.error('Builder question load failed:', e);
+        cloudVault = [];
+      }
 
       document.getElementById('total-vault-count-badge').textContent = `${cloudVault.length} Qs`;
       document.getElementById('admin-share-label').textContent = adminPlatformSharePercent;
@@ -413,7 +434,7 @@
       tabsContainer.innerHTML += '<button class="builder-main-tab" onclick="selectBuilderSource(\'GROUPS\')">👥 Group Shared</button>';
       
       mainFolders.forEach(m => {
-        const mCount = cloudVault.filter(q => { const p=String(q.subject||q.libraryPath||q.targetPath||q.folderPath||''); return p===m || p.startsWith(m+' / '); }).length;
+        const mCount = cloudVault.filter(q => { const p=getBuilderQuestionPath(q); return p===m || p.startsWith(m+' / '); }).length;
         tabsContainer.innerHTML += `<button class="builder-main-tab ${activeBuilderMain===m?'active':''}" onclick="selectBuilderMain('${m}')">📁 ${m} (${mCount})</button>`;
       });
 
@@ -429,7 +450,7 @@
 
     function renderBuilderTopicsSidebar() {
       const topicsList = document.getElementById('builder-topics-list');
-      const allSubCount = activeBuilderMain === 'ALL' ? cloudVault.length : cloudVault.filter(q => { const p=String(q.subject||q.libraryPath||q.targetPath||q.folderPath||''); return p===activeBuilderMain || p.startsWith(activeBuilderMain+' / '); }).length;
+      const allSubCount = activeBuilderMain === 'ALL' ? cloudVault.length : cloudVault.filter(q => { const p=getBuilderQuestionPath(q); return p===activeBuilderMain || p.startsWith(activeBuilderMain+' / '); }).length;
       topicsList.innerHTML = `<button class="nav-item-btn ${activeBuilderSub==='ALL'?'active':''}" onclick="selectBuilderSub('ALL')"><span>All Sections</span> <span style="font-size:10px; opacity:0.7;">(${allSubCount})</span></button>`;
 
       let targetSubs = [];
@@ -440,7 +461,7 @@
       }
 
       targetSubs.forEach(fullKey => {
-        const sCount = cloudVault.filter(q => String(q.subject||q.libraryPath||q.targetPath||q.folderPath||'') === fullKey).length;
+        const sCount = cloudVault.filter(q => getBuilderQuestionPath(q) === fullKey).length;
         topicsList.innerHTML += `<button class="nav-item-btn ${activeBuilderSub===fullKey?'active':''}" onclick="selectBuilderSub('${fullKey}')"><span>📂 ${fullKey}</span> <span style="font-size:10px; opacity:0.7;">(${sCount})</span></button>`;
       });
     }
@@ -457,9 +478,9 @@
       let list = cloudVault;
       if(activeBuilderSource==='CENTRAL') list=list.filter(q=>q.centralPublished===true);
       if(activeBuilderSource==='GROUPS') list=list.filter(q=>Array.isArray(q.sharedGroupIds)&&q.sharedGroupIds.length>0);
-      if (activeBuilderMain !== 'ALL') list = list.filter(q => q.subject && q.subject.startsWith(activeBuilderMain));
+      if (activeBuilderMain !== 'ALL') list = list.filter(q => { const p=getBuilderQuestionPath(q); return p===activeBuilderMain || p.startsWith(activeBuilderMain+' / '); });
       if (activeBuilderSub !== 'ALL') {
-        list = list.filter(q => q.subject === activeBuilderSub);
+        list = list.filter(q => getBuilderQuestionPath(q) === activeBuilderSub);
         document.getElementById('crumb-bank-name').textContent = activeBuilderSub;
       } else {
         document.getElementById('crumb-bank-name').textContent = activeBuilderMain === 'ALL' ? 'All Sections' : activeBuilderMain;
