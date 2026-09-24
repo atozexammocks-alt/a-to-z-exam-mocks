@@ -38,16 +38,24 @@
       "EMT": ["General"], "Solid State Mechanics": ["General"], "Thermo & Statical": ["General"], "Atomic": ["General"], "Nuclear": ["General"], "PYP": ["General"]
     };
 
+    const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+    const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
+
     async function loadLibraryState() {
       try {
-        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
-        const snap = await window.getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.mainFolders) mainFolders = data.mainFolders;
-          if (data.subFolders) subFolders = data.subFolders;
-        }
-      } catch (e) {}
+        const privateSnap = await window.getDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())));
+        const privateData = privateSnap.exists() ? privateSnap.data() : {};
+        let legacyData = {};
+        try {
+          const legacySnap = await window.getDoc(window.doc(window.db, "folder_configs", "shared_registry_v4"));
+          if (legacySnap.exists()) legacyData = legacySnap.data() || {};
+        } catch (e) {}
+        mainFolders = [...new Set([
+          ...(Array.isArray(privateData.mainFolders) ? privateData.mainFolders : []),
+          ...(Array.isArray(legacyData.mainFolders) ? legacyData.mainFolders : [])
+        ])];
+        subFolders = { ...(legacyData.subFolders || {}), ...(privateData.subFolders || {}) };
+      } catch (e) { console.error("Slicer library registry load failed:", e); }
     }
 
     window.populateSlicerSubDropdown = function(mainName) {
@@ -110,7 +118,8 @@
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
-      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email') || 'atozexammocks@gmail.com';
+      const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+      if (!savedEmail) { window.location.href = 'teacher.html'; return; }
       window.currentTeacherEmail = savedEmail;
       const userTag = document.getElementById('current-user-tag');
       if (userTag) userTag.textContent = savedEmail;
