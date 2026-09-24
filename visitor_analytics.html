@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A to Z Exam Mocks - Visitor Analytics</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+body{background:#060911;color:#f8fafc;min-height:100vh}
+.nav{height:58px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.brand{font-weight:900;color:#38bdf8}.back{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:7px 12px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:800}
+.wrap{padding:24px;max-width:1400px;margin:auto}
+.head{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+h1{font-size:22px}.muted{color:#94a3b8;font-size:12px;margin-top:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button,select{background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:8px 11px;border-radius:7px;font-weight:800;font-size:12px;cursor:pointer}
+button:hover{border-color:#38bdf8}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px}
+.card{background:#0b1120;border:1px solid #1e293b;border-radius:12px;padding:17px}
+.card small{display:block;color:#94a3b8;font-size:10px;font-weight:900;letter-spacing:.5px}
+.card strong{display:block;color:#38bdf8;font-size:27px;margin-top:6px}
+.panel{background:#0b1120;border:1px solid #1e293b;border-radius:12px;padding:16px;margin-bottom:18px}
+.panel h3{font-size:14px;color:#38bdf8;margin-bottom:12px}
+.table-wrap{overflow:auto;max-height:560px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+th{background:#0f172a;color:#38bdf8;text-align:left;padding:10px;border-bottom:1px solid #334155;position:sticky;top:0}
+td{padding:10px;border-bottom:1px solid #1e293b;color:#e2e8f0}
+.badge{display:inline-block;padding:3px 7px;border-radius:12px;background:#172554;color:#93c5fd;font-weight:800;font-size:10px}
+.empty{text-align:center;color:#64748b;padding:35px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.wrap{padding:14px}}
+@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}.card strong{font-size:22px}}
+</style>
+</head>
+<body>
+<div class="nav"><div class="brand">👑 A to Z Exam Mocks — Visitor Analytics</div><a class="back" href="admin.html">← Super Admin</a></div>
+<div class="wrap">
+  <div class="head">
+    <div><h1>📊 Website Visitor Activity</h1><div class="muted">See when visitors arrived, which pages they opened, and whether a known student/teacher identity was available.</div></div>
+    <div class="actions"><select id="range"><option value="1">Today</option><option value="7">Last 7 Days</option><option value="30">Last 30 Days</option><option value="all">All Time</option></select><button onclick="loadAnalytics()">🔄 Refresh</button><button onclick="exportCSV()">⬇️ CSV</button></div>
+  </div>
+  <div class="grid">
+    <div class="card"><small>PAGE VISITS</small><strong id="visits">0</strong></div>
+    <div class="card"><small>UNIQUE VISITORS</small><strong id="unique">0</strong></div>
+    <div class="card"><small>TODAY</small><strong id="today">0</strong></div>
+    <div class="card"><small>KNOWN USERS</small><strong id="known">0</strong></div>
+    <div class="card"><small>TOP PAGE</small><strong id="top" style="font-size:17px">—</strong></div>
+  </div>
+  <div class="panel"><h3>🕐 Recent Visitors / Visits</h3><div class="table-wrap"><table><thead><tr><th>Date & Time</th><th>Visitor</th><th>Email / Identity</th><th>Page</th><th>Device</th><th>Language</th><th>Referrer</th></tr></thead><tbody id="rows"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody></table></div></div>
+</div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {getFirestore,collection,getDocs,query,orderBy,limit} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const app=initializeApp(firebaseConfig),db=getFirestore(app);
+let cached=[];
+const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+function getDate(v){const d=new Date(v||0);return isNaN(d)?null:d}
+window.loadAnalytics=async function(){
+ const rows=document.getElementById("rows"); rows.innerHTML='<tr><td colspan="7" class="empty">Loading visitor data...</td></tr>';
+ try{
+   const snap=await getDocs(query(collection(db,"visitor_logs"),orderBy("visitedAt","desc"),limit(2000)));
+   cached=snap.docs.map(d=>({id:d.id,...d.data()}));
+   const range=document.getElementById("range").value, now=Date.now();
+   const cutoff=range==="all"?0:now-(Number(range)*86400000);
+   const data=cached.filter(x=>{const d=getDate(x.visitedAt);return d&&d.getTime()>=cutoff});
+   document.getElementById("visits").textContent=data.length;
+   document.getElementById("unique").textContent=new Set(data.map(x=>x.visitorId).filter(Boolean)).size;
+   const todayKey=new Date().toLocaleDateString("en-CA");
+   document.getElementById("today").textContent=data.filter(x=>{const d=getDate(x.visitedAt);return d&&d.toLocaleDateString("en-CA")===todayKey}).length;
+   document.getElementById("known").textContent=new Set(data.map(x=>x.email||x.name).filter(Boolean)).size;
+   const pages={}; data.forEach(x=>pages[x.path||"/"]=(pages[x.path||"/"]||0)+1);
+   const top=Object.entries(pages).sort((a,b)=>b[1]-a[1])[0]; document.getElementById("top").textContent=top?top[0]+" ("+top[1]+")":"—";
+   rows.innerHTML=data.length?data.map(x=>{
+     const d=getDate(x.visitedAt); const when=d?d.toLocaleString():"Unknown";
+     const who=x.name||"Anonymous"; const identity=x.email||"Visitor ID: "+(x.visitorId||"—");
+     return "<tr><td>"+esc(when)+"</td><td><span class='badge'>"+esc(who)+"</span></td><td>"+esc(identity)+"</td><td>"+esc(x.path||"/")+"</td><td>"+esc(x.device||"—")+"</td><td>"+esc(x.language||"—")+"</td><td>"+esc(x.referrer||"Direct")+"</td></tr>";
+   }).join(""):'<tr><td colspan="7" class="empty">No visitor activity found for this period.</td></tr>';
+ }catch(e){rows.innerHTML='<tr><td colspan="7" class="empty">Could not load visitor data. Check Firestore permissions for the visitor_logs collection.</td></tr>';console.error(e)}
+};
+window.exportCSV=function(){
+ const range=document.getElementById("range").value, now=Date.now(), cutoff=range==="all"?0:now-(Number(range)*86400000);
+ const data=cached.filter(x=>{const d=getDate(x.visitedAt);return d&&d.getTime()>=cutoff});
+ const header=["visitedAt","visitorId","name","email","path","device","language","referrer"];
+ const csv=[header,...data.map(x=>header.map(k=>String(x[k]??"").replace(/"/g,'""')))].map(r=>r.map(v=>'"'+v+'"').join(",")).join("\n");
+ const a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download="visitor_analytics_"+new Date().toISOString().slice(0,10)+".csv";a.click();
+};
+document.getElementById("range").addEventListener("change",loadAnalytics);
+loadAnalytics();
+</script>
+</body>
+</html>
