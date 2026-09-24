@@ -17,6 +17,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -30,33 +31,72 @@
 
     const app = initializeApp(firebaseConfig);
     window.db = getFirestore(app);
+    window.auth = getAuth(app);
     window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
     window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc; window.deleteDoc = deleteDoc;
     window.updateDoc = updateDoc;
+    window.firebaseSignOut = signOut;
 
     const SUPER_ADMINS = ["atozexammocks@gmail.com", "vikasattri3003@gmail.com"];
+    const teacherEmailDocId = email => (email || "").replace(/[^a-zA-Z0-9]/g, "_");
 
     window.checkSuperAdminStatus = function(email) {
-      const adminBtn = document.getElementById('super-admin-nav-btn');
-      if (adminBtn) {
-        if (email && SUPER_ADMINS.includes(email.toLowerCase())) {
-          adminBtn.style.display = 'inline-flex';
-        } else {
-          adminBtn.style.display = 'none';
-        }
-      }
+      const adminBtn = document.getElementById("super-admin-nav-btn");
+      if (adminBtn) adminBtn.style.display = email && SUPER_ADMINS.includes(email.toLowerCase()) ? "inline-flex" : "none";
     };
 
-    window.onload = async () => {
-      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email');
-      if (savedEmail) {
-        window.currentTeacherEmail = savedEmail;
-        document.getElementById('auth-overlay').style.display = 'none';
-        document.getElementById('current-user-tag').textContent = savedEmail;
-        window.checkSuperAdminStatus(savedEmail);
-        await Promise.all([loadLibraryStateFromCloud(), initStudio()]);
+    async function completeTeacherEmailLinkSignIn() {
+      if (!isSignInWithEmailLink(window.auth, window.location.href)) return;
+      let email = localStorage.getItem("ExamVault_Auth_Email") || "";
+      if (!email) email = window.prompt("Enter your teacher email to complete secure sign-in:") || "";
+      email = email.trim().toLowerCase();
+      if (!email) return;
+      try {
+        await signInWithEmailLink(window.auth, email, window.location.href);
+        localStorage.removeItem("ExamVault_Auth_Email");
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (e) {
+        console.error("Firebase email-link sign-in failed:", e);
+        alert("Secure login link is invalid or expired. Please request a new link.");
       }
-    };
+    }
+
+    onAuthStateChanged(window.auth, async (user) => {
+      const overlay = document.getElementById("auth-overlay");
+      if (!user) {
+        window.currentTeacherEmail = "";
+        window.currentTeacherUid = "";
+        if (overlay) overlay.style.display = "flex";
+        return;
+      }
+      const email = (user.email || "").trim().toLowerCase();
+      try {
+        const teacherRef = doc(window.db, "registered_teachers", teacherEmailDocId(email));
+        const teacherSnap = await getDoc(teacherRef);
+        if (!teacherSnap.exists() || teacherSnap.data().active === false) {
+          await signOut(window.auth);
+          if (overlay) overlay.style.display = "flex";
+          alert("This Firebase account is not an approved teacher account. Please contact the administrator.");
+          return;
+        }
+        window.currentTeacherEmail = email;
+        window.currentTeacherUid = user.uid;
+        localStorage.setItem("ExamVault_Teacher_Email", email);
+        localStorage.setItem("ExamVault_Teacher_UID", user.uid);
+        if (overlay) overlay.style.display = "none";
+        const tag = document.getElementById("current-user-tag");
+        if (tag) tag.textContent = email;
+        window.checkSuperAdminStatus(email);
+        await Promise.all([loadLibraryStateFromCloud(), initStudio()]);
+      } catch (e) {
+        console.error("Teacher authorization check failed:", e);
+        await signOut(window.auth);
+        if (overlay) overlay.style.display = "flex";
+        alert("Teacher authorization could not be verified. Please try again.");
+      }
+    });
+
+    completeTeacherEmailLinkSignIn();
   </script>
 
   <style>
@@ -221,22 +261,17 @@ try{
       <p style="font-size:12px; color:#94a3b8; margin-top:-6px;">Educator Studio Login</p>
       
       <div class="auth-input-group">
-        <label>Email Address</label>
-        <input type="email" id="teacher-auth-email" placeholder="educator@gmail.com" required>
+        <label>Teacher Email</label>
+        <input type="email" id="teacher-auth-email" placeholder="educator@gmail.com" autocomplete="email" required>
       </div>
 
-      <div class="auth-input-group">
-        <label>Secret PIN</label>
-        <input type="password" id="teacher-auth-pin" placeholder="Min 4 digits" required>
+      <div style="background:#07101f;border:1px solid #1e3a5f;border-radius:10px;padding:10px 12px;text-align:left;color:#94a3b8;font-size:11px;line-height:1.5;">
+        🔐 <strong style="color:#38bdf8;">Secure Firebase Login</strong><br>
+        We'll send a one-time sign-in link to your registered teacher email. No PIN is stored or used for authentication.
       </div>
 
-      <!-- EmailJS Recovery Link -->
-      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-top: -4px;">
-        <span style="color: #94a3b8;">Forgot your PIN?</span>
-        <a href="#" onclick="handleTeacherForgotPassword()" style="color: #38bdf8; text-decoration: none; font-weight: 700;">Recover via Email ➔</a>
-      </div>
-
-      <button class="btn-auth-unlock" onclick="handleTeacherLogin()">Open Studio ➔</button>
+      <button class="btn-auth-unlock" onclick="handleTeacherLogin()">📧 Send Secure Login Link ➔</button>
+      <div id="teacher-auth-status" style="font-size:11px;color:#94a3b8;min-height:16px;"></div>
       
       <!-- HOME BUTTON ADDED HERE -->
       <a href="index.html" class="btn-auth-home">🏠 Back to Home</a>
@@ -436,82 +471,60 @@ try{
       } catch (e) {}
     }
 
-    window.handleTeacherForgotPassword = async function() {
-      const emailInput = document.getElementById('teacher-auth-email').value.trim().toLowerCase();
-      if (!emailInput || !emailInput.includes('@')) {
-        alert("Please enter your registered email address in the Email field above first!");
-        return;
-      }
+    async function sendTeacherSecureLoginLink(email) {
+      const actionCodeSettings = {
+        url: window.location.origin + window.location.pathname,
+        handleCodeInApp: true
+      };
+      await sendSignInLinkToEmail(window.auth, email, actionCodeSettings);
+      localStorage.setItem("ExamVault_Auth_Email", email);
+    }
 
+    window.handleTeacherLogin = async function() {
+      const email = document.getElementById("teacher-auth-email").value.trim().toLowerCase();
+      const status = document.getElementById("teacher-auth-status");
+      if (!email || !email.includes("@")) return alert("Enter a valid teacher email.");
       try {
-        showToast("Verifying with database...");
-        const docId = emailInput.replace(/[^a-zA-Z0-9]/g, '_');
-        const ref = window.doc(window.db, "registered_teachers", docId);
-        const snap = await window.getDoc(ref);
-
-        if (snap.exists()) {
-          const teacherPin = snap.data().pin;
-          showToast("Sending PIN to your Gmail...");
-
-          const templateParams = {
-            email: emailInput,
-            to_email: emailInput,
-            pin: teacherPin,
-            user_email: emailInput
-          };
-
-          await emailjs.send('service_8o9bfla', 'template_fpbyrcp', templateParams);
-
-          alert(`📧 Success!\n\nYour Secret PIN has been successfully sent to your Gmail inbox: ${emailInput}`);
-          logTeacherActivity("EMAILJS_PASSWORD_RECOVERY", `Sent PIN via Gmail to ${emailInput}`);
-        } else {
-          alert("No registered educator account found with this email address!");
-        }
+        if (status) status.textContent = "Checking secure login service…";
+        await sendTeacherSecureLoginLink(email);
+        if (status) status.textContent = "✓ Secure login link sent. Open the email and tap the link on this device.";
+        alert("📧 Secure login link sent to " + email + ". Open that email and tap the link to enter the Teacher Studio.");
       } catch (e) {
-        console.error("EmailJS Error:", e);
-        alert("Failed to send email. Please check your EmailJS configuration or internet.");
+        console.error("Secure teacher login failed:", e);
+        if (status) status.textContent = "";
+        if (e?.code === "auth/unauthorized-continue-uri") {
+          alert("Firebase blocked this website domain. Add this site's domain to Firebase Authentication → Settings → Authorized domains.");
+        } else if (e?.code === "auth/operation-not-allowed") {
+          alert("Firebase Email Link sign-in is not enabled yet. Enable Email Link under Firebase Authentication → Sign-in method.");
+        } else {
+          alert("Could not send the secure login link. Please try again.");
+        }
       }
     };
 
-    async function handleTeacherLogin() {
-      const email = document.getElementById('teacher-auth-email').value.trim().toLowerCase();
-      const pin = document.getElementById('teacher-auth-pin').value.trim();
-      if (!email || !email.includes('@')) return alert("Enter valid email!");
-      if (pin.length < 4) return alert("PIN must be at least 4 digits!");
+    window.handleTeacherForgotPassword = window.handleTeacherLogin;
 
+    function onLoginSuccess(email) {
+      window.currentTeacherEmail = (email || "").trim().toLowerCase();
+      localStorage.setItem("ExamVault_Teacher_Email", window.currentTeacherEmail);
+      document.getElementById("auth-overlay").style.display = "none";
+      document.getElementById("current-user-tag").textContent = window.currentTeacherEmail;
+      window.checkSuperAdminStatus(window.currentTeacherEmail);
+      loadLibraryStateFromCloud().then(() => initStudio());
+    }
+
+    async function logoutTeacher() {
       try {
-        const docId = email.replace(/[^a-zA-Z0-9]/g, '_');
-        const ref = window.doc(window.db, "registered_teachers", docId);
-        const snap = await window.getDoc(ref);
-        if (snap.exists()) {
-          if (snap.data().pin === pin) onLoginSuccess(email);
-          else alert("Incorrect PIN! Use 'Recover via Email' if you forgot it.");
-        } else {
-          await window.setDoc(ref, { email, pin, createdAt: new Date().toISOString() });
-          onLoginSuccess(email);
-        }
+        if (window.currentTeacherEmail) logTeacherActivity("LOGOUT", "Logged out of Studio");
+        await signOut(window.auth);
       } catch (e) {
-        console.error("Teacher login failed:", e);
-        alert("Unable to verify your account right now. Please check your internet connection and try again.");
-        return;
-      }
-    }
-
-    async function onLoginSuccess(email) {
-      window.currentTeacherEmail = email;
-      localStorage.setItem('ExamVault_Teacher_Email', email);
-      document.getElementById('auth-overlay').style.display = 'none';
-      document.getElementById('current-user-tag').textContent = email;
-      window.checkSuperAdminStatus(email);
-      logTeacherActivity("LOGIN", "Successfully logged into Studio");
-      await loadLibraryStateFromCloud();
-      initStudio();
-    }
-
-    function logoutTeacher() {
-      if (confirm("Logout?")) {
-        logTeacherActivity("LOGOUT", "Logged out of Studio");
-        localStorage.removeItem('ExamVault_Teacher_Email');
+        console.error("Firebase logout failed:", e);
+      } finally {
+        localStorage.removeItem("ExamVault_Teacher_Email");
+        localStorage.removeItem("ExamVault_Teacher_UID");
+        localStorage.removeItem("ExamVault_Auth_Email");
+        window.currentTeacherEmail = "";
+        window.currentTeacherUid = "";
         window.location.reload();
       }
     }
