@@ -45,16 +45,10 @@
       try {
         const privateSnap = await window.getDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())));
         const privateData = privateSnap.exists() ? privateSnap.data() : {};
-        let legacyData = {};
-        try {
-          const legacySnap = await window.getDoc(window.doc(window.db, "folder_configs", "shared_registry_v4"));
-          if (legacySnap.exists()) legacyData = legacySnap.data() || {};
-        } catch (e) {}
-        mainFolders = [...new Set([
-          ...(Array.isArray(privateData.mainFolders) ? privateData.mainFolders : []),
-          ...(Array.isArray(legacyData.mainFolders) ? legacyData.mainFolders : [])
-        ])];
-        subFolders = { ...(legacyData.subFolders || {}), ...(privateData.subFolders || {}) };
+
+        // SOURCE OF TRUTH: only the current teacher library is loaded.
+        mainFolders = Array.isArray(privateData.mainFolders) ? privateData.mainFolders.slice() : [];
+        subFolders = (privateData.subFolders && typeof privateData.subFolders === "object") ? {...privateData.subFolders} : {};
       } catch (e) { console.error("Slicer library registry load failed:", e); }
     }
 
