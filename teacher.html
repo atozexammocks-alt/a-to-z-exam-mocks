@@ -964,7 +964,7 @@ try{
         let cardsHtml = '';
         qList.forEach((q, idx) => {
           cardsHtml += `
-            <div class="lib-q-card">
+            <div class="lib-q-card" data-qid="${q.id}">
               <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#38bdf8;">
                 <strong>Q${idx + 1}</strong>
                 <div style="display:flex; gap:4px;">
@@ -1355,7 +1355,7 @@ try{
       if(nav&&!document.getElementById("teacher-group-nav-btn")){const b=document.createElement("button");b.id="teacher-group-nav-btn";b.className="nav-btn";b.textContent="👥 Groups";b.onclick=openGroupManager;nav.insertBefore(b,nav.querySelector(".user-pill"));}
       if(nav&&!document.getElementById("central-lib-nav-btn")){const b=document.createElement("button");b.id="central-lib-nav-btn";b.className="nav-btn";b.textContent="🌐 Central";b.onclick=openCentralLibrary;nav.insertBefore(b,nav.querySelector(".user-pill"));}
       const oldRender=window.renderSubfolderTopicWiseQuestions;
-      if(typeof oldRender==="function"){window.renderSubfolderTopicWiseQuestions=function(){oldRender();const cards=document.querySelectorAll("#lib-topic-groups-container .lib-q-card");const key=currentMainFolder+" / "+currentSubFolder;const list=cloudVault.filter(function(q){return q.subject===key;});cards.forEach(function(card,i){const q=list[i];if(!q)return;const own=String(q.ownerEmail||"").toLowerCase()===me();const ctl=document.createElement("div");ctl.className="central-publish-control";ctl.style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;";if(own){ctl.innerHTML="<button class='f-btn' style='color:"+(q.centralPublished?"#34d399":"#94a3b8")+";border:1px solid #334155;padding:4px 7px;' onclick=\"toggleQuestionCentralPublish('"+q.id+"')\">"+(q.centralPublished?"🌐 Central Published":"🔒 Publish to Central")+"</button><button class='f-btn' style='color:#c4b5fd;border:1px solid #334155;padding:4px 7px;' onclick=\"shareQuestionToAnyGroup('"+q.id+"')\">👥 Share to Group</button>";}else if(q.centralPublished){ctl.innerHTML="<span style='color:#34d399;font-size:10px;font-weight:800;'>🌐 CENTRAL LIBRARY</span>";}card.appendChild(ctl);});};}
+      if(typeof oldRender==="function"){window.renderSubfolderTopicWiseQuestions=function(){oldRender();const cards=document.querySelectorAll("#lib-topic-groups-container .lib-q-card");cards.forEach(function(card){const q=cloudVault.find(function(x){return x.id===card.getAttribute("data-qid");});if(!q)return;const own=String(q.ownerEmail||"").toLowerCase()===me();const ctl=document.createElement("div");ctl.className="central-publish-control";ctl.style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;";if(own){ctl.innerHTML="<button class='f-btn' style='color:"+(q.centralPublished?"#34d399":"#94a3b8")+";border:1px solid #334155;padding:4px 7px;' onclick=\"toggleQuestionCentralPublish('"+q.id+"')\">"+(q.centralPublished?"🌐 Central Published":"🔒 Publish to Central")+"</button><button class='f-btn' style='color:#c4b5fd;border:1px solid #334155;padding:4px 7px;' onclick=\"shareQuestionToAnyGroup('"+q.id+"')\">👥 Share to Group</button>";}else if(q.centralPublished){ctl.innerHTML="<span style='color:#34d399;font-size:10px;font-weight:800;'>🌐 CENTRAL LIBRARY</span>";}card.appendChild(ctl);});};}
       const oldOnload=window.onload;window.onload=async function(){if(typeof oldOnload==="function")await oldOnload();setTimeout(function(){try{renderFolderCards();}catch(e){}},300);};
     })();
   </script>
