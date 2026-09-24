@@ -260,7 +260,8 @@ try{
    language:navigator.language||"",referrer:document.referrer||"Direct"
  });
 }catch(__visitorError){console.debug("Visitor analytics:",__visitorError)}
-</script>\n</head>
+</script>
+</head>
 <body>
 
   <div id="toast-msg">✔ Action Successful!</div>
@@ -554,7 +555,8 @@ try{
         localStorage.removeItem("ExamVault_Auth_Email");
         window.currentTeacherEmail = "";
         window.currentTeacherUid = "";
-        window.location.reload();
+        // Leave the teacher studio after logout so the signed-out state is clear.
+        window.location.replace("index.html");
       }
     }
 
