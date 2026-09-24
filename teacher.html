@@ -195,6 +195,7 @@ try{
 <body>
 
   <div id="toast-msg">✔ Action Successful!</div>
+<div id="library-access-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:95000;padding:18px;"><div style="background:#0b1120;border:2px solid #38bdf8;border-radius:16px;width:min(850px,100%);max-height:90vh;overflow-y:auto;padding:20px;"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:12px;"><div><h3 style="color:#38bdf8;font-size:18px;">🤝 Central / Group Library</h3><p style="color:#94a3b8;font-size:11px;margin-top:4px;">Share your question library with selected teachers, or request access to another teacher's library.</p></div><button class="tool-btn" style="background:#7f1d1d;" onclick="closeLibraryAccessModal()">✕ Close</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;"><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#10b981;font-size:13px;">📤 Share My Library</h4><p style="color:#94a3b8;font-size:11px;margin:5px 0 10px;">The other teacher must approve the request before your questions become available to them.</p><input id="share-teacher-email" class="pdf-input" placeholder="teacher@gmail.com"><select id="share-permission" class="filter-select" style="width:100%;margin-top:8px;"><option value="use">Use in papers / tests (read-only)</option><option value="view">View only</option></select><button class="tool-btn" style="background:#2563eb;width:100%;margin-top:8px;" onclick="sendLibraryShareRequest()">📨 Send Access Request</button><div id="outgoing-library-requests" style="margin-top:12px;"></div></div><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#f59e0b;font-size:13px;">📥 Requests & Shared Libraries</h4><div id="incoming-library-requests" style="margin-top:8px;"></div><div id="approved-library-list" style="margin-top:14px;"></div></div></div><div style="margin-top:14px;background:#060911;border:1px solid #1e293b;border-radius:10px;padding:12px;"><strong style="color:#38bdf8;font-size:12px;">How it works</strong><div style="color:#94a3b8;font-size:11px;line-height:1.6;margin-top:5px;">1. Teacher A sends access request → 2. Teacher B approves → 3. Teacher A can use Teacher B's shared library in Builder / Paper Designer → 4. Either side can revoke access later.</div></div></div></div>
 
   <div id="studio-modal-overlay">
     <iframe id="studio-iframe" src=""></iframe>
@@ -249,6 +250,7 @@ try{
     </div>
     <div class="nav-tabs">
       <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
+      <button class="nav-btn" onclick="openLibraryAccessModal()">🤝 Library Access</button>
       <button class="nav-btn" onclick="switchView('screen-dashboard')">🏠 Dashboard</button>
       <span class="user-pill" id="current-user-tag">Educator</span>
       <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutTeacher()">🔒 Logout</button>
@@ -512,6 +514,48 @@ try{
         localStorage.removeItem('ExamVault_Teacher_Email');
         window.location.reload();
       }
+    }
+
+    const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+    const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
+
+    async function getApprovedLibraryOwners() {
+      const email=teacherEmailKey(), owners=[email];
+      if(!email||!window.db)return owners;
+      try{const snap=await window.getDocs(window.collection(window.db,"library_shares"));snap.forEach(d=>{const x=d.data();if(x.recipientEmail===email&&x.status==="approved")owners.push(x.ownerEmail);});}catch(e){}
+      return [...new Set(owners.filter(Boolean))];
+    }
+
+    async function getLibraryAccessData(){
+      const email=teacherEmailKey(),out={incoming:[],outgoing:[],approved:[]};
+      if(!email||!window.db)return out;
+      try{const snap=await window.getDocs(window.collection(window.db,"library_shares"));snap.forEach(d=>{const x={id:d.id,...d.data()};if(x.ownerEmail===email){out.outgoing.push(x);if(x.status==="approved")out.approved.push(x.recipientEmail);}if(x.recipientEmail===email){if(x.status==="pending")out.incoming.push(x);if(x.status==="approved")out.approved.push(x.ownerEmail);}});}catch(e){}
+      return out;
+    }
+
+    window.openLibraryAccessModal=async function(){document.getElementById("library-access-modal").style.display="flex";await renderLibraryAccess();};
+    window.closeLibraryAccessModal=function(){document.getElementById("library-access-modal").style.display="none";};
+
+    window.sendLibraryShareRequest=async function(){
+      const owner=teacherEmailKey(),recipient=document.getElementById("share-teacher-email").value.trim().toLowerCase(),permission=document.getElementById("share-permission").value;
+      if(!owner)return alert("Please login first.");if(!recipient||!recipient.includes("@"))return alert("Enter a valid teacher email.");if(recipient===owner)return alert("You cannot share your library with yourself.");
+      try{const id=teacherDocId(owner)+"__"+teacherDocId(recipient),ref=window.doc(window.db,"library_shares",id),existing=await window.getDoc(ref);if(existing.exists()&&existing.data().status==="approved")return alert("Access is already approved for this teacher.");await window.setDoc(ref,{ownerEmail:owner,recipientEmail:recipient,permission:permission,status:"pending",requestedAt:new Date().toISOString(),requestedBy:owner});document.getElementById("share-teacher-email").value="";showToast("📨 Access request sent!");logTeacherActivity("LIBRARY_SHARE_REQUEST","Requested library access for "+recipient);await renderLibraryAccess();}catch(e){alert("Could not send access request: "+e.message);}
+    };
+
+    window.approveLibraryShare=async function(id){
+      try{const ref=window.doc(window.db,"library_shares",id),snap=await window.getDoc(ref);if(!snap.exists())return;const x=snap.data();if(x.recipientEmail!==teacherEmailKey())return alert("Only the requested teacher can approve this.");await window.updateDoc(ref,{status:"approved",approvedAt:new Date().toISOString()});showToast("✔ Library access approved!");logTeacherActivity("LIBRARY_ACCESS_APPROVED","Approved library access from "+x.ownerEmail);await renderLibraryAccess();}catch(e){alert("Approval failed: "+e.message);}
+    };
+
+    window.revokeLibraryShare=async function(id){
+      if(!confirm("Revoke this library access?"))return;
+      try{const ref=window.doc(window.db,"library_shares",id),snap=await window.getDoc(ref);if(!snap.exists())return;const x=snap.data(),me=teacherEmailKey();if(x.ownerEmail!==me&&x.recipientEmail!==me)return alert("You are not allowed to revoke this access.");await window.deleteDoc(ref);showToast("🔒 Library access revoked.");await renderLibraryAccess();}catch(e){alert("Could not revoke access: "+e.message);}
+    };
+
+    async function renderLibraryAccess(){
+      const d=await getLibraryAccessData(),incoming=document.getElementById("incoming-library-requests"),outgoing=document.getElementById("outgoing-library-requests"),approved=document.getElementById("approved-library-list");if(!incoming||!outgoing||!approved)return;
+      incoming.innerHTML=d.incoming.length?d.incoming.map(x=>"<div style='background:#060911;border:1px solid #334155;border-radius:8px;padding:9px;margin-bottom:7px;'><div style='font-size:11px;color:#f8fafc;'><strong>"+x.ownerEmail+"</strong> wants to share a library with you.</div><div style='font-size:10px;color:#94a3b8;margin-top:3px;'>Permission: "+(x.permission==="use"?"Use in papers/tests":"View only")+"</div><div style='display:flex;gap:6px;margin-top:7px;'><button class='tool-btn' style='background:#059669;' onclick='approveLibraryShare(\""+x.id+"\")'>✔ Approve</button><button class='tool-btn' style='background:#7f1d1d;' onclick='revokeLibraryShare(\""+x.id+"\")'>✕ Reject</button></div></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No pending requests.</div>";
+      const pending=d.outgoing.filter(x=>x.status==="pending");outgoing.innerHTML=pending.length?"<div style='font-size:10px;color:#94a3b8;margin-bottom:5px;'>Pending requests:</div>"+pending.map(x=>"<div style='display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e293b;font-size:11px;'><span>"+x.recipientEmail+"</span><button class='f-btn' onclick='revokeLibraryShare(\""+x.id+"\")'>Cancel</button></div>").join(""):"";
+      const list=[...new Set(d.approved.filter(x=>x&&x!==teacherEmailKey()))];approved.innerHTML="<h5 style='color:#38bdf8;font-size:11px;margin-bottom:6px;'>🔓 Approved Shared Libraries</h5>"+(list.length?list.map(e=>"<div style='display:flex;justify-content:space-between;padding:7px 8px;background:#060911;border:1px solid #1e293b;border-radius:7px;margin-bottom:5px;font-size:11px;'><span>"+e+"</span><span style='color:#10b981;font-weight:800;'>ACCESS</span></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No shared libraries yet.</div>");
     }
 
     let mainFolders = ["Classical Mechanics", "Quantum Mechanics", "Mathematical Physics", "Electronics", "EMT", "Solid State Mechanics", "Thermo & Statical", "Atomic", "Nuclear", "PYP"];
@@ -1054,7 +1098,9 @@ try{
       renderFolderCards();
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
-        cloudVault = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const allowedOwners = await getApprovedLibraryOwners();
+        cloudVault = rawQuestions.filter(q => !q.ownerEmail || allowedOwners.includes(String(q.ownerEmail).toLowerCase()));
       } catch (e) {}
     }
 
