@@ -276,7 +276,7 @@
 
   <div id="screen-builder">
     <div id="builder-top-row">
-      <span style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Books:</span>
+      <span style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase;">Library Source / Books:</span>
       <div id="builder-main-tabs-container" style="display:flex; gap:6px;"></div>
     </div>
 
@@ -359,20 +359,20 @@
     };
     let cloudVault = [], selectedIds = [];
     let activeBuilderMain = 'ALL', activeBuilderSub = 'ALL';
+    let activeBuilderSource = 'ALL';
     let cachedFilteredList = [];
     let currentPrintType = 'qp';
     let adminPlatformSharePercent = 10;
 
-    async function getBuilderAccessibleOwners() {
+    async function getBuilderAccessContext() {
       const me=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase();
-      const owners=[me];
-      if(!me||!window.db)return owners;
-      try{
-        const snap=await window.getDocs(window.collection(window.db,"library_shares"));
-        snap.forEach(d=>{const x=d.data();if(x.recipientEmail===me&&x.status==="approved"&&x.permission==="use")owners.push(x.ownerEmail);});
-      }catch(e){}
-      return [...new Set(owners.filter(Boolean))];
+      const owners=[me], groupIds=[];
+      if(!me||!window.db)return {owners:owners,groupIds:groupIds};
+      try{const shares=await window.getDocs(window.collection(window.db,'library_shares'));shares.forEach(d=>{const x=d.data();if(x.recipientEmail===me&&x.status==='approved'&&x.permission==='use')owners.push(String(x.ownerEmail||'').toLowerCase());});}catch(e){}
+      try{const gs=await window.getDocs(window.collection(window.db,'teacher_groups'));gs.forEach(d=>{const x=d.data(),m=Array.isArray(x.memberEmails)?x.memberEmails:[];if(x.ownerEmail===me||m.includes(me))groupIds.push(d.id);});}catch(e){}
+      return {owners:[...new Set(owners.filter(Boolean))],groupIds:[...new Set(groupIds)]};
     }
+    async function getBuilderAccessibleOwners(){return (await getBuilderAccessContext()).owners;}
 
     let paperBlueprint = { totalMarks: 100, defaultLayout: '2col', style: 'Custom Board Pattern', sections: [] };
     let paperQuestionOverrides = {};
@@ -399,7 +399,9 @@
         const snap = await window.getDocs(window.collection(window.db, "questions"));
         const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         const allowedOwners = await getBuilderAccessibleOwners();
-        cloudVault = rawQuestions.filter(q => !q.ownerEmail || allowedOwners.includes(String(q.ownerEmail).toLowerCase()));
+        const access=await getBuilderAccessContext();
+        const allowedOwners=access.owners, allowedGroups=access.groupIds;
+        cloudVault = rawQuestions.filter(q => { const owner=String(q.ownerEmail||'').toLowerCase(); if(owner&&allowedOwners.includes(owner)) return true; if(q.centralPublished===true) return true; if(Array.isArray(q.sharedGroupIds)&&q.sharedGroupIds.some(g=>allowedGroups.includes(g))) return true; return false; });
       } catch (e) {}
 
       document.getElementById('total-vault-count-badge').textContent = `${cloudVault.length} Qs`;
@@ -408,6 +410,8 @@
       const tabsContainer = document.getElementById('builder-main-tabs-container');
       const allCount = cloudVault.length;
       tabsContainer.innerHTML = `<button class="builder-main-tab ${activeBuilderMain==='ALL'?'active':''}" onclick="selectBuilderMain('ALL')">All Books (${allCount})</button>`;
+      tabsContainer.innerHTML += '<button class="builder-main-tab" onclick="selectBuilderSource(\'CENTRAL\')">🌐 Central</button>';
+      tabsContainer.innerHTML += '<button class="builder-main-tab" onclick="selectBuilderSource(\'GROUPS\')">👥 Group Shared</button>';
       
       mainFolders.forEach(m => {
         const mCount = cloudVault.filter(q => q.subject && q.subject.startsWith(m)).length;
@@ -442,6 +446,8 @@
       });
     }
 
+    window.selectBuilderSource = function(source){ activeBuilderSource=source; activeBuilderMain='ALL'; activeBuilderSub='ALL'; initBuilderStudio(); };
+
     window.selectBuilderSub = function(fullKey) {
       activeBuilderSub = fullKey;
       renderBuilderTopicsSidebar();
@@ -450,6 +456,8 @@
 
     function renderBuilderGrid() {
       let list = cloudVault;
+      if(activeBuilderSource==='CENTRAL') list=list.filter(q=>q.centralPublished===true);
+      if(activeBuilderSource==='GROUPS') list=list.filter(q=>Array.isArray(q.sharedGroupIds)&&q.sharedGroupIds.length>0);
       if (activeBuilderMain !== 'ALL') list = list.filter(q => q.subject && q.subject.startsWith(activeBuilderMain));
       if (activeBuilderSub !== 'ALL') {
         list = list.filter(q => q.subject === activeBuilderSub);
