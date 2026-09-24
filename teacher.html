@@ -943,9 +943,7 @@ try{
               <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#38bdf8;">
                 <strong>Q${idx + 1}</strong>
                 <div style="display:flex; gap:4px;">
-                  <button class="tool-btn" style="padding:2px 6px; font-size:10px; background:#0284c7;" onclick="openQuestionEditor('${q.id}')">✏️ Edit</button>
-                  <button class="tool-btn" style="padding:2px 6px; font-size:10px; background:#2563eb;" onclick="promptMoveQuestion('${q.id}')">📦 Move</button>
-                  <button class="f-btn" style="background:#7f1d1d; color:#fecaca;" onclick="deleteCloudQuestion('${q.id}')">🗑️</button>
+                  \${(!q.ownerEmail || String(q.ownerEmail).toLowerCase()===teacherEmailKey()) ? '<button class="tool-btn" style="padding:2px 6px; font-size:10px; background:#0284c7;" onclick="openQuestionEditor(\''+q.id+'\')">✏️ Edit</button><button class="tool-btn" style="padding:2px 6px; font-size:10px; background:#2563eb;" onclick="promptMoveQuestion(\''+q.id+'\')">📦 Move</button><button class="f-btn" style="background:#7f1d1d; color:#fecaca;" onclick="deleteCloudQuestion(\''+q.id+'\')">🗑️</button>' : '<span style="font-size:9px;color:#10b981;padding:4px 6px;">🔗 SHARED</span>'}
                 </div>
               </div>
               <div class="lib-q-img" onclick="openQuestionPopup('${q.id}')">
@@ -1086,6 +1084,8 @@ try{
     };
 
     window.deleteCloudQuestion = async function(qId) {
+      const target=cloudVault.find(x=>x.id===qId);
+      if(target && target.ownerEmail && String(target.ownerEmail).toLowerCase()!==teacherEmailKey()) return alert("🔒 This question belongs to another teacher library. You have view/use access only.");
       if (confirm("Delete this question permanently?")) {
         await window.deleteDoc(window.doc(window.db, "questions", qId));
         cloudVault = cloudVault.filter(x => x.id !== qId);
