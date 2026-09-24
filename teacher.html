@@ -1114,13 +1114,26 @@ try{
     };
 
     async function initStudio() {
+      // Render the folders immediately, then refresh them after Firestore questions
+      // have loaded so question counters and question lists are not stuck at zero.
       renderFolderCards();
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
         const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         const allowedOwners = await getApprovedLibraryOwners();
-        cloudVault = rawQuestions.filter(q => { const owner=String(q.ownerEmail||"").toLowerCase(); if(owner) return allowedOwners.includes(owner); return SUPER_ADMINS.includes(teacherEmailKey()); });
-      } catch (e) {}
+        const me = teacherEmailKey();
+        cloudVault = rawQuestions.filter(q => {
+          const owner = String(q.ownerEmail || "").trim().toLowerCase();
+          if (owner) return allowedOwners.includes(owner);
+          // Keep legacy/unowned questions visible to Super Admins.
+          return SUPER_ADMINS.includes(me);
+        });
+        renderFolderCards();
+        if (currentMainFolder) renderLibrarySubSidebar();
+      } catch (e) {
+        console.error("Library questions load failed:", e);
+        renderFolderCards();
+      }
     }
 
     async function loadStudentResults() {
