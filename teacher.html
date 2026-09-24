@@ -1142,11 +1142,17 @@ try{
         const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         const allowedOwners = await getApprovedLibraryOwners();
         const me = teacherEmailKey();
+        const currentPaths = new Set(mainFolders.flatMap(m => (subFolders[m] || []).map(s => m + " / " + s)));
         cloudVault = rawQuestions.filter(q => {
-          const owner = String(q.ownerEmail || q.creatorEmail || "").trim().toLowerCase();
-          if (owner) return allowedOwners.includes(owner);
-          // Keep legacy/unowned questions visible to Super Admins.
-          return (window.SUPER_ADMINS || []).includes(me);
+          const owner = String(q.ownerEmail || q.creatorEmail || q.createdBy || "").trim().toLowerCase();
+          const path = getQuestionLibraryPath(q);
+          // CURRENT LIBRARY FIRST: questions owned by this teacher are always visible.
+          if (owner === me) return true;
+          // Keep older records visible when they are already inside the current library registry.
+          if (path && currentPaths.has(path) && !owner) return true;
+          // Approved shared libraries remain available.
+          if (owner && allowedOwners.includes(owner)) return true;
+          return false;
         });
         renderFolderCards();
         if (currentMainFolder) renderLibrarySubSidebar();
