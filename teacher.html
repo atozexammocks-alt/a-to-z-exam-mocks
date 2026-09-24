@@ -39,6 +39,7 @@
     window.firebaseSignOut = signOut;
 
     const SUPER_ADMINS = ["atozexammocks@gmail.com", "vikasattri3003@gmail.com"];
+    window.SUPER_ADMINS = SUPER_ADMINS;
     const teacherEmailDocId = email => (email || "").replace(/[^a-zA-Z0-9]/g, "_");
 
     window.checkSuperAdminStatus = function(email) {
@@ -1126,7 +1127,7 @@ try{
           const owner = String(q.ownerEmail || "").trim().toLowerCase();
           if (owner) return allowedOwners.includes(owner);
           // Keep legacy/unowned questions visible to Super Admins.
-          return SUPER_ADMINS.includes(me);
+          return (window.SUPER_ADMINS || []).includes(me);
         });
         renderFolderCards();
         if (currentMainFolder) renderLibrarySubSidebar();
