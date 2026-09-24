@@ -497,7 +497,7 @@ try{
         } else if (e?.code === "auth/operation-not-allowed") {
           alert("Firebase Email Link sign-in is not enabled yet. Enable Email Link under Firebase Authentication → Sign-in method.");
         } else {
-          alert("Could not send the secure login link. Please try again.");
+          alert("Firebase Error: " + (e?.code || "unknown") + "\n\n" + (e?.message || e));
         }
       }
     };
