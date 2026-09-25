@@ -40,7 +40,11 @@
     window.checkSuperAdminStatus = function(email) {
       const adminBtn = document.getElementById("super-admin-nav-btn");
       if (adminBtn) {
-        adminBtn.style.display = email && SUPER_ADMINS.includes(email.toLowerCase()) ? "inline-flex" : "none";
+        if (email && SUPER_ADMINS.includes(email.toLowerCase())) {
+          adminBtn.style.display = "inline-flex";
+        } else {
+          adminBtn.style.display = "none";
+        }
       }
     };
   </script>
@@ -75,24 +79,36 @@
 </head>
 <body>
   <script>
-    document.addEventListener('DOMContentLoaded', function(){
+    function initializeTeacherSession() {
       const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
       const tag = document.getElementById('current-user-tag');
       const headerEmail = document.getElementById('dropdown-user-email');
       
       if (savedEmail) {
-        if(tag) tag.textContent = savedEmail;
-        if(headerEmail) headerEmail.textContent = savedEmail;
-        if(window.checkSuperAdminStatus) window.checkSuperAdminStatus(savedEmail);
+        if (tag) tag.textContent = savedEmail;
+        if (headerEmail) headerEmail.textContent = savedEmail;
+        if (window.checkSuperAdminStatus) {
+          window.checkSuperAdminStatus(savedEmail);
+        }
       } else {
-        if(tag) tag.textContent = "Educator";
-        if(headerEmail) headerEmail.textContent = "Not Logged In";
+        if (tag) tag.textContent = "Educator";
+        if (headerEmail) headerEmail.textContent = "Not Logged In";
       }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeTeacherSession);
+    } else {
+      initializeTeacherSession();
+    }
+
+    window.addEventListener('pageshow', function() {
+      initializeTeacherSession();
     });
 
     function toggleProfileDropdown() {
       const dropdown = document.getElementById('profile-dropdown-menu');
-      if(dropdown) dropdown.classList.toggle('show');
+      if (dropdown) dropdown.classList.toggle('show');
     }
 
     window.addEventListener('click', function(e) {
