@@ -8,6 +8,7 @@
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, getDocs, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -21,6 +22,11 @@
 
     const app = initializeApp(firebaseConfig);
     window.db = getFirestore(app);
+    window.auth = getAuth(app);
+    window.adminAuthReady = signInAnonymously(window.auth).catch(e => {
+      console.warn("Anonymous Firebase session unavailable:", e);
+      return null;
+    });
     window.collection = collection; window.getDocs = getDocs; window.doc = doc; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc;
 
     const SUPER_ADMINS = ["atozexammocks@gmail.com", "vikasattri3003@gmail.com"];
@@ -31,6 +37,7 @@
         window.currentAdminEmail = savedEmail;
         document.getElementById('auth-overlay').style.display = 'none';
         document.getElementById('current-admin-tag').textContent = savedEmail;
+        try { if (window.adminAuthReady) await window.adminAuthReady; } catch (e) {}
         await loadAdminDashboard();
       } else {
         if (savedEmail) {
@@ -278,13 +285,14 @@
       setTimeout(() => { el.style.display = 'none'; }, 2000);
     }
 
-    function handleAdminLogin() {
+    async function handleAdminLogin() {
       const email = document.getElementById('admin-auth-email').value.trim().toLowerCase();
       if (SUPER_ADMINS.includes(email)) {
         localStorage.setItem('ExamVault_Teacher_Email', email);
         document.getElementById('auth-overlay').style.display = 'none';
         document.getElementById('current-admin-tag').textContent = email;
-        loadAdminDashboard();
+        try { if (window.adminAuthReady) await window.adminAuthReady; } catch (e) {}
+        await loadAdminDashboard();
         showToast("✔ Admin Authenticated Successfully!");
       } else {
         alert("Unauthorized email! Only Super Admin allowed.");
