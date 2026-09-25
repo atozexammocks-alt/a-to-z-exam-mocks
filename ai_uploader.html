@@ -115,6 +115,8 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 <div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b>Review / Correct extracted questions</b><span id="count" class="badge">0 questions</span></div><div id="list"></div></div>
 </main>
 <script>
+window.addEventListener('error',e=>{try{status.textContent='❌ Browser error: '+(e.message||'JavaScript error');console.error('[Uploader browser error]',e)}catch(_){}}); 
+window.addEventListener('unhandledrejection',e=>{try{status.textContent='❌ '+(e.reason?.message||e.reason||'Unhandled browser error');console.error('[Uploader unhandled rejection]',e)}catch(_){}}); 
 let items=[],pageImages={},folders=['General / General'],stopRequested=false,nativePdfDoc=null,ocrWorkerPromise=null;
 const status=document.getElementById('status'),list=document.getElementById('list'),progressBar=document.getElementById('progressBar'),stopBtn=document.getElementById('stop'),count=document.getElementById('count');
 async function loadFolders(){try{const s=await getDoc(doc(db,'folder_configs','shared_registry_v4'));if(s.exists()){const d=s.data();folders=[];for(const[m,ss]of Object.entries(d.subFolders||{}))ss.forEach(x=>folders.push(m+' / '+x));if(!folders.length)folders=['General / General'];}}catch(e){}}
@@ -188,6 +190,7 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   let got=[];
   // Route 1: ONE COMPLETE native PDF page.
   try{
+    if(!nativePdfDoc)throw new Error('Native PDF route unavailable; continue with full-page image route.');
     const pdfBase64=await pdfPageToBase64(nativePdfDoc,n);
     got=await extractWithBackend({mode:'pdf_extract',pdfBase64,pageNumber:n,folders:folders.join(', ')});
   }catch(nativeErr){console.warn('[AI native PDF extraction failed]',n,nativeErr)}
@@ -244,17 +247,18 @@ fileInput.addEventListener('change',async e=>{
     const pdf=await pdfjsLib.getDocument({data:pdfBytes,useWorkerFetch:true,isEvalSupported:true}).promise;
     const total=pdf.numPages;
     status.textContent='✔ PDF opened: '+total+' page'+(total===1?'':'s')+' — starting page-by-page processing…';
-    // PDF-Lib is used only for the native one-page AI route. If a particular PDF
-    // cannot be parsed by PDF-Lib, image/OCR routes must still continue.
+    // Do NOT block PDF processing on PDF-Lib. PDF.js is the only required
+    // browser PDF reader. The native-PDF AI route is attempted only when PDF-Lib
+    // is available; image/OCR page processing must start immediately.
     nativePdfDoc=null;
-    try{
-      nativePdfDoc=await Promise.race([
-        PDFLib.PDFDocument.load(pdfBytes),
-        new Promise((_,reject)=>setTimeout(()=>reject(new Error('PDF-Lib open timeout')),8000))
-      ]);
-    }catch(pdfLibErr){
-      console.warn('[PDF-Lib optional native-page route unavailable]',pdfLibErr);
-      status.textContent='✔ PDF opened — native PDF route unavailable, using full-page AI/image fallback…';
+    if(window.PDFLib?.PDFDocument){
+      try{
+        status.textContent='📄 PDF opened — preparing page-by-page processing…';
+        nativePdfDoc=await PDFLib.PDFDocument.load(pdfBytes);
+      }catch(pdfLibErr){
+        console.warn('[PDF-Lib optional route unavailable]',pdfLibErr);
+        nativePdfDoc=null;
+      }
     }
     let nextPage=1,completed=0,queue=new Map();
 
