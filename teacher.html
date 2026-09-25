@@ -812,7 +812,7 @@ try{
           const path=currentFolderPath ? currentFolderPath+' / '+node.name : node.name;
           const stats=currentContentStats(path);
           const card=document.createElement('div'); card.className='folder-card'; card.onclick=()=>openMainFolder(path);
-          card.innerHTML='<div style="font-size:44px;">📁</div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" onclick="renameLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">✏️ Rename</button><button class="tool-btn" style="background:#7f1d1d;" onclick="deleteLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
+          card.innerHTML='<div style="font-size:44px;">📁</div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" style="background:#0f766e;" onclick="openFolderActions(\''+path.replace(/'/g,"\\'")+'\',event)">⚙️ Folder Options</button><button class="tool-btn" onclick="renameLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
           cards.appendChild(card);
         });
       }
@@ -835,6 +835,84 @@ try{
     }
 
     function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+    function getFolderActionButton(path, label, color, action) {
+      return '<button class="tool-btn" style="padding:5px 9px;font-size:10px;background:'+color+';" onclick="'+action+'(\\''+path.replace(/'/g,"\\\\'")+'\\',event)">'+label+'</button>';
+    }
+
+    window.openFolderActions = function(path, event) {
+      if(event) event.stopPropagation();
+      const node=findFolderByPath(path);
+      if(!node) return;
+      const modalId="folder-actions-modal";
+      let m=document.getElementById(modalId);
+      if(!m){
+        m=document.createElement("div");
+        m.id=modalId;
+        m.style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:98000;padding:16px;";
+        m.innerHTML="<div id='folder-actions-box' style='background:#0b1120;border:2px solid #38bdf8;border-radius:16px;width:min(520px,100%);padding:20px;'></div>";
+        document.body.appendChild(m);
+      }
+      const box=document.getElementById("folder-actions-box");
+      box.innerHTML=
+        "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'><div><h3 style='color:#38bdf8;'>📁 "+escapeHtml(node.name)+"</h3><div style='font-size:10px;color:#64748b;margin-top:4px;'>"+escapeHtml(path)+"</div></div><button class='tool-btn' onclick=\"document.getElementById('folder-actions-modal').remove()\">✕</button></div>"+
+        "<div style='display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px;'>"+
+        "<button class='tool-btn' style='padding:13px;background:#2563eb;' onclick=\"shareLibraryFolder('"+path.replace(/'/g,"\\'")+"')\">🔐 Give Folder Access</button>"+
+        "<button class='tool-btn' style='padding:13px;background:#059669;' onclick=\"toggleCentralFolder('"+path.replace(/'/g,"\\'")+"')\">🌐 Central Library</button>"+
+        "<button class='tool-btn' style='padding:13px;background:#7c3aed;' onclick=\"moveLibraryFolder('"+path.replace(/'/g,"\\'")+"')\">📦 Move to Folder</button>"+
+        "<button class='tool-btn' style='padding:13px;background:#475569;' onclick=\"renameLibraryFolder('"+path.replace(/'/g,"\\'")+"',event);document.getElementById('folder-actions-modal').remove()\">✏️ Rename</button>"+
+        "</div><p style='font-size:11px;color:#94a3b8;margin-top:14px;line-height:1.5;'>Folder access shares this folder and everything inside it. Central Library publishes this folder for shared use. Move changes its place in your private hierarchy.</p>";
+    };
+
+    window.shareLibraryFolder=async function(path){
+      const email=(prompt("Teacher email to give access to this folder:\\n\\nFolder: "+path)||"").trim().toLowerCase();
+      if(!email||!email.includes("@"))return;
+      const me=teacherEmailKey();
+      if(email===me)return alert("You already own this folder.");
+      const permission=prompt("Access type:\\n1 = View only\\n2 = Use in tests/papers","1");
+      const perm=permission==="2"?"use":"view";
+      try{
+        const id=teacherDocId(me)+"__"+teacherDocId(email)+"__"+btoa(unescape(encodeURIComponent(path))).replace(/[^a-zA-Z0-9]/g,"").slice(0,80);
+        await window.setDoc(window.doc(window.db,"library_folder_shares",id),{
+          ownerEmail:me,recipientEmail:email,folderPath:path,permission:perm,status:"approved",sharedAt:new Date().toISOString()
+        });
+        showToast("🔐 Folder access granted.");
+        document.getElementById("folder-actions-modal")?.remove();
+      }catch(e){alert("Could not share folder: "+e.message);}
+    };
+
+    window.toggleCentralFolder=async function(path){
+      const node=findFolderByPath(path);if(!node)return;
+      const next=!node.centralPublished;
+      if(next&&!confirm("Publish this folder and everything inside it to Central Library?"))return;
+      node.centralPublished=next;
+      try{
+        await window.setDoc(window.doc(window.db,"central_library_folders",teacherDocId(teacherEmailKey())+"__"+btoa(unescape(encodeURIComponent(path))).replace(/[^a-zA-Z0-9]/g,"").slice(0,80)),{
+          ownerEmail:teacherEmailKey(),folderPath:path,folderName:node.name,centralPublished:next,updatedAt:new Date().toISOString()
+        });
+        await saveLibraryState();
+        showToast(next?"🌐 Folder published to Central Library.":"🔒 Folder removed from Central Library.");
+        document.getElementById("folder-actions-modal")?.remove();
+        renderLibraryBrowser();
+      }catch(e){alert("Central Library update failed: "+e.message);}
+    };
+
+    window.moveLibraryFolder=async function(path){
+      const node=findFolderByPath(path);if(!node)return;
+      const all=collectAllFolders().map(x=>x.path).filter(p=>p!==path&&!p.startsWith(path+" / "));
+      if(!all.length)return alert("There is no other folder available as a destination.");
+      const target=(prompt("Move this folder inside which folder?\\n\\nAvailable destinations:\\n"+all.join("\\n"))||"").trim();
+      if(!target||!findFolderByPath(target))return;
+      const parts=path.split(" / "), oldParentPath=parts.slice(0,-1).join(" / ");
+      const siblings=oldParentPath?(findFolderByPath(oldParentPath)?.children||[]):libraryTree;
+      const pos=siblings.findIndex(n=>n.id===node.id);if(pos<0)return;
+      siblings.splice(pos,1);
+      const dest=findFolderByPath(target);dest.children=Array.isArray(dest.children)?dest.children:[];dest.children.push(node);
+      await saveLibraryState();
+      currentFolderPath=target+" / "+node.name;
+      renderLibraryBrowser();
+      showToast("📦 Folder moved successfully.");
+    };
 
     window.renameLibraryFolder=async function(path,event){
       if(event)event.stopPropagation();
