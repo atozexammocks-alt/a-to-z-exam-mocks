@@ -434,7 +434,7 @@ try{
   </div>
 
   <script>
-    (function restoreTeacherSession() {
+    (async function restoreTeacherSession() {
       const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
       if (!savedEmail) return;
       window.currentTeacherEmail = savedEmail;
@@ -444,6 +444,13 @@ try{
       const tag = document.getElementById('current-user-tag');
       if (tag) tag.textContent = savedEmail;
       if (window.checkSuperAdminStatus) window.checkSuperAdminStatus(savedEmail);
+      try {
+        if (window.teacherAuthReady) await window.teacherAuthReady;
+        await loadLibraryStateFromCloud();
+        await initStudio();
+      } catch (e) {
+        console.warn('Teacher session restore failed:', e);
+      }
     })();
 
     function showToast(text) {
@@ -464,39 +471,7 @@ try{
       } catch (e) {}
     }
 
-    async function sendTeacherSecureLoginLink(email) {
-      const actionCodeSettings = {
-        url: window.location.origin + window.location.pathname,
-        handleCodeInApp: true
-      };
-      await sendSignInLinkToEmail(window.auth, email, actionCodeSettings);
-      localStorage.setItem("ExamVault_Auth_Email", email);
-    }
-
-    window.handleTeacherLogin = async function() {
-      const email = document.getElementById("teacher-auth-email").value.trim().toLowerCase();
-      const status = document.getElementById("teacher-auth-status");
-      if (!email || !email.includes("@")) return alert("Enter a valid teacher email.");
-      try {
-        if (status) status.textContent = "Checking secure login service…";
-        await sendTeacherSecureLoginLink(email);
-        if (status) status.textContent = "✓ Secure login link sent. Open the email and tap the link on this device.";
-        alert("📧 Secure login link sent to " + email + ". Open that email and tap the link to enter the Teacher Studio.");
-      } catch (e) {
-        console.error("Secure teacher login failed:", e);
-        if (status) status.textContent = "";
-        if (e?.code === "auth/unauthorized-continue-uri") {
-          alert("Firebase blocked this website domain. Add this site's domain to Firebase Authentication → Settings → Authorized domains.");
-        } else if (e?.code === "auth/operation-not-allowed") {
-          alert("Firebase Email Link sign-in is not enabled yet. Enable Email Link under Firebase Authentication → Sign-in method.");
-        } else {
-          alert("Firebase Error: " + (e?.code || "unknown") + "\n\n" + (e?.message || e));
-        }
-      }
-    };
-
-    window.handleTeacherForgotPassword = window.handleTeacherLogin;
-
+    // PIN login is defined in the Firebase module above. Do not override it here.\n    window.handleTeacherForgotPassword = window.handleTeacherLogin;\n
     function onLoginSuccess(email) {
       window.currentTeacherEmail = (email || "").trim().toLowerCase();
       localStorage.setItem("ExamVault_Teacher_Email", window.currentTeacherEmail);
