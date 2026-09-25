@@ -194,12 +194,12 @@
   </style>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const __auditConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 try{
  const __auditDb=getFirestore(initializeApp(__auditConfig,"activityTracker"));
  const __path=location.pathname||"/";
- const __isTeacherPage=/teacher\.html$|public_tests\.html$/i.test(__path);
+ const __isTeacherPage=/teacher\.html$|library\.html$|public_tests\.html$/i.test(__path);
  const __getContext=()=>{const studentEmail=(localStorage.getItem("ExamVault_Student_Email")||"").trim().toLowerCase();const teacherEmail=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();let userType="guest",email="",name="";if(__isTeacherPage||(!studentEmail&&teacherEmail)){userType="teacher";email=teacherEmail;name=""}else if(studentEmail){userType="student";email=studentEmail;name=localStorage.getItem("ExamVault_Student_Name")||""}return {userType,email,name,userId:email||localStorage.getItem("AZ_VISITOR_ID")||("v_"+Date.now())}};
  let __visitorId=localStorage.getItem("AZ_VISITOR_ID");if(!__visitorId){__visitorId=crypto.randomUUID?crypto.randomUUID():"v_"+Date.now()+"_"+Math.random().toString(36).slice(2);localStorage.setItem("AZ_VISITOR_ID",__visitorId)}
  const __log=async(activityType,element="",details="")=>{try{const ctx=__getContext(),col=ctx.userType==="teacher"?"teacher_activity_logs":ctx.userType==="student"?"student_activity_logs":"guest_activity_logs",now=Date.now();await addDoc(collection(__auditDb,col),{...ctx,activityType,element:String(element||"").slice(0,200),details:String(details||"").slice(0,500),path:__path,pageTitle:document.title,device:/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"Mobile":"Desktop",language:navigator.language||"",referrer:document.referrer||"Direct",timestamp:new Date(now).toISOString(),visitedAt:new Date(now).toISOString(),expiresAt:new Date(now+15*24*60*60*1000).toISOString()})}catch(e){console.debug("Audit log:",e)}};
@@ -1263,6 +1263,47 @@ try{
     })();
   </script>
 
+<!-- LIBRARY PAGE HARDENING: keep every Library control globally callable from inline/dynamic buttons. -->
+<script>
+(function(){
+  function expose(name){
+    try{
+      if(typeof window[name]==='function') return;
+      if(typeof globalThis[name]==='function') window[name]=globalThis[name];
+    }catch(e){}
+  }
+  // These functions are declared in the classic Library script and must be visible to onclick handlers.
+  expose('logoutTeacher');
+  expose('addNewPdfRow');
+  expose('openQuestionPopup');
+  expose('showToast');
+  expose('logTeacherActivity');
+
+  // A few controls are created dynamically; retry after the main Library script has initialized.
+  function harden(){
+    ['logoutTeacher','addNewPdfRow','openQuestionPopup','renderLibraryBrowser','openLibraryAccessModal',
+     'closeLibraryAccessModal','sendLibraryShareRequest','promptNewMainFolder','promptNewSubFolder',
+     'openMainFolder','backToFolderCards','openFolderActions','deleteLibraryFolder',
+     'addNewPdfRowForCurrent','openPdfUrl','switchLibTab','switchView','openGroupManager',
+     'createTeacherGroup','openCentralLibrary'].forEach(expose);
+
+    try{
+      const email=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase();
+      const overlay=document.getElementById('auth-overlay');
+      if(email && overlay) overlay.style.display='none';
+      if(email && window.checkSuperAdminStatus) window.checkSuperAdminStatus(email);
+      if(email){
+        const tag=document.getElementById('current-user-tag');
+        if(tag) tag.textContent=email;
+      }
+      if(window.renderLibraryBrowser) window.renderLibraryBrowser();
+    }catch(e){ console.error('Library hardening failed:',e); }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(harden,50);setTimeout(harden,500);});
+  else { setTimeout(harden,50); setTimeout(harden,500); }
+})();
+</script>
+
 <!-- Standalone Library workspace: future Library changes belong in this file. -->
 <script>
 (function(){
@@ -1271,10 +1312,18 @@ try{
       document.title='A to Z Exam Mocks - Library';
       var dash=document.getElementById('screen-dashboard');
       var mon=document.getElementById('screen-monitor');
+      var lib=document.getElementById('screen-library');
       if(dash) dash.classList.remove('active');
       if(mon) mon.classList.remove('active');
-      var lib=document.getElementById('screen-library');
       if(lib) lib.classList.add('active');
+      var email=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase();
+      var overlay=document.getElementById('auth-overlay');
+      if(email && overlay) overlay.style.display='none';
+      if(email && window.checkSuperAdminStatus) window.checkSuperAdminStatus(email);
+      if(email){
+        var tag=document.getElementById('current-user-tag');
+        if(tag) tag.textContent=email;
+      }
       if(window.renderLibraryBrowser) window.renderLibraryBrowser();
     }catch(e){console.error('Library workspace boot failed:',e);}
   }
