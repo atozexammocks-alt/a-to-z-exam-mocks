@@ -72,15 +72,6 @@
         await Promise.all([loadLibraryStateFromCloud(),initStudio()]);
       } catch(e) { console.error('Teacher PIN login failed:',e); if(status) status.textContent='Login failed.'; }
     };
-    // Keep navigation globally available for inline buttons and cross-page returns.
-    window.switchView = function(id) {
-      document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
-      const target = document.getElementById(id);
-      if (!target) return;
-      target.classList.add('active');
-      if (id === 'screen-library' && typeof window.renderLibraryBrowser === 'function') window.renderLibraryBrowser();
-      if (id === 'screen-monitor' && typeof window.loadStudentResults === 'function') window.loadStudentResults();
-    };
     window.handleTeacherEmailLinkLogin=function(){};
     window.handleTeacherResetPassword=function(){};
   </script>
@@ -508,7 +499,7 @@ try{
     async function logoutTeacher() {
       try {
         if (window.currentTeacherEmail) logTeacherActivity("LOGOUT", "Logged out of Studio");
-        await signOut(window.auth);
+        if (window.firebaseSignOut && window.auth) await window.firebaseSignOut(window.auth);
       } catch (e) {
         console.error("Firebase logout failed:", e);
       } finally {
@@ -746,10 +737,14 @@ try{
 
     function switchView(id) {
       document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
+      const target = document.getElementById(id);
+      if (!target) return;
+      target.classList.add('active');
       if (id === 'screen-library') renderLibraryBrowser();
       if (id === 'screen-monitor') loadStudentResults();
     }
+    // Inline onclick handlers use the same working implementation.
+    window.switchView = switchView;
 
     function currentContentStats(path) {
       const qCount=cloudVault.filter(q => getQuestionLibraryPath(q) === path).length;
