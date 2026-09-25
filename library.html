@@ -7,7 +7,6 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   
-  <!-- EmailJS Library with your Public Key -->
   <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
   <script type="text/javascript">
     (function() {
@@ -17,7 +16,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -72,8 +71,6 @@
         await Promise.all([loadLibraryStateFromCloud(),initStudio()]);
       } catch(e) { console.error('Teacher PIN login failed:',e); if(status) status.textContent='Login failed.'; }
     };
-    window.handleTeacherEmailLinkLogin=function(){};
-    window.handleTeacherResetPassword=function(){};
   </script>
 
   <style>
@@ -109,90 +106,44 @@
     #navbar { height: 56px; background: #0b1120; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; flex-shrink: 0; }
     .nav-brand { font-size: 16px; font-weight: 900; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
     .nav-brand span { font-size: 16px; color: #38bdf8; font-weight: 900; margin-left: 0; }
-    .nav-tabs { display: flex; gap: 8px; align-items: center; }
+    .nav-tabs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .nav-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px; }
     .nav-btn:hover { border-color: #38bdf8; color: white; }
     .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
 
     .view-screen { flex: 1; display: none !important; height: calc(100vh - 56px); width: 100%; overflow: hidden; }
     .view-screen.active { display: flex !important; }
-    
-    #screen-dashboard { padding: 40px; flex-direction: column; gap: 24px; overflow-y: auto; background: #060911; }
-    .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; max-width: 1000px; }
-    .dash-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 16px; padding: 24px; text-decoration: none; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .dash-card:hover { border-color: #38bdf8; transform: translateY(-3px); background: #0f172a; }
-    .dash-icon { font-size: 32px; margin-bottom: 4px; }
-    .dash-card h3 { font-size: 18px; font-weight: 800; color: #f8fafc; }
-    .dash-card p { font-size: 13px; color: #94a3b8; line-height: 1.4; }
 
-    #screen-library { padding: 24px; flex-direction: column; gap: 16px; overflow: hidden; }
-    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-    .folder-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 14px; padding: 20px; cursor: pointer; position: relative; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    #screen-library { padding: 20px; flex-direction: column; gap: 12px; overflow: hidden; }
+    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; overflow-y: auto; padding-bottom: 20px; }
+    .folder-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 12px; padding: 16px; cursor: pointer; position: relative; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .folder-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
-    .folder-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; border-top: 1px solid #1e293b; padding-top: 10px; }
+    .folder-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; border-top: 1px solid #1e293b; padding-top: 8px; }
 
-    .breadcrumb-bar { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; color: #94a3b8; margin-bottom: 0px; flex-shrink: 0; }
+    .breadcrumb-bar { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 800; color: #38bdf8; width: 100%; }
 
-    .library-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: calc(100vh - 180px); }
-    .dual-sidebar { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto !important; height: 100%; }
+    .library-layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; height: calc(100vh - 140px); }
+    .dual-sidebar { background: #0b1120; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto !important; height: 100%; }
     .sidebar-section-title { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
     
-    .pdf-table-container { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; height: 100%; overflow-y: auto; }
+    .pdf-table-container { background: #0b1120; border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; height: 100%; overflow-y: auto; }
     .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-    .pdf-table th { background: #0f172a; color: #94a3b8; padding: 10px 12px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
-    .pdf-table td { padding: 10px 12px; border-bottom: 1px solid #1e293b; color: #f8fafc; }
-    .pdf-input { width: 100%; padding: 7px 10px; background: #060911; border: 1px solid #334155; border-radius: 6px; color: white; font-size: 12px; }
+    .pdf-table th { background: #0f172a; color: #94a3b8; padding: 8px 10px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
+    .pdf-table td { padding: 8px 10px; border-bottom: 1px solid #1e293b; color: #f8fafc; }
+    .pdf-input { width: 100%; padding: 6px 8px; background: #060911; border: 1px solid #334155; border-radius: 6px; color: white; font-size: 12px; }
 
-    .lib-tab-bar { display: flex; gap: 10px; border-bottom: 1px solid #1e293b; padding-bottom: 10px; margin-bottom: 10px; flex-shrink: 0; }
-    .lib-tab-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
+    .lib-tab-bar { display: flex; gap: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 8px; flex-shrink: 0; }
+    .lib-tab-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
     .lib-tab-btn.active { background: #2563eb; border-color: #38bdf8; color: white; }
 
-    .lib-question-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-    .lib-q-card { background: #0b1120; border: 1px solid #334155; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; position: relative; }
-    .lib-q-img { background: #fff; border-radius: 4px; padding: 6px; display: flex; align-items: center; justify-content: center; max-height: 120px; overflow: hidden; cursor: pointer; }
+    .lib-question-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+    .lib-q-card { background: #0b1120; border: 1px solid #334155; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .lib-q-img { background: #fff; border-radius: 4px; padding: 4px; display: flex; align-items: center; justify-content: center; max-height: 110px; overflow: hidden; cursor: pointer; }
     .lib-q-img img { max-width: 100%; height: auto; object-fit: contain; }
 
-    #question-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 60000; padding: 20px; }
-    .q-modal-card { background: #0b1120; border: 2px solid #38bdf8; border-radius: 14px; width: 750px; max-height: 90vh; padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; color: #f8fafc; }
-
-    #studio-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 50000; flex-direction: column; }
-    #studio-iframe { width: 100%; height: 100%; border: none; background: #060911; }
-
-    .data-table-screen { padding: 24px; flex-direction: column; gap: 16px; overflow-y: auto; }
-    .app-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-    .app-table th { background: #0f172a; color: #38bdf8; padding: 12px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
-    .app-table td { padding: 12px; border-bottom: 1px solid #1e293b; color: #f8fafc; }
-
     .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; }
-    .filter-select { background: #060911; border: 1px solid #334155; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; }
-    .analytics-modal { position:fixed; inset:0; background:rgba(0,0,0,.86); display:none; align-items:center; justify-content:center; z-index:90000; padding:20px; }
-    .analytics-card { background:#0b1120; border:2px solid #38bdf8; border-radius:16px; width:min(1100px,100%); max-height:90vh; overflow-y:auto; padding:22px; }
-    .analytics-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:14px 0; }
-    .analytics-stat { background:#0f172a; border:1px solid #334155; border-radius:10px; padding:14px; }
-    .analytics-stat small { color:#94a3b8; font-size:10px; display:block; margin-bottom:5px; }
-    .analytics-stat strong { color:#f8fafc; font-size:18px; }
-    @media(max-width:800px){.analytics-grid{grid-template-columns:repeat(2,1fr);}}
-  
-    body.library-page #screen-dashboard,
-    body.library-page #screen-monitor { display:none !important; }
     body.library-page #screen-library { display:flex !important; }
-</style>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-const __auditConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
-try{
- const __auditDb=getFirestore(initializeApp(__auditConfig,"activityTracker"));
- const __path=location.pathname||"/";
- const __isTeacherPage=/teacher\.html$|public_tests\.html$/i.test(__path);
- const __getContext=()=>{const studentEmail=(localStorage.getItem("ExamVault_Student_Email")||"").trim().toLowerCase();const teacherEmail=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();let userType="guest",email="",name="";if(__isTeacherPage||(!studentEmail&&teacherEmail)){userType="teacher";email=teacherEmail;name=""}else if(studentEmail){userType="student";email=studentEmail;name=localStorage.getItem("ExamVault_Student_Name")||""}return {userType,email,name,userId:email||localStorage.getItem("AZ_VISITOR_ID")||("v_"+Date.now())}};
- let __visitorId=localStorage.getItem("AZ_VISITOR_ID");if(!__visitorId){__visitorId=crypto.randomUUID?crypto.randomUUID():"v_"+Date.now()+"_"+Math.random().toString(36).slice(2);localStorage.setItem("AZ_VISITOR_ID",__visitorId)}
- const __log=async(activityType,element="",details="")=>{try{const ctx=__getContext(),col=ctx.userType==="teacher"?"teacher_activity_logs":ctx.userType==="student"?"student_activity_logs":"guest_activity_logs",now=Date.now();await addDoc(collection(__auditDb,col),{...ctx,activityType,element:String(element||"").slice(0,200),details:String(details||"").slice(0,500),path:__path,pageTitle:document.title,device:/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"Mobile":"Desktop",language:navigator.language||"",referrer:document.referrer||"Direct",timestamp:new Date(now).toISOString(),visitedAt:new Date(now).toISOString(),expiresAt:new Date(now+15*24*60*60*1000).toISOString()})}catch(e){console.debug("Audit log:",e)}};
- const __clean=async()=>{const cutoff=Date.now()-15*24*60*60*1000;for(const col of ["student_activity_logs","teacher_activity_logs","guest_activity_logs"]){try{const snap=await getDocs(collection(__auditDb,col));const old=snap.docs.filter(d=>{const x=d.data(),t=Date.parse(x.timestamp||x.visitedAt||"");return t&&t<cutoff});await Promise.all(old.map(d=>deleteDoc(doc(__auditDb,col,d.id))))}catch(e){console.debug("Audit cleanup "+col,e)}}};
- await __clean();await __log("page_view","",document.title);window.AZ_AUDIT_LOG=__log;
- document.addEventListener("click",e=>{const el=e.target.closest("button,a,[role='button'],input[type='submit'],input[type='button'],select");if(!el)return;const label=(el.innerText||el.value||el.getAttribute("aria-label")||el.getAttribute("title")||el.id||"click").trim();const href=el.getAttribute("href");__log("click",label,href?("href="+href):"")});
-}catch(e){console.debug("Activity analytics:",e)}
-</script>
+  </style>
 </head>
 <body class="library-page">
   <script>
@@ -209,23 +160,6 @@ try{
   </script>
 
   <div id="toast-msg">✔ Action Successful!</div>
-<div id="library-access-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:95000;padding:18px;"><div style="background:#0b1120;border:2px solid #38bdf8;border-radius:16px;width:min(850px,100%);max-height:90vh;overflow-y:auto;padding:20px;"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:12px;"><div><h3 style="color:#38bdf8;font-size:18px;">🤝 Central / Group Library</h3><p style="color:#94a3b8;font-size:11px;margin-top:4px;">Share your question library with selected teachers, or request access to another teacher's library.</p></div><button class="tool-btn" style="background:#7f1d1d;" onclick="closeLibraryAccessModal()">✕ Close</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;"><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#10b981;font-size:13px;">📥 Request Another Teacher's Library</h4><p style="color:#94a3b8;font-size:11px;margin:5px 0 10px;">The library owner must approve your request. Your private library remains private.</p><input id="share-teacher-email" class="pdf-input" placeholder="Library owner teacher@gmail.com"><select id="share-permission" class="filter-select" style="width:100%;margin-top:8px;"><option value="use">Use in papers / tests (read-only)</option><option value="view">View only</option></select><button class="tool-btn" style="background:#2563eb;width:100%;margin-top:8px;" onclick="sendLibraryShareRequest()">📨 Request Access</button><div id="outgoing-library-requests" style="margin-top:12px;"></div></div><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#f59e0b;font-size:13px;">📥 My Requests & My Library Access</h4><div id="incoming-library-requests" style="margin-top:8px;"></div><div id="approved-library-list" style="margin-top:14px;"></div></div></div><div style="margin-top:14px;background:#060911;border:1px solid #1e293b;border-radius:10px;padding:12px;"><strong style="color:#38bdf8;font-size:12px;">How it works</strong><div style="color:#94a3b8;font-size:11px;line-height:1.6;margin-top:5px;">1. Teacher A sends access request → 2. Teacher B approves → 3. Teacher A can use Teacher B's shared library in Builder / Paper Designer → 4. Either side can revoke access later.</div></div></div></div>
-
-  <div id="studio-modal-overlay">
-    <iframe id="studio-iframe" src=""></iframe>
-  </div>
-
-  <div id="analytics-modal" class="analytics-modal"><div class="analytics-card"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:10px;"><div><h3 id="analytics-title" style="color:#38bdf8;font-size:18px;">📊 Test Analytics</h3><p id="analytics-subtitle" style="color:#94a3b8;font-size:11px;margin-top:4px;"></p></div><button class="tool-btn" style="background:#7f1d1d;" onclick="document.getElementById('analytics-modal').style.display='none'">✕ Close</button></div><div id="analytics-body" style="padding-top:8px;"></div></div></div>
-
-  <div id="question-modal-overlay">
-    <div class="q-modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px;">
-        <h3 id="q-modal-title" style="color:#38bdf8; font-size:16px;">🔍 Question Detailed View</h3>
-        <button class="tool-btn" style="background:#7f1d1d;" onclick="document.getElementById('question-modal-overlay').style.display='none'">✕ Close</button>
-      </div>
-      <div id="q-modal-body" style="background:#ffffff; color:#000000; padding:20px; border-radius:8px; display:flex; flex-direction:column; gap:12px;"></div>
-    </div>
-  </div>
 
   <div id="auth-overlay">
     <div class="auth-card">
@@ -245,10 +179,6 @@ try{
       <button class="btn-auth-unlock" onclick="handleTeacherLogin()">🔐 Login to Teacher Studio</button>
       <button type="button" class="nav-btn" style="justify-content:center;" onclick="alert('Please contact the administrator to reset your PIN.')">🔑 Forgot PIN?</button>
       <div id="teacher-auth-status" style="font-size:11px;color:#94a3b8;min-height:16px;"></div>
-      <div style="background:#07101f;border:1px solid #1e3a5f;border-radius:10px;padding:10px 12px;text-align:left;color:#94a3b8;font-size:11px;line-height:1.5;">
-        🔐 <strong style="color:#38bdf8;">Email + PIN</strong><br>
-        Enter your registered teacher email and PIN to open Teacher Studio.
-      </div>
       
       <a href="index.html" class="btn-auth-home">🏠 Back to Home</a>
     </div>
@@ -261,109 +191,22 @@ try{
     </div>
     <div class="nav-tabs">
       <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
-      <a class="nav-btn" href="library_access.html">🤝 Library Access</a>
       <a class="nav-btn" href="dashboard.html">🏠 Dashboard</a>
+      <a class="nav-btn" href="library_access.html">🤝 Library Access</a>
       <span class="user-pill" id="current-user-tag">Educator</span>
       <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutTeacher()">🔒 Logout</button>
     </div>
   </div>
 
   <div class="view-screen active" id="screen-library">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-      <div>
-        <h2 id="library-main-title">Your Question Library</h2>
-        <p style="font-size:13px; color:#94a3b8;" id="library-sub-title">Create Library Folders, then add Sections for your questions, PDFs and study material.</p>
-      </div>
+    <!-- टॉप ब्रेडक्रैम्ब और क्रिएट फोल्डर का बटन एक सीध में -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:#0b1120; border:1px solid #1e293b; padding:10px 16px; border-radius:10px;">
+      <div class="breadcrumb-bar" id="library-main-title">📚 My Library</div>
+      <button class="tool-btn" style="background:#2563eb; white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
     </div>
 
-    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div class="breadcrumb-bar" style="margin:0;"><span>📚 Your Library Folders</span></div>
-        <button class="tool-btn" style="background:#2563eb;" onclick="promptNewFolder()">＋ Create Folder</button>
-      </div>
+    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:10px; overflow:hidden; flex:1;">
       <div class="folder-grid" id="folder-cards-container"></div>
-    </div>
-
-    <div id="folder-files-view" style="display:none; flex-direction:column; gap:12px; flex:1; overflow:hidden;">
-      <div class="library-layout">
-        <div class="dual-sidebar">
-          <div class="sidebar-section-title">
-            <span>📂 Sections in this Folder</span>
-            <button class="f-btn" style="background:#2563eb; color:#fff; font-weight:bold;" onclick="promptNewFolder()">＋ Create Folder</button>
-          </div>
-          <div id="sidebar-sub-folders" style="display:flex; flex-direction:column; gap:4px; overflow-y:auto; flex:1;"></div>
-        </div>
-
-        <div class="pdf-table-container">
-          <div class="lib-tab-bar">
-            <button class="lib-tab-btn active" id="tab-btn-pdfs" onclick="switchLibTab('pdfs')">📄 PDF Links & Files</button>
-            <button class="lib-tab-btn" id="tab-btn-qs" onclick="switchLibTab('questions')">🖼️ Extracted Question Bank (Topic-wise)</button>
-          </div>
-
-          <div id="lib-tab-content-pdfs" style="display:flex; flex-direction:column; gap:10px; flex:1; overflow-y:auto;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <h3 style="color:#38bdf8; font-size:14px;" id="current-subfolder-title">Select a Sub-Folder</h3>
-              <button class="tool-btn" style="background:#2563eb; font-size:11px;" onclick="addNewPdfRow()">+ Add PDF Link</button>
-            </div>
-            <table class="pdf-table">
-              <thead>
-                <tr>
-                  <th>Paper Title</th>
-                  <th>Google Drive URL</th>
-                  <th>Visibility</th>
-                  <th style="width:180px; text-align:center;">Actions</th>
-                </tr>
-              </thead>
-              <tbody id="pdf-table-body">
-                <tr><td colspan="4" style="text-align:center; color:#64748b;">Select a sub-folder.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div id="lib-tab-content-qs" style="display:none; flex-direction:column; gap:10px; flex:1; overflow-y:auto;">
-            <h3 style="color:#38bdf8; font-size:14px;" id="lib-qs-heading">Topic-wise Questions</h3>
-            <div id="lib-topic-groups-container" style="display:flex; flex-direction:column; gap:12px; flex:1;">
-              <p style="color:#64748b; font-size:13px;">No questions extracted in this section yet.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="view-screen data-table-screen" id="screen-monitor">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-      <div>
-        <h2>📊 Live Student Performance & Test Supervision</h2>
-        <p style="font-size:13px; color:#94a3b8;">Monitor student attempts, scores, and view student performance reports.</p>
-      </div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-        <select id="filter-test-dropdown" class="filter-select" onchange="filterStudentResults()">
-          <option value="ALL">🔍 All Tests (Show All)</option>
-        </select>
-        <button class="tool-btn" onclick="switchView('screen-dashboard')" style="background:#334155;">🏠 Dashboard</button>
-        <button class="tool-btn" onclick="openSelectedTestAnalytics()" style="background:#f59e0b; color:#fff;">📊 Analytics</button>
-        <button class="tool-btn" onclick="switchView('screen-monitor')" style="background:#2563eb;">🔄 Refresh</button>
-      </div>
-    </div>
-    
-    <div style="background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:20px; flex:1; overflow-y:auto;">
-      <table class="app-table">
-        <thead>
-          <tr>
-            <th>Student Email</th>
-            <th>Test Attempted</th>
-            <th>Referrer</th>
-            <th>Score</th>
-            <th>Percentage</th>
-            <th>Date</th>
-            <th style="text-align:center;">Action / Performance / Contact</th>
-          </tr>
-        </thead>
-        <tbody id="student-results-tbody">
-          <tr><td colspan="7" style="text-align:center; color:#64748b;">Loading student submission records...</td></tr>
-        </tbody>
-      </table>
     </div>
   </div>
 
@@ -382,128 +225,32 @@ try{
         if (window.teacherAuthReady) await window.teacherAuthReady;
         await loadLibraryStateFromCloud();
         await initStudio();
-      } catch (e) {
-        console.warn('Teacher session restore failed:', e);
-      }
+      } catch (e) {}
     })();
 
     function showToast(text) {
       const el = document.getElementById('toast-msg');
+      if(!el) return;
       el.textContent = text; el.style.display = 'block';
       setTimeout(() => { el.style.display = 'none'; }, 2000);
     }
 
-    async function logTeacherActivity(actionType, details) {
-      try {
-        if (!window.db || !window.currentTeacherEmail) return;
-        await window.addDoc(window.collection(window.db, "teacher_activity_logs"), {
-          email: window.currentTeacherEmail,
-          action: actionType,
-          details: details,
-          timestamp: new Date().toISOString()
-        });
-      } catch (e) {}
-    }
-
-    window.handleTeacherForgotPassword = window.handleTeacherLogin;
-
-    function onLoginSuccess(email) {
-      window.currentTeacherEmail = (email || "").trim().toLowerCase();
-      localStorage.setItem("ExamVault_Teacher_Email", window.currentTeacherEmail);
-      document.getElementById("auth-overlay").style.display = "none";
-      document.getElementById("current-user-tag").textContent = window.currentTeacherEmail;
-      window.checkSuperAdminStatus(window.currentTeacherEmail);
-      loadLibraryStateFromCloud().then(() => initStudio());
-    }
-
     async function logoutTeacher() {
       try {
-        if (window.currentTeacherEmail) logTeacherActivity("LOGOUT", "Logged out of Studio");
         if (window.firebaseSignOut && window.auth) await window.firebaseSignOut(window.auth);
-      } catch (e) {
-        console.error("Firebase logout failed:", e);
-      } finally {
-        localStorage.removeItem("ExamVault_Teacher_Email");
-        localStorage.removeItem("ExamVault_Teacher_UID");
-        localStorage.removeItem("ExamVault_Auth_Email");
-        window.currentTeacherEmail = "";
-        window.currentTeacherUid = "";
-        window.location.replace("index.html");
-      }
+      } catch (e) {}
+      localStorage.removeItem("ExamVault_Teacher_Email");
+      localStorage.removeItem("ExamVault_Teacher_UID");
+      window.location.replace("index.html");
     }
 
     const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
     const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
 
-    async function getApprovedLibraryOwners() {
-      const email=teacherEmailKey(), owners=[email];
-      if(!email||!window.db)return owners;
-      try{
-        const snap=await window.getDocs(window.collection(window.db,"library_shares"));
-        snap.forEach(d=>{const x=d.data();if(x.recipientEmail===email&&x.status==="approved"&&x.permission!=="blocked")owners.push(x.ownerEmail);});
-      }catch(e){}
-      return [...new Set(owners.filter(Boolean))];
-    }
-    async function getLibraryAccessData(){
-      const email=teacherEmailKey(),out={incoming:[],outgoing:[],approved:[]};
-      if(!email||!window.db)return out;
-      try{
-        const snap=await window.getDocs(window.collection(window.db,"library_shares"));
-        snap.forEach(d=>{
-          const x={id:d.id,...d.data()};
-          if(x.ownerEmail===email){if(x.status==="pending")out.incoming.push(x);if(x.status==="approved")out.approved.push(x.recipientEmail);}
-          if(x.recipientEmail===email){out.outgoing.push(x);if(x.status==="approved")out.approved.push(x.ownerEmail);}
-        });
-      }catch(e){}
-      return out;
-    }
-    window.openLibraryAccessModal=async function(){document.getElementById("library-access-modal").style.display="flex";await renderLibraryAccess();};
-    window.closeLibraryAccessModal=function(){document.getElementById("library-access-modal").style.display="none";};
-
-    window.sendLibraryShareRequest=async function(){
-      const requester=teacherEmailKey(),owner=document.getElementById("share-teacher-email").value.trim().toLowerCase(),permission=document.getElementById("share-permission").value;
-      if(!requester)return alert("Please login first.");
-      if(!owner||!owner.includes("@"))return alert("Enter the library owner's email.");
-      if(owner===requester)return alert("You cannot request your own library.");
-      try{
-        const id=teacherDocId(owner)+"__"+teacherDocId(requester),ref=window.doc(window.db,"library_shares",id),existing=await window.getDoc(ref);
-        if(existing.exists()&&existing.data().status==="approved")return alert("Access is already approved.");
-        await window.setDoc(ref,{ownerEmail:owner,recipientEmail:requester,permission,status:"pending",requestedAt:new Date().toISOString(),requestedBy:requester});
-        document.getElementById("share-teacher-email").value="";
-        showToast("📨 Request sent to the library owner.");
-        await renderLibraryAccess();
-      }catch(e){alert("Could not send request: "+e.message);}
-    };
-    window.approveLibraryShare=async function(id){
-      try{
-        const ref=window.doc(window.db,"library_shares",id),snap=await window.getDoc(ref);if(!snap.exists())return;
-        const x=snap.data();if(x.ownerEmail!==teacherEmailKey())return alert("Only the library owner can approve this request.");
-        await window.updateDoc(ref,{status:"approved",approvedAt:new Date().toISOString()});
-        showToast("✔ Teacher access approved.");await renderLibraryAccess();
-      }catch(e){alert("Approval failed: "+e.message);}
-    };
-    window.revokeLibraryShare=async function(id){
-      if(!confirm("Revoke/cancel this library access?"))return;
-      try{
-        const ref=window.doc(window.db,"library_shares",id),snap=await window.getDoc(ref);if(!snap.exists())return;
-        const x=snap.data(),me=teacherEmailKey();if(x.ownerEmail!==me&&x.recipientEmail!==me)return alert("You are not allowed to change this access.");
-        await window.deleteDoc(ref);showToast("🔒 Library access removed.");await renderLibraryAccess();
-      }catch(e){alert("Could not change access: "+e.message);}
-    };
-    async function renderLibraryAccess(){
-      const d=await getLibraryAccessData(),incoming=document.getElementById("incoming-library-requests"),outgoing=document.getElementById("outgoing-library-requests"),approved=document.getElementById("approved-library-list");
-      if(!incoming||!outgoing||!approved)return;
-      incoming.innerHTML=d.incoming.length?d.incoming.map(x=>"<div style='background:#060911;border:1px solid #334155;border-radius:8px;padding:9px;margin-bottom:7px;'><strong>"+x.recipientEmail+"</strong> requested access to your library.<div style='font-size:10px;color:#94a3b8;margin-top:3px;'>"+(x.permission==="use"?"Use in papers/tests (read-only)":"View only")+"</div><div style='display:flex;gap:6px;margin-top:7px;'><button class='tool-btn' style='background:#059669;' onclick=\"approveLibraryShare('"+x.id+"')\">✔ Approve</button><button class='tool-btn' style='background:#7f1d1d;' onclick=\"revokeLibraryShare('"+x.id+"')\">✕ Reject</button></div></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No incoming access requests.</div>";
-      const pending=d.outgoing.filter(x=>x.status==="pending");
-      outgoing.innerHTML=pending.length?"<div style='font-size:10px;color:#94a3b8;'>My pending requests:</div>"+pending.map(x=>"<div style='display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #1e293b;font-size:11px;'><span>"+x.ownerEmail+"</span><button class='f-btn' onclick=\"revokeLibraryShare('"+x.id+"')\">Cancel</button></div>").join(""):"";
-      const list=[...new Set(d.approved.filter(x=>x&&x!==teacherEmailKey()))];
-      approved.innerHTML="<h5 style='color:#38bdf8;font-size:11px;'>🔓 Libraries I can access</h5>"+(list.length?list.map(e=>"<div style='padding:7px 8px;background:#060911;border:1px solid #1e293b;border-radius:7px;margin-bottom:5px;font-size:11px;'>"+e+" <span style='color:#10b981;font-weight:800;'>APPROVED</span></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No approved shared libraries yet.</div>");
-    }
-
     let libraryTree = [];
     let folderPdfs = {};
     let cloudVault = [];
-    let cachedStudentResults = [];
+    let currentFolderPath = "";
 
     async function loadLibraryStateFromCloud() {
       try {
@@ -512,24 +259,26 @@ try{
         const snap = await window.getDoc(ref);
         const data = snap.exists() ? snap.data() : {};
         libraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
-
-        if (!libraryTree.length && Array.isArray(data.mainFolders)) {
-          libraryTree = data.mainFolders.map(name => ({
-            id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
-            name: String(name),
-            type: "folder",
-            children: (Array.isArray(data.subFolders?.[name]) ? data.subFolders[name] : []).map(s => ({
-              id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
-              name: String(s), type: "folder", children: []
-            }))
-          }));
-        }
         folderPdfs = (data.folderPdfs && typeof data.folderPdfs === "object") ? {...data.folderPdfs} : {};
-      } catch (e) { console.error("Library registry load failed:", e); }
+      } catch (e) {}
     }
 
-    function getQuestionLibraryPath(q) {
-      return String(q?.subject || q?.libraryPath || q?.targetPath || q?.folderPath || "").trim();
+    async function saveLibraryState() {
+      try {
+        if (!window.db) return false;
+        const email = teacherEmailKey();
+        if (!email) return false;
+        if (window.teacherAuthReady) await window.teacherAuthReady;
+        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(email)), {
+          ownerEmail: email,
+          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
+          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
+          updatedAt: new Date().toISOString()
+        });
+        return true;
+      } catch (e) {
+        return false;
+      }
     }
 
     function makeFolder(name) {
@@ -552,609 +301,126 @@ try{
       return node;
     }
 
-    function getFolderPath(nodeId, nodes=libraryTree, prefix=[]) {
-      for (const n of nodes) {
-        const next = prefix.concat(n.name);
-        if (n.id === nodeId) return next.join(" / ");
-        const found = getFolderPath(nodeId, n.children || [], next);
-        if (found) return found;
-      }
-      return "";
-    }
-
-    function getCurrentNode() {
-      return currentFolderPath ? findFolderByPath(currentFolderPath) : null;
-    }
-
-    function collectAllFolders(nodes=libraryTree, prefix="", out=[]) {
-      nodes.forEach(n => {
-        const p = prefix ? prefix + " / " + n.name : n.name;
-        out.push({node:n,path:p});
-        collectAllFolders(n.children || [], p, out);
-      });
-      return out;
-    }
-
     function getChildrenForPath(path) {
       if (!path) return libraryTree;
       const node = findFolderByPath(path);
       return node && Array.isArray(node.children) ? node.children : [];
     }
 
-    function removeFolderByPath(path, nodes=libraryTree) {
-      const parts = String(path || "").split(" / ").filter(Boolean);
-      if (!parts.length) return false;
-      if (parts.length === 1) {
-        const i = nodes.findIndex(n => n.name === parts[0]);
-        if (i >= 0) { nodes.splice(i,1); return true; }
-        return false;
-      }
-      const parent = findFolderByPath(parts.slice(0,-1).join(" / "));
-      if (!parent || !Array.isArray(parent.children)) return false;
-      const i = parent.children.findIndex(n => n.name === parts[parts.length-1]);
-      if (i >= 0) { parent.children.splice(i,1); return true; }
-      return false;
-    }
-
-    function renameFolderByPath(path, updated) {
-      const node=findFolderByPath(path);
-      if (!node) return false;
-      const parts=path.split(" / ");
-      const siblings=parts.length===1 ? libraryTree : (findFolderByPath(parts.slice(0,-1).join(" / "))?.children || []);
-      if (siblings.some(n => n !== node && n.name.toLowerCase() === updated.toLowerCase())) return false;
-      node.name=updated;
-      return true;
-    }
-
-    async function saveLibraryState() {
-      try {
-        if (!window.db) throw new Error("Firebase database is not ready.");
-        const email=teacherEmailKey();
-        if(!email) throw new Error("Teacher session email is missing.");
-        if(window.teacherAuthReady) await window.teacherAuthReady;
-        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(email)), {
-          ownerEmail: email,
-          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
-          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
-          updatedAt: new Date().toISOString()
-        });
-        return true;
-      } catch (e) {
-        console.error("Library save failed:", e);
-        return false;
-      }
-    }
-
-    window.exportFullDatabaseBackup = async function() {
-      try {
-        showToast("📦 Preparing database backup...");
-        const backupData = {
-          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
-          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
-          questions: Array.isArray(cloudVault) ? cloudVault : [],
-          exportedAt: new Date().toISOString()
-        };
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-        const dlAnchor = document.createElement('a');
-        dlAnchor.setAttribute("href", dataStr);
-        dlAnchor.setAttribute("download", `AtoZ_ExamMocks_Backup_${new Date().toISOString().slice(0,10)}.json`);
-        document.body.appendChild(dlAnchor);
-        dlAnchor.click();
-        dlAnchor.remove();
-        showToast("✔ Backup Downloaded Successfully!");
-        logTeacherActivity("BACKUP_EXPORT", "Exported full database backup JSON");
-      } catch (e) {
-        alert("Failed to export backup!");
-      }
-    };
-    
-    let currentFolderPath = "";
-
-    function switchView(id) {
-      document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
-      const target = document.getElementById(id);
-      if (!target) return;
-      target.classList.add('active');
-      if (id === 'screen-library') renderLibraryBrowser();
-      if (id === 'screen-monitor') loadStudentResults();
-    }
-    window.switchView = switchView;
-
-    function currentContentStats(path) {
-      const qCount=cloudVault.filter(q => getQuestionLibraryPath(q) === path).length;
-      const pdfCount=(folderPdfs[path] || []).length;
-      return {qCount,pdfCount,total:qCount+pdfCount};
-    }
-
+    // रिपीटीशन रोकने वाला फोल्डर क्रिएशन फंक्शन
     window.promptNewFolder = async function() {
       const promptTitle = currentFolderPath 
         ? `Create Subfolder inside "${currentFolderPath}"` 
-        : "Create Library Folder\n\nExample: 11-12th, Physics AP, JEE Main";
+        : "Create Library Folder\n\nExample: 11-12th, Physics, JEE";
       
       const name = (prompt(promptTitle) || "").trim();
       if(!name) return;
 
       if (!currentFolderPath) {
         if(!Array.isArray(libraryTree)) libraryTree=[];
-        if(libraryTree.some(n=>String(n.name||"").trim().toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
+        // चेक करें कि नाम पहले से तो मौजूद नहीं है
+        if(libraryTree.some(n => String(n.name||"").trim().toLowerCase() === name.toLowerCase())) {
+          return alert("Folder with this name already exists!");
+        }
         libraryTree.push(makeFolder(name));
       } else {
         const parent = findFolderByPath(currentFolderPath);
         if(!parent) return;
         parent.children = Array.isArray(parent.children) ? parent.children : [];
-        if(parent.children.some(n=>n.name.toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
+        if(parent.children.some(n => n.name.toLowerCase() === name.toLowerCase())) {
+          return alert("Folder with this name already exists here!");
+        }
         parent.children.push(makeFolder(name));
       }
 
       const saved = await saveLibraryState();
       if(!saved) {
         if (!currentFolderPath) libraryTree.pop();
-        else {
-          const parent = findFolderByPath(currentFolderPath);
-          parent.children.pop();
-        }
-        return alert("Folder could not be saved. Please check your connection.");
+        else findFolderByPath(currentFolderPath).children.pop();
+        return alert("Failed to save folder to cloud.");
       }
 
       renderLibraryBrowser();
-      logTeacherActivity("CREATE_FOLDER", "Created folder: " + (currentFolderPath ? currentFolderPath + " / " + name : name));
-      showToast("✔ Folder Created!");
+      showToast("✔ Folder Created Successfully!");
     };
 
     window.openMainFolder = function(path) {
-      currentFolderPath=path;
+      currentFolderPath = path;
       renderLibraryBrowser();
     };
 
     window.backToFolderCards = function() {
-      currentFolderPath="";
-      renderLibraryBrowser();
-    };
-
-    window.selectLibrarySubFolder = function(path) {
-      currentFolderPath=path;
+      currentFolderPath = "";
       renderLibraryBrowser();
     };
 
     function renderBreadcrumb() {
-      const el=document.getElementById('library-main-title');
-      const parts=currentFolderPath ? currentFolderPath.split(" / ") : [];
+      const el = document.getElementById('library-main-title');
+      const parts = currentFolderPath ? currentFolderPath.split(" / ") : [];
       el.innerHTML = parts.length
-        ? '<span style="color:#94a3b8;cursor:pointer;" onclick="backToFolderCards()">📚 My Library</span> <span style="color:#64748b;">›</span> '+parts.map((p,i)=>{
-            const path=parts.slice(0,i+1).join(" / ");
-            return '<span style="color:'+(i===parts.length-1?'#38bdf8':'#cbd5e1')+';cursor:pointer;" onclick="openMainFolder(\''+path.replace(/'/g,"\\'")+'\')">'+p+'</span>';
+        ? '<span style="color:#94a3b8;cursor:pointer;" onclick="backToFolderCards()">📚 My Library</span> <span style="color:#64748b;">›</span> ' + parts.map((p,i)=>{
+            const path = parts.slice(0,i+1).join(" / ");
+            return '<span style="color:' + (i === parts.length-1 ? '#38bdf8' : '#cbd5e1') + ';cursor:pointer;" onclick="openMainFolder(\'' + path.replace(/'/g,"\\'") + '\')">' + p + '</span>';
           }).join(' <span style="color:#64748b;">›</span> ')
         : '📚 My Library';
     }
 
     function renderLibraryBrowser() {
-      const cards=document.getElementById('folder-cards-container');
-      const rootView=document.getElementById('folder-cards-view');
-      const filesView=document.getElementById('folder-files-view');
-      if(!cards)return;
+      const cards = document.getElementById('folder-cards-container');
+      if(!cards) return;
 
       renderBreadcrumb();
-      const children=getChildrenForPath(currentFolderPath);
-      const current=getCurrentNode();
-
-      rootView.style.display='flex';
-      filesView.style.display='none';
-
-      cards.innerHTML='';
-      const header=document.createElement('div');
-      header.style='grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;';
-      header.innerHTML='<div><div style="font-size:12px;color:#94a3b8;">'+(currentFolderPath?'Folder contents':'Top-level folders')+'</div><div style="font-size:18px;font-weight:900;color:#f8fafc;">'+(current?('📁 '+current.name):'📚 My Library')+'</div></div><div style="display:flex;gap:7px;"><button class="tool-btn" onclick="backToFolderCards()" '+(currentFolderPath?'':'disabled')+'>← My Library</button><button class="tool-btn" style="background:#2563eb;" onclick="promptNewFolder()">＋ Create Folder</button></div>';
-      cards.appendChild(header);
+      const children = getChildrenForPath(currentFolderPath);
+      cards.innerHTML = '';
 
       if(currentFolderPath){
-        const backParts=currentFolderPath.split(" / ");
-        if(backParts.length>1){
-          const backPath=backParts.slice(0,-1).join(" / ");
-          const b=document.createElement('button'); b.className='tool-btn'; b.style='grid-column:1/-1;text-align:left;';
-          b.textContent='⬅ Back to '+backParts[backParts.length-2]; b.onclick=()=>openMainFolder(backPath); cards.appendChild(b);
+        const backParts = currentFolderPath.split(" / ");
+        if(backParts.length > 1){
+          const backPath = backParts.slice(0,-1).join(" / ");
+          const b = document.createElement('button'); 
+          b.className = 'tool-btn'; 
+          b.style = 'margin-bottom:8px; width:fit-content;';
+          b.textContent = '⬅ Back to ' + backParts[backParts.length-2]; 
+          b.onclick = () => openMainFolder(backPath); 
+          cards.appendChild(b);
+        } else {
+          const b = document.createElement('button'); 
+          b.className = 'tool-btn'; 
+          b.style = 'margin-bottom:8px; width:fit-content;';
+          b.textContent = '⬅ Back to My Library'; 
+          b.onclick = () => backToFolderCards(); 
+          cards.appendChild(b);
         }
       }
 
       if(children.length){
-        children.forEach(node=>{
-          const path=currentFolderPath ? currentFolderPath+' / '+node.name : node.name;
-          const stats=currentContentStats(path);
-          const card=document.createElement('div'); card.className='folder-card'; card.onclick=()=>openMainFolder(path);
-          card.innerHTML='<div style="font-size:44px;">📁</div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" style="background:#0f766e;" onclick="openFolderActions(\''+path.replace(/'/g,"\\'")+'\',event)">⚙️ Folder Options</button><button class="tool-btn" onclick="deleteLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
+        children.forEach(node => {
+          const path = currentFolderPath ? currentFolderPath + ' / ' + node.name : node.name;
+          const card = document.createElement('div'); 
+          card.className = 'folder-card'; 
+          card.onclick = () => openMainFolder(path);
+          card.innerHTML = '<div style="font-size:32px;">📁</div><h3 style="color:#f8fafc;font-size:15px;">' + escapeHtml(node.name) + '</h3><p style="font-size:11px;color:#94a3b8;">Subfolders: ' + (node.children||[]).length + '</p>';
           cards.appendChild(card);
         });
-      }
-
-      const stats=currentContentStats(currentFolderPath);
-      if(currentFolderPath && !children.length && stats.total>0){
-        const content=document.createElement('div'); content.style='grid-column:1/-1;background:#0b1120;border:1px solid #334155;border-radius:14px;padding:16px;margin-top:4px;';
-        content.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div><h3 style="color:#38bdf8;font-size:15px;">📦 Folder Contents</h3><p style="font-size:11px;color:#94a3b8;">Questions, images and PDF links stored directly in this folder.</p></div><button class="tool-btn" style="background:#0284c7;" onclick="addNewPdfRowForCurrent()">＋ Add PDF Link</button></div><div id="hier-pdf-container"></div><div id="hier-q-container" style="margin-top:14px;"></div>';
-        cards.appendChild(content);
-        renderHierarchicalContents(currentFolderPath);
-      } else if(currentFolderPath && !children.length){
-        const empty=document.createElement('div'); empty.style='grid-column:1/-1;padding:35px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:14px;';
-        empty.innerHTML='📂 This folder is empty.<br><span style="font-size:12px;">Create a subfolder or add PDF/Questions here.</span>';
-        cards.appendChild(empty);
-      } else if(!children.length && !currentFolderPath){
-        const empty=document.createElement('div'); empty.style='grid-column:1/-1;padding:35px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:14px;';
-        empty.innerHTML='📚 Your Library is Empty<br><span style="font-size:12px;">Create your first Folder.</span>';
+      } else {
+        const empty = document.createElement('div'); 
+        empty.style = 'padding:30px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:10px;grid-column:1/-1;';
+        empty.innerHTML = '📂 This folder is empty.<br><span style="font-size:11px;">Click "Create Folder" above to add subfolders.</span>';
         cards.appendChild(empty);
       }
     }
 
-    function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-
-    window.openFolderActions = function(path, event) {
-      if(event) event.stopPropagation();
-      const node=findFolderByPath(path);
-      if(!node) return;
-      const modalId="folder-actions-modal";
-      let m=document.getElementById(modalId);
-      if(!m){
-        m=document.createElement("div");
-        m.id=modalId;
-        m.style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:98000;padding:16px;";
-        m.innerHTML="<div id='folder-actions-box' style='background:#0b1120;border:2px solid #38bdf8;border-radius:16px;width:min(520px,100%);padding:20px;'></div>";
-        document.body.appendChild(m);
-      }
-      const box=document.getElementById("folder-actions-box");
-      box.innerHTML=
-        "<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;'><div><h3 style='color:#38bdf8;'>📁 "+escapeHtml(node.name)+"</h3><div style='font-size:10px;color:#64748b;margin-top:4px;'>"+escapeHtml(path)+"</div></div><button class='tool-btn' onclick=\"document.getElementById('folder-actions-modal').remove()\">✕</button></div>"+
-        "<div style='display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:18px;'>"+
-        "<button class='tool-btn' style='padding:13px;background:#2563eb;' onclick=\"shareLibraryFolder('"+path.replace(/'/g,"\\'")+"')\">🔐 Give Folder Access</button>"+
-        "<button class='tool-btn' style='padding:13px;background:#059669;' onclick=\"toggleCentralFolder('"+path.replace(/'/g,"\\'")+"')\">🌐 Central Library</button>"+
-        "<button class='tool-btn' style='padding:13px;background:#7c3aed;' onclick=\"moveLibraryFolder('"+path.replace(/'/g,"\\'")+"')\">📦 Move to Folder</button>"+
-        "<button class='tool-btn' style='padding:13px;background:#475569;' onclick=\"renameLibraryFolder('"+path.replace(/'/g,"\\'")+"',event);document.getElementById('folder-actions-modal').remove()\">✏️ Rename</button>"+
-        "</div><p style='font-size:11px;color:#94a3b8;margin-top:14px;line-height:1.5;'>Folder access shares this folder and everything inside it. Central Library publishes this folder for shared use.</p>";
-    };
-
-    window.shareLibraryFolder=async function(path){
-      const email=(prompt("Teacher email to give access to this folder:\n\nFolder: "+path)||"").trim().toLowerCase();
-      if(!email||!email.includes("@"))return;
-      const me=teacherEmailKey();
-      if(email===me)return alert("You already own this folder.");
-      const permission=prompt("Access type:\n1 = View only\n2 = Use in tests/papers","1");
-      const perm=permission==="2"?"use":"view";
-      try{
-        const id=teacherDocId(me)+"__"+teacherDocId(email)+"__"+btoa(unescape(encodeURIComponent(path))).replace(/[^a-zA-Z0-9]/g,"").slice(0,80);
-        await window.setDoc(window.doc(window.db,"library_folder_shares",id),{
-          ownerEmail:me,recipientEmail:email,folderPath:path,permission:perm,status:"approved",sharedAt:new Date().toISOString()
-        });
-        showToast("🔐 Folder access granted.");
-        document.getElementById("folder-actions-modal")?.remove();
-      }catch(e){alert("Could not share folder: "+e.message);}
-    };
-
-    window.toggleCentralFolder=async function(path){
-      const node=findFolderByPath(path);if(!node)return;
-      const next=!node.centralPublished;
-      if(next&&!confirm("Publish this folder and everything inside it to Central Library?"))return;
-      node.centralPublished=next;
-      try{
-        await window.setDoc(window.doc(window.db,"central_library_folders",teacherDocId(teacherEmailKey())+"__"+btoa(unescape(encodeURIComponent(path))).replace(/[^a-zA-Z0-9]/g,"").slice(0,80)),{
-          ownerEmail:teacherEmailKey(),folderPath:path,folderName:node.name,centralPublished:next,updatedAt:new Date().toISOString()
-        });
-        await saveLibraryState();
-        showToast(next?"🌐 Folder published to Central Library.":"🔒 Folder removed from Central Library.");
-        document.getElementById("folder-actions-modal")?.remove();
-        renderLibraryBrowser();
-      }catch(e){alert("Central Library update failed: "+e.message);}
-    };
-
-    window.moveLibraryFolder=async function(path){
-      const node=findFolderByPath(path);if(!node)return;
-      const all=collectAllFolders().map(x=>x.path).filter(p=>p!==path&&!p.startsWith(path+" / "));
-      if(!all.length)return alert("There is no other folder available as a destination.");
-      const target=(prompt("Move this folder inside which folder?\n\nAvailable destinations:\n"+all.join("\n"))||"").trim();
-      if(!target||!findFolderByPath(target))return;
-      const parts=path.split(" / "), oldParentPath=parts.slice(0,-1).join(" / ");
-      const siblings=oldParentPath?(findFolderByPath(oldParentPath)?.children||[]):libraryTree;
-      const pos=siblings.findIndex(n=>n.id===node.id);if(pos<0)return;
-      siblings.splice(pos,1);
-      const dest=findFolderByPath(target);dest.children=Array.isArray(dest.children)?dest.children:[];dest.children.push(node);
-      await saveLibraryState();
-      currentFolderPath=target+" / "+node.name;
-      renderLibraryBrowser();
-      showToast("📦 Folder moved successfully.");
-    };
-
-    window.renameLibraryFolder=async function(path,event){
-      if(event)event.stopPropagation();
-      const node=findFolderByPath(path); if(!node)return;
-      const updated=(prompt('Rename folder:',node.name)||'').trim(); if(!updated||updated===node.name)return;
-      if(!renameFolderByPath(path,updated))return alert("A folder with that name already exists here.");
-      const oldPrefix=path, parts=path.split(" / "), parent=parts.slice(0,-1).join(" / "), newPath=parent?(parent+" / "+updated):updated;
-      const updates=[];
-      Object.keys(folderPdfs).forEach(k=>{if(k===oldPrefix||k.startsWith(oldPrefix+" / ")){const nk=newPath+k.slice(oldPrefix.length);folderPdfs[nk]=folderPdfs[k];delete folderPdfs[k];}});
-      cloudVault.forEach(q=>{const p=getQuestionLibraryPath(q);if(p===oldPrefix||p.startsWith(oldPrefix+" / ")){const np=newPath+p.slice(oldPrefix.length);updates.push(window.updateDoc(window.doc(window.db,"questions",q.id),{subject:np}));q.subject=np;}});
-      await Promise.all(updates); await saveLibraryState(); currentFolderPath=newPath; renderLibraryBrowser(); showToast("✔ Folder Renamed!");
-    };
-
-    window.deleteLibraryFolder=async function(path,event){
-      if(event)event.stopPropagation();
-      if(!confirm('⚠️ Permanently delete "'+path+'" and everything inside it?'))return;
-      const updates=[]; const qRef=window.collection(window.db,"questions"); const snap=await window.getDocs(qRef);
-      snap.forEach(d=>{const p=getQuestionLibraryPath(d.data());if(p===path||p.startsWith(path+" / "))updates.push(window.deleteDoc(window.doc(window.db,"questions",d.id)));});
-      Object.keys(folderPdfs).forEach(k=>{if(k===path||k.startsWith(path+" / "))delete folderPdfs[k];});
-      removeFolderByPath(path); await Promise.all(updates); await saveLibraryState();
-      const parts=path.split(" / "); currentFolderPath=parts.slice(0,-1).join(" / ");
-      renderLibraryBrowser(); showToast("🗑️ Folder and its contents deleted.");
-    };
-
-    function renderHierarchicalContents(path){
-      const pdfBox=document.getElementById('hier-pdf-container'),qBox=document.getElementById('hier-q-container');
-      if(!pdfBox||!qBox)return;
-      const pdfs=folderPdfs[path]||[];
-      pdfBox.innerHTML=pdfs.length?'<div style="display:flex;flex-direction:column;gap:7px;">'+pdfs.map((item,i)=>'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#060911;border:1px solid #1e293b;border-radius:8px;padding:9px;"><span style="font-size:20px;">📄</span><input class="pdf-input" style="max-width:240px;" value="'+escapeHtml(item.title||'New PDF')+'" onchange="updatePdfItemHier(\''+path.replace(/'/g,"\\'")+'\','+i+',\'title\',this.value)"><input class="pdf-input" style="flex:1;min-width:220px;" value="'+escapeHtml(item.url||'')+'" placeholder="PDF URL" onchange="updatePdfItemHier(\''+path.replace(/'/g,"\\'")+'\','+i+',\'url\',this.value)"><button class="tool-btn" onclick="openPdfUrl(\''+String(item.url||'').replace(/'/g,"\\'")+'\')">🔗 Open</button></div>').join(''):'<div style="font-size:11px;color:#64748b;">No PDF links in this folder.</div>';
-      const matched=cloudVault.filter(q=>getQuestionLibraryPath(q)===path);
-      qBox.innerHTML='<div style="font-size:13px;font-weight:800;color:#38bdf8;margin-bottom:8px;">📝 Questions ('+matched.length+')</div>';
-      if(!matched.length){qBox.innerHTML+='<div style="font-size:11px;color:#64748b;">No questions in this folder.</div>';return;}
-      qBox.innerHTML+= '<div class="lib-question-grid">'+matched.map((q,idx)=>'<div class="lib-q-card" data-qid="'+q.id+'">'+(q.qText?'<div style="font-size:12px;color:#f8fafc;">'+escapeHtml(q.qText)+'</div>':'')+(q.question?'<div class="lib-q-img" onclick="openQuestionPopup(\''+q.id+'\')"><img src="'+q.question+'" alt="Question image"></div>':'')+'<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#94a3b8;"><span>Q'+(idx+1)+'</span><div><button class="tool-btn" onclick="openQuestionPopup(\''+q.id+'\')">View</button></div></div></div>').join('')+'</div>';
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
-
-    window.addNewPdfRowForCurrent=async function(){if(!currentFolderPath)return;const p=currentFolderPath;if(!folderPdfs[p])folderPdfs[p]=[];folderPdfs[p].push({title:"New PDF",url:"",isPublic:false});await saveLibraryState();renderLibraryBrowser();};
-    window.updatePdfItemHier=async function(path,idx,field,val){if(folderPdfs[path]?.[idx]){folderPdfs[path][idx][field]=String(val||'').trim();await saveLibraryState();}};
-    window.openPdfUrl=function(url){if(url)window.open(url,'_blank','noopener,noreferrer');else alert('Add a PDF URL first.');};
-
-    window.renderFolderCards=renderLibraryBrowser;
-    window.renderLibraryTopRow=function(){};
-    window.renderLibrarySubSidebar=function(){renderLibraryBrowser();};
-    window.renderPdfTable=function(){};
-    window.renderSubfolderTopicWiseQuestions=function(){renderLibraryBrowser();};
-    window.switchLibTab=function(tab){
-      const pdfs=document.getElementById("lib-tab-content-pdfs");
-      const qs=document.getElementById("lib-tab-content-qs");
-      const bP=document.getElementById("tab-btn-pdfs");
-      const bQ=document.getElementById("tab-btn-qs");
-      if(!pdfs||!qs)return;
-      const isQ=String(tab||"").toLowerCase()==="questions";
-      pdfs.style.display=isQ?"none":"flex";
-      qs.style.display=isQ?"flex":"none";
-      if(bP)bP.classList.toggle("active",!isQ);
-      if(bQ)bQ.classList.toggle("active",isQ);
-    };
-
-    window.renameMainFolder=window.renameLibraryFolder;
-    window.deleteMainFolder=window.deleteLibraryFolder;
-    window.renameSubFolder=window.renameLibraryFolder;
-    window.deleteSubFolder=window.deleteLibraryFolder;
-    window.moveMainFolderPrompt=window.renameLibraryFolder;
 
     async function initStudio() {
-      renderFolderCards();
+      renderLibraryBrowser();
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
-        const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const allowedOwners = await getApprovedLibraryOwners();
-        const me = teacherEmailKey();
-        const currentPaths = new Set(collectAllFolders().map(x => x.path));
-        cloudVault = rawQuestions.filter(q => {
-          const owner = String(q.ownerEmail || q.creatorEmail || q.createdBy || "").trim().toLowerCase();
-          const path = getQuestionLibraryPath(q);
-          if (owner === me) return true;
-          if (path && currentPaths.has(path) && !owner) return true;
-          if (owner && allowedOwners.includes(owner)) return true;
-          return false;
-        });
-        renderLibraryBrowser();
-      } catch (e) {
-        console.error("Library questions load failed:", e);
-        renderFolderCards();
-      }
+        cloudVault = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {}
     }
-
-    async function loadStudentResults() {
-      const tbody = document.getElementById('student-results-tbody');
-      const testDropdown = document.getElementById('filter-test-dropdown');
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b;">Fetching records...</td></tr>`;
-      
-      try {
-        if (!window.db) return;
-        const snap = await window.getDocs(window.collection(window.db, "student_results"));
-        cachedStudentResults = [];
-        const uniqueTests = new Set();
-
-        snap.forEach(d => {
-          const res = { id: d.id, ...d.data() };
-          cachedStudentResults.push(res);
-          if (res.testTitle) uniqueTests.add(res.testTitle);
-        });
-
-        testDropdown.innerHTML = `<option value="ALL">🔍 All Tests (Show All)</option>`;
-        uniqueTests.forEach(testTitle => {
-          testDropdown.innerHTML += `<option value="${testTitle}">${testTitle}</option>`;
-        });
-
-        renderStudentResultsTable(cachedStudentResults);
-      } catch (e) { 
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ef4444;">Failed to load data.</td></tr>`; 
-      }
-    }
-
-    window.filterStudentResults = function() {
-      const selectedTest = document.getElementById('filter-test-dropdown').value;
-      if (selectedTest === 'ALL') {
-        renderStudentResultsTable(cachedStudentResults);
-      } else {
-        const filtered = cachedStudentResults.filter(r => r.testTitle === selectedTest);
-        renderStudentResultsTable(filtered);
-      }
-    };
-
-    window.openSelectedTestAnalytics = async function() {
-      const selectedTitle = document.getElementById('filter-test-dropdown').value;
-      if (selectedTitle === 'ALL') return alert('Please select a specific test first to view analytics.');
-      const results = cachedStudentResults.filter(r => r.testTitle === selectedTitle);
-      if (!results.length) return alert('No attempts found for this test.');
-      await showTestAnalytics(results, selectedTitle);
-    };
-
-    async function showTestAnalytics(results, title) {
-      const modal = document.getElementById('analytics-modal');
-      const body = document.getElementById('analytics-body');
-      document.getElementById('analytics-title').textContent = '📊 ' + (title || 'Test') + ' Analytics';
-      document.getElementById('analytics-subtitle').textContent = results.length + ' recorded submission(s)';
-      modal.style.display = 'flex';
-      body.innerHTML = '<p style="color:#94a3b8;text-align:center;padding:30px;">Calculating analytics...</p>';
-
-      const scores = results.map(r => Number(r.score || 0));
-      const avg = scores.reduce((a,b)=>a+b,0) / Math.max(scores.length,1);
-      const highest = Math.max(...scores);
-      const lowest = Math.min(...scores);
-      const ranked = results.slice().sort((a,b) => {
-        const diff = Number(b.score||0)-Number(a.score||0);
-        if (diff !== 0) return diff;
-        const ta = Number.isFinite(Number(a.timeTaken)) ? Number(a.timeTaken) : Number.MAX_SAFE_INTEGER;
-        const tb = Number.isFinite(Number(b.timeTaken)) ? Number(b.timeTaken) : Number.MAX_SAFE_INTEGER;
-        return ta-tb;
-      });
-      const top10 = ranked.slice(0,10);
-      const dist = { '0-24':0, '25-49':0, '50-74':0, '75-100':0 };
-      results.forEach(r => {
-        const total=Number(r.totalMarks||100), pct=total ? (Number(r.score||0)/total)*100 : 0;
-        if(pct<25) dist['0-24']++; else if(pct<50) dist['25-49']++; else if(pct<75) dist['50-74']++; else dist['75-100']++;
-      });
-
-      let questionHtml = '<p style="color:#64748b;font-size:12px;">Question-wise performance is available for attempts that contain saved answer responses.</p>';
-      const testId = results[0].testId;
-      try {
-        const snap = await window.getDoc(window.doc(window.db,'published_tests',testId));
-        if (snap.exists()) {
-          const td=snap.data();
-          let qs=td.questions||[];
-          if(!qs.length && Array.isArray(td.questionIds) && td.questionIds.length){
-            const qSnap=await window.getDocs(window.collection(window.db,'questions')); const qMap={};
-            qSnap.forEach(d=>qMap[d.id]=d.data()); qs=td.questionIds.map(id=>qMap[id]).filter(Boolean);
-          }
-          const responseRows=results.filter(r=>r.userResponses && typeof r.userResponses==='object');
-          if(qs.length && responseRows.length){
-            const rows=qs.map((q,i)=>{
-              let correct=0, attempted=0;
-              responseRows.forEach(r=>{ const ans=r.userResponses[i]; if(ans){attempted++; if(ans===(q.key||'A').trim().toUpperCase()) correct++;} });
-              return {i:i+1,correct,attempted,rate:attempted?Math.round(correct/attempted*100):0};
-            });
-            questionHtml='<div style="overflow:auto;"><table class="app-table"><thead><tr><th>Q</th><th>Attempts</th><th>Correct</th><th>Accuracy</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>Q'+x.i+'</td><td>'+x.attempted+'</td><td>'+x.correct+'</td><td><strong style="color:#38bdf8;">'+x.rate+'%</strong></td></tr>').join('')+'</tbody></table></div>';
-          }
-        }
-      } catch(e) {}
-
-      const topHtml=top10.map((r,i)=>{
-        const name=(r.studentName||'Student').trim()||'Student';
-        const shown=name.length>24?name.slice(0,21)+'...':name;
-        return '<tr><td>#'+(i+1)+'</td><td>'+shown+'</td><td>'+Number(r.score||0)+' / '+Number(r.totalMarks||100)+'</td><td>'+(Number(r.percentage||0)||Math.round((Number(r.score||0)/Number(r.totalMarks||100))*100))+'%</td></tr>';
-      }).join('');
-
-      body.innerHTML='<div class="analytics-grid">'+
-        '<div class="analytics-stat"><small>PARTICIPANTS</small><strong>'+results.length+'</strong></div>'+
-        '<div class="analytics-stat"><small>AVERAGE SCORE</small><strong>'+avg.toFixed(1)+'</strong></div>'+
-        '<div class="analytics-stat"><small>HIGHEST SCORE</small><strong>'+highest+'</strong></div>'+
-        '<div class="analytics-stat"><small>LOWEST SCORE</small><strong>'+lowest+'</strong></div>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">'+
-        '<div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:14px;"><h4 style="color:#38bdf8;font-size:13px;margin-bottom:10px;">🏆 Top 10 Attempts</h4><div style="overflow:auto;"><table class="app-table"><thead><tr><th>Rank</th><th>Student</th><th>Score</th><th>%</th></tr></thead><tbody>'+topHtml+'</tbody></table></div></div>'+
-        '<div style="background:#0f172a;border:1px solid #334155;border-radius:10px;padding:14px;"><h4 style="color:#38bdf8;font-size:13px;margin-bottom:10px;">📈 Score Distribution</h4><div style="display:flex;flex-direction:column;gap:9px;">'+Object.entries(dist).map(([k,v])=>'<div style="display:flex;justify-content:space-between;background:#060911;border:1px solid #1e293b;border-radius:7px;padding:9px 10px;"><span style="color:#cbd5e1;">'+k+'%</span><strong>'+v+'</strong></div>').join('')+'</div></div>'+
-      '</div>'+
-      '<div style="margin-top:16px;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:14px;"><h4 style="color:#38bdf8;font-size:13px;margin-bottom:10px;">🎯 Question-wise Performance</h4>'+questionHtml+'</div>';
-    }
-
-    window.openStudentPerformanceAsTeacher = function(studentEmail) {
-      localStorage.setItem('ExamVault_Student_Email', studentEmail);
-      window.open('student_performance.html', '_blank');
-    };
-
-    function renderStudentResultsTable(resultsList) {
-      const tbody = document.getElementById('student-results-tbody');
-      tbody.innerHTML = '';
-      
-      if (resultsList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#64748b;">No student submissions found matching this filter.</td></tr>`;
-        return;
-      }
-
-      resultsList.forEach(res => {
-        const total = res.totalMarks || 100;
-        const percentage = Math.round((res.score / total) * 100);
-        const email = res.studentEmail || 'student@gmail.com';
-
-        tbody.innerHTML += `
-          <tr>
-            <td><strong>${email}</strong></td>
-            <td><span style="color:#38bdf8; font-weight:700;">${res.testTitle || 'Mock Test'}</span></td>
-            <td><span style="color:#cbd5e1; font-weight:600;">${res.referrer || 'Direct'}</span></td>
-            <td><span style="color:#10b981; font-weight:800;">${res.score} / ${total}</span></td>
-            <td>${percentage}%</td>
-            <td>${new Date(res.submittedAt || Date.now()).toLocaleDateString()}</td>
-            <td style="text-align:center; display:flex; gap:6px; justify-content:center;">
-              <button class="tool-btn" style="background:#2563eb; padding:4px 8px; font-size:11px;" onclick="openStudentPerformanceAsTeacher('${email}')">📊 View Performance</button>
-              <button class="tool-btn" style="background:#059669; padding:4px 8px; font-size:11px;" onclick="prompt('Student Contact Info / Phone:', '${res.studentPhone || res.studentEmail}')">📞 Connect</button>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
-    (function(){
-      function me(){return teacherEmailKey();}
-      function esc(s){return String(s||"").replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m];});}
-      
-      window.toggleQuestionCentralPublish=async function(qId){
-        const q=cloudVault.find(function(x){return x.id===qId;});
-        if(!q||String(q.ownerEmail||"").toLowerCase()!==me())return alert("Only the question owner can change Central visibility.");
-        const next=!q.centralPublished;
-        await window.updateDoc(window.doc(window.db,"questions",qId),{centralPublished:next,centralPublishedAt:next?new Date().toISOString():""});
-        q.centralPublished=next;showToast(next?"🌐 Published to Central Library":"🔒 Removed from Central Library");
-        if(typeof window.renderSubfolderTopicWiseQuestions==="function")window.renderSubfolderTopicWiseQuestions();
-      };
-
-      async function myGroups(){
-        if(!window.db||!me())return [];
-        const snap=await window.getDocs(window.collection(window.db,"teacher_groups")),arr=[];
-        snap.forEach(function(d){const x=Object.assign({id:d.id},d.data());const m=Array.isArray(x.memberEmails)?x.memberEmails:[];if(x.ownerEmail===me()||m.includes(me()))arr.push(x);});
-        return arr;
-      }
-
-      window.createTeacherGroup=async function(){
-        const name=prompt("Group / Institute name:");if(!name||!name.trim())return;
-        const id=teacherDocId(me())+"__"+Date.now();
-        await window.setDoc(window.doc(window.db,"teacher_groups",id),{name:name.trim(),ownerEmail:me(),memberEmails:[me()],pendingEmails:[],createdAt:new Date().toISOString()});
-        showToast("👥 Group created.");openGroupManager();
-      };
-
-      window.openGroupManager=async function(){
-        let modal=document.getElementById("teacher-group-modal");
-        if(!modal){modal=document.createElement("div");modal.id="teacher-group-modal";modal.style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:97000;padding:16px;";modal.innerHTML="<div id='teacher-group-box' style='background:#0b1120;border:2px solid #a78bfa;border-radius:16px;width:min(900px,100%);max-height:90vh;overflow:auto;padding:20px;'></div>";document.body.appendChild(modal);}
-        const box=document.getElementById("teacher-group-box"),gs=await myGroups();
-        box.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;'><div><h3 style='color:#c4b5fd;'>👥 Teacher Groups / Institute Teams</h3><p style='color:#94a3b8;font-size:11px;'>Private collaboration, question sharing and group chat.</p></div><div><button class='tool-btn' style='background:#7c3aed;' onclick='createTeacherGroup()'>＋ New Group</button><button class='tool-btn' style='background:#7f1d1d;margin-left:6px;' onclick=\"document.getElementById('teacher-group-modal').remove()\">✕</button></div></div>";
-        if(!gs.length){box.innerHTML+="<p style='color:#64748b;margin-top:20px;'>No groups yet.</p>";return;}
-      };
-
-      window.openCentralLibrary = async function(){
-        const all = cloudVault.filter(function(q){ return q.centralPublished; }); 
-        let m = document.getElementById("central-library-modal");
-        if(!m){
-          m = document.createElement("div");
-          m.id = "central-library-modal";
-          m.style = "position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:96000;padding:16px;";
-          m.innerHTML = "<div id='central-library-box' style='background:#0b1120;border:2px solid #10b981;border-radius:16px;width:min(900px,100%);max-height:90vh;overflow:auto;padding:20px;'></div>";
-          document.body.appendChild(m);
-        }
-        const box = document.getElementById("central-library-box");
-        box.innerHTML = "<div style='display:flex;justify-content:space-between;align-items:center;'><h3 style='color:#34d399;'>🌐 Central Library</h3><button class='tool-btn' style='background:#7f1d1d;' onclick=\"document.getElementById('central-library-modal').remove()\">✕</button></div><p style='color:#94a3b8;font-size:11px;'>Only questions explicitly published by their owners appear here.</p>";
-        box.innerHTML += all.length ? all.map(function(q){ return "<div style='padding:8px;border:1px solid #334155;border-radius:8px;margin:6px 0;font-size:11px;'><strong>"+esc(q.subject||"")+"</strong> · "+esc(q.topic||"General")+" · Owner: "+esc(q.ownerEmail||"")+"</div>"; }).join("") : "<p style='color:#64748b;'>Central Library is empty.</p>";
-      };
-
-      const nav = document.querySelector(".nav-tabs");
-      if(nav) {
-        if(!document.getElementById("central-lib-nav-btn")){
-          const b = document.createElement("button");
-          b.id = "central-lib-nav-btn";
-          b.className = "nav-btn";
-          b.textContent = "🌐 Central";
-          b.onclick = openCentralLibrary;
-          nav.insertBefore(b, nav.querySelector(".user-pill"));
-        }
-      }
-    })();
   </script>
 </body>
 </html>
