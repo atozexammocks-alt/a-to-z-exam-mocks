@@ -572,7 +572,6 @@ try{
     // when the user reaches the selected folder's contents level.
     let libraryTree = [];
     let folderPdfs = {};
-    let cachedStudentResults = [];
     let cloudVault = [];
     let cachedStudentResults = [];
 
@@ -904,7 +903,7 @@ try{
         const rawQuestions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         const allowedOwners = await getApprovedLibraryOwners();
         const me = teacherEmailKey();
-        const currentPaths = new Set(mainFolders.flatMap(m => (subFolders[m] || []).map(s => m + " / " + s)));
+        const currentPaths = new Set(collectAllFolders().map(x => x.path));
         cloudVault = rawQuestions.filter(q => {
           const owner = String(q.ownerEmail || q.creatorEmail || q.createdBy || "").trim().toLowerCase();
           const path = getQuestionLibraryPath(q);
@@ -916,8 +915,7 @@ try{
           if (owner && allowedOwners.includes(owner)) return true;
           return false;
         });
-        renderFolderCards();
-        if (currentMainFolder) renderLibrarySubSidebar();
+        renderLibraryBrowser();
       } catch (e) {
         console.error("Library questions load failed:", e);
         renderFolderCards();
