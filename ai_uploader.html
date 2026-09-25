@@ -133,11 +133,22 @@ async function pdfPageToBase64(nativePdfDoc,pageNumber){
   for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
   return btoa(binary);
 }
+async function getPdfPageText(p){
+  try{
+    const tc=await p.getTextContent();
+    return (tc.items||[]).map(x=>x.str||'').join(' ').replace(/\\s+/g,' ').trim();
+  }catch(e){
+    console.warn('[PDF text extraction]',e);
+    return '';
+  }
+}
 async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   const p=await pdf.getPage(n);
   const imageDataUrl=await renderPageImage(p);
   pageImages[n]=imageDataUrl;
+  const pageText=await getPdfPageText(p);
   let got=[];
+  // Route 1: send ONE COMPLETE native PDF page to Gemini.
   try{
     const pdfBase64=await pdfPageToBase64(nativePdfDoc,n);
     got=await extractWithBackend({
@@ -149,19 +160,34 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   }catch(nativeErr){
     console.warn('[AI native PDF extraction failed]',n,nativeErr);
   }
-  // Safety fallback: if native PDF extraction fails completely, use the old full-page image route.
-  // This fallback does NOT split the page; it still sends one complete page.
+  // Route 2: send the SAME COMPLETE page as image + native PDF text.
+  // This is important for scanned/dense exam pages: Gemini can use the image for layout
+  // and the extracted PDF text as a second source for exact characters/equations.
   if(!got.length){
     try{
       const aiImage=await compressForAI(imageDataUrl,2800000);
       got=await extractWithBackend({
         mode:'extract',
-        pageText:'',
+        pageText,
         imageDataUrl:aiImage,
         folders:folders.join(', ')
       });
     }catch(imageErr){
-      console.warn('[AI full-page image fallback failed]',n,imageErr);
+      console.warn('[AI image+text fallback failed]',n,imageErr);
+    }
+  }
+  // Route 3: dedicated full-page scanner prompt. Still ONE COMPLETE PAGE, never a half-page crop.
+  if(!got.length){
+    try{
+      const aiImage=await compressForAI(imageDataUrl,2800000);
+      got=await extractWithBackend({
+        mode:'scan_questions',
+        pageText,
+        imageDataUrl:aiImage,
+        folders:folders.join(', ')
+      });
+    }catch(scanErr){
+      console.warn('[AI scan_questions fallback failed]',n,scanErr);
     }
   }
   const pageItems=[];
@@ -246,8 +272,9 @@ async function extractWithBackend(body){
         if(attempt<maxAttempts-1)await new Promise(x=>setTimeout(x,250));
         continue;
       }
-      if(!Array.isArray(d.items))throw new Error('AI returned an unexpected response format.');
-      if(d.items.length)return d.items;
+      const returnedItems=Array.isArray(d.items)?d.items:(Array.isArray(d.questions)?d.questions:null);
+      if(!returnedItems)throw new Error('AI returned an unexpected response format.');
+      if(returnedItems.length)return returnedItems;
       // IMPORTANT: an empty answer is NOT treated as success here.
       // Try the next configured model because one model may fail to read a dense exam page.
       last=label+' returned 0 questions.';
