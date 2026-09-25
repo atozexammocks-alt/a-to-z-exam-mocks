@@ -279,8 +279,8 @@ try{
     </div>
     <div class="nav-tabs">
       <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
-      <button class="nav-btn" onclick="openLibraryAccessModal()">🤝 Library Access</button>
-      <button class="nav-btn" onclick="switchView('screen-dashboard')">🏠 Dashboard</button>
+      <a class="nav-btn" href="library_access.html">🤝 Library Access</a>
+      <a class="nav-btn" href="dashboard.html">🏠 Dashboard</a>
       <span class="user-pill" id="current-user-tag">Educator</span>
       <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutTeacher()">🔒 Logout</button>
     </div>
@@ -293,7 +293,7 @@ try{
     </div>
 
     <div class="dash-grid">
-      <div class="dash-card" onclick="switchView('screen-library')">
+      <a class="dash-card" href="library.html" style="text-decoration:none;">
         <div class="dash-icon">📁</div>
         <h3>Library & Folders</h3>
         <p>Manage books, sections, PDF links and topic-wise extracted questions instantly.</p>
@@ -325,13 +325,13 @@ try{
         <p>View personal and centralized mock tests and copy WhatsApp share links instantly.</p>
       </div>
 
-      <div class="dash-card" onclick="switchView('screen-monitor')">
+      <a class="dash-card" href="student_submissions.html" style="text-decoration:none;">
         <div class="dash-icon">📊</div>
         <h3>Student Submissions</h3>
         <p>Track live student performance, scores and test attempts.</p>
       </div>
 
-      <div class="dash-card" onclick="exportFullDatabaseBackup()">
+      <div class="dash-card" onclick="window.location.href='database_backup.html'">
         <div class="dash-icon">💾</div>
         <h3>Database Backup</h3>
         <p>Download complete JSON backup of folders, questions and metadata.</p>
