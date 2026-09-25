@@ -703,14 +703,21 @@ try{
 
     async function saveLibraryState() {
       try {
-        if (!window.db) return;
-        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
-          ownerEmail: teacherEmailKey(),
-          libraryTree,
-          folderPdfs,
+        if (!window.db) throw new Error("Firebase database is not ready.");
+        const email=teacherEmailKey();
+        if(!email) throw new Error("Teacher session email is missing.");
+        if(window.teacherAuthReady) await window.teacherAuthReady;
+        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(email)), {
+          ownerEmail: email,
+          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
+          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
           updatedAt: new Date().toISOString()
         });
-      } catch (e) { console.error("Library save failed:", e); }
+        return true;
+      } catch (e) {
+        console.error("Library save failed:", e);
+        return false;
+      }
     }
 
     window.exportFullDatabaseBackup = async function() {
@@ -751,11 +758,17 @@ try{
     }
 
     window.promptNewMainFolder = async function() {
-      const name=(prompt("Create a Library Folder\n\nExample: 11-12th, Physics AP, JEE Main")||"").trim();
+      const name=(prompt("Create Library Folder\n\nExample: 11-12th, Physics AP, JEE Main")||"").trim();
       if(!name)return;
-      if(libraryTree.some(n=>n.name.toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
-      libraryTree.push(makeFolder(name));
-      await saveLibraryState();
+      if(!Array.isArray(libraryTree)) libraryTree=[];
+      if(libraryTree.some(n=>String(n.name||"").trim().toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
+      const newFolder=makeFolder(name);
+      libraryTree.push(newFolder);
+      const saved=await saveLibraryState();
+      if(!saved) {
+        libraryTree.pop();
+        return alert("Folder could not be saved. Please check your Firebase login/session and Firestore rules.");
+      }
       currentFolderPath="";
       renderLibraryBrowser();
       logTeacherActivity("CREATE_FOLDER","Created Library Folder: "+name);
