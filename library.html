@@ -293,8 +293,9 @@ try{
     </div>
     <div class="nav-tabs">
       <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
+      <button class="nav-btn" id="central-lib-nav-btn" type="button" onclick="openCentralLibrary(event)">🌐 Central Library</button>
       <a class="nav-btn" href="library_access.html">🤝 Library Access</a>
-      <a class="nav-btn" href="dashboard.html">🏠 Dashboard</a>
+      <a class="nav-btn" href="./dashboard.html">🏠 Dashboard</a>
       <span class="user-pill" id="current-user-tag">Educator</span>
       <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutTeacher()">🔒 Logout</button>
     </div>
@@ -360,9 +361,9 @@ try{
         <p style="font-size:11px;color:#64748b;" id="library-sub-title">PC-style folders • Create unlimited nested folders and keep your question/PDF library organized.</p>
       </div>
       <div class="library-action-buttons">
-        <button class="tool-btn" style="background:#2563eb;" onclick="createNewFolder()">＋ Create New Folder</button>
-        <button class="tool-btn" style="background:#10b981;" onclick="promptNewMainFolder()">＋ Create Library Folder</button>
-        <button class="tool-btn" style="background:#7c3aed;" onclick="openCentralLibrary()">🌐 Central Library</button>
+        <button class="tool-btn" style="background:#2563eb;" onclick="event.stopPropagation();createNewFolder()">＋ Create New Folder</button>
+        <button class="tool-btn" style="background:#10b981;" onclick="event.stopPropagation();promptNewMainFolder()">＋ Create Library Folder</button>
+        <button class="tool-btn" style="background:#7c3aed;" onclick="openCentralLibrary(event)">🌐 Central Library</button>
       </div>
     </div>
 
@@ -1280,15 +1281,84 @@ try{
         let h="<h3 style='color:#c4b5fd;'>📚 Group Shared Questions</h3>";h+=qs.length?qs.map(function(q){return "<div style='padding:8px;border:1px solid #334155;border-radius:8px;margin:6px 0;font-size:11px;'><strong>"+esc(q.subject||"")+"</strong> · "+esc(q.topic||"General")+" · Owner: "+esc(q.ownerEmail||"")+"</div>";}).join(""):"<p style='color:#64748b;'>No questions shared yet.</p>";
         h+="<button class='tool-btn' style='margin-top:8px;' onclick='openGroupManager()'>← Back</button>";document.getElementById("teacher-group-box").innerHTML=h;
       };
-      window.openCentralLibrary=async function(){
-        const all=cloudVault.filter(function(q){return q.centralPublished;});let m=document.getElementById("central-library-modal");
-        if(!m){m=document.createElement("div");m.id="central-library-modal";m.style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:96000;padding:16px;";m.innerHTML="<div id='central-library-box' style='background:#0b1120;border:2px solid #10b981;border-radius:16px;width:min(900px,100%);max-height:90vh;overflow:auto;padding:20px;'></div>";document.body.appendChild(m);}
-        const box=document.getElementById("central-library-box");box.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;'><h3 style='color:#34d399;'>🌐 Central Library</h3><button class='tool-btn' style='background:#7f1d1d;' onclick=\"document.getElementById('central-library-modal').remove()\">✕</button></div><p style='color:#94a3b8;font-size:11px;'>Only questions explicitly published by their owners appear here.</p>";
-        box.innerHTML+=all.length?all.map(function(q){return "<div style='padding:8px;border:1px solid #334155;border-radius:8px;margin:6px 0;font-size:11px;'><strong>"+esc(q.subject||"")+"</strong> · "+esc(q.topic||"General")+" · Owner: "+esc(q.ownerEmail||"")+"</div>";}).join(""):"<p style='color:#64748b;'>Central Library is empty.</p>";
+      window.openCentralLibrary=async function(event){
+        if(event){ event.preventDefault(); event.stopPropagation(); }
+        const me=teacherEmailKey();
+        if(!me) return alert("Please login as a teacher first.");
+
+        let m=document.getElementById("central-library-modal");
+        if(!m){
+          m=document.createElement("div");
+          m.id="central-library-modal";
+          m.style="position:fixed;inset:0;background:rgba(0,0,0,.90);display:flex;align-items:center;justify-content:center;z-index:100000;padding:16px;";
+          m.innerHTML="<div id='central-library-box' style='background:#0b1120;border:2px solid #10b981;border-radius:16px;width:min(1000px,100%);max-height:92vh;overflow:auto;padding:20px;'></div>";
+          document.body.appendChild(m);
+        }
+
+        const box=document.getElementById("central-library-box");
+        box.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #1e293b;padding-bottom:12px;'>"+
+          "<div><h3 style='color:#34d399;font-size:19px;'>🌐 Central Library</h3><p style='color:#94a3b8;font-size:11px;margin-top:4px;'>Publish your questions or complete folders for other teachers to use.</p></div>"+
+          "<button type='button' class='tool-btn' style='background:#7f1d1d;' onclick=\"document.getElementById('central-library-modal').remove()\">✕ Close</button></div>"+
+          "<div id='central-library-body' style='margin-top:14px;'></div>";
+
+        const body=document.getElementById("central-library-body");
+        body.innerHTML="<div style='background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;'>"+
+          "<div style='display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;'>"+
+          "<div><strong style='color:#f8fafc;'>📤 Publish a complete folder</strong><div style='font-size:10px;color:#94a3b8;margin-top:3px;'>Everything inside the selected folder becomes available in Central Library.</div></div>"+
+          "<select id='central-folder-select' class='filter-select' style='min-width:240px;'></select>"+
+          "<button type='button' class='tool-btn' style='background:#059669;' onclick='publishSelectedCentralFolder()'>🌐 Publish Folder</button></div>"+
+          "</div>"+
+          "<div id='central-published-folders' style='margin-top:14px;'></div>"+
+          "<div style='margin-top:14px;background:#060911;border:1px solid #1e293b;border-radius:10px;padding:12px;'>"+
+          "<strong style='color:#38bdf8;font-size:12px;'>📝 Questions</strong><p style='color:#94a3b8;font-size:11px;margin-top:4px;'>Individual questions can be published from their <b>Publish to Central</b> button inside the folder.</p></div>";
+
+        const select=document.getElementById("central-folder-select");
+        const folders=collectAllFolders();
+        select.innerHTML=folders.length?folders.map(x=>"<option value=\""+escapeHtml(x.path).replace(/"/g,"&quot;")+"\""+(x.centralPublished?" data-published='1'":"")+">📁 "+escapeHtml(x.path)+(x.centralPublished?" ✓":"")+"</option>").join(""):"<option value=''>No folders created yet</option>";
+
+        const publishedBox=document.getElementById("central-published-folders");
+        try{
+          const snap=await window.getDocs(window.collection(window.db,"central_library_folders"));
+          const rows=[];
+          snap.forEach(d=>{
+            const x=d.data();
+            if(x.centralPublished!==false) rows.push(Object.assign({id:d.id},x));
+          });
+          publishedBox.innerHTML="<div style='font-size:12px;font-weight:800;color:#34d399;margin-bottom:7px;'>📚 Published Central Folders ("+rows.length+")</div>"+
+            (rows.length?rows.map(x=>"<div style='display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:9px;margin:6px 0;'>"+
+              "<div><strong style='color:#f8fafc;font-size:12px;'>📁 "+escapeHtml(x.folderName||x.folderPath||"Folder")+"</strong><div style='font-size:10px;color:#64748b;'>Owner: "+escapeHtml(x.ownerEmail||"")+" · "+escapeHtml(x.folderPath||"")+"</div></div>"+
+              (String(x.ownerEmail||"").toLowerCase()===me?"<button type='button' class='tool-btn' style='background:#7f1d1d;' onclick=\"unpublishCentralFolderById('"+x.id.replace(/'/g,"\\'")+"','"+String(x.folderPath||"").replace(/'/g,"\\'")+"')\">🔒 Unpublish</button>":"<span style='color:#34d399;font-size:10px;font-weight:800;'>AVAILABLE</span>")+
+            "</div>").join(""):"<p style='color:#64748b;font-size:11px;'>No folders have been published yet.</p>");
+        }catch(e){
+          publishedBox.innerHTML="<p style='color:#ef4444;font-size:11px;'>Could not load Central Library folders.</p>";
+          console.error("Central Library load failed:",e);
+        }
       };
+
+      window.publishSelectedCentralFolder=async function(){
+        const select=document.getElementById("central-folder-select"),path=(select&&select.value||"").trim();
+        if(!path)return alert("Create a folder first.");
+        const node=findFolderByPath(path);if(!node)return alert("Folder not found.");
+        if(node.centralPublished)return showToast("🌐 This folder is already in Central Library.");
+        await window.toggleCentralFolder(path);
+        if(document.getElementById("central-library-modal")) await window.openCentralLibrary();
+      };
+
+      window.unpublishCentralFolderById=async function(id,path){
+        if(!confirm("Remove this folder from Central Library?"))return;
+        try{
+          await window.deleteDoc(window.doc(window.db,"central_library_folders",id));
+          const node=findFolderByPath(path);
+          if(node){node.centralPublished=false;await saveLibraryState();}
+          showToast("🔒 Folder removed from Central Library.");
+          await window.openCentralLibrary();
+          renderLibraryBrowser();
+        }catch(e){alert("Could not remove Central Library folder: "+e.message);}
+      };
+
       const nav=document.querySelector(".nav-tabs");
       if(nav&&!document.getElementById("teacher-group-nav-btn")){const b=document.createElement("button");b.id="teacher-group-nav-btn";b.className="nav-btn";b.textContent="👥 Groups";b.onclick=openGroupManager;nav.insertBefore(b,nav.querySelector(".user-pill"));}
-      if(nav&&!document.getElementById("central-lib-nav-btn")){const b=document.createElement("button");b.id="central-lib-nav-btn";b.className="nav-btn";b.textContent="🌐 Central";b.onclick=openCentralLibrary;nav.insertBefore(b,nav.querySelector(".user-pill"));}
+
       const oldRender=window.renderSubfolderTopicWiseQuestions;
       if(typeof oldRender==="function"){window.renderSubfolderTopicWiseQuestions=function(){oldRender();const cards=document.querySelectorAll("#lib-topic-groups-container .lib-q-card");cards.forEach(function(card){const q=cloudVault.find(function(x){return x.id===card.getAttribute("data-qid");});if(!q)return;const own=String(q.ownerEmail||"").toLowerCase()===me();const ctl=document.createElement("div");ctl.className="central-publish-control";ctl.style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;";if(own){ctl.innerHTML="<button class='f-btn' style='color:"+(q.centralPublished?"#34d399":"#94a3b8")+";border:1px solid #334155;padding:4px 7px;' onclick=\"toggleQuestionCentralPublish('"+q.id+"')\">"+(q.centralPublished?"🌐 Central Published":"🔒 Publish to Central")+"</button><button class='f-btn' style='color:#c4b5fd;border:1px solid #334155;padding:4px 7px;' onclick=\"shareQuestionToAnyGroup('"+q.id+"')\">👥 Share to Group</button>";}else if(q.centralPublished){ctl.innerHTML="<span style='color:#34d399;font-size:10px;font-weight:800;'>🌐 CENTRAL LIBRARY</span>";}card.appendChild(ctl);});};}
       const oldOnload=window.onload;window.onload=async function(){if(typeof oldOnload==="function")await oldOnload();setTimeout(function(){try{renderFolderCards();}catch(e){}},300);};
