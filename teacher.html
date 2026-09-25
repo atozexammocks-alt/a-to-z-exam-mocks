@@ -567,26 +567,36 @@ try{
     }
     // A new teacher starts with an empty private library.
     // Folders and sections are created explicitly by the teacher and saved to Firestore.
-    let mainFolders = [];
-    let subFolders = {};
+    // Hierarchical private library tree.
+    // Every folder can contain unlimited child folders. Content is shown only
+    // when the user reaches the selected folder's contents level.
+    let libraryTree = [];
     let folderPdfs = {};
+    let cachedStudentResults = [];
     let cloudVault = [];
     let cachedStudentResults = [];
 
     async function loadLibraryStateFromCloud() {
       try {
         if (!window.db) return;
-        const privateRef = window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey()));
-        const privateSnap = await window.getDoc(privateRef);
-        const privateData = privateSnap.exists() ? privateSnap.data() : {};
+        const ref = window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey()));
+        const snap = await window.getDoc(ref);
+        const data = snap.exists() ? snap.data() : {};
+        libraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
 
-        // SOURCE OF TRUTH: only the teacher's current private library is loaded.
-        // Legacy/shared registries are intentionally ignored so deleted folders never return.
-        if (privateSnap.exists()) {
-          if (Array.isArray(privateData.mainFolders)) mainFolders = privateData.mainFolders.slice();
-          if (privateData.subFolders && typeof privateData.subFolders === "object") subFolders = {...privateData.subFolders};
-          if (privateData.folderPdfs && typeof privateData.folderPdfs === "object") folderPdfs = {...privateData.folderPdfs};
+        // One-time compatibility for the previous flat structure.
+        if (!libraryTree.length && Array.isArray(data.mainFolders)) {
+          libraryTree = data.mainFolders.map(name => ({
+            id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+            name: String(name),
+            type: "folder",
+            children: (Array.isArray(data.subFolders?.[name]) ? data.subFolders[name] : []).map(s => ({
+              id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
+              name: String(s), type: "folder", children: []
+            }))
+          }));
         }
+        folderPdfs = (data.folderPdfs && typeof data.folderPdfs === "object") ? {...data.folderPdfs} : {};
       } catch (e) { console.error("Library registry load failed:", e); }
     }
 
@@ -594,14 +604,90 @@ try{
       return String(q?.subject || q?.libraryPath || q?.targetPath || q?.folderPath || "").trim();
     }
 
+    function makeFolder(name) {
+      return {
+        id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2,9),
+        name: String(name).trim(),
+        type: "folder",
+        children: []
+      };
+    }
+
+    function findFolderByPath(path) {
+      const parts = String(path || "").split(" / ").map(x => x.trim()).filter(Boolean);
+      let level = libraryTree, node = null;
+      for (const part of parts) {
+        node = level.find(x => x.name === part);
+        if (!node) return null;
+        level = Array.isArray(node.children) ? node.children : [];
+      }
+      return node;
+    }
+
+    function getFolderPath(nodeId, nodes=libraryTree, prefix=[]) {
+      for (const n of nodes) {
+        const next = prefix.concat(n.name);
+        if (n.id === nodeId) return next.join(" / ");
+        const found = getFolderPath(nodeId, n.children || [], next);
+        if (found) return found;
+      }
+      return "";
+    }
+
+    function getCurrentNode() {
+      return currentFolderPath ? findFolderByPath(currentFolderPath) : null;
+    }
+
+    function collectAllFolders(nodes=libraryTree, prefix="", out=[]) {
+      nodes.forEach(n => {
+        const p = prefix ? prefix + " / " + n.name : n.name;
+        out.push({node:n,path:p});
+        collectAllFolders(n.children || [], p, out);
+      });
+      return out;
+    }
+
+    function getChildrenForPath(path) {
+      if (!path) return libraryTree;
+      const node = findFolderByPath(path);
+      return node && Array.isArray(node.children) ? node.children : [];
+    }
+
+    function removeFolderByPath(path, nodes=libraryTree) {
+      const parts = String(path || "").split(" / ").filter(Boolean);
+      if (!parts.length) return false;
+      if (parts.length === 1) {
+        const i = nodes.findIndex(n => n.name === parts[0]);
+        if (i >= 0) { nodes.splice(i,1); return true; }
+        return false;
+      }
+      const parent = findFolderByPath(parts.slice(0,-1).join(" / "));
+      if (!parent || !Array.isArray(parent.children)) return false;
+      const i = parent.children.findIndex(n => n.name === parts[parts.length-1]);
+      if (i >= 0) { parent.children.splice(i,1); return true; }
+      return false;
+    }
+
+    function renameFolderByPath(path, updated) {
+      const node=findFolderByPath(path);
+      if (!node) return false;
+      const parts=path.split(" / ");
+      const siblings=parts.length===1 ? libraryTree : (findFolderByPath(parts.slice(0,-1).join(" / "))?.children || []);
+      if (siblings.some(n => n !== node && n.name.toLowerCase() === updated.toLowerCase())) return false;
+      node.name=updated;
+      return true;
+    }
+
     async function saveLibraryState() {
       try {
-        if (window.db) {
-          await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
-            ownerEmail: teacherEmailKey(), mainFolders, subFolders, folderPdfs, updatedAt: new Date().toISOString()
-          });
-        }
-      } catch (e) {}
+        if (!window.db) return;
+        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
+          ownerEmail: teacherEmailKey(),
+          libraryTree,
+          folderPdfs,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (e) { console.error("Library save failed:", e); }
     }
 
     window.exportFullDatabaseBackup = async function() {
@@ -626,489 +712,188 @@ try{
       }
     };
     
-    let currentMainFolder = '', currentSubFolder = '';
+    let currentFolderPath = "";
 
     function switchView(id) {
       document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
       document.getElementById(id).classList.add('active');
-      if (id === 'screen-library') {
-        if (!currentMainFolder) backToFolderCards();
-        else openMainFolder(currentMainFolder);
-      }
-      if (id === 'screen-monitor') { loadStudentResults(); }
+      if (id === 'screen-library') renderLibraryBrowser();
+      if (id === 'screen-monitor') loadStudentResults();
+    }
+
+    function currentContentStats(path) {
+      const qCount=cloudVault.filter(q => getQuestionLibraryPath(q) === path).length;
+      const pdfCount=(folderPdfs[path] || []).length;
+      return {qCount,pdfCount,total:qCount+pdfCount};
     }
 
     window.promptNewMainFolder = async function() {
-      const name = prompt("Create a Library Folder\n\nExample: Class 11 Physics, JEE Main, PYQ, NEET Physics");
-      if (name && name.trim()) {
-        const mName = name.trim();
-        if (!mainFolders.includes(mName)) {
-          mainFolders.push(mName);
-          if (!subFolders[mName]) subFolders[mName] = ["General"];
-          await saveLibraryState();
-          renderFolderCards();
-          logTeacherActivity("CREATE_FOLDER", `Created Main Folder: ${mName}`);
-          showToast("✔ Book Created & Saved to Cloud!");
-        }
-      }
+      const name=(prompt("Create a Library Folder\n\nExample: 11-12th, Physics AP, JEE Main")||"").trim();
+      if(!name)return;
+      if(libraryTree.some(n=>n.name.toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
+      libraryTree.push(makeFolder(name));
+      await saveLibraryState();
+      currentFolderPath="";
+      renderLibraryBrowser();
+      logTeacherActivity("CREATE_FOLDER","Created Library Folder: "+name);
+      showToast("✔ Library Folder Created!");
     };
 
     window.promptNewSubFolder = async function() {
-      if (!currentMainFolder) return alert("Select a main folder first!");
-      const name = prompt(`Create a Section inside "${currentMainFolder}"\n\nExample: Mechanics, Electrostatics, PYQ 2025`);
-      if (name && name.trim()) {
-        const sName = name.trim();
-        if (!subFolders[currentMainFolder]) subFolders[currentMainFolder] = [];
-        if (!subFolders[currentMainFolder].includes(sName)) {
-          subFolders[currentMainFolder].push(sName);
-          await saveLibraryState();
-          openMainFolder(currentMainFolder);
-          logTeacherActivity("CREATE_SUBFOLDER", `Created Sub-folder: ${currentMainFolder} / ${sName}`);
-          showToast("✔ Section Created & Saved to Cloud!");
-        }
-      }
+      if(!currentFolderPath) return alert("Open a folder first.");
+      const parent=findFolderByPath(currentFolderPath);
+      if(!parent)return;
+      const name=(prompt('Create a Subfolder inside "'+parent.name+'")\n\nExamples: Class 11, Class 12, Physics, Mechanics')||"").trim();
+      if(!name)return;
+      parent.children=Array.isArray(parent.children)?parent.children:[];
+      if(parent.children.some(n=>n.name.toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
+      parent.children.push(makeFolder(name));
+      await saveLibraryState();
+      renderLibraryBrowser();
+      logTeacherActivity("CREATE_SUBFOLDER","Created folder: "+currentFolderPath+" / "+name);
+      showToast("✔ Folder Created!");
     };
 
-    window.renameMainFolder = async function(mName, event) {
-      event.stopPropagation();
-      const newName = prompt(`Rename main folder "${mName}" to:`, mName);
-      if (newName && newName.trim() && newName.trim() !== mName) {
-        const updated = newName.trim();
-        if (mainFolders.includes(updated)) return alert("Folder name already exists!");
-        mainFolders = mainFolders.map(f => f === mName ? updated : f);
-        subFolders[updated] = subFolders[mName] || [];
-        delete subFolders[mName];
-        await saveLibraryState();
-        renderFolderCards();
-        logTeacherActivity("RENAME_FOLDER", `Renamed main folder from ${mName} to ${updated}`);
-        showToast("✔ Renamed!");
-      }
-    };
-
-    window.deleteMainFolder = async function(mName, event) {
-      event.stopPropagation();
-      if (confirm(`⚠️ Permanently delete main folder "${mName}" and ALL questions inside it?`)) {
-        try {
-          const qRef = window.collection(window.db, "questions");
-          const qSnap = await window.getDocs(qRef);
-          let batchDeletes = [];
-          qSnap.forEach(d => {
-            const data = d.data();
-            if (getQuestionLibraryPath(data) === mName || getQuestionLibraryPath(data).startsWith(mName + " / ")) {
-              batchDeletes.push(window.deleteDoc(window.doc(window.db, "questions", d.id)));
-            }
-          });
-          await Promise.all(batchDeletes);
-
-          mainFolders = mainFolders.filter(f => f !== mName);
-          delete subFolders[mName];
-          await saveLibraryState();
-          renderFolderCards();
-          logTeacherActivity("DELETE_FOLDER", `Deleted main folder: ${mName} and ${batchDeletes.length} questions`);
-          showToast(`🗑️ Folder & ${batchDeletes.length} questions wiped permanently!`);
-        } catch (e) {
-          alert("Failed to delete folder data: " + e.message);
-        }
-      }
-    };
-
-    window.renameSubFolder = async function(sName, event) {
-      event.stopPropagation();
-      const newName = prompt(`Rename section "${sName}" under "${currentMainFolder}" to:`, sName);
-      if (newName && newName.trim() && newName.trim() !== sName) {
-        const updated = newName.trim();
-        const subs = subFolders[currentMainFolder] || [];
-        if (subs.includes(updated)) return alert("Section name already exists!");
-        subFolders[currentMainFolder] = subs.map(s => s === sName ? updated : s);
-        
-        const oldKey = `${currentMainFolder} / ${sName}`;
-        const newKey = `${currentMainFolder} / ${updated}`;
-        if (folderPdfs[oldKey]) {
-          folderPdfs[newKey] = folderPdfs[oldKey];
-          delete folderPdfs[oldKey];
-        }
-
-        await saveLibraryState();
-        openMainFolder(currentMainFolder);
-        logTeacherActivity("RENAME_SUBFOLDER", `Renamed section from ${sName} to ${updated}`);
-        showToast("✔ Section Renamed!");
-      }
-    };
-
-    window.deleteSubFolder = async function(sName, event) {
-      event.stopPropagation();
-      if (confirm(`⚠️ Permanently delete section "${sName}" and ALL questions inside it?`)) {
-        try {
-          const fullKey = `${currentMainFolder} / ${sName}`;
-          const qRef = window.collection(window.db, "questions");
-          const qSnap = await window.getDocs(qRef);
-          let batchDeletes = [];
-          qSnap.forEach(d => {
-            const data = d.data();
-            if (getQuestionLibraryPath(data) === fullKey) {
-              batchDeletes.push(window.deleteDoc(window.doc(window.db, "questions", d.id)));
-            }
-          });
-          await Promise.all(batchDeletes);
-
-          subFolders[currentMainFolder] = subFolders[currentMainFolder].filter(x => x !== sName);
-          delete folderPdfs[fullKey];
-          await saveLibraryState();
-          openMainFolder(currentMainFolder);
-          logTeacherActivity("DELETE_SUBFOLDER", `Deleted section: ${fullKey} and ${batchDeletes.length} questions`);
-          showToast(`🗑️ Section & ${batchDeletes.length} questions wiped permanently!`);
-        } catch (e) {
-          alert("Failed to delete section data: " + e.message);
-        }
-      }
-    };
-
-    window.moveMainFolderPrompt = async function(mName, event) {
-      event.stopPropagation();
-      const targetName = prompt(`Enter new name or position for folder "${mName}":`, mName);
-      if (targetName && targetName.trim() && targetName.trim() !== mName) {
-        const idx = mainFolders.indexOf(mName);
-        if (idx !== -1) {
-          mainFolders[idx] = targetName.trim();
-          subFolders[targetName.trim()] = subFolders[mName] || [];
-          delete subFolders[mName];
-          await saveLibraryState();
-          renderFolderCards();
-          showToast("✔ Folder Moved / Renamed Successfully!");
-        }
-      }
-    };
-
-    function renderFolderCards() {
-      const container = document.getElementById('folder-cards-container');
-      container.innerHTML = '';
-      if (mainFolders.length === 0) {
-        container.innerHTML = `
-          <div style="grid-column:1/-1; background:#0b1120; border:1.5px dashed #334155; border-radius:16px; padding:34px 24px; text-align:center;">
-            <div style="font-size:42px; margin-bottom:10px;">📚</div>
-            <h3 style="color:#f8fafc; font-size:18px; margin-bottom:7px;">Your Library is Empty</h3>
-            <p style="color:#94a3b8; font-size:13px; line-height:1.6; max-width:620px; margin:0 auto 16px;">Start by creating your first <strong style="color:#38bdf8;">Library Folder</strong>. You can then create Sections inside it for topics, chapters, PYQs or other study material.</p>
-            <button class="tool-btn" style="background:#10b981; font-size:12px; padding:9px 16px;" onclick="promptNewMainFolder()">＋ Create Your First Library Folder</button>
-          </div>`;
-        return;
-      }
-
-      mainFolders.forEach(m => {
-        const subs = subFolders[m] || [];
-        const card = document.createElement('div');
-        card.className = 'folder-card';
-        card.onclick = () => openMainFolder(m);
-        card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <h3 style="color:#38bdf8; font-size:16px;">📁 ${m}</h3>
-            <span style="font-size:11px; background:#0f172a; border:1px solid #334155; padding:3px 8px; border-radius:10px; color:#cbd5e1;">${subs.length} Sections</span>
-          </div>
-          <p style="font-size:12px; color:#94a3b8;">Sections: ${subs.join(', ') || 'None'}</p>
-          <div class="folder-card-actions" onclick="event.stopPropagation()">
-            <button class="tool-btn" style="padding:4px 10px; font-size:11px; background:#2563eb;" onclick="moveMainFolderPrompt('${m}', event)">📦 Move</button>
-            <button class="tool-btn" style="padding:4px 10px; font-size:11px;" onclick="renameMainFolder('${m}', event)">✏️ Rename</button>
-            <button class="tool-btn" style="padding:4px 10px; font-size:11px; background:#7f1d1d;" onclick="deleteMainFolder('${m}', event)">🗑️ Delete</button>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    window.openMainFolder = function(mName) {
-      currentMainFolder = mName;
-      document.getElementById('folder-cards-view').style.display = 'none';
-      document.getElementById('folder-files-view').style.display = 'flex';
-      document.getElementById('library-main-title').textContent = `Main Folder: ${mName}`;
-      
-      const subs = subFolders[currentMainFolder] || [];
-      currentSubFolder = subs.length > 0 ? subs[0] : '';
-      renderLibraryTopRow();
-      renderLibrarySubSidebar();
+    window.openMainFolder = function(path) {
+      currentFolderPath=path;
+      renderLibraryBrowser();
     };
 
     window.backToFolderCards = function() {
-      currentMainFolder = '';
-      currentSubFolder = '';
-      document.getElementById('folder-files-view').style.display = 'none';
-      document.getElementById('folder-cards-view').style.display = 'flex';
-      document.getElementById('library-main-title').textContent = `Your Question Library`;
-      renderFolderCards();
+      currentFolderPath="";
+      renderLibraryBrowser();
     };
 
-    function renderLibraryTopRow() {
-      const topRow = document.getElementById('lib-main-tabs-container');
-      topRow.innerHTML = '';
-      mainFolders.forEach(m => {
-        const tab = document.createElement('button');
-        tab.className = `lib-main-folder-tab ${currentMainFolder === m ? 'active' : ''}`;
-        tab.innerHTML = `📁 ${m}`;
-        tab.onclick = () => {
-          currentMainFolder = m;
-          const subs = subFolders[currentMainFolder] || [];
-          currentSubFolder = subs.length > 0 ? subs[0] : '';
-          document.getElementById('library-main-title').textContent = `Main Folder: ${m}`;
-          renderLibraryTopRow();
-          renderLibrarySubSidebar();
-        };
-        topRow.appendChild(tab);
-      });
-    }
-
-    function renderLibrarySubSidebar() {
-      const subList = document.getElementById('sidebar-sub-folders');
-      subList.innerHTML = '';
-      const subs = subFolders[currentMainFolder] || [];
-      
-      if (subs.length === 0) {
-        subList.innerHTML = `<p style="color:#64748b; font-size:12px; padding:6px;">No sections created.</p>`;
-      }
-
-      subs.forEach(s => {
-        const fullKey = `${currentMainFolder} / ${s}`;
-        const pdfCount = (folderPdfs[fullKey] || []).length;
-        const qCount = cloudVault.filter(q => getQuestionLibraryPath(q) === fullKey).length;
-        const totalCount = pdfCount + qCount;
-
-        const row = document.createElement('div');
-        row.className = `folder-item-row ${currentSubFolder === s ? 'active' : ''}`;
-        row.innerHTML = `
-          <div class="folder-name-tag" onclick="selectLibrarySubFolder('${s}')">📂 ${s} (${totalCount})</div>
-          <div class="folder-tools">
-            <button class="f-btn" onclick="renameSubFolder('${s}', event)" title="Rename">✏️</button>
-            <button class="f-btn" onclick="deleteSubFolder('${s}', event)" title="Delete" style="color:#fecaca;">🗑️</button>
-          </div>
-        `;
-        subList.appendChild(row);
-      });
-      renderPdfTable();
-      renderSubfolderTopicWiseQuestions();
-    }
-
-    window.selectLibrarySubFolder = function(sName) {
-      currentSubFolder = sName;
-      renderLibrarySubSidebar();
+    window.selectLibrarySubFolder = function(path) {
+      currentFolderPath=path;
+      renderLibraryBrowser();
     };
 
-    window.switchLibTab = function(tabName) {
-      document.getElementById('tab-btn-pdfs').classList.toggle('active', tabName === 'pdfs');
-      document.getElementById('tab-btn-qs').classList.toggle('active', tabName === 'questions');
-      document.getElementById('lib-tab-content-pdfs').style.display = tabName === 'pdfs' ? 'flex' : 'none';
-      document.getElementById('lib-tab-content-qs').style.display = tabName === 'questions' ? 'flex' : 'none';
-      if (tabName === 'questions') renderSubfolderTopicWiseQuestions();
-    };
-
-    function renderPdfTable() {
-      const tbody = document.getElementById('pdf-table-body');
-      tbody.innerHTML = '';
-      if (!currentMainFolder || !currentSubFolder) return;
-
-      const fullKey = `${currentMainFolder} / ${currentSubFolder}`;
-      document.getElementById('current-subfolder-title').textContent = `📄 PDF Links in: ${fullKey}`;
-
-      const list = folderPdfs[fullKey] || [];
-      if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#64748b;">No PDF links added. Click '+ Add PDF Link'.</td></tr>`;
-        return;
-      }
-
-      list.forEach((item, idx) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><input type="text" class="pdf-input" value="${item.title || ''}" placeholder="Paper Title" onchange="updatePdfItem('${fullKey}', ${idx}, 'title', this.value)"></td>
-          <td><input type="text" class="pdf-input" value="${item.url || ''}" placeholder="Google Drive URL" onchange="updatePdfItem('${fullKey}', ${idx}, 'url', this.value)"></td>
-          <td><span class="badge-status ${item.isPublic?'badge-public':'badge-private'}" onclick="togglePdfPublic('${fullKey}', ${idx})">${item.isPublic?'🌐 PUBLIC':'🔒 PRIVATE'}</span></td>
-          <td style="text-align:center; display:flex; gap:4px; justify-content:center;">
-            <a href="slicer.html" class="tool-btn" style="background:#0284c7; padding:4px 8px; font-size:11px; text-decoration:none;">📥 Open in Slicer</a>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+    function renderBreadcrumb() {
+      const el=document.getElementById('library-main-title');
+      const parts=currentFolderPath ? currentFolderPath.split(" / ") : [];
+      el.innerHTML = parts.length
+        ? '<span style="color:#94a3b8;cursor:pointer;" onclick="backToFolderCards()">📚 My Library</span> <span style="color:#64748b;">›</span> '+parts.map((p,i)=>{
+            const path=parts.slice(0,i+1).join(" / ");
+            return '<span style="color:'+(i===parts.length-1?'#38bdf8':'#cbd5e1')+';cursor:pointer;" onclick="openMainFolder(\''+path.replace(/'/g,"\\'")+'\')">'+p+'</span>';
+          }).join(' <span style="color:#64748b;">›</span> ')
+        : '📚 My Library';
     }
 
-    function renderSubfolderTopicWiseQuestions() {
-      const container = document.getElementById('lib-topic-groups-container');
-      const heading = document.getElementById('lib-qs-heading');
-      if (!currentMainFolder || !currentSubFolder) return;
+    function renderLibraryBrowser() {
+      const cards=document.getElementById('folder-cards-container');
+      const rootView=document.getElementById('folder-cards-view');
+      const filesView=document.getElementById('folder-files-view');
+      if(!cards)return;
 
-      const fullKey = `${currentMainFolder} / ${currentSubFolder}`;
-      heading.textContent = `🖼️ Extracted Questions in: ${fullKey} (Topic-wise)`;
+      renderBreadcrumb();
+      const children=getChildrenForPath(currentFolderPath);
+      const current=getCurrentNode();
 
-      const matched = cloudVault.filter(q => getQuestionLibraryPath(q) === fullKey);
-      container.innerHTML = '';
+      rootView.style.display='flex';
+      filesView.style.display='none';
 
-      if (matched.length === 0) {
-        container.innerHTML = `<p style="color:#64748b; font-size:13px;">No questions extracted in this section yet.</p>`;
-        return;
+      cards.innerHTML='';
+      const header=document.createElement('div');
+      header.style='grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;';
+      header.innerHTML='<div><div style="font-size:12px;color:#94a3b8;">'+(currentFolderPath?'Folder contents':'Top-level folders')+'</div><div style="font-size:18px;font-weight:900;color:#f8fafc;">'+(current?('📁 '+current.name):'📚 My Library')+'</div></div><div style="display:flex;gap:7px;"><button class="tool-btn" onclick="backToFolderCards()" '+(currentFolderPath?'':'disabled')+'>← My Library</button><button class="tool-btn" style="background:#2563eb;" onclick="promptNew'+(currentFolderPath?'Sub':'Main')+'Folder()">＋ '+(currentFolderPath?'Create Subfolder':'Create Library Folder')+'</button></div>';
+      cards.appendChild(header);
+
+      if(currentFolderPath){
+        const backParts=currentFolderPath.split(" / ");
+        if(backParts.length>1){
+          const backPath=backParts.slice(0,-1).join(" / ");
+          const b=document.createElement('button'); b.className='tool-btn'; b.style='grid-column:1/-1;text-align:left;';
+          b.textContent='⬅ Back to '+backParts[backParts.length-2]; b.onclick=()=>openMainFolder(backPath); cards.appendChild(b);
+        }
       }
 
-      const topicMap = {};
-      matched.forEach(q => {
-        const tName = (q.topic || 'General').trim();
-        if (!topicMap[tName]) topicMap[tName] = [];
-        topicMap[tName].push(q);
-      });
-
-      for (const [topicName, qList] of Object.entries(topicMap)) {
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'topic-group-box';
-        
-        let cardsHtml = '';
-        qList.forEach((q, idx) => {
-          cardsHtml += `
-            <div class="lib-q-card" data-qid="${q.id}">
-              <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#38bdf8;">
-                <strong>Q${idx + 1}</strong>
-                <div style="display:flex; gap:4px;">
-                  \${(!q.ownerEmail || String(q.ownerEmail).toLowerCase()===teacherEmailKey()) ? '<button class="tool-btn" style="padding:2px 6px; font-size:10px; background:#0284c7;" onclick="openQuestionEditor(\''+q.id+'\')">✏️ Edit</button><button class="tool-btn" style="padding:2px 6px; font-size:10px; background:#2563eb;" onclick="promptMoveQuestion(\''+q.id+'\')">📦 Move</button><button class="f-btn" style="background:#7f1d1d; color:#fecaca;" onclick="deleteCloudQuestion(\''+q.id+'\')">🗑️</button>' : '<span style="font-size:9px;color:#10b981;padding:4px 6px;">🔗 SHARED</span>'}
-                </div>
-              </div>
-              <div class="lib-q-img" onclick="openQuestionPopup('${q.id}')">
-                <img src="${q.question}" alt="Q">
-              </div>
-            </div>
-          `;
+      if(children.length){
+        children.forEach(node=>{
+          const path=currentFolderPath ? currentFolderPath+' / '+node.name : node.name;
+          const stats=currentContentStats(path);
+          const card=document.createElement('div'); card.className='folder-card'; card.onclick=()=>openMainFolder(path);
+          card.innerHTML='<div style="font-size:44px;">📁</div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" onclick="renameLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">✏️ Rename</button><button class="tool-btn" style="background:#7f1d1d;" onclick="deleteLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
+          cards.appendChild(card);
         });
+      }
 
-        groupDiv.innerHTML = `
-          <div class="topic-group-title">
-            <span>📂 Topic: ${topicName}</span>
-            <span style="font-size:11px; background:#1e293b; padding:2px 8px; border-radius:10px; color:#10b981;">${qList.length} Questions</span>
-          </div>
-          <div class="lib-question-grid">${cardsHtml}</div>
-        `;
-        container.appendChild(groupDiv);
+      const stats=currentContentStats(currentFolderPath);
+      if(currentFolderPath && stats.total>0){
+        const content=document.createElement('div'); content.style='grid-column:1/-1;background:#0b1120;border:1px solid #334155;border-radius:14px;padding:16px;margin-top:4px;';
+        content.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div><h3 style="color:#38bdf8;font-size:15px;">📦 Folder Contents</h3><p style="font-size:11px;color:#94a3b8;">Questions, images and PDF links stored directly in this folder.</p></div><button class="tool-btn" style="background:#0284c7;" onclick="addNewPdfRowForCurrent()">＋ Add PDF Link</button></div><div id="hier-pdf-container"></div><div id="hier-q-container" style="margin-top:14px;"></div>';
+        cards.appendChild(content);
+        renderHierarchicalContents(currentFolderPath);
+      } else if(currentFolderPath && !children.length){
+        const empty=document.createElement('div'); empty.style='grid-column:1/-1;padding:35px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:14px;';
+        empty.innerHTML='📂 This folder is empty.<br><span style="font-size:12px;">Create a subfolder, or add content here when ready.</span>';
+        cards.appendChild(empty);
+      } else if(!children.length && !currentFolderPath){
+        const empty=document.createElement('div'); empty.style='grid-column:1/-1;padding:35px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:14px;';
+        empty.innerHTML='📚 Your Library is Empty<br><span style="font-size:12px;">Create your first Library Folder.</span>';
+        cards.appendChild(empty);
       }
     }
 
-    window.openQuestionPopup = function(qId) {
-      const q = cloudVault.find(item => item.id === qId);
-      if (!q) return;
-      const modalBody = document.getElementById('q-modal-body');
-      document.getElementById('q-modal-title').textContent = `🔍 Question Preview | Subject: ${q.subject} | Q.No: ${q.qNo || 1}`;
-      
-      modalBody.innerHTML = `
-        ${q.qText ? `<div style="font-size:14px; font-weight:bold; color:#0f172a; margin-bottom:8px;">${q.qText}</div>` : ''}
-        ${q.question ? `<img src="${q.question}" style="max-width:100%; height:auto; display:block; margin-bottom:12px; border-radius:4px;">` : ''}
-        ${q.optText ? `<div style="font-weight:bold; color:#0f172a; font-size:13px; margin-top:10px; border-top:1px solid #e2e8f0; padding-top:8px;">Options:</div><div style="font-size:13px; color:#334155; margin-top:4px;">${q.optText}</div>` : ''}
-        <div style="margin-top:10px; font-size:12px; color:#64748b;">Correct Answer Key: <strong style="color:#10b981;">${q.key || 'A'}</strong></div>
-      `;
-      document.getElementById('question-modal-overlay').style.display = 'flex';
+    function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+    window.renameLibraryFolder=async function(path,event){
+      if(event)event.stopPropagation();
+      const node=findFolderByPath(path); if(!node)return;
+      const updated=(prompt('Rename folder:',node.name)||'').trim(); if(!updated||updated===node.name)return;
+      if(!renameFolderByPath(path,updated))return alert("A folder with that name already exists here.");
+      const oldPrefix=path, parts=path.split(" / "), parent=parts.slice(0,-1).join(" / "), newPath=parent?(parent+" / "+updated):updated;
+      const updates=[];
+      Object.keys(folderPdfs).forEach(k=>{if(k===oldPrefix||k.startsWith(oldPrefix+" / ")){const nk=newPath+k.slice(oldPrefix.length);folderPdfs[nk]=folderPdfs[k];delete folderPdfs[k];}});
+      cloudVault.forEach(q=>{const p=getQuestionLibraryPath(q);if(p===oldPrefix||p.startsWith(oldPrefix+" / ")){const np=newPath+p.slice(oldPrefix.length);updates.push(window.updateDoc(window.doc(window.db,"questions",q.id),{subject:np}));q.subject=np;}});
+      await Promise.all(updates); await saveLibraryState(); currentFolderPath=newPath; renderLibraryBrowser(); showToast("✔ Folder Renamed!");
     };
 
-    window.promptMoveQuestion = async function(qId) {
-      const allSections = [];
-      for (const [mName, subs] of Object.entries(subFolders)) {
-        subs.forEach(s => allSections.push(`${mName} / ${s}`));
-      }
-      const target = prompt(`Enter target Section (e.g. Classical Mechanics / General):\n\nAvailable:\n${allSections.join('\n')}`);
-      if (target && target.trim()) {
-        const tName = target.trim();
-        try {
-          await window.updateDoc(window.doc(window.db, "questions", qId), { subject: tName });
-          const q = cloudVault.find(item => item.id === qId);
-          if (q) q.subject = tName;
-          renderLibrarySubSidebar();
-          showToast("✔ Question Moved Successfully!");
-        } catch (e) {
-          alert("Failed to move question!");
-        }
-      }
+    window.deleteLibraryFolder=async function(path,event){
+      if(event)event.stopPropagation();
+      if(!confirm('⚠️ Permanently delete "'+path+'" and everything inside it?'))return;
+      const updates=[]; const qRef=window.collection(window.db,"questions"); const snap=await window.getDocs(qRef);
+      snap.forEach(d=>{const p=getQuestionLibraryPath(d.data());if(p===path||p.startsWith(path+" / "))updates.push(window.deleteDoc(window.doc(window.db,"questions",d.id)));});
+      Object.keys(folderPdfs).forEach(k=>{if(k===path||k.startsWith(path+" / "))delete folderPdfs[k];});
+      removeFolderByPath(path); await Promise.all(updates); await saveLibraryState();
+      const parts=path.split(" / "); currentFolderPath=parts.slice(0,-1).join(" / ");
+      renderLibraryBrowser(); showToast("🗑️ Folder and its contents deleted.");
     };
 
-    window.openQuestionEditor = async function(qId) {
-      const q = cloudVault.find(item => item.id === qId);
-      if (!q) return;
+    function renderHierarchicalContents(path){
+      const pdfBox=document.getElementById('hier-pdf-container'),qBox=document.getElementById('hier-q-container');
+      if(!pdfBox||!qBox)return;
+      const pdfs=folderPdfs[path]||[];
+      pdfBox.innerHTML=pdfs.length?'<div style="display:flex;flex-direction:column;gap:7px;">'+pdfs.map((item,i)=>'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#060911;border:1px solid #1e293b;border-radius:8px;padding:9px;"><span style="font-size:20px;">📄</span><input class="pdf-input" style="max-width:240px;" value="'+escapeHtml(item.title||'New PDF')+'" onchange="updatePdfItemHier(\''+path.replace(/'/g,"\\'")+'\','+i+',\'title\',this.value)"><input class="pdf-input" style="flex:1;min-width:220px;" value="'+escapeHtml(item.url||'')+'" placeholder="PDF URL" onchange="updatePdfItemHier(\''+path.replace(/'/g,"\\'")+'\','+i+',\'url\',this.value)"><button class="tool-btn" onclick="openPdfUrl(\''+String(item.url||'').replace(/'/g,"\\'")+'\')">🔗 Open</button></div>').join(''):'<div style="font-size:11px;color:#64748b;">No PDF links in this folder.</div>';
+      const matched=cloudVault.filter(q=>getQuestionLibraryPath(q)===path);
+      qBox.innerHTML='<div style="font-size:13px;font-weight:800;color:#38bdf8;margin-bottom:8px;">📝 Questions ('+matched.length+')</div>';
+      if(!matched.length){qBox.innerHTML+='<div style="font-size:11px;color:#64748b;">No questions in this folder.</div>';return;}
+      qBox.innerHTML+= '<div class="lib-question-grid">'+matched.map((q,idx)=>'<div class="lib-q-card" data-qid="'+q.id+'">'+(q.qText?'<div style="font-size:12px;color:#f8fafc;">'+escapeHtml(q.qText)+'</div>':'')+(q.question?'<div class="lib-q-img" onclick="openQuestionPopup(\''+q.id+'\')"><img src="'+q.question+'" alt="Question image"></div>':'')+'<div style="display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#94a3b8;"><span>Q'+(idx+1)+'</span><div><button class="tool-btn" onclick="openQuestionPopup(\''+q.id+'\')">View</button></div></div></div>').join('')+'</div>';
+    }
 
-      localStorage.setItem('Temp_Editor_Image', q.question || '');
-      localStorage.setItem('Temp_QText', q.qText || '');
-      localStorage.setItem('Temp_Opt_A', '');
-      localStorage.setItem('Temp_Opt_B', '');
-      localStorage.setItem('Temp_Opt_C', '');
-      localStorage.setItem('Temp_Opt_D', '');
+    window.addNewPdfRowForCurrent=async function(){if(!currentFolderPath)return;const p=currentFolderPath;if(!folderPdfs[p])folderPdfs[p]=[];folderPdfs[p].push({title:"New PDF",url:"",isPublic:false});await saveLibraryState();renderLibraryBrowser();};
+    window.updatePdfItemHier=async function(path,idx,field,val){if(folderPdfs[path]?.[idx]){folderPdfs[path][idx][field]=String(val||'').trim();await saveLibraryState();}};
+    window.openPdfUrl=function(url){if(url)window.open(url,'_blank','noopener,noreferrer');else alert('Add a PDF URL first.');};
 
-      window.editingCloudQuestionId = qId;
-
-      const modal = document.getElementById('studio-modal-overlay');
-      const iframe = document.getElementById('studio-iframe');
-      if (modal && iframe) {
-        iframe.src = 'editor.html';
-        modal.style.display = 'flex';
-      }
+    // Compatibility wrappers for older UI calls.
+    window.renderFolderCards=renderLibraryBrowser;
+    window.renderLibraryTopRow=function(){};
+    window.renderLibrarySubSidebar=function(){renderLibraryBrowser();};
+    window.renderPdfTable=function(){};
+    window.renderSubfolderTopicWiseQuestions=function(){renderLibraryBrowser();};
+    window.switchLibTab=function(){renderLibraryBrowser();};
+    window.promptMoveQuestion=async function(qId){
+      const choices=collectAllFolders().map(x=>x.path);
+      const target=(prompt("Enter target folder path:\n\nAvailable:\n"+choices.join("\n"))||"").trim(); if(!target)return;
+      if(!findFolderByPath(target))return alert("Folder not found.");
+      const q=cloudVault.find(x=>x.id===qId);if(!q)return;
+      await window.updateDoc(window.doc(window.db,"questions",qId),{subject:target});q.subject=target;renderLibraryBrowser();showToast("✔ Question moved.");
     };
-
-    window.closeStudioModal = async function() {
-      const modal = document.getElementById('studio-modal-overlay');
-      const iframe = document.getElementById('studio-iframe');
-      if (modal && iframe) {
-        modal.style.display = 'none';
-        iframe.src = '';
-      }
-
-      const syncedImg = localStorage.getItem('Temp_Editor_Synced_Image');
-      const qText = localStorage.getItem('Temp_Fallback_QText');
-
-      if (window.editingCloudQuestionId && (syncedImg || qText)) {
-        try {
-          const updateData = {};
-          if (syncedImg) updateData.question = syncedImg;
-          if (qText !== null) updateData.qText = qText;
-
-          await window.updateDoc(window.doc(window.db, "questions", window.editingCloudQuestionId), updateData);
-          
-          const q = cloudVault.find(item => item.id === window.editingCloudQuestionId);
-          if (q) {
-            if (syncedImg) q.question = syncedImg;
-            if (qText !== null) q.qText = qText;
-          }
-
-          renderLibrarySubSidebar();
-          showToast("✔ Question Updated & Synced to Cloud!");
-        } catch (e) {
-          alert("Failed to update question in cloud!");
-        }
-        window.editingCloudQuestionId = null;
-      }
-
-      localStorage.removeItem('Temp_Editor_Synced_Image');
-      localStorage.removeItem('Temp_Fallback_QText');
-    };
-
-    window.addNewPdfRow = async function() {
-      if (!currentMainFolder || !currentSubFolder) return alert("Select a sub-folder first!");
-      const fullKey = `${currentMainFolder} / ${currentSubFolder}`;
-      if (!folderPdfs[fullKey]) folderPdfs[fullKey] = [];
-      folderPdfs[fullKey].push({ title: "New Paper", url: "", isPublic: false });
-      await saveLibraryState();
-      renderPdfTable();
-    };
-
-    window.updatePdfItem = async function(fullKey, idx, field, val) {
-      if (folderPdfs[fullKey] && folderPdfs[fullKey][idx]) {
-        folderPdfs[fullKey][idx][field] = val.trim();
-        await saveLibraryState();
-        showToast("✔ Saved!");
-      }
-    };
-
-    window.togglePdfPublic = async function(fullKey, idx) {
-      if (folderPdfs[fullKey] && folderPdfs[fullKey][idx]) {
-        folderPdfs[fullKey][idx].isPublic = !folderPdfs[fullKey][idx].isPublic;
-        await saveLibraryState();
-        renderPdfTable();
-        showToast("✔ Visibility Updated!");
-      }
-    };
-
-    window.deleteCloudQuestion = async function(qId) {
-      const target=cloudVault.find(x=>x.id===qId);
-      if(target && target.ownerEmail && String(target.ownerEmail).toLowerCase()!==teacherEmailKey()) return alert("🔒 This question belongs to another teacher library. You have view/use access only.");
-      if (confirm("Delete this question permanently?")) {
-        await window.deleteDoc(window.doc(window.db, "questions", qId));
-        cloudVault = cloudVault.filter(x => x.id !== qId);
-        renderLibrarySubSidebar();
-        showToast("🗑️ Question Deleted!");
-      }
-    };
+    window.renameMainFolder=window.renameLibraryFolder;
+    window.deleteMainFolder=window.deleteLibraryFolder;
+    window.renameSubFolder=window.renameLibraryFolder;
+    window.deleteSubFolder=window.deleteLibraryFolder;
+    window.moveMainFolderPrompt=window.renameLibraryFolder;
 
     async function initStudio() {
       // Render the folders immediately, then refresh them after Firestore questions
