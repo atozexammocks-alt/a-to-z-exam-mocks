@@ -818,7 +818,7 @@ try{
       }
 
       const stats=currentContentStats(currentFolderPath);
-      if(currentFolderPath && stats.total>0){
+      if(currentFolderPath && !children.length && stats.total>0){
         const content=document.createElement('div'); content.style='grid-column:1/-1;background:#0b1120;border:1px solid #334155;border-radius:14px;padding:16px;margin-top:4px;';
         content.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;"><div><h3 style="color:#38bdf8;font-size:15px;">📦 Folder Contents</h3><p style="font-size:11px;color:#94a3b8;">Questions, images and PDF links stored directly in this folder.</p></div><button class="tool-btn" style="background:#0284c7;" onclick="addNewPdfRowForCurrent()">＋ Add PDF Link</button></div><div id="hier-pdf-container"></div><div id="hier-q-container" style="margin-top:14px;"></div>';
         cards.appendChild(content);
