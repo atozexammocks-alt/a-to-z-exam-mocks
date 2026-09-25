@@ -302,7 +302,7 @@ try{
         <div class="dash-icon">📁</div>
         <h3>Library & Folders</h3>
         <p>Manage books, sections, PDF links and topic-wise extracted questions instantly.</p>
-      </div>
+      </a>
 
       <a href="slicer.html" class="dash-card" style="text-decoration:none;">
         <div class="dash-icon">✂️</div>
@@ -720,8 +720,9 @@ try{
       try {
         showToast("📦 Preparing database backup...");
         const backupData = {
-          mainFolders, subFolders, folderPdfs,
-          questions: cloudVault,
+          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
+          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
+          questions: Array.isArray(cloudVault) ? cloudVault : [],
           exportedAt: new Date().toISOString()
         };
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
@@ -995,7 +996,18 @@ try{
     window.renderLibrarySubSidebar=function(){renderLibraryBrowser();};
     window.renderPdfTable=function(){};
     window.renderSubfolderTopicWiseQuestions=function(){renderLibraryBrowser();};
-    window.switchLibTab=function(){renderLibraryBrowser();};
+    window.switchLibTab=function(tab){
+      const pdfs=document.getElementById("lib-tab-content-pdfs");
+      const qs=document.getElementById("lib-tab-content-qs");
+      const bP=document.getElementById("tab-btn-pdfs");
+      const bQ=document.getElementById("tab-btn-qs");
+      if(!pdfs||!qs)return;
+      const isQ=String(tab||"").toLowerCase()==="questions";
+      pdfs.style.display=isQ?"none":"flex";
+      qs.style.display=isQ?"flex":"none";
+      if(bP)bP.classList.toggle("active",!isQ);
+      if(bQ)bQ.classList.toggle("active",isQ);
+    };
     window.promptMoveQuestion=async function(qId){
       const choices=collectAllFolders().map(x=>x.path);
       const target=(prompt("Enter target folder path:\n\nAvailable:\n"+choices.join("\n"))||"").trim(); if(!target)return;
