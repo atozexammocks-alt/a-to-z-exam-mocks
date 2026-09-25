@@ -268,73 +268,18 @@ try{
     </div>
   </div>
 
-  <div class="view-screen active" id="screen-dashboard">
-    <div>
-      <h2 style="font-size:22px; font-weight:900; color:#f8fafc;">🚀 Educator Control Center</h2>
-      <p style="font-size:13px; color:#94a3b8; margin-top:4px;">Select a tool or section to manage your exam vault.</p>
-    </div>
-
-    <div class="dash-grid">
-      <a class="dash-card" href="library.html" style="text-decoration:none;">
-        <div class="dash-icon">📁</div>
-        <h3>Library & Folders</h3>
-        <p>Manage books, sections, PDF links and topic-wise extracted questions instantly.</p>
-      </a>
-
-      <a href="slicer.html" class="dash-card" style="text-decoration:none;">
-        <div class="dash-icon">✂️</div>
-        <h3>Fast Slicer Studio</h3>
-        <p>Crop questions and solutions from PDFs with absolute precision.</p>
-      </a>
-
-      <a href="ai_uploader.html" class="dash-card" style="text-decoration:none; border-color: rgba(56, 189, 248, 0.4);">
-        <div class="dash-icon">🤖</div>
-        <h3>AI Smart PDF Uploader</h3>
-        <p>Batch-extract questions from PDFs automatically using Gemini AI and review before saving.</p>
-      </a>
-
-      <a href="builder.html" class="dash-card" style="text-decoration:none;">
-        <div class="dash-icon">🛠️</div>
-        <h3>Test Builder</h3>
-        <p>Filter questions, assemble mock tests, set pricing and publish live.</p>
-      </a>
-
-      <div class="dash-card" onclick="window.location.href='public_tests.html'">
-        <div class="dash-icon">🔗</div>
-        <h3>Published Tests & Links</h3>
-        <p>View personal and centralized mock tests and copy WhatsApp share links instantly.</p>
-      </div>
-
-      <a class="dash-card" href="student_submissions.html" style="text-decoration:none;">
-        <div class="dash-icon">📊</div>
-        <h3>Student Submissions</h3>
-        <p>Track live student performance, scores and test attempts.</p>
-      </a>
-
-      <div class="dash-card" onclick="window.location.href='database_backup.html'">
-        <div class="dash-icon">💾</div>
-        <h3>Database Backup</h3>
-        <p>Download complete JSON backup of folders, questions and metadata.</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="view-screen" id="screen-library">
+  <div class="view-screen active" id="screen-library">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
       <div>
         <h2 id="library-main-title">Your Question Library</h2>
         <p style="font-size:13px; color:#94a3b8;" id="library-sub-title">Create Library Folders, then add Sections for your questions, PDFs and study material.</p>
-      </div>
-      <div style="display:flex; gap:10px;">
-        <a class="tool-btn" href="dashboard.html" style="background:#334155; text-decoration:none;">🏠 Dashboard</a>
-        <a href="slicer.html" class="tool-btn" style="background:#2563eb; text-decoration:none;">✂️ Open Slicer</a>
       </div>
     </div>
 
     <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div class="breadcrumb-bar" style="margin:0;"><span>📚 Your Library Folders</span></div>
-        <button class="tool-btn" style="background:#10b981;" onclick="promptNewFolder()">＋ Create Folder</button>
+        <button class="tool-btn" style="background:#2563eb;" onclick="promptNewFolder()">＋ Create Folder</button>
       </div>
       <div class="folder-grid" id="folder-cards-container"></div>
     </div>
@@ -344,7 +289,7 @@ try{
         <div class="dual-sidebar">
           <div class="sidebar-section-title">
             <span>📂 Sections in this Folder</span>
-            <button class="f-btn" style="background:#10b981; color:#fff; font-weight:bold;" onclick="promptNewFolder()">＋ Create Folder</button>
+            <button class="f-btn" style="background:#2563eb; color:#fff; font-weight:bold;" onclick="promptNewFolder()">＋ Create Folder</button>
           </div>
           <div id="sidebar-sub-folders" style="display:flex; flex-direction:column; gap:4px; overflow-y:auto; flex:1;"></div>
         </div>
@@ -358,7 +303,7 @@ try{
           <div id="lib-tab-content-pdfs" style="display:flex; flex-direction:column; gap:10px; flex:1; overflow-y:auto;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <h3 style="color:#38bdf8; font-size:14px;" id="current-subfolder-title">Select a Sub-Folder</h3>
-              <button class="tool-btn" style="background:#10b981; font-size:11px;" onclick="addNewPdfRow()">+ Add PDF Link</button>
+              <button class="tool-btn" style="background:#2563eb; font-size:11px;" onclick="addNewPdfRow()">+ Add PDF Link</button>
             </div>
             <table class="pdf-table">
               <thead>
