@@ -126,43 +126,17 @@
     .dash-card p { font-size: 13px; color: #94a3b8; line-height: 1.4; }
 
     #screen-library { padding: 24px; flex-direction: column; gap: 16px; overflow: hidden; }
-    /* PC-style Library Explorer */
-    .folder-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:18px; align-content:start; padding:4px 2px 28px; }
-    .folder-card { background:#0b1120; border:1px solid #1e293b; border-radius:10px; padding:16px 10px 12px; cursor:pointer; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:8px; min-height:142px; box-shadow:0 4px 14px rgba(0,0,0,.22); transition:all .15s ease; }
-    .folder-card:hover { border-color:#38bdf8; background:#0f172a; transform:translateY(-2px); }
-    .folder-icon { width:64px; height:48px; position:relative; margin-top:3px; filter:drop-shadow(0 5px 8px rgba(0,0,0,.35)); }
-    .folder-icon:before { content:""; position:absolute; left:3px; top:2px; width:25px; height:10px; border-radius:6px 6px 0 0; background:#f6c453; }
-    .folder-icon:after { content:""; position:absolute; left:0; right:0; top:9px; bottom:0; border-radius:5px 7px 7px 7px; background:linear-gradient(180deg,#ffd86a 0%,#e8a92e 100%); border:1px solid rgba(255,255,255,.12); }
-    .folder-card h3 { width:100%; text-align:center; font-size:13px !important; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .folder-card > p { width:100%; text-align:center; min-height:30px; font-size:10px !important; line-height:1.35; }
-    .folder-card-actions { display:flex; gap:4px; flex-wrap:wrap; justify-content:center; margin-top:auto; border-top:1px solid #1e293b; padding-top:8px; width:100%; }
-    .library-action-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:#0b1120; border:1px solid #1e293b; border-radius:10px; flex-shrink:0; }
-    .library-action-buttons { display:flex; gap:7px; flex-wrap:wrap; }
-    .library-action-buttons .tool-btn { padding:7px 11px; }
+    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .folder-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 14px; padding: 20px; cursor: pointer; position: relative; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .folder-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
+    .folder-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; border-top: 1px solid #1e293b; padding-top: 10px; }
 
-    .badge-status { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-block; cursor: pointer; }
-    .badge-private { background: #334155; color: #94a3b8; }
-    .badge-public { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); }
-
-    .breadcrumb-bar { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; color: #94a3b8; margin-bottom: 10px; flex-shrink: 0; }
-
-    #library-top-row { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 12px 16px; display: flex; gap: 10px; align-items: center; overflow-x: auto; flex-shrink: 0; }
-    .lib-main-folder-tab { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
-    .lib-main-folder-tab.active { background: #2563eb; border-color: #38bdf8; color: white; }
+    .breadcrumb-bar { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 700; color: #94a3b8; margin-bottom: 0px; flex-shrink: 0; }
 
     .library-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: calc(100vh - 180px); }
     .dual-sidebar { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto !important; height: 100%; }
     .sidebar-section-title { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
     
-    .folder-item-row { display: flex; align-items: center; justify-content: space-between; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 8px 10px; cursor: pointer; flex-shrink: 0; }
-    .folder-item-row:hover { border-color: #38bdf8; }
-    .folder-item-row.active { background: #2563eb; border-color: #38bdf8; color: white; }
-    .folder-name-tag { font-size: 13px; font-weight: 700; color: #cbd5e1; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .folder-item-row.active .folder-name-tag { color: white; }
-    .folder-tools { display: flex; gap: 4px; align-items: center; }
-    .f-btn { background: rgba(255,255,255,0.05); border: none; color: #94a3b8; padding: 3px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; }
-    .f-btn:hover { background: rgba(56,189,248,0.2); color: #38bdf8; }
-
     .pdf-table-container { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; height: 100%; overflow-y: auto; }
     .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
     .pdf-table th { background: #0f172a; color: #94a3b8; padding: 10px 12px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
@@ -173,8 +147,6 @@
     .lib-tab-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
     .lib-tab-btn.active { background: #2563eb; border-color: #38bdf8; color: white; }
 
-    .topic-group-box { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #060911; border: 1px solid #1e293b; border-radius: 10px; padding: 14px; }
-    .topic-group-title { font-size: 13px; font-weight: 800; color: #38bdf8; border-bottom: 1px dashed #334155; padding-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
     .lib-question-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
     .lib-q-card { background: #0b1120; border: 1px solid #334155; border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px; position: relative; }
     .lib-q-img { background: #fff; border-radius: 4px; padding: 6px; display: flex; align-items: center; justify-content: center; max-height: 120px; overflow: hidden; cursor: pointer; }
@@ -201,7 +173,6 @@
     .analytics-stat strong { color:#f8fafc; font-size:18px; }
     @media(max-width:800px){.analytics-grid{grid-template-columns:repeat(2,1fr);}}
   
-    /* Library is a separate page, but keeps the exact original Studio UI/layout. */
     body.library-page #screen-dashboard,
     body.library-page #screen-monitor { display:none !important; }
     body.library-page #screen-library { display:flex !important; }
@@ -225,7 +196,6 @@ try{
 </head>
 <body class="library-page">
   <script>
-    // A valid saved teacher session must never be blocked by the login overlay on page reload.
     (function(){
       try {
         if ((localStorage.getItem('ExamVault_Teacher_Email') || '').trim()) {
@@ -257,7 +227,6 @@ try{
     </div>
   </div>
 
-  <!-- EDUCATOR LOGIN OVERLAY WITH EMAILJS RECOVERY & HOME BUTTON -->
   <div id="auth-overlay">
     <div class="auth-card">
       <div class="auth-icon-badge">🔐</div>
@@ -270,18 +239,17 @@ try{
       </div>
       <div class="auth-input-group">
         <label>PIN</label>
-  <input type="password" id="teacher-auth-password" inputmode="numeric" placeholder="Enter your PIN" autocomplete="off" required>
+        <input type="password" id="teacher-auth-password" inputmode="numeric" placeholder="Enter your PIN" autocomplete="off" required>
       </div>
 
       <button class="btn-auth-unlock" onclick="handleTeacherLogin()">🔐 Login to Teacher Studio</button>
-      <button type="button" class="nav-btn" style="justify-content:center;" onclick="alert(&quot;Please contact the administrator to reset your PIN.&quot;)">🔑 Forgot PIN?</button>
+      <button type="button" class="nav-btn" style="justify-content:center;" onclick="alert('Please contact the administrator to reset your PIN.')">🔑 Forgot PIN?</button>
       <div id="teacher-auth-status" style="font-size:11px;color:#94a3b8;min-height:16px;"></div>
       <div style="background:#07101f;border:1px solid #1e3a5f;border-radius:10px;padding:10px 12px;text-align:left;color:#94a3b8;font-size:11px;line-height:1.5;">
         🔐 <strong style="color:#38bdf8;">Email + PIN</strong><br>
         Enter your registered teacher email and PIN to open Teacher Studio.
       </div>
       
-      <!-- HOME BUTTON ADDED HERE -->
       <a href="index.html" class="btn-auth-home">🏠 Back to Home</a>
     </div>
   </div>
@@ -293,9 +261,8 @@ try{
     </div>
     <div class="nav-tabs">
       <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
-      <button class="nav-btn" id="central-lib-nav-btn" type="button" onclick="openCentralLibrary(event)">🌐 Central Library</button>
       <a class="nav-btn" href="library_access.html">🤝 Library Access</a>
-      <a class="nav-btn" href="./dashboard.html">🏠 Dashboard</a>
+      <a class="nav-btn" href="dashboard.html">🏠 Dashboard</a>
       <span class="user-pill" id="current-user-tag">Educator</span>
       <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutTeacher()">🔒 Logout</button>
     </div>
@@ -320,7 +287,6 @@ try{
         <p>Crop questions and solutions from PDFs with absolute precision.</p>
       </a>
 
-      <!-- NEW AI SMART PDF UPLOADER CARD LINKED TO ai_uploader.html -->
       <a href="ai_uploader.html" class="dash-card" style="text-decoration:none; border-color: rgba(56, 189, 248, 0.4);">
         <div class="dash-icon">🤖</div>
         <h3>AI Smart PDF Uploader</h3>
@@ -333,7 +299,6 @@ try{
         <p>Filter questions, assemble mock tests, set pricing and publish live.</p>
       </a>
 
-      <!-- PUBLISHED TESTS & LINKS CARD LINKED TO public_tests.html -->
       <div class="dash-card" onclick="window.location.href='public_tests.html'">
         <div class="dash-icon">🔗</div>
         <h3>Published Tests & Links</h3>
@@ -344,7 +309,7 @@ try{
         <div class="dash-icon">📊</div>
         <h3>Student Submissions</h3>
         <p>Track live student performance, scores and test attempts.</p>
-      </div>
+      </a>
 
       <div class="dash-card" onclick="window.location.href='database_backup.html'">
         <div class="dash-icon">💾</div>
@@ -355,33 +320,31 @@ try{
   </div>
 
   <div class="view-screen" id="screen-library">
-    <div class="library-action-bar">
-      <div style="min-width:0;">
-        <h2 id="library-main-title" style="font-size:20px;font-weight:900;">📚 My Library</h2>
-        <p style="font-size:11px;color:#64748b;" id="library-sub-title">PC-style folders • Create unlimited nested folders and keep your question/PDF library organized.</p>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
+      <div>
+        <h2 id="library-main-title">Your Question Library</h2>
+        <p style="font-size:13px; color:#94a3b8;" id="library-sub-title">Create Library Folders, then add Sections for your questions, PDFs and study material.</p>
       </div>
-      <div class="library-action-buttons">
-        <button class="tool-btn" style="background:#2563eb;" onclick="event.stopPropagation();createNewFolder()">＋ Create New Folder</button>
-        <button class="tool-btn" style="background:#10b981;" onclick="event.stopPropagation();promptNewMainFolder()">＋ Create Library Folder</button>
-        <button class="tool-btn" style="background:#7c3aed;" onclick="openCentralLibrary(event)">🌐 Central Library</button>
+      <div style="display:flex; gap:10px;">
+        <a class="tool-btn" href="dashboard.html" style="background:#334155; text-decoration:none;">🏠 Dashboard</a>
+        <a href="slicer.html" class="tool-btn" style="background:#2563eb; text-decoration:none;">✂️ Open Slicer</a>
       </div>
     </div>
 
-    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1;">
+    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="breadcrumb-bar" style="margin:0;"><span>📚 Your Library Folders</span></div>
+        <button class="tool-btn" style="background:#10b981;" onclick="promptNewFolder()">＋ Create Folder</button>
+      </div>
       <div class="folder-grid" id="folder-cards-container"></div>
     </div>
 
     <div id="folder-files-view" style="display:none; flex-direction:column; gap:12px; flex:1; overflow:hidden;">
-      <div id="library-top-row">
-        <span style="font-size:11px; font-weight:800; color:#94a3b8; text-transform:uppercase; flex-shrink:0;">Main Folders:</span>
-        <div id="lib-main-tabs-container" style="display:flex; gap:8px; overflow-x:auto;"></div>
-      </div>
-
       <div class="library-layout">
         <div class="dual-sidebar">
           <div class="sidebar-section-title">
             <span>📂 Sections in this Folder</span>
-            <button class="f-btn" style="background:#10b981; color:#fff; font-weight:bold;" onclick="promptNewSubFolder()">＋ Create Section</button>
+            <button class="f-btn" style="background:#10b981; color:#fff; font-weight:bold;" onclick="promptNewFolder()">＋ Create Folder</button>
           </div>
           <div id="sidebar-sub-folders" style="display:flex; flex-direction:column; gap:4px; overflow-y:auto; flex:1;"></div>
         </div>
@@ -434,7 +397,8 @@ try{
           <option value="ALL">🔍 All Tests (Show All)</option>
         </select>
         <button class="tool-btn" onclick="switchView('screen-dashboard')" style="background:#334155;">🏠 Dashboard</button>
-        <button class="tool-btn" onclick="openSelectedTestAnalytics()" style="background:#f59e0b; color:#fff;">📊 Analytics</button><button class="tool-btn" onclick="switchView('screen-monitor')" style="background:#2563eb;">🔄 Refresh</button>
+        <button class="tool-btn" onclick="openSelectedTestAnalytics()" style="background:#f59e0b; color:#fff;">📊 Analytics</button>
+        <button class="tool-btn" onclick="switchView('screen-monitor')" style="background:#2563eb;">🔄 Refresh</button>
       </div>
     </div>
     
@@ -463,7 +427,7 @@ try{
       const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
       if (!savedEmail) return;
       window.currentTeacherEmail = savedEmail;
-      window.currentTeacherUid = localStorage.getItem('ExamVault_Teacher_UID') || ('pin:' + savedEmail.replace(/[^a-zA-Z0-9]/g, '_'));
+      window.currentTeacherUID = localStorage.getItem('ExamVault_Teacher_UID') || ('pin:' + savedEmail.replace(/[^a-zA-Z0-9]/g, '_'));
       const overlay = document.getElementById('auth-overlay');
       if (overlay) overlay.style.display = 'none';
       const tag = document.getElementById('current-user-tag');
@@ -496,7 +460,6 @@ try{
       } catch (e) {}
     }
 
-    // PIN login is defined in the Firebase module above. Do not override it here.
     window.handleTeacherForgotPassword = window.handleTeacherLogin;
 
     function onLoginSuccess(email) {
@@ -520,7 +483,6 @@ try{
         localStorage.removeItem("ExamVault_Auth_Email");
         window.currentTeacherEmail = "";
         window.currentTeacherUid = "";
-        // Leave the teacher studio after logout so the signed-out state is clear.
         window.location.replace("index.html");
       }
     }
@@ -592,11 +554,7 @@ try{
       const list=[...new Set(d.approved.filter(x=>x&&x!==teacherEmailKey()))];
       approved.innerHTML="<h5 style='color:#38bdf8;font-size:11px;'>🔓 Libraries I can access</h5>"+(list.length?list.map(e=>"<div style='padding:7px 8px;background:#060911;border:1px solid #1e293b;border-radius:7px;margin-bottom:5px;font-size:11px;'>"+e+" <span style='color:#10b981;font-weight:800;'>APPROVED</span></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No approved shared libraries yet.</div>");
     }
-    // A new teacher starts with an empty private library.
-    // Folders and sections are created explicitly by the teacher and saved to Firestore.
-    // Hierarchical private library tree.
-    // Every folder can contain unlimited child folders. Content is shown only
-    // when the user reaches the selected folder's contents level.
+
     let libraryTree = [];
     let folderPdfs = {};
     let cloudVault = [];
@@ -610,7 +568,6 @@ try{
         const data = snap.exists() ? snap.data() : {};
         libraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
 
-        // One-time compatibility for the previous flat structure.
         if (!libraryTree.length && Array.isArray(data.mainFolders)) {
           libraryTree = data.mainFolders.map(name => ({
             id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2,7),
@@ -756,7 +713,6 @@ try{
       if (id === 'screen-library') renderLibraryBrowser();
       if (id === 'screen-monitor') loadStudentResults();
     }
-    // Inline onclick handlers use the same working implementation.
     window.switchView = switchView;
 
     function currentContentStats(path) {
@@ -765,45 +721,38 @@ try{
       return {qCount,pdfCount,total:qCount+pdfCount};
     }
 
-    window.promptNewMainFolder = async function() {
-      const name=(prompt("Create Library Folder\n\nExample: 11-12th, Physics AP, JEE Main")||"").trim();
-      if(!name)return;
-      if(!Array.isArray(libraryTree)) libraryTree=[];
-      if(libraryTree.some(n=>String(n.name||"").trim().toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
-      const newFolder=makeFolder(name);
-      libraryTree.push(newFolder);
-      const saved=await saveLibraryState();
+    window.promptNewFolder = async function() {
+      const promptTitle = currentFolderPath 
+        ? `Create Subfolder inside "${currentFolderPath}"` 
+        : "Create Library Folder\n\nExample: 11-12th, Physics AP, JEE Main";
+      
+      const name = (prompt(promptTitle) || "").trim();
+      if(!name) return;
+
+      if (!currentFolderPath) {
+        if(!Array.isArray(libraryTree)) libraryTree=[];
+        if(libraryTree.some(n=>String(n.name||"").trim().toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
+        libraryTree.push(makeFolder(name));
+      } else {
+        const parent = findFolderByPath(currentFolderPath);
+        if(!parent) return;
+        parent.children = Array.isArray(parent.children) ? parent.children : [];
+        if(parent.children.some(n=>n.name.toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
+        parent.children.push(makeFolder(name));
+      }
+
+      const saved = await saveLibraryState();
       if(!saved) {
-        libraryTree.pop();
-        return alert("Folder could not be saved. Please check your Firebase login/session and Firestore rules.");
+        if (!currentFolderPath) libraryTree.pop();
+        else {
+          const parent = findFolderByPath(currentFolderPath);
+          parent.children.pop();
+        }
+        return alert("Folder could not be saved. Please check your connection.");
       }
-      currentFolderPath="";
-      renderLibraryBrowser();
-      logTeacherActivity("CREATE_FOLDER","Created Library Folder: "+name);
-      showToast("✔ Library Folder Created!");
-    };
 
-    window.createNewFolder = async function() {
-      if(currentFolderPath) return window.promptNewSubFolder();
-      return window.promptNewMainFolder();
-    };
-
-    window.promptNewSubFolder = async function() {
-      if(!currentFolderPath) return alert("Open a folder first.");
-      const parent=findFolderByPath(currentFolderPath);
-      if(!parent)return;
-      const name=(prompt('Create a Subfolder inside "'+parent.name+'")\n\nExamples: Class 11, Class 12, Physics, Mechanics')||"").trim();
-      if(!name)return;
-      parent.children=Array.isArray(parent.children)?parent.children:[];
-      if(parent.children.some(n=>n.name.toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
-      parent.children.push(makeFolder(name));
-      const saved=await saveLibraryState();
-      if(!saved){
-        parent.children.pop();
-        return alert("Folder could not be saved. Please check your Firebase login/session and Firestore rules.");
-      }
       renderLibraryBrowser();
-      logTeacherActivity("CREATE_SUBFOLDER","Created folder: "+currentFolderPath+" / "+name);
+      logTeacherActivity("CREATE_FOLDER", "Created folder: " + (currentFolderPath ? currentFolderPath + " / " + name : name));
       showToast("✔ Folder Created!");
     };
 
@@ -849,7 +798,7 @@ try{
       cards.innerHTML='';
       const header=document.createElement('div');
       header.style='grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;';
-      header.innerHTML='<div><div style="font-size:11px;color:#64748b;">'+(currentFolderPath?'Folder contents':'Your folders')+'</div><div style="font-size:16px;font-weight:900;color:#f8fafc;">'+(current?('📁 '+current.name):'📚 My Library')+'</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;"><button class="tool-btn" onclick="backToFolderCards()" '+(currentFolderPath?'':'disabled')+'>← My Library</button><button class="tool-btn" style="background:#2563eb;" onclick="createNewFolder()">＋ Create New Folder</button><button class="tool-btn" style="background:#10b981;" onclick="promptNewMainFolder()">＋ Create Library Folder</button></div>';
+      header.innerHTML='<div><div style="font-size:12px;color:#94a3b8;">'+(currentFolderPath?'Folder contents':'Top-level folders')+'</div><div style="font-size:18px;font-weight:900;color:#f8fafc;">'+(current?('📁 '+current.name):'📚 My Library')+'</div></div><div style="display:flex;gap:7px;"><button class="tool-btn" onclick="backToFolderCards()" '+(currentFolderPath?'':'disabled')+'>← My Library</button><button class="tool-btn" style="background:#2563eb;" onclick="promptNewFolder()">＋ Create Folder</button></div>';
       cards.appendChild(header);
 
       if(currentFolderPath){
@@ -866,7 +815,7 @@ try{
           const path=currentFolderPath ? currentFolderPath+' / '+node.name : node.name;
           const stats=currentContentStats(path);
           const card=document.createElement('div'); card.className='folder-card'; card.onclick=()=>openMainFolder(path);
-          card.innerHTML='<div class="folder-icon" aria-hidden="true"></div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" style="background:#0f766e;" onclick="openFolderActions(\''+path.replace(/'/g,"\\'")+'\',event)">⚙️ Folder Options</button><button class="tool-btn" onclick="deleteLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
+          card.innerHTML='<div style="font-size:44px;">📁</div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" style="background:#0f766e;" onclick="openFolderActions(\''+path.replace(/'/g,"\\'")+'\',event)">⚙️ Folder Options</button><button class="tool-btn" onclick="deleteLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
           cards.appendChild(card);
         });
       }
@@ -879,20 +828,16 @@ try{
         renderHierarchicalContents(currentFolderPath);
       } else if(currentFolderPath && !children.length){
         const empty=document.createElement('div'); empty.style='grid-column:1/-1;padding:35px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:14px;';
-        empty.innerHTML='📂 This folder is empty.<br><span style="font-size:12px;">Create a subfolder, or add content here when ready.</span>';
+        empty.innerHTML='📂 This folder is empty.<br><span style="font-size:12px;">Create a subfolder or add PDF/Questions here.</span>';
         cards.appendChild(empty);
       } else if(!children.length && !currentFolderPath){
         const empty=document.createElement('div'); empty.style='grid-column:1/-1;padding:35px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:14px;';
-        empty.innerHTML='📚 Your Library is Empty<br><span style="font-size:12px;">Create your first Library Folder.</span>';
+        empty.innerHTML='📚 Your Library is Empty<br><span style="font-size:12px;">Create your first Folder.</span>';
         cards.appendChild(empty);
       }
     }
 
     function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-
-    function getFolderActionButton(path, label, color, action) {
-      return '<button class="tool-btn" style="padding:5px 9px;font-size:10px;background:'+color+';" onclick="'+action+'(\\''+path.replace(/'/g,"\\\\'")+'\\',event)">'+label+'</button>';
-    }
 
     window.openFolderActions = function(path, event) {
       if(event) event.stopPropagation();
@@ -915,15 +860,15 @@ try{
         "<button class='tool-btn' style='padding:13px;background:#059669;' onclick=\"toggleCentralFolder('"+path.replace(/'/g,"\\'")+"')\">🌐 Central Library</button>"+
         "<button class='tool-btn' style='padding:13px;background:#7c3aed;' onclick=\"moveLibraryFolder('"+path.replace(/'/g,"\\'")+"')\">📦 Move to Folder</button>"+
         "<button class='tool-btn' style='padding:13px;background:#475569;' onclick=\"renameLibraryFolder('"+path.replace(/'/g,"\\'")+"',event);document.getElementById('folder-actions-modal').remove()\">✏️ Rename</button>"+
-        "</div><p style='font-size:11px;color:#94a3b8;margin-top:14px;line-height:1.5;'>Folder access shares this folder and everything inside it. Central Library publishes this folder for shared use. Move changes its place in your private hierarchy.</p>";
+        "</div><p style='font-size:11px;color:#94a3b8;margin-top:14px;line-height:1.5;'>Folder access shares this folder and everything inside it. Central Library publishes this folder for shared use.</p>";
     };
 
     window.shareLibraryFolder=async function(path){
-      const email=(prompt("Teacher email to give access to this folder:\\n\\nFolder: "+path)||"").trim().toLowerCase();
+      const email=(prompt("Teacher email to give access to this folder:\n\nFolder: "+path)||"").trim().toLowerCase();
       if(!email||!email.includes("@"))return;
       const me=teacherEmailKey();
       if(email===me)return alert("You already own this folder.");
-      const permission=prompt("Access type:\\n1 = View only\\n2 = Use in tests/papers","1");
+      const permission=prompt("Access type:\n1 = View only\n2 = Use in tests/papers","1");
       const perm=permission==="2"?"use":"view";
       try{
         const id=teacherDocId(me)+"__"+teacherDocId(email)+"__"+btoa(unescape(encodeURIComponent(path))).replace(/[^a-zA-Z0-9]/g,"").slice(0,80);
@@ -955,7 +900,7 @@ try{
       const node=findFolderByPath(path);if(!node)return;
       const all=collectAllFolders().map(x=>x.path).filter(p=>p!==path&&!p.startsWith(path+" / "));
       if(!all.length)return alert("There is no other folder available as a destination.");
-      const target=(prompt("Move this folder inside which folder?\\n\\nAvailable destinations:\\n"+all.join("\\n"))||"").trim();
+      const target=(prompt("Move this folder inside which folder?\n\nAvailable destinations:\n"+all.join("\n"))||"").trim();
       if(!target||!findFolderByPath(target))return;
       const parts=path.split(" / "), oldParentPath=parts.slice(0,-1).join(" / ");
       const siblings=oldParentPath?(findFolderByPath(oldParentPath)?.children||[]):libraryTree;
@@ -1006,7 +951,6 @@ try{
     window.updatePdfItemHier=async function(path,idx,field,val){if(folderPdfs[path]?.[idx]){folderPdfs[path][idx][field]=String(val||'').trim();await saveLibraryState();}};
     window.openPdfUrl=function(url){if(url)window.open(url,'_blank','noopener,noreferrer');else alert('Add a PDF URL first.');};
 
-    // Compatibility wrappers for older UI calls.
     window.renderFolderCards=renderLibraryBrowser;
     window.renderLibraryTopRow=function(){};
     window.renderLibrarySubSidebar=function(){renderLibraryBrowser();};
@@ -1024,13 +968,7 @@ try{
       if(bP)bP.classList.toggle("active",!isQ);
       if(bQ)bQ.classList.toggle("active",isQ);
     };
-    window.promptMoveQuestion=async function(qId){
-      const choices=collectAllFolders().map(x=>x.path);
-      const target=(prompt("Enter target folder path:\n\nAvailable:\n"+choices.join("\n"))||"").trim(); if(!target)return;
-      if(!findFolderByPath(target))return alert("Folder not found.");
-      const q=cloudVault.find(x=>x.id===qId);if(!q)return;
-      await window.updateDoc(window.doc(window.db,"questions",qId),{subject:target});q.subject=target;renderLibraryBrowser();showToast("✔ Question moved.");
-    };
+
     window.renameMainFolder=window.renameLibraryFolder;
     window.deleteMainFolder=window.deleteLibraryFolder;
     window.renameSubFolder=window.renameLibraryFolder;
@@ -1038,8 +976,6 @@ try{
     window.moveMainFolderPrompt=window.renameLibraryFolder;
 
     async function initStudio() {
-      // Render the folders immediately, then refresh them after Firestore questions
-      // have loaded so question counters and question lists are not stuck at zero.
       renderFolderCards();
       try {
         const snap = await window.getDocs(window.collection(window.db, "questions"));
@@ -1050,11 +986,8 @@ try{
         cloudVault = rawQuestions.filter(q => {
           const owner = String(q.ownerEmail || q.creatorEmail || q.createdBy || "").trim().toLowerCase();
           const path = getQuestionLibraryPath(q);
-          // CURRENT LIBRARY FIRST: questions owned by this teacher are always visible.
           if (owner === me) return true;
-          // Keep older records visible when they are already inside the current library registry.
           if (path && currentPaths.has(path) && !owner) return true;
-          // Approved shared libraries remain available.
           if (owner && allowedOwners.includes(owner)) return true;
           return false;
         });
@@ -1214,10 +1147,11 @@ try{
         `;
       });
     }
-    /* PRIVATE LIBRARY + CENTRAL + GROUP COLLAB V2 */
+
     (function(){
       function me(){return teacherEmailKey();}
       function esc(s){return String(s||"").replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m];});}
+      
       window.toggleQuestionCentralPublish=async function(qId){
         const q=cloudVault.find(function(x){return x.id===qId;});
         if(!q||String(q.ownerEmail||"").toLowerCase()!==me())return alert("Only the question owner can change Central visibility.");
@@ -1226,157 +1160,56 @@ try{
         q.centralPublished=next;showToast(next?"🌐 Published to Central Library":"🔒 Removed from Central Library");
         if(typeof window.renderSubfolderTopicWiseQuestions==="function")window.renderSubfolderTopicWiseQuestions();
       };
+
       async function myGroups(){
         if(!window.db||!me())return [];
         const snap=await window.getDocs(window.collection(window.db,"teacher_groups")),arr=[];
         snap.forEach(function(d){const x=Object.assign({id:d.id},d.data());const m=Array.isArray(x.memberEmails)?x.memberEmails:[];if(x.ownerEmail===me()||m.includes(me()))arr.push(x);});
         return arr;
       }
+
       window.createTeacherGroup=async function(){
         const name=prompt("Group / Institute name:");if(!name||!name.trim())return;
         const id=teacherDocId(me())+"__"+Date.now();
         await window.setDoc(window.doc(window.db,"teacher_groups",id),{name:name.trim(),ownerEmail:me(),memberEmails:[me()],pendingEmails:[],createdAt:new Date().toISOString()});
         showToast("👥 Group created.");openGroupManager();
       };
-      window.inviteTeacherToGroup=async function(groupId){
-        const email=(prompt("Teacher email to invite:")||"").trim().toLowerCase();if(!email||!email.includes("@"))return;
-        const ref=window.doc(window.db,"teacher_groups",groupId),snap=await window.getDoc(ref);if(!snap.exists())return;const g=snap.data();if(g.ownerEmail!==me())return alert("Only group owner can invite.");
-        const p=[...(g.pendingEmails||[])];if(!p.includes(email)&&!(g.memberEmails||[]).includes(email))p.push(email);
-        await window.updateDoc(ref,{pendingEmails:p});showToast("📨 Invitation sent.");openGroupManager();
-      };
-      window.acceptTeacherGroup=async function(groupId){
-        const ref=window.doc(window.db,"teacher_groups",groupId),snap=await window.getDoc(ref);if(!snap.exists())return;const g=snap.data();if(!(g.pendingEmails||[]).includes(me()))return;
-        const m=[...(g.memberEmails||[])];if(!m.includes(me()))m.push(me());await window.updateDoc(ref,{memberEmails:m,pendingEmails:(g.pendingEmails||[]).filter(function(x){return x!==me();})});showToast("✔ Joined group.");openGroupManager();
-      };
-      window.shareQuestionToGroup=async function(qId,groupId){
-        const q=cloudVault.find(function(x){return x.id===qId;});if(!q||String(q.ownerEmail||"").toLowerCase()!==me())return alert("Only the question owner can share it to a group.");
-        const ids=[...(q.sharedGroupIds||[])];if(!ids.includes(groupId))ids.push(groupId);await window.updateDoc(window.doc(window.db,"questions",qId),{sharedGroupIds:ids});q.sharedGroupIds=ids;showToast("👥 Question shared with group.");
-      };
-      window.shareQuestionToAnyGroup=async function(qId){
-        const gs=await myGroups();if(!gs.length)return alert("Create or join a teacher group first.");
-        const choice=prompt(gs.map(function(g,i){return (i+1)+". "+g.name;}).join("\n"));const g=gs[Number(choice)-1];if(g)await shareQuestionToGroup(qId,g.id);
-      };
+
       window.openGroupManager=async function(){
         let modal=document.getElementById("teacher-group-modal");
         if(!modal){modal=document.createElement("div");modal.id="teacher-group-modal";modal.style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:97000;padding:16px;";modal.innerHTML="<div id='teacher-group-box' style='background:#0b1120;border:2px solid #a78bfa;border-radius:16px;width:min(900px,100%);max-height:90vh;overflow:auto;padding:20px;'></div>";document.body.appendChild(modal);}
         const box=document.getElementById("teacher-group-box"),gs=await myGroups();
         box.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;'><div><h3 style='color:#c4b5fd;'>👥 Teacher Groups / Institute Teams</h3><p style='color:#94a3b8;font-size:11px;'>Private collaboration, question sharing and group chat.</p></div><div><button class='tool-btn' style='background:#7c3aed;' onclick='createTeacherGroup()'>＋ New Group</button><button class='tool-btn' style='background:#7f1d1d;margin-left:6px;' onclick=\"document.getElementById('teacher-group-modal').remove()\">✕</button></div></div>";
         if(!gs.length){box.innerHTML+="<p style='color:#64748b;margin-top:20px;'>No groups yet.</p>";return;}
-        gs.forEach(function(g){
-          const owner=g.ownerEmail===me(),pending=(g.pendingEmails||[]).includes(me());
-          box.innerHTML+="<div style='margin-top:14px;background:#060911;border:1px solid #334155;border-radius:12px;padding:13px;'><div style='display:flex;justify-content:space-between;gap:8px;'><div><strong style='color:#f8fafc;'>👥 "+esc(g.name)+"</strong><div style='font-size:10px;color:#64748b;'>Owner: "+esc(g.ownerEmail)+" · "+(g.memberEmails||[]).length+" members</div></div>"+(pending?"<button class='tool-btn' style='background:#059669;' onclick=\"acceptTeacherGroup('"+g.id+"')\">✔ Accept</button>":owner?"<button class='tool-btn' style='background:#2563eb;' onclick=\"inviteTeacherToGroup('"+g.id+"')\">＋ Invite Teacher</button>":"")+"</div><div style='margin-top:8px;color:#94a3b8;font-size:11px;'>Members: "+(g.memberEmails||[]).map(esc).join(", ")+"</div><div style='margin-top:9px;display:flex;gap:6px;'><button class='tool-btn' onclick=\"openGroupChat('"+g.id+"')\">💬 Group Chat</button><button class='tool-btn' onclick=\"openGroupSharedQuestions('"+g.id+"')\">📚 Shared Questions</button></div></div>";
-        });
       };
-      window.openGroupChat=async function(groupId){
-        const g=await window.getDoc(window.doc(window.db,"teacher_groups",groupId));if(!g.exists())return;const data=g.data();
-        const snap=await window.getDocs(window.query(window.collection(window.db,"teacher_groups",groupId,"messages"),window.orderBy("createdAt","asc")));
-        let h="<h3 style='color:#c4b5fd;'>💬 "+esc(data.name)+"</h3><div style='max-height:320px;overflow:auto;background:#060911;border:1px solid #334155;border-radius:10px;padding:10px;'>";
-        snap.forEach(function(d){const x=d.data();h+="<div style='padding:6px 0;border-bottom:1px solid #1e293b;'><strong style='color:#38bdf8;font-size:10px;'>"+esc(x.email)+"</strong><div style='color:#cbd5e1;font-size:12px;'>"+esc(x.text)+"</div></div>";});
-        h+="</div><div style='display:flex;gap:6px;margin-top:8px;'><input id='grp-chat-input' class='pdf-input' placeholder='Message the group...'><button class='tool-btn' style='background:#7c3aed;' onclick=\"sendGroupChat('"+groupId+"')\">Send</button></div><button class='tool-btn' style='margin-top:8px;' onclick='openGroupManager()'>← Back</button>";
-        document.getElementById("teacher-group-box").innerHTML=h;
-      };
-      window.sendGroupChat=async function(groupId){const i=document.getElementById("grp-chat-input"),v=(i&&i.value||"").trim();if(!v)return;await window.addDoc(window.collection(window.db,"teacher_groups",groupId,"messages"),{email:me(),text:v,createdAt:new Date().toISOString()});await openGroupChat(groupId);};
-      window.openGroupSharedQuestions=async function(groupId){
-        const qs=cloudVault.filter(function(q){return (q.sharedGroupIds||[]).includes(groupId);});
-        let h="<h3 style='color:#c4b5fd;'>📚 Group Shared Questions</h3>";h+=qs.length?qs.map(function(q){return "<div style='padding:8px;border:1px solid #334155;border-radius:8px;margin:6px 0;font-size:11px;'><strong>"+esc(q.subject||"")+"</strong> · "+esc(q.topic||"General")+" · Owner: "+esc(q.ownerEmail||"")+"</div>";}).join(""):"<p style='color:#64748b;'>No questions shared yet.</p>";
-        h+="<button class='tool-btn' style='margin-top:8px;' onclick='openGroupManager()'>← Back</button>";document.getElementById("teacher-group-box").innerHTML=h;
-      };
-      window.openCentralLibrary=async function(event){
-        if(event){ event.preventDefault(); event.stopPropagation(); }
-        const me=teacherEmailKey();
-        if(!me) return alert("Please login as a teacher first.");
 
-        let m=document.getElementById("central-library-modal");
+      window.openCentralLibrary = async function(){
+        const all = cloudVault.filter(function(q){ return q.centralPublished; }); 
+        let m = document.getElementById("central-library-modal");
         if(!m){
-          m=document.createElement("div");
-          m.id="central-library-modal";
-          m.style="position:fixed;inset:0;background:rgba(0,0,0,.90);display:flex;align-items:center;justify-content:center;z-index:100000;padding:16px;";
-          m.innerHTML="<div id='central-library-box' style='background:#0b1120;border:2px solid #10b981;border-radius:16px;width:min(1000px,100%);max-height:92vh;overflow:auto;padding:20px;'></div>";
+          m = document.createElement("div");
+          m.id = "central-library-modal";
+          m.style = "position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:96000;padding:16px;";
+          m.innerHTML = "<div id='central-library-box' style='background:#0b1120;border:2px solid #10b981;border-radius:16px;width:min(900px,100%);max-height:90vh;overflow:auto;padding:20px;'></div>";
           document.body.appendChild(m);
         }
+        const box = document.getElementById("central-library-box");
+        box.innerHTML = "<div style='display:flex;justify-content:space-between;align-items:center;'><h3 style='color:#34d399;'>🌐 Central Library</h3><button class='tool-btn' style='background:#7f1d1d;' onclick=\"document.getElementById('central-library-modal').remove()\">✕</button></div><p style='color:#94a3b8;font-size:11px;'>Only questions explicitly published by their owners appear here.</p>";
+        box.innerHTML += all.length ? all.map(function(q){ return "<div style='padding:8px;border:1px solid #334155;border-radius:8px;margin:6px 0;font-size:11px;'><strong>"+esc(q.subject||"")+"</strong> · "+esc(q.topic||"General")+" · Owner: "+esc(q.ownerEmail||"")+"</div>"; }).join("") : "<p style='color:#64748b;'>Central Library is empty.</p>";
+      };
 
-        const box=document.getElementById("central-library-box");
-        box.innerHTML="<div style='display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #1e293b;padding-bottom:12px;'>"+
-          "<div><h3 style='color:#34d399;font-size:19px;'>🌐 Central Library</h3><p style='color:#94a3b8;font-size:11px;margin-top:4px;'>Publish your questions or complete folders for other teachers to use.</p></div>"+
-          "<button type='button' class='tool-btn' style='background:#7f1d1d;' onclick=\"document.getElementById('central-library-modal').remove()\">✕ Close</button></div>"+
-          "<div id='central-library-body' style='margin-top:14px;'></div>";
-
-        const body=document.getElementById("central-library-body");
-        body.innerHTML="<div style='background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;'>"+
-          "<div style='display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;'>"+
-          "<div><strong style='color:#f8fafc;'>📤 Publish a complete folder</strong><div style='font-size:10px;color:#94a3b8;margin-top:3px;'>Everything inside the selected folder becomes available in Central Library.</div></div>"+
-          "<select id='central-folder-select' class='filter-select' style='min-width:240px;'></select>"+
-          "<button type='button' class='tool-btn' style='background:#059669;' onclick='publishSelectedCentralFolder()'>🌐 Publish Folder</button></div>"+
-          "</div>"+
-          "<div id='central-published-folders' style='margin-top:14px;'></div>"+
-          "<div style='margin-top:14px;background:#060911;border:1px solid #1e293b;border-radius:10px;padding:12px;'>"+
-          "<strong style='color:#38bdf8;font-size:12px;'>📝 Questions</strong><p style='color:#94a3b8;font-size:11px;margin-top:4px;'>Individual questions can be published from their <b>Publish to Central</b> button inside the folder.</p></div>";
-
-        const select=document.getElementById("central-folder-select");
-        const folders=collectAllFolders();
-        select.innerHTML=folders.length?folders.map(x=>"<option value=\""+escapeHtml(x.path).replace(/"/g,"&quot;")+"\""+(x.centralPublished?" data-published='1'":"")+">📁 "+escapeHtml(x.path)+(x.centralPublished?" ✓":"")+"</option>").join(""):"<option value=''>No folders created yet</option>";
-
-        const publishedBox=document.getElementById("central-published-folders");
-        try{
-          const snap=await window.getDocs(window.collection(window.db,"central_library_folders"));
-          const rows=[];
-          snap.forEach(d=>{
-            const x=d.data();
-            if(x.centralPublished!==false) rows.push(Object.assign({id:d.id},x));
-          });
-          publishedBox.innerHTML="<div style='font-size:12px;font-weight:800;color:#34d399;margin-bottom:7px;'>📚 Published Central Folders ("+rows.length+")</div>"+
-            (rows.length?rows.map(x=>"<div style='display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:9px;margin:6px 0;'>"+
-              "<div><strong style='color:#f8fafc;font-size:12px;'>📁 "+escapeHtml(x.folderName||x.folderPath||"Folder")+"</strong><div style='font-size:10px;color:#64748b;'>Owner: "+escapeHtml(x.ownerEmail||"")+" · "+escapeHtml(x.folderPath||"")+"</div></div>"+
-              (String(x.ownerEmail||"").toLowerCase()===me?"<button type='button' class='tool-btn' style='background:#7f1d1d;' onclick=\"unpublishCentralFolderById('"+x.id.replace(/'/g,"\\'")+"','"+String(x.folderPath||"").replace(/'/g,"\\'")+"')\">🔒 Unpublish</button>":"<span style='color:#34d399;font-size:10px;font-weight:800;'>AVAILABLE</span>")+
-            "</div>").join(""):"<p style='color:#64748b;font-size:11px;'>No folders have been published yet.</p>");
-        }catch(e){
-          publishedBox.innerHTML="<p style='color:#ef4444;font-size:11px;'>Could not load Central Library folders.</p>";
-          console.error("Central Library load failed:",e);
+      const nav = document.querySelector(".nav-tabs");
+      if(nav) {
+        if(!document.getElementById("central-lib-nav-btn")){
+          const b = document.createElement("button");
+          b.id = "central-lib-nav-btn";
+          b.className = "nav-btn";
+          b.textContent = "🌐 Central";
+          b.onclick = openCentralLibrary;
+          nav.insertBefore(b, nav.querySelector(".user-pill"));
         }
-      };
-
-      window.publishSelectedCentralFolder=async function(){
-        const select=document.getElementById("central-folder-select"),path=(select&&select.value||"").trim();
-        if(!path)return alert("Create a folder first.");
-        const node=findFolderByPath(path);if(!node)return alert("Folder not found.");
-        if(node.centralPublished)return showToast("🌐 This folder is already in Central Library.");
-        await window.toggleCentralFolder(path);
-        if(document.getElementById("central-library-modal")) await window.openCentralLibrary();
-      };
-
-      window.unpublishCentralFolderById=async function(id,path){
-        if(!confirm("Remove this folder from Central Library?"))return;
-        try{
-          await window.deleteDoc(window.doc(window.db,"central_library_folders",id));
-          const node=findFolderByPath(path);
-          if(node){node.centralPublished=false;await saveLibraryState();}
-          showToast("🔒 Folder removed from Central Library.");
-          await window.openCentralLibrary();
-          renderLibraryBrowser();
-        }catch(e){alert("Could not remove Central Library folder: "+e.message);}
-      };
-
-      const nav=document.querySelector(".nav-tabs");
-      if(nav&&!document.getElementById("teacher-group-nav-btn")){const b=document.createElement("button");b.id="teacher-group-nav-btn";b.className="nav-btn";b.textContent="👥 Groups";b.onclick=openGroupManager;nav.insertBefore(b,nav.querySelector(".user-pill"));}
-
-      const oldRender=window.renderSubfolderTopicWiseQuestions;
-      if(typeof oldRender==="function"){window.renderSubfolderTopicWiseQuestions=function(){oldRender();const cards=document.querySelectorAll("#lib-topic-groups-container .lib-q-card");cards.forEach(function(card){const q=cloudVault.find(function(x){return x.id===card.getAttribute("data-qid");});if(!q)return;const own=String(q.ownerEmail||"").toLowerCase()===me();const ctl=document.createElement("div");ctl.className="central-publish-control";ctl.style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;";if(own){ctl.innerHTML="<button class='f-btn' style='color:"+(q.centralPublished?"#34d399":"#94a3b8")+";border:1px solid #334155;padding:4px 7px;' onclick=\"toggleQuestionCentralPublish('"+q.id+"')\">"+(q.centralPublished?"🌐 Central Published":"🔒 Publish to Central")+"</button><button class='f-btn' style='color:#c4b5fd;border:1px solid #334155;padding:4px 7px;' onclick=\"shareQuestionToAnyGroup('"+q.id+"')\">👥 Share to Group</button>";}else if(q.centralPublished){ctl.innerHTML="<span style='color:#34d399;font-size:10px;font-weight:800;'>🌐 CENTRAL LIBRARY</span>";}card.appendChild(ctl);});};}
-      const oldOnload=window.onload;window.onload=async function(){if(typeof oldOnload==="function")await oldOnload();setTimeout(function(){try{renderFolderCards();}catch(e){}},300);};
+      }
     })();
   </script>
-
-<script>
-(function(){
- function boot(){try{
-  document.body.classList.add('library-page');
-  const e=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase();
-  if(e&&window.checkSuperAdminStatus) window.checkSuperAdminStatus(e);
-  if(e){const t=document.getElementById('current-user-tag');if(t)t.textContent=e;}
-  if(window.renderLibraryBrowser) window.renderLibraryBrowser();
- }catch(err){console.error('Library boot:',err);}}
- if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,150));
- else setTimeout(boot,150);
-})();
-</script>
 </body>
 </html>
