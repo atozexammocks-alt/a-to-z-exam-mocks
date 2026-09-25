@@ -118,32 +118,15 @@
     .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; overflow-y: auto; padding-bottom: 20px; }
     .folder-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 12px; padding: 16px; cursor: pointer; position: relative; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
     .folder-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
-    .folder-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; border-top: 1px solid #1e293b; padding-top: 8px; }
 
     .breadcrumb-bar { display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 800; color: #38bdf8; width: 100%; }
-
-    .library-layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; height: calc(100vh - 140px); }
-    .dual-sidebar { background: #0b1120; border: 1px solid #1e293b; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto !important; height: 100%; }
-    .sidebar-section-title { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
-    
-    .pdf-table-container { background: #0b1120; border: 1px solid #1e293b; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; height: 100%; overflow-y: auto; }
-    .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-    .pdf-table th { background: #0f172a; color: #94a3b8; padding: 8px 10px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
-    .pdf-table td { padding: 8px 10px; border-bottom: 1px solid #1e293b; color: #f8fafc; }
-    .pdf-input { width: 100%; padding: 6px 8px; background: #060911; border: 1px solid #334155; border-radius: 6px; color: white; font-size: 12px; }
-
-    .lib-tab-bar { display: flex; gap: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; margin-bottom: 8px; flex-shrink: 0; }
-    .lib-tab-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
-    .lib-tab-btn.active { background: #2563eb; border-color: #38bdf8; color: white; }
-
-    .lib-question-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-    .lib-q-card { background: #0b1120; border: 1px solid #334155; border-radius: 8px; padding: 8px; display: flex; flex-direction: column; gap: 6px; position: relative; }
-    .lib-q-img { background: #fff; border-radius: 4px; padding: 4px; display: flex; align-items: center; justify-content: center; max-height: 110px; overflow: hidden; cursor: pointer; }
-    .lib-q-img img { max-width: 100%; height: auto; object-fit: contain; }
-
     .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; }
     body.library-page #screen-library { display:flex !important; }
-  </style>
+  
+    .folder-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+    .folder-actions .tool-btn{font-size:10px;padding:4px 8px}
+
+</style>
 </head>
 <body class="library-page">
   <script>
@@ -193,15 +176,19 @@
       <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
       <a class="nav-btn" href="dashboard.html">🏠 Dashboard</a>
       <a class="nav-btn" href="library_access.html">🤝 Library Access</a>
+      <button class="nav-btn" style="background:#059669; color:white;" onclick="openCentralLibraryModal()">🌐 Central Library</button>
       <span class="user-pill" id="current-user-tag">Educator</span>
       <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutTeacher()">🔒 Logout</button>
     </div>
   </div>
 
   <div class="view-screen active" id="screen-library">
-    <!-- टॉप ब्रेडक्रैम्ब और क्रिएट फोल्डर का बटन एक सीध में -->
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:#0b1120; border:1px solid #1e293b; padding:10px 16px; border-radius:10px;">
-      <div class="breadcrumb-bar" id="library-main-title">📚 My Library</div>
+    <!-- हेडर सेक्शन: ब्रेडक्रैम्ब, बैक बटन और क्रिएट फोल्डर एक सीध में -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:#0b1120; border:1px solid #1e293b; padding:10px 16px; border-radius:10px; gap:10px;">
+      <div style="display:flex; align-items:center; gap:10px; flex:1;">
+        <button id="back-nav-btn" class="tool-btn" style="background:#334155; display:none;" onclick="goBackFolder()">⬅ Back</button>
+        <div class="breadcrumb-bar" id="library-main-title">📚 My Library</div>
+      </div>
       <button class="tool-btn" style="background:#2563eb; white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
     </div>
 
@@ -307,7 +294,6 @@
       return node && Array.isArray(node.children) ? node.children : [];
     }
 
-    // रिपीटीशन रोकने वाला फोल्डर क्रिएशन फंक्शन
     window.promptNewFolder = async function() {
       const promptTitle = currentFolderPath 
         ? `Create Subfolder inside "${currentFolderPath}"` 
@@ -318,7 +304,6 @@
 
       if (!currentFolderPath) {
         if(!Array.isArray(libraryTree)) libraryTree=[];
-        // चेक करें कि नाम पहले से तो मौजूद नहीं है
         if(libraryTree.some(n => String(n.name||"").trim().toLowerCase() === name.toLowerCase())) {
           return alert("Folder with this name already exists!");
         }
@@ -354,9 +339,28 @@
       renderLibraryBrowser();
     };
 
+    window.goBackFolder = function() {
+      if (!currentFolderPath) return;
+      const parts = currentFolderPath.split(" / ");
+      if (parts.length > 1) {
+        currentFolderPath = parts.slice(0, -1).join(" / ");
+      } else {
+        currentFolderPath = "";
+      }
+      renderLibraryBrowser();
+    };
+
     function renderBreadcrumb() {
       const el = document.getElementById('library-main-title');
+      const backBtn = document.getElementById('back-nav-btn');
       const parts = currentFolderPath ? currentFolderPath.split(" / ") : [];
+      
+      if (parts.length > 0) {
+        if(backBtn) backBtn.style.display = 'inline-block';
+      } else {
+        if(backBtn) backBtn.style.display = 'none';
+      }
+
       el.innerHTML = parts.length
         ? '<span style="color:#94a3b8;cursor:pointer;" onclick="backToFolderCards()">📚 My Library</span> <span style="color:#64748b;">›</span> ' + parts.map((p,i)=>{
             const path = parts.slice(0,i+1).join(" / ");
@@ -373,33 +377,13 @@
       const children = getChildrenForPath(currentFolderPath);
       cards.innerHTML = '';
 
-      if(currentFolderPath){
-        const backParts = currentFolderPath.split(" / ");
-        if(backParts.length > 1){
-          const backPath = backParts.slice(0,-1).join(" / ");
-          const b = document.createElement('button'); 
-          b.className = 'tool-btn'; 
-          b.style = 'margin-bottom:8px; width:fit-content;';
-          b.textContent = '⬅ Back to ' + backParts[backParts.length-2]; 
-          b.onclick = () => openMainFolder(backPath); 
-          cards.appendChild(b);
-        } else {
-          const b = document.createElement('button'); 
-          b.className = 'tool-btn'; 
-          b.style = 'margin-bottom:8px; width:fit-content;';
-          b.textContent = '⬅ Back to My Library'; 
-          b.onclick = () => backToFolderCards(); 
-          cards.appendChild(b);
-        }
-      }
-
       if(children.length){
         children.forEach(node => {
           const path = currentFolderPath ? currentFolderPath + ' / ' + node.name : node.name;
           const card = document.createElement('div'); 
           card.className = 'folder-card'; 
           card.onclick = () => openMainFolder(path);
-          card.innerHTML = '<div style="font-size:32px;">📁</div><h3 style="color:#f8fafc;font-size:15px;">' + escapeHtml(node.name) + '</h3><p style="font-size:11px;color:#94a3b8;">Subfolders: ' + (node.children||[]).length + '</p>';
+          card.innerHTML = '<div style="font-size:32px;">📁</div><h3 style="color:#f8fafc;font-size:15px;">' + escapeHtml(node.name) + '</h3><p style="font-size:11px;color:#94a3b8;">Subfolders: ' + (node.children||[]).length + '</p><div class="folder-actions"><button class="tool-btn" onclick="event.stopPropagation();moveFolder(\'' + path.replace(/'/g,'\\\'') + '\')">🔄 Move</button><button class="tool-btn" style="background:#059669;" onclick="event.stopPropagation();publishFolderToCentral(\'' + path.replace(/'/g,'\\\'') + '\')">🌐 Central</button><button class="tool-btn" style="background:#7f1d1d;" onclick="event.stopPropagation();deleteFolderByPath(\'' + path.replace(/'/g,'\\\'') + '\')">🗑 Delete</button></div>';
           cards.appendChild(card);
         });
       } else {
@@ -410,9 +394,30 @@
       }
     }
 
+    window.openCentralLibraryModal = function() {
+      alert("Central Library feature is ready for public and shared questions.");
+    };
+
     function escapeHtml(s) {
       return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
+
+    
+    window.moveFolder = async function(path){
+      const target = prompt("Move folder to path (leave blank for Library Root):", "");
+      if(target===null) return;
+      alert("Move action placeholder ready. Connect this to your Firebase move logic.");
+    };
+
+    window.publishFolderToCentral = async function(path){
+      alert("Publish to Central Library: " + path);
+    };
+
+    window.deleteFolderByPath = async function(path){
+      if(!confirm("Delete this folder and all subfolders?")) return;
+      alert("Delete action placeholder ready. Connect this to your delete logic.");
+    };
+
 
     async function initStudio() {
       renderLibraryBrowser();
