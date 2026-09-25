@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — Gemini AI Uploader</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 <script>
 window.MathJax={
@@ -113,7 +114,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 <div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b>Review / Correct extracted questions</b><span id="count" class="badge">0 questions</span></div><div id="list"></div></div>
 </main>
 <script>
-let items=[],pageImages={},folders=['General / General'],stopRequested=false;
+let items=[],pageImages={},folders=['General / General'],stopRequested=false,nativePdfDoc=null;
 const status=document.getElementById('status'),list=document.getElementById('list'),progressBar=document.getElementById('progressBar'),stopBtn=document.getElementById('stop'),count=document.getElementById('count');
 async function loadFolders(){try{const s=await getDoc(doc(db,'folder_configs','shared_registry_v4'));if(s.exists()){const d=s.data();folders=[];for(const[m,ss]of Object.entries(d.subFolders||{}))ss.forEach(x=>folders.push(m+' / '+x));if(!folders.length)folders=['General / General'];}}catch(e){}}
 loadFolders();
@@ -122,27 +123,46 @@ async function renderPageImage(p){const v=p.getViewport({scale:1.25}),c=document
 async function compressForAI(dataUrl,maxChars=3000000){try{const im=await dataUrlImage(dataUrl);let w=im.naturalWidth||im.width,h=im.naturalHeight||im.height;const c=document.createElement('canvas'),ctx=c.getContext('2d');for(let pass=0;pass<6;pass++){c.width=w;c.height=h;ctx.clearRect(0,0,w,h);ctx.drawImage(im,0,0,w,h);for(const q of [.62,.52,.42,.34]){const out=c.toDataURL('image/jpeg',q);if(out.length<=maxChars)return out}w=Math.round(w*.82);h=Math.round(h*.82)}return c.toDataURL('image/jpeg',.3)}catch(e){return dataUrl}}
 function dataUrlImage(dataUrl){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=dataUrl})}
 async function cropImage(dataUrl,b){if(!dataUrl||!b||[b.x,b.y,b.w,b.h].some(v=>typeof v!=='number'))return dataUrl;try{const im=await dataUrlImage(dataUrl),c=document.createElement('canvas');const x=Math.max(0,Math.min(1000,b.x)),y=Math.max(0,Math.min(1000,b.y)),w=Math.max(1,Math.min(1000-x,b.w)),h=Math.max(1,Math.min(1000-y,b.h));c.width=Math.max(1,Math.round(im.width*w/1000));c.height=Math.max(1,Math.round(im.height*h/1000));c.getContext('2d').drawImage(im,im.width*x/1000,im.height*y/1000,im.width*w/1000,im.height*h/1000,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.82)}catch(e){return dataUrl}}
-async function processOnePdfPage(pdf,n,total){
+async function pdfPageToBase64(nativePdfDoc,pageNumber){
+  const out=await PDFLib.PDFDocument.create();
+  const [copied]=await out.copyPages(nativePdfDoc,[pageNumber-1]);
+  out.addPage(copied);
+  const bytes=await out.save({useObjectStreams:true});
+  let binary='';
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+  return btoa(binary);
+}
+async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   const p=await pdf.getPage(n);
-  const tc=await p.getTextContent();
-  const text=tc.items.map(x=>x.str).join(' ').trim();
   const imageDataUrl=await renderPageImage(p);
   pageImages[n]=imageDataUrl;
-  // IMPORTANT: send the COMPLETE rendered PDF page to AI first.
-  // Native PDF text is only a backup/cross-check; it must never decide that a page is empty.
-  // This keeps question boundaries intact and makes image-based OCR authoritative.
   let got=[];
-  const aiImage=await compressForAI(imageDataUrl,2800000);
   try{
-    got=await extractWithBackend({mode:'extract',pageText:'',imageDataUrl:aiImage,folders:folders.join(', ')});
-  }catch(imageErr){
-    console.warn('[AI full-page image extraction failed]',n,imageErr);
+    const pdfBase64=await pdfPageToBase64(nativePdfDoc,n);
+    got=await extractWithBackend({
+      mode:'pdf_extract',
+      pdfBase64,
+      pageNumber:n,
+      folders:folders.join(', ')
+    });
+  }catch(nativeErr){
+    console.warn('[AI native PDF extraction failed]',n,nativeErr);
   }
-  // If image extraction produced nothing, try the native PDF text as a second independent pass.
-  if(!got.length && text){
+  // Safety fallback: if native PDF extraction fails completely, use the old full-page image route.
+  // This fallback does NOT split the page; it still sends one complete page.
+  if(!got.length){
     try{
-      got=await extractWithBackend({mode:'extract',pageText:text,folders:folders.join(', '),imageDataUrl:''});
-    }catch(textErr){console.warn('[AI native-text fallback failed]',n,textErr);}
+      const aiImage=await compressForAI(imageDataUrl,2800000);
+      got=await extractWithBackend({
+        mode:'extract',
+        pageText:'',
+        imageDataUrl:aiImage,
+        folders:folders.join(', ')
+      });
+    }catch(imageErr){
+      console.warn('[AI full-page image fallback failed]',n,imageErr);
+    }
   }
   const pageItems=[];
   for(const x of got){
@@ -156,7 +176,9 @@ file.onchange=async e=>{
   const f=e.target.files[0];if(!f)return;
   items=[];pageImages={};list.innerHTML='';count.textContent='0 questions';stopRequested=false;stopBtn.disabled=false;setProgress(0,1);
   try{
-    const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer(),useWorkerFetch:true,isEvalSupported:true}).promise;
+    const pdfBytes=await f.arrayBuffer();
+    nativePdfDoc=await PDFLib.PDFDocument.load(pdfBytes);
+    const pdf=await pdfjsLib.getDocument({data:pdfBytes,useWorkerFetch:true,isEvalSupported:true}).promise;
     const total=pdf.numPages;
     let nextPage=1,completed=0,queue=new Map();
 
@@ -168,7 +190,7 @@ file.onchange=async e=>{
         if(n>total||stopRequested)return;
         status.textContent='🤖 AI processing PDF page '+n+'/'+total+' (full page)';
         try{
-          const result=await processOnePdfPage(pdf,n,total);
+          const result=await processOnePdfPage(pdf,n,total,nativePdfDoc);
           queue.set(n,result);
           completed++;
           setProgress(completed,total);
