@@ -231,15 +231,10 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   return {page:n,items:pageItems};
 }
 
-  const pageItems=[];
-  for(const x of got){
-    x.sourcePage=n;x.confirmed=false;x.questionImage=await cropImage(imageDataUrl,x.questionBox);
-    pageItems.push(x);
-  }
-  return {page:n,items:pageItems};
-}
 
-file.onchange=async e=>{
+
+const fileInput=document.getElementById('file');
+fileInput.addEventListener('change',async e=>{
   const f=e.target.files[0];if(!f)return;
   items=[];pageImages={};list.innerHTML='';count.textContent='0 questions';stopRequested=false;stopBtn.disabled=false;setProgress(0,1);
   try{
