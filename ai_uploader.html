@@ -122,32 +122,111 @@ async function renderPageImage(p){const v=p.getViewport({scale:1.25}),c=document
 async function compressForAI(dataUrl,maxChars=3000000){try{const im=await dataUrlImage(dataUrl);let w=im.naturalWidth||im.width,h=im.naturalHeight||im.height;const c=document.createElement('canvas'),ctx=c.getContext('2d');for(let pass=0;pass<6;pass++){c.width=w;c.height=h;ctx.clearRect(0,0,w,h);ctx.drawImage(im,0,0,w,h);for(const q of [.62,.52,.42,.34]){const out=c.toDataURL('image/jpeg',q);if(out.length<=maxChars)return out}w=Math.round(w*.82);h=Math.round(h*.82)}return c.toDataURL('image/jpeg',.3)}catch(e){return dataUrl}}
 function dataUrlImage(dataUrl){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=dataUrl})}
 async function cropImage(dataUrl,b){if(!dataUrl||!b||[b.x,b.y,b.w,b.h].some(v=>typeof v!=='number'))return dataUrl;try{const im=await dataUrlImage(dataUrl),c=document.createElement('canvas');const x=Math.max(0,Math.min(1000,b.x)),y=Math.max(0,Math.min(1000,b.y)),w=Math.max(1,Math.min(1000-x,b.w)),h=Math.max(1,Math.min(1000-y,b.h));c.width=Math.max(1,Math.round(im.width*w/1000));c.height=Math.max(1,Math.round(im.height*h/1000));c.getContext('2d').drawImage(im,im.width*x/1000,im.height*y/1000,im.width*w/1000,im.height*h/1000,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.82)}catch(e){return dataUrl}}
-file.onchange=async e=>{const f=e.target.files[0];if(!f)return;items=[];pageImages={};list.innerHTML='';count.textContent='0 questions';stopRequested=false;stopBtn.disabled=false;setProgress(0,1);try{const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer(),useWorkerFetch:true,isEvalSupported:true}).promise;for(let n=1;n<=pdf.numPages;n++){if(stopRequested){status.textContent='⏹ Stopped at page '+(n-1)+'/'+pdf.numPages;break}status.textContent='⚡ Processing page '+n+'/'+pdf.numPages;setProgress(n-1,pdf.numPages);const p=await pdf.getPage(n),tc=await p.getTextContent(),text=tc.items.map(x=>x.str).join(' ').trim(),imageDataUrl=await renderPageImage(p);pageImages[n]=imageDataUrl;let got=[];
-      // TEXT-FIRST: native PDF text is tiny compared with a rendered page image.
-      // Only send the page image to Gemini when native text is empty or text-only extraction finds nothing.
-      if(text){
-        got=await extractWithBackend({mode:'extract',pageText:text,folders:folders.join(', '),imageDataUrl:''});
-      }
-      if(!got.length){
-        const aiImage=await compressForAI(imageDataUrl,3000000);
-        got=await extractWithBackend({mode:'extract',pageText:text,imageDataUrl:aiImage,folders:folders.join(', ')});
-      }
-      for(const x of got){x.sourcePage=n;x.confirmed=false;x.questionImage=await cropImage(imageDataUrl,x.questionBox);items.push(x)}
-      setProgress(n,pdf.numPages);render();await new Promise(r=>setTimeout(r,500))}if(!stopRequested)status.textContent='✔ Extracted '+items.length+' questions from '+pdf.numPages+' pages';stopBtn.disabled=true}catch(err){console.error(err);status.textContent='❌ '+err.message;alert(err.message);stopBtn.disabled=true}};
-async function extractWithBackend(body){
- let last='';
- for(let attempt=0;attempt<3;attempt++){
-  try{
-   status.textContent='🤖 Gemini: attempt '+(attempt+1)+'/3…';
-   const r=await fetch('/api/gemini-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,retryAttempt:attempt})});
-   const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch(_){d={raw:raw.slice(0,1200)}}
-   if(!r.ok){last='Server error '+r.status+': '+(d.error||d.message||d.raw||'Unknown server error');console.error('[Gemini backend]',{status:r.status,response:d});if(attempt<2)await new Promise(x=>setTimeout(x,1000*Math.pow(2,attempt)));continue}
-   if(!Array.isArray(d.items))throw new Error('Gemini returned an unexpected response format.');
-   return d.items;
-  }catch(e){last=e?.message||String(e);console.error('[Gemini request]',e);if(attempt<2)await new Promise(x=>setTimeout(x,1000*Math.pow(2,attempt)))}
- }
- throw new Error(last||'Gemini request failed after 3 attempts.');
+async function processOnePdfPage(pdf,n,total){
+  const p=await pdf.getPage(n);
+  const tc=await p.getTextContent();
+  const text=tc.items.map(x=>x.str).join(' ').trim();
+  const imageDataUrl=await renderPageImage(p);
+  pageImages[n]=imageDataUrl;
+  let got=[];
+  if(text)got=await extractWithBackend({mode:'extract',pageText:text,folders:folders.join(', '),imageDataUrl:''});
+  if(!got.length){
+    const aiImage=await compressForAI(imageDataUrl,3000000);
+    got=await extractWithBackend({mode:'extract',pageText:text,imageDataUrl:aiImage,folders:folders.join(', ')});
+  }
+  const pageItems=[];
+  for(const x of got){
+    x.sourcePage=n;x.confirmed=false;x.questionImage=await cropImage(imageDataUrl,x.questionBox);
+    pageItems.push(x);
+  }
+  return {page:n,items:pageItems};
 }
+
+file.onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  items=[];pageImages={};list.innerHTML='';count.textContent='0 questions';stopRequested=false;stopBtn.disabled=false;setProgress(0,1);
+  try{
+    const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer(),useWorkerFetch:true,isEvalSupported:true}).promise;
+    const total=pdf.numPages;
+    let nextPage=1,completed=0,queue=new Map();
+
+    // Two whole-page workers: each request always contains exactly ONE complete PDF page.
+    // While the current page is being reviewed, the next page can already be processed.
+    async function worker(){
+      while(true){
+        const n=nextPage++;
+        if(n>total||stopRequested)return;
+        status.textContent='🤖 AI processing PDF page '+n+'/'+total+' (full page)';
+        try{
+          const result=await processOnePdfPage(pdf,n,total);
+          queue.set(n,result);
+          completed++;
+          setProgress(completed,total);
+          flushReadyPages();
+        }catch(err){
+          console.error('[AI page '+n+']',err);
+          queue.set(n,{page:n,items:[],error:err?.message||String(err)});
+          completed++;
+          setProgress(completed,total);
+          flushReadyPages();
+        }
+      }
+    }
+    let nextToRender=1;
+    function flushReadyPages(){
+      while(queue.has(nextToRender)){
+        const result=queue.get(nextToRender);queue.delete(nextToRender);
+        if(result.error){
+          const failedPage=result.page;
+          const errorCard=document.createElement('div');
+          errorCard.className='box';
+          errorCard.style.borderColor='#7f1d1d';
+          errorCard.innerHTML='<b>⚠ PDF page '+failedPage+' failed</b><div style="margin-top:6px;color:#fca5a5">'+esc(result.error)+'</div>';
+          list.appendChild(errorCard);
+        }
+        items.push(...result.items);
+        nextToRender++;
+        render();
+      }
+    }
+
+    await Promise.all([worker(),worker()]);
+    flushReadyPages();
+    if(!stopRequested)status.textContent='✔ Extracted '+items.length+' questions from '+total+' pages. Review/correct them while the page pipeline runs.';
+    stopBtn.disabled=true;
+  }catch(err){
+    console.error(err);status.textContent='❌ '+err.message;alert(err.message);stopBtn.disabled=true
+  }
+};
+
+async function extractWithBackend(body){
+  let last='';
+  const maxAttempts=GEMINI_MODELS_CLIENT.length+1;
+  for(let attempt=0;attempt<maxAttempts;attempt++){
+    try{
+      const label=attempt<GEMINI_MODELS_CLIENT.length?GEMINI_MODELS_CLIENT[attempt]:'OpenRouter free router';
+      status.textContent='🤖 '+label+' — page fallback '+(attempt+1)+'/'+maxAttempts+'…';
+      const r=await fetch('/api/gemini-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,retryAttempt:attempt})});
+      const raw=await r.text();let d={};try{d=raw?JSON.parse(raw):{}}catch(_){d={raw:raw.slice(0,1200)}}
+      if(!r.ok){
+        last='Server error '+r.status+': '+(d.error||d.message||d.raw||'Unknown server error');
+        console.error('[AI fallback]',{attempt,label,status:r.status,response:d});
+        if(attempt<maxAttempts-1)await new Promise(x=>setTimeout(x,250));
+        continue;
+      }
+      if(!Array.isArray(d.items))throw new Error('AI returned an unexpected response format.');
+      if(d.items.length)return d.items;
+      // Empty extraction is a valid result for a page with no MCQ; do not waste every fallback.
+      return [];
+    }catch(e){
+      last=e?.message||String(e);console.error('[AI request]',e);
+      if(attempt<maxAttempts-1)await new Promise(x=>setTimeout(x,250))
+    }
+  }
+  throw new Error(last||'All configured free AI fallbacks failed.');
+}
+const GEMINI_MODELS_CLIENT=['Gemini 3.8 Flash','Gemini 3.7 Flash','Gemini 3.6 Flash','Gemini 3.5 Flash','Gemini 3.5 Flash-Lite','Gemini 3.1 Flash-Lite','Gemini 2.5 Flash-Lite','Gemini 2.5 Flash'];
+
 function getOptText(o){if(!o)return'';if(typeof o==='string')return o;if(typeof o==='object')return o.text||o.value||'';return String(o)}
 function optionText(x,k){return getOptText(x['opt'+k]||x['option'+k])}
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
