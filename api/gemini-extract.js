@@ -47,7 +47,7 @@ try{
  const timer=setTimeout(()=>controller.abort(),15000);
  let r;
  try{
-  r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,temperature:0.05,maxOutputTokens:4096}}),signal:controller.signal});
+  r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},body:JSON.stringify({contents:[{role:'user',parts}],generationConfig:{responseMimeType:'application/json',responseSchema:schema,maxOutputTokens:4096}}),signal:controller.signal});
  }finally{clearTimeout(timer)}
  const raw=await r.text();
  console.log('[Gemini]',JSON.stringify({model,retryAttempt,status:r.status,ms:Date.now()-started,imageBytes:image?.data?.length||0,pageTextChars:String(pageText||'').length,contentLength}));
