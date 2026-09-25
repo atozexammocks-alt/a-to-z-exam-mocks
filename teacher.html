@@ -329,8 +329,8 @@ try{
   <div class="view-screen" id="screen-library">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
       <div>
-        <h2 id="library-main-title">Your Exam Folders</h2>
-        <p style="font-size:13px; color:#94a3b8;" id="library-sub-title">Manage folders, PDF links and topic-wise extracted questions.</p>
+        <h2 id="library-main-title">Your Question Library</h2>
+        <p style="font-size:13px; color:#94a3b8;" id="library-sub-title">Create Library Folders, then add Sections for your questions, PDFs and study material.</p>
       </div>
       <div style="display:flex; gap:10px;">
         <button class="tool-btn" onclick="switchView('screen-dashboard')" style="background:#334155;">🏠 Dashboard</button>
@@ -340,8 +340,8 @@ try{
 
     <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div class="breadcrumb-bar" style="margin:0;"><span>Root Main Folders (Books)</span></div>
-        <button class="tool-btn" style="background:#10b981;" onclick="promptNewMainFolder()">+ Add Main Folder</button>
+        <div class="breadcrumb-bar" style="margin:0;"><span>📚 Your Library Folders</span></div>
+        <button class="tool-btn" style="background:#10b981;" onclick="promptNewMainFolder()">＋ Create Library Folder</button>
       </div>
       <div class="folder-grid" id="folder-cards-container"></div>
     </div>
@@ -355,8 +355,8 @@ try{
       <div class="library-layout">
         <div class="dual-sidebar">
           <div class="sidebar-section-title">
-            <span>Sections / Sub-Folders</span>
-            <button class="f-btn" style="background:#10b981; color:#fff; font-weight:bold;" onclick="promptNewSubFolder()">+ Add</button>
+            <span>📂 Sections in this Folder</span>
+            <button class="f-btn" style="background:#10b981; color:#fff; font-weight:bold;" onclick="promptNewSubFolder()">＋ Create Section</button>
           </div>
           <div id="sidebar-sub-folders" style="display:flex; flex-direction:column; gap:4px; overflow-y:auto; flex:1;"></div>
         </div>
@@ -565,14 +565,10 @@ try{
       const list=[...new Set(d.approved.filter(x=>x&&x!==teacherEmailKey()))];
       approved.innerHTML="<h5 style='color:#38bdf8;font-size:11px;'>🔓 Libraries I can access</h5>"+(list.length?list.map(e=>"<div style='padding:7px 8px;background:#060911;border:1px solid #1e293b;border-radius:7px;margin-bottom:5px;font-size:11px;'>"+e+" <span style='color:#10b981;font-weight:800;'>APPROVED</span></div>").join(""):"<div style='font-size:11px;color:#64748b;'>No approved shared libraries yet.</div>");
     }
-    let mainFolders = ["Classical Mechanics", "Quantum Mechanics", "Mathematical Physics", "Electronics", "EMT", "Solid State Mechanics", "Thermo & Statical", "Atomic", "Nuclear", "PYP"];
-    let subFolders = {
-      "Classical Mechanics": ["General", "Lagrangian", "Hamiltonian"],
-      "Quantum Mechanics": ["General", "Operators", "Wave Function"],
-      "Mathematical Physics": ["General", "Vector Analysis", "Matrices"],
-      "Electronics": ["General", "Transistors", "Diodes"],
-      "EMT": ["General"], "Solid State Mechanics": ["General"], "Thermo & Statical": ["General"], "Atomic": ["General"], "Nuclear": ["General"], "PYP": ["General"]
-    };
+    // A new teacher starts with an empty private library.
+    // Folders and sections are created explicitly by the teacher and saved to Firestore.
+    let mainFolders = [];
+    let subFolders = {};
     let folderPdfs = {};
     let cloudVault = [];
     let cachedStudentResults = [];
@@ -643,7 +639,7 @@ try{
     }
 
     window.promptNewMainFolder = async function() {
-      const name = prompt("Enter new Main Folder / Book name:");
+      const name = prompt("Create a Library Folder\n\nExample: Class 11 Physics, JEE Main, PYQ, NEET Physics");
       if (name && name.trim()) {
         const mName = name.trim();
         if (!mainFolders.includes(mName)) {
@@ -659,7 +655,7 @@ try{
 
     window.promptNewSubFolder = async function() {
       if (!currentMainFolder) return alert("Select a main folder first!");
-      const name = prompt(`Enter new Section under "${currentMainFolder}":`);
+      const name = prompt(`Create a Section inside "${currentMainFolder}"\n\nExample: Mechanics, Electrostatics, PYQ 2025`);
       if (name && name.trim()) {
         const sName = name.trim();
         if (!subFolders[currentMainFolder]) subFolders[currentMainFolder] = [];
@@ -787,7 +783,13 @@ try{
       const container = document.getElementById('folder-cards-container');
       container.innerHTML = '';
       if (mainFolders.length === 0) {
-        container.innerHTML = `<p style="color:#64748b; font-size:13px;">No main folders created yet.</p>`;
+        container.innerHTML = `
+          <div style="grid-column:1/-1; background:#0b1120; border:1.5px dashed #334155; border-radius:16px; padding:34px 24px; text-align:center;">
+            <div style="font-size:42px; margin-bottom:10px;">📚</div>
+            <h3 style="color:#f8fafc; font-size:18px; margin-bottom:7px;">Your Library is Empty</h3>
+            <p style="color:#94a3b8; font-size:13px; line-height:1.6; max-width:620px; margin:0 auto 16px;">Start by creating your first <strong style="color:#38bdf8;">Library Folder</strong>. You can then create Sections inside it for topics, chapters, PYQs or other study material.</p>
+            <button class="tool-btn" style="background:#10b981; font-size:12px; padding:9px 16px;" onclick="promptNewMainFolder()">＋ Create Your First Library Folder</button>
+          </div>`;
         return;
       }
 
@@ -829,7 +831,7 @@ try{
       currentSubFolder = '';
       document.getElementById('folder-files-view').style.display = 'none';
       document.getElementById('folder-cards-view').style.display = 'flex';
-      document.getElementById('library-main-title').textContent = `Your Exam Folders`;
+      document.getElementById('library-main-title').textContent = `Your Question Library`;
       renderFolderCards();
     };
 
