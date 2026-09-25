@@ -129,7 +129,10 @@ async function processOnePdfPage(pdf,n,total){
   const imageDataUrl=await renderPageImage(p);
   pageImages[n]=imageDataUrl;
   let got=[];
-  if(text)got=await extractWithBackend({mode:'extract',pageText:text,folders:folders.join(', '),imageDataUrl:''});
+  if(text){
+    try{got=await extractWithBackend({mode:'extract',pageText:text,folders:folders.join(', '),imageDataUrl:''});}
+    catch(textErr){console.warn('[AI text-first fallback to page image]',n,textErr);got=[];}
+  }
   if(!got.length){
     const aiImage=await compressForAI(imageDataUrl,3000000);
     got=await extractWithBackend({mode:'extract',pageText:text,imageDataUrl:aiImage,folders:folders.join(', ')});
