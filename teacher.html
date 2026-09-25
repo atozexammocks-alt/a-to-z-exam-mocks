@@ -471,7 +471,9 @@ try{
       } catch (e) {}
     }
 
-    // PIN login is defined in the Firebase module above. Do not override it here.\n    window.handleTeacherForgotPassword = window.handleTeacherLogin;\n
+    // PIN login is defined in the Firebase module above. Do not override it here.
+    window.handleTeacherForgotPassword = window.handleTeacherLogin;
+
     function onLoginSuccess(email) {
       window.currentTeacherEmail = (email || "").trim().toLowerCase();
       localStorage.setItem("ExamVault_Teacher_Email", window.currentTeacherEmail);
@@ -812,7 +814,7 @@ try{
           const path=currentFolderPath ? currentFolderPath+' / '+node.name : node.name;
           const stats=currentContentStats(path);
           const card=document.createElement('div'); card.className='folder-card'; card.onclick=()=>openMainFolder(path);
-          card.innerHTML='<div style="font-size:44px;">📁</div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" style="background:#0f766e;" onclick="openFolderActions(\''+path.replace(/'/g,"\\'")+'\',event)">⚙️ Folder Options</button><button class="tool-btn" onclick="renameLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
+          card.innerHTML='<div style="font-size:44px;">📁</div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" style="background:#0f766e;" onclick="openFolderActions(\''+path.replace(/'/g,"\\'")+'\',event)">⚙️ Folder Options</button><button class="tool-btn" onclick="deleteLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
           cards.appendChild(card);
         });
       }
