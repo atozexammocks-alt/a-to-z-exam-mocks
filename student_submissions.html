@@ -208,7 +208,9 @@ try{
  document.addEventListener("click",e=>{const el=e.target.closest("button,a,[role='button'],input[type='submit'],input[type='button'],select");if(!el)return;const label=(el.innerText||el.value||el.getAttribute("aria-label")||el.getAttribute("title")||el.id||"click").trim();const href=el.getAttribute("href");__log("click",label,href?("href="+href):"")});
 }catch(e){console.debug("Activity analytics:",e)}
 </script>
-</head>
+<style>
+.profile-container{position:relative;display:inline-block}.profile-dropdown{position:absolute;right:0;top:40px;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);width:220px;display:none;flex-direction:column;z-index:1000;overflow:hidden}.profile-dropdown.show{display:flex}.dropdown-header{padding:12px 16px;border-bottom:1px solid #1e293b;font-size:12px;color:#38bdf8;font-weight:700;word-break:break-all}.dropdown-item{padding:10px 16px;font-size:12px;color:#fecaca;background:#7f1d1d;border:0;cursor:pointer;text-align:left;font-weight:700;width:100%}.dropdown-item:hover{background:#991b1b}
+</style></head>
 <body>
   <script>
     // A valid saved teacher session must never be blocked by the login overlay on page reload.
@@ -273,16 +275,22 @@ try{
   </div>
 
   <div id="navbar">
-    <div class="nav-brand">
-      <a href="index.html" class="nav-btn" style="background:#1e293b; color:#38bdf8;">🏠 Home</a>
-      🎯 A to Z <span>Exam Mocks</span>
-    </div>
+    <a href="teacher.html" class="nav-brand">
+      🏠 <span>A to Z Exam Mocks</span>
+    </a>
     <div class="nav-tabs">
       <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
-      <button class="nav-btn" onclick="openLibraryAccessModal()">🤝 Library Access</button>
-      <button class="nav-btn" onclick="switchView('screen-dashboard')">🏠 Dashboard</button>
-      <span class="user-pill" id="current-user-tag">Educator</span>
-      <button class="nav-btn" style="background:#7f1d1d; color:#fecaca;" onclick="logoutTeacher()">🔒 Logout</button>
+      <a class="nav-btn" href="library.html">📁 Central Library</a>
+      <a class="nav-btn" href="library_access.html">🤝 Group Library</a>
+      <div class="profile-container">
+        <div class="user-pill" onclick="toggleProfileDropdown()">
+          👤 <span id="current-user-tag">Educator</span> ▼
+        </div>
+        <div class="profile-dropdown" id="profile-dropdown-menu">
+          <div class="dropdown-header" id="dropdown-user-email">Not Logged In</div>
+          <button class="dropdown-item" onclick="logoutTeacher()">🔒 Logout</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1262,5 +1270,21 @@ try{
       const oldOnload=window.onload;window.onload=async function(){if(typeof oldOnload==="function")await oldOnload();setTimeout(function(){try{renderFolderCards();}catch(e){}},300);};
     })();
   </script>
-<script>(function(){function boot(){try{document.title='A to Z Exam Mocks - Student Submissions';document.querySelectorAll('.view-screen').forEach(function(s){s.classList.remove('active');});var t=document.getElementById('screen-monitor');if(t)t.classList.add('active');if('screen-monitor'==='screen-monitor'&&window.loadStudentResults)window.loadStudentResults();}catch(e){console.error(e);}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();})();</script></body>
+<script>(function(){function boot(){try{document.title='A to Z Exam Mocks - Student Submissions';document.querySelectorAll('.view-screen').forEach(function(s){s.classList.remove('active');});var t=document.getElementById('screen-monitor');if(t)t.classList.add('active');if('screen-monitor'==='screen-monitor'&&window.loadStudentResults)window.loadStudentResults();}catch(e){console.error(e);}}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();})();</script><script>
+(function(){
+  function init(){
+    const email=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase();
+    const tag=document.getElementById('current-user-tag'), head=document.getElementById('dropdown-user-email');
+    if(tag) tag.textContent=email||'Educator';
+    if(head) head.textContent=email||'Not Logged In';
+    const admin=document.getElementById('super-admin-nav-btn');
+    if(admin) admin.style.display=(email==='atozexammocks@gmail.com'||email==='vikasattri3003@gmail.com')?'inline-flex':'none';
+  }
+  window.toggleProfileDropdown=function(){const d=document.getElementById('profile-dropdown-menu');if(d)d.classList.toggle('show');};
+  window.logoutTeacher=function(){localStorage.removeItem('ExamVault_Teacher_Email');localStorage.removeItem('ExamVault_Teacher_UID');location.replace('index.html');};
+  document.addEventListener('click',e=>{if(!e.target.closest('.profile-container')){const d=document.getElementById('profile-dropdown-menu');if(d)d.classList.remove('show');}});
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  window.addEventListener('pageshow',init);
+})();
+</script></body>
 </html>
