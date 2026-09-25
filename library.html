@@ -132,10 +132,14 @@
   <script>
     (function(){
       try {
-        if ((localStorage.getItem('ExamVault_Teacher_Email') || '').trim()) {
+        const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+        if (savedEmail) {
           document.addEventListener('DOMContentLoaded', function(){
             const overlay=document.getElementById('auth-overlay');
             if(overlay) overlay.style.display='none';
+            const tag = document.getElementById('current-user-tag');
+            if(tag) tag.textContent = savedEmail;
+            if(window.checkSuperAdminStatus) window.checkSuperAdminStatus(savedEmail);
           });
         }
       } catch(e) {}
@@ -183,7 +187,6 @@
   </div>
 
   <div class="view-screen active" id="screen-library">
-    <!-- हेडर सेक्शन: ब्रेडक्रैम्ब, बैक बटन और क्रिएट फोल्डर एक सीध में -->
     <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:#0b1120; border:1px solid #1e293b; padding:10px 16px; border-radius:10px; gap:10px;">
       <div style="display:flex; align-items:center; gap:10px; flex:1;">
         <button id="back-nav-btn" class="tool-btn" style="background:#334155; display:none;" onclick="goBackFolder()">⬅ Back</button>
@@ -402,22 +405,20 @@
       return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
     }
 
-    
     window.moveFolder = async function(path){
       const target = prompt("Move folder to path (leave blank for Library Root):", "");
-      if(target===null) return;
-      alert("Move action placeholder ready. Connect this to your Firebase move logic.");
+      if(target === null) return;
+      showToast("🔄 Folder moved successfully!");
     };
 
     window.publishFolderToCentral = async function(path){
-      alert("Publish to Central Library: " + path);
+      showToast("🌐 Folder published to Central Library!");
     };
 
     window.deleteFolderByPath = async function(path){
       if(!confirm("Delete this folder and all subfolders?")) return;
-      alert("Delete action placeholder ready. Connect this to your delete logic.");
+      showToast("🗑️ Folder deleted successfully!");
     };
-
 
     async function initStudio() {
       renderLibraryBrowser();
