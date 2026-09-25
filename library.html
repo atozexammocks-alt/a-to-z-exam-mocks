@@ -126,10 +126,19 @@
     .dash-card p { font-size: 13px; color: #94a3b8; line-height: 1.4; }
 
     #screen-library { padding: 24px; flex-direction: column; gap: 16px; overflow: hidden; }
-    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-    .folder-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 14px; padding: 20px; cursor: pointer; position: relative; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
-    .folder-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
-    .folder-card-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; border-top: 1px solid #1e293b; padding-top: 10px; }
+    /* PC-style Library Explorer */
+    .folder-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:18px; align-content:start; padding:4px 2px 28px; }
+    .folder-card { background:#0b1120; border:1px solid #1e293b; border-radius:10px; padding:16px 10px 12px; cursor:pointer; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:8px; min-height:142px; box-shadow:0 4px 14px rgba(0,0,0,.22); transition:all .15s ease; }
+    .folder-card:hover { border-color:#38bdf8; background:#0f172a; transform:translateY(-2px); }
+    .folder-icon { width:64px; height:48px; position:relative; margin-top:3px; filter:drop-shadow(0 5px 8px rgba(0,0,0,.35)); }
+    .folder-icon:before { content:""; position:absolute; left:3px; top:2px; width:25px; height:10px; border-radius:6px 6px 0 0; background:#f6c453; }
+    .folder-icon:after { content:""; position:absolute; left:0; right:0; top:9px; bottom:0; border-radius:5px 7px 7px 7px; background:linear-gradient(180deg,#ffd86a 0%,#e8a92e 100%); border:1px solid rgba(255,255,255,.12); }
+    .folder-card h3 { width:100%; text-align:center; font-size:13px !important; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .folder-card > p { width:100%; text-align:center; min-height:30px; font-size:10px !important; line-height:1.35; }
+    .folder-card-actions { display:flex; gap:4px; flex-wrap:wrap; justify-content:center; margin-top:auto; border-top:1px solid #1e293b; padding-top:8px; width:100%; }
+    .library-action-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; background:#0b1120; border:1px solid #1e293b; border-radius:10px; flex-shrink:0; }
+    .library-action-buttons { display:flex; gap:7px; flex-wrap:wrap; }
+    .library-action-buttons .tool-btn { padding:7px 11px; }
 
     .badge-status { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px; display: inline-block; cursor: pointer; }
     .badge-private { background: #334155; color: #94a3b8; }
@@ -345,22 +354,19 @@ try{
   </div>
 
   <div class="view-screen" id="screen-library">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-      <div>
-        <h2 id="library-main-title">Your Question Library</h2>
-        <p style="font-size:13px; color:#94a3b8;" id="library-sub-title">Create Library Folders, then add Sections for your questions, PDFs and study material.</p>
+    <div class="library-action-bar">
+      <div style="min-width:0;">
+        <h2 id="library-main-title" style="font-size:20px;font-weight:900;">📚 My Library</h2>
+        <p style="font-size:11px;color:#64748b;" id="library-sub-title">PC-style folders • Create unlimited nested folders and keep your question/PDF library organized.</p>
       </div>
-      <div style="display:flex; gap:10px;">
-        <a class="tool-btn" href="dashboard.html" style="background:#334155; text-decoration:none;">🏠 Dashboard</a>
-        <a href="slicer.html" class="tool-btn" style="background:#2563eb; text-decoration:none;">✂️ Open Slicer</a>
+      <div class="library-action-buttons">
+        <button class="tool-btn" style="background:#2563eb;" onclick="createNewFolder()">＋ Create New Folder</button>
+        <button class="tool-btn" style="background:#10b981;" onclick="promptNewMainFolder()">＋ Create Library Folder</button>
+        <button class="tool-btn" style="background:#7c3aed;" onclick="openCentralLibrary()">🌐 Central Library</button>
       </div>
     </div>
 
-    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:14px; overflow-y:auto; flex:1;">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div class="breadcrumb-bar" style="margin:0;"><span>📚 Your Library Folders</span></div>
-        <button class="tool-btn" style="background:#10b981;" onclick="promptNewMainFolder()">＋ Create Library Folder</button>
-      </div>
+    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1;">
       <div class="folder-grid" id="folder-cards-container"></div>
     </div>
 
@@ -776,6 +782,11 @@ try{
       showToast("✔ Library Folder Created!");
     };
 
+    window.createNewFolder = async function() {
+      if(currentFolderPath) return window.promptNewSubFolder();
+      return window.promptNewMainFolder();
+    };
+
     window.promptNewSubFolder = async function() {
       if(!currentFolderPath) return alert("Open a folder first.");
       const parent=findFolderByPath(currentFolderPath);
@@ -785,7 +796,11 @@ try{
       parent.children=Array.isArray(parent.children)?parent.children:[];
       if(parent.children.some(n=>n.name.toLowerCase()===name.toLowerCase())) return alert("Folder name already exists!");
       parent.children.push(makeFolder(name));
-      await saveLibraryState();
+      const saved=await saveLibraryState();
+      if(!saved){
+        parent.children.pop();
+        return alert("Folder could not be saved. Please check your Firebase login/session and Firestore rules.");
+      }
       renderLibraryBrowser();
       logTeacherActivity("CREATE_SUBFOLDER","Created folder: "+currentFolderPath+" / "+name);
       showToast("✔ Folder Created!");
@@ -833,7 +848,7 @@ try{
       cards.innerHTML='';
       const header=document.createElement('div');
       header.style='grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;';
-      header.innerHTML='<div><div style="font-size:12px;color:#94a3b8;">'+(currentFolderPath?'Folder contents':'Top-level folders')+'</div><div style="font-size:18px;font-weight:900;color:#f8fafc;">'+(current?('📁 '+current.name):'📚 My Library')+'</div></div><div style="display:flex;gap:7px;"><button class="tool-btn" onclick="backToFolderCards()" '+(currentFolderPath?'':'disabled')+'>← My Library</button><button class="tool-btn" style="background:#2563eb;" onclick="promptNew'+(currentFolderPath?'Sub':'Main')+'Folder()">＋ '+(currentFolderPath?'Create Subfolder':'Create Library Folder')+'</button></div>';
+      header.innerHTML='<div><div style="font-size:11px;color:#64748b;">'+(currentFolderPath?'Folder contents':'Your folders')+'</div><div style="font-size:16px;font-weight:900;color:#f8fafc;">'+(current?('📁 '+current.name):'📚 My Library')+'</div></div><div style="display:flex;gap:7px;flex-wrap:wrap;"><button class="tool-btn" onclick="backToFolderCards()" '+(currentFolderPath?'':'disabled')+'>← My Library</button><button class="tool-btn" style="background:#2563eb;" onclick="createNewFolder()">＋ Create New Folder</button><button class="tool-btn" style="background:#10b981;" onclick="promptNewMainFolder()">＋ Create Library Folder</button></div>';
       cards.appendChild(header);
 
       if(currentFolderPath){
@@ -850,7 +865,7 @@ try{
           const path=currentFolderPath ? currentFolderPath+' / '+node.name : node.name;
           const stats=currentContentStats(path);
           const card=document.createElement('div'); card.className='folder-card'; card.onclick=()=>openMainFolder(path);
-          card.innerHTML='<div style="font-size:44px;">📁</div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" style="background:#0f766e;" onclick="openFolderActions(\''+path.replace(/'/g,"\\'")+'\',event)">⚙️ Folder Options</button><button class="tool-btn" onclick="deleteLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
+          card.innerHTML='<div class="folder-icon" aria-hidden="true"></div><h3 style="color:#f8fafc;font-size:16px;">'+escapeHtml(node.name)+'</h3><p style="font-size:12px;color:#94a3b8;">Folder · '+(node.children||[]).length+' subfolder(s) · '+stats.total+' item(s)</p><div class="folder-card-actions" onclick="event.stopPropagation()"><button class="tool-btn" style="background:#0f766e;" onclick="openFolderActions(\''+path.replace(/'/g,"\\'")+'\',event)">⚙️ Folder Options</button><button class="tool-btn" onclick="deleteLibraryFolder(\''+path.replace(/'/g,"\\'")+'\',event)">🗑️ Delete</button></div>';
           cards.appendChild(card);
         });
       }
