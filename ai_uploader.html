@@ -6,6 +6,7 @@
 <title>A to Z Exam Mocks — Gemini AI Uploader</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 <script>
 window.MathJax={
@@ -114,7 +115,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 <div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b>Review / Correct extracted questions</b><span id="count" class="badge">0 questions</span></div><div id="list"></div></div>
 </main>
 <script>
-let items=[],pageImages={},folders=['General / General'],stopRequested=false,nativePdfDoc=null;
+let items=[],pageImages={},folders=['General / General'],stopRequested=false,nativePdfDoc=null,ocrWorkerPromise=null;
 const status=document.getElementById('status'),list=document.getElementById('list'),progressBar=document.getElementById('progressBar'),stopBtn=document.getElementById('stop'),count=document.getElementById('count');
 async function loadFolders(){try{const s=await getDoc(doc(db,'folder_configs','shared_registry_v4'));if(s.exists()){const d=s.data();folders=[];for(const[m,ss]of Object.entries(d.subFolders||{}))ss.forEach(x=>folders.push(m+' / '+x));if(!folders.length)folders=['General / General'];}}catch(e){}}
 loadFolders();
@@ -142,54 +143,94 @@ async function getPdfPageText(p){
     return '';
   }
 }
+async function getBrowserOcrWorker(){
+  if(!window.Tesseract)throw new Error('Browser OCR library did not load.');
+  if(!ocrWorkerPromise){
+    ocrWorkerPromise=Tesseract.createWorker('eng').catch(e=>{ocrWorkerPromise=null;throw e});
+  }
+  return ocrWorkerPromise;
+}
+async function runBrowserOCR(imageDataUrl,pageNumber){
+  const worker=await getBrowserOcrWorker();
+  status.textContent='🔎 OCR fallback — scanning full PDF page '+pageNumber+'…';
+  const ret=await worker.recognize(imageDataUrl);
+  return String(ret?.data?.text||'').trim();
+}
+function makeOcrFallbackItem(pageNumber,pageText,ocrText){
+  const text=String(pageText||ocrText||'').trim();
+  return {
+    qNo:pageNumber,
+    qText:text||'PDF page '+pageNumber+' — no readable text detected. Use Edit from PDF Page to crop the question manually.',
+    optA:{text:'',box:{x:0,y:0,w:1000,h:0}},
+    optB:{text:'',box:{x:0,y:0,w:1000,h:0}},
+    optC:{text:'',box:{x:0,y:0,w:1000,h:0}},
+    optD:{text:'',box:{x:0,y:0,w:1000,h:0}},
+    key:'',
+    topic:'OCR / Manual Review',
+    targetPath:folders[0]||'General / General',
+    questionBox:{x:0,y:0,w:1000,h:1000},
+    solutionBox:{x:0,y:0,w:0,h:0},
+    sourcePage:pageNumber,
+    confirmed:false,
+    questionImage:pageImages[pageNumber],
+    imageWidth:100,
+    imageMarginTop:8,
+    imageMarginBottom:8,
+    imageAlign:'center',
+    ocrFallback:true
+  };
+}
 async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   const p=await pdf.getPage(n);
   const imageDataUrl=await renderPageImage(p);
   pageImages[n]=imageDataUrl;
   const pageText=await getPdfPageText(p);
   let got=[];
-  // Route 1: send ONE COMPLETE native PDF page to Gemini.
+  // Route 1: ONE COMPLETE native PDF page.
   try{
     const pdfBase64=await pdfPageToBase64(nativePdfDoc,n);
-    got=await extractWithBackend({
-      mode:'pdf_extract',
-      pdfBase64,
-      pageNumber:n,
-      folders:folders.join(', ')
-    });
-  }catch(nativeErr){
-    console.warn('[AI native PDF extraction failed]',n,nativeErr);
-  }
-  // Route 2: send the SAME COMPLETE page as image + native PDF text.
-  // This is important for scanned/dense exam pages: Gemini can use the image for layout
-  // and the extracted PDF text as a second source for exact characters/equations.
+    got=await extractWithBackend({mode:'pdf_extract',pdfBase64,pageNumber:n,folders:folders.join(', ')});
+  }catch(nativeErr){console.warn('[AI native PDF extraction failed]',n,nativeErr)}
+  // Route 2: ONE COMPLETE page image + native text.
   if(!got.length){
     try{
       const aiImage=await compressForAI(imageDataUrl,2800000);
-      got=await extractWithBackend({
-        mode:'extract',
-        pageText,
-        imageDataUrl:aiImage,
-        folders:folders.join(', ')
-      });
-    }catch(imageErr){
-      console.warn('[AI image+text fallback failed]',n,imageErr);
-    }
+      got=await extractWithBackend({mode:'extract',pageText,imageDataUrl:aiImage,folders:folders.join(', ')});
+    }catch(imageErr){console.warn('[AI image+text fallback failed]',n,imageErr)}
   }
-  // Route 3: dedicated full-page scanner prompt. Still ONE COMPLETE PAGE, never a half-page crop.
+  // Route 3: dedicated full-page scanner.
   if(!got.length){
     try{
       const aiImage=await compressForAI(imageDataUrl,2800000);
-      got=await extractWithBackend({
-        mode:'scan_questions',
-        pageText,
-        imageDataUrl:aiImage,
-        folders:folders.join(', ')
-      });
-    }catch(scanErr){
-      console.warn('[AI scan_questions fallback failed]',n,scanErr);
+      got=await extractWithBackend({mode:'scan_questions',pageText,imageDataUrl:aiImage,folders:folders.join(', ')});
+    }catch(scanErr){console.warn('[AI scan_questions fallback failed]',n,scanErr)}
+  }
+  // Route 4: browser OCR — no API key. If AI cannot parse the page, NEVER return zero:
+  // keep the complete page image plus OCR/native text so the user can edit/crop it manually.
+  if(!got.length){
+    try{
+      const ocrText=await runBrowserOCR(imageDataUrl,n);
+      const fallbackText=ocrText||pageText;
+      got=[makeOcrFallbackItem(n,pageText,ocrText)];
+      if(fallbackText)got[0].qText=fallbackText;
+      status.textContent='🖼️ Page '+n+' preserved as editable image + OCR text.';
+    }catch(ocrErr){
+      console.warn('[Browser OCR fallback failed]',n,ocrErr);
+      got=[makeOcrFallbackItem(n,pageText,'')];
+      status.textContent='🖼️ Page '+n+' preserved as editable full-page image.';
     }
   }
+  const pageItems=[];
+  for(const x of got){
+    x.sourcePage=n;
+    x.confirmed=false;
+    // If AI supplied a real question box, crop it. OCR fallback deliberately keeps the full page.
+    x.questionImage=x.questionImage||await cropImage(imageDataUrl,x.questionBox);
+    pageItems.push(x);
+  }
+  return {page:n,items:pageItems};
+}
+
   const pageItems=[];
   for(const x of got){
     x.sourcePage=n;x.confirmed=false;x.questionImage=await cropImage(imageDataUrl,x.questionBox);
@@ -250,7 +291,7 @@ file.onchange=async e=>{
 
     await Promise.all([worker(),worker()]);
     flushReadyPages();
-    if(!stopRequested)status.textContent='✔ Extracted '+items.length+' questions from '+total+' pages. Review/correct them while the page pipeline runs.';
+    if(!stopRequested)status.textContent='✔ Finished '+total+' pages. '+items.length+' review items are ready. AI/OCR pages are editable below.';
     stopBtn.disabled=true;
   }catch(err){
     console.error(err);status.textContent='❌ '+err.message;alert(err.message);stopBtn.disabled=true
