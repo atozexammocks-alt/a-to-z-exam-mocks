@@ -72,6 +72,15 @@
         await Promise.all([loadLibraryStateFromCloud(),initStudio()]);
       } catch(e) { console.error('Teacher PIN login failed:',e); if(status) status.textContent='Login failed.'; }
     };
+    // Keep navigation globally available for inline buttons and cross-page returns.
+    window.switchView = function(id) {
+      document.querySelectorAll('.view-screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(id);
+      if (!target) return;
+      target.classList.add('active');
+      if (id === 'screen-library' && typeof window.renderLibraryBrowser === 'function') window.renderLibraryBrowser();
+      if (id === 'screen-monitor' && typeof window.loadStudentResults === 'function') window.loadStudentResults();
+    };
     window.handleTeacherEmailLinkLogin=function(){};
     window.handleTeacherResetPassword=function(){};
   </script>
@@ -210,6 +219,19 @@ try{
 </script>
 </head>
 <body>
+  <script>
+    // A valid saved teacher session must never be blocked by the login overlay on page reload.
+    (function(){
+      try {
+        if ((localStorage.getItem('ExamVault_Teacher_Email') || '').trim()) {
+          document.addEventListener('DOMContentLoaded', function(){
+            const overlay=document.getElementById('auth-overlay');
+            if(overlay) overlay.style.display='none';
+          });
+        }
+      } catch(e) {}
+    })();
+  </script>
 
   <div id="toast-msg">✔ Action Successful!</div>
 <div id="library-access-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:95000;padding:18px;"><div style="background:#0b1120;border:2px solid #38bdf8;border-radius:16px;width:min(850px,100%);max-height:90vh;overflow-y:auto;padding:20px;"><div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:12px;"><div><h3 style="color:#38bdf8;font-size:18px;">🤝 Central / Group Library</h3><p style="color:#94a3b8;font-size:11px;margin-top:4px;">Share your question library with selected teachers, or request access to another teacher's library.</p></div><button class="tool-btn" style="background:#7f1d1d;" onclick="closeLibraryAccessModal()">✕ Close</button></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;"><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#10b981;font-size:13px;">📥 Request Another Teacher's Library</h4><p style="color:#94a3b8;font-size:11px;margin:5px 0 10px;">The library owner must approve your request. Your private library remains private.</p><input id="share-teacher-email" class="pdf-input" placeholder="Library owner teacher@gmail.com"><select id="share-permission" class="filter-select" style="width:100%;margin-top:8px;"><option value="use">Use in papers / tests (read-only)</option><option value="view">View only</option></select><button class="tool-btn" style="background:#2563eb;width:100%;margin-top:8px;" onclick="sendLibraryShareRequest()">📨 Request Access</button><div id="outgoing-library-requests" style="margin-top:12px;"></div></div><div style="background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;"><h4 style="color:#f59e0b;font-size:13px;">📥 My Requests & My Library Access</h4><div id="incoming-library-requests" style="margin-top:8px;"></div><div id="approved-library-list" style="margin-top:14px;"></div></div></div><div style="margin-top:14px;background:#060911;border:1px solid #1e293b;border-radius:10px;padding:12px;"><strong style="color:#38bdf8;font-size:12px;">How it works</strong><div style="color:#94a3b8;font-size:11px;line-height:1.6;margin-top:5px;">1. Teacher A sends access request → 2. Teacher B approves → 3. Teacher A can use Teacher B's shared library in Builder / Paper Designer → 4. Either side can revoke access later.</div></div></div></div>
