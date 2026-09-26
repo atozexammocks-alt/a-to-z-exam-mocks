@@ -238,49 +238,131 @@
 <style>
 .profile-container{position:relative;display:inline-block}.profile-dropdown{position:absolute;right:0;top:40px;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);width:220px;display:none;flex-direction:column;z-index:1000;overflow:hidden}.profile-dropdown.show{display:flex}.dropdown-header{padding:12px 16px;border-bottom:1px solid #1e293b;font-size:12px;color:#38bdf8;font-weight:700;word-break:break-all}.dropdown-item{padding:10px 16px;font-size:12px;color:#fecaca;background:#7f1d1d;border:0;cursor:pointer;text-align:left;font-weight:700;width:100%}.dropdown-item:hover{background:#991b1b}
 
-/* === SLICER MOBILE + TOUCH RELIABILITY PATCH === */
+/* === SLICER MOBILE-FIRST FINAL PATCH === */
 html, body { max-width:100%; }
 button, input, select, textarea, label { touch-action: manipulation; }
 #file-input { pointer-events:auto; }
+#mobile-crop-bar { display:none; }
+
 @media (max-width: 900px) {
   body { height:auto; min-height:100vh; overflow:auto; }
-  #navbar { min-height:52px; height:auto; padding:7px 9px; gap:7px; flex-wrap:wrap; }
+  #navbar {
+    min-height:52px; height:auto; padding:7px 9px; gap:7px;
+    flex-wrap:wrap; position:sticky; top:0;
+  }
   .nav-brand span { display:none; }
-  .nav-tabs { flex:1; overflow-x:auto; justify-content:flex-end; }
-  .nav-btn { white-space:nowrap; padding:7px 9px; }
-  .user-pill { white-space:nowrap; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
-  .slicer-workspace { flex-direction:column; height:auto; min-height:calc(100vh - 52px); overflow:visible; }
-  #slicer-left, #slicer-right { width:100% !important; height:auto; min-height:0; border-right:0; }
-  #slicer-left { min-height:58vh; border-bottom:1px solid #1e293b; }
-  #slicer-right { max-height:none; overflow:visible; padding-bottom:24px; }
-  #slicer-toolbar { gap:6px; padding:7px; }
-  .tool-btn { min-height:36px; padding:7px 10px; }
-  #viewport { min-height:52vh; padding:10px; overflow:auto; }
-  #pdf-single-page-wrap { max-width:none; margin:0 auto; }
-  #pdf-canvas { max-width:none; }
-  .folder-select-grid { grid-template-columns:1fr; }
-  .opt-grid-2x2 { grid-template-columns:1fr; }
-  .compact-meta-row { flex-wrap:wrap; }
-  .compact-meta-row .qno-wrap, .compact-meta-row .ans-wrap { width:calc(50% - 2px); }
-  .compact-meta-row .flag-wrap { width:100%; flex-basis:100%; }
-  .ocr-action-bar { grid-template-columns:repeat(2,1fr); }
-  .slot-group { grid-template-columns:1fr; }
-  .prev-q-card { width:100%; max-height:94vh; padding:14px; }
+  .nav-tabs { flex:1; min-width:0; overflow-x:auto; justify-content:flex-end; }
+  .nav-btn { white-space:nowrap; min-height:38px; padding:8px 10px; }
+  .user-pill { white-space:nowrap; max-width:150px; overflow:hidden; text-overflow:ellipsis; min-height:34px; display:flex; align-items:center; }
+
+  .slicer-workspace {
+    flex-direction:column; height:auto; min-height:calc(100vh - 52px);
+    overflow:visible;
+  }
+  #slicer-left, #slicer-right {
+    width:100% !important; height:auto; min-height:0;
+    border-right:0;
+  }
+  #slicer-left {
+    min-height:0; border-bottom:1px solid #1e293b;
+    position:relative;
+  }
+  #slicer-toolbar {
+    gap:6px; padding:7px; flex-wrap:wrap;
+    position:sticky; top:52px; z-index:90;
+  }
+  .tool-btn { min-height:40px; padding:8px 11px; }
+  #chunk-info { font-size:10px; }
+  #viewport {
+    min-height:0; height:auto; max-height:none;
+    padding:10px; overflow:auto; align-items:flex-start;
+    -webkit-overflow-scrolling:touch;
+  }
+  #pdf-single-page-wrap {
+    width:100% !important; height:auto !important;
+    max-width:100%; margin:0 auto;
+  }
+  #pdf-canvas {
+    display:block; width:100% !important; max-width:100%;
+    height:auto !important;
+  }
+
+  #mobile-crop-bar {
+    display:flex; position:sticky; top:0; z-index:95;
+    width:100%; padding:8px; gap:6px; overflow-x:auto;
+    background:#0b1120; border-bottom:1px solid #1e293b;
+    -webkit-overflow-scrolling:touch;
+  }
+  .mobile-crop-title {
+    flex:0 0 auto; display:flex; align-items:center;
+    color:#38bdf8; font-size:11px; font-weight:800;
+    padding:0 3px;
+  }
+  .mobile-target {
+    flex:0 0 auto; min-height:40px; padding:8px 11px;
+    border:1px solid #334155; border-radius:8px;
+    background:#0f172a; color:#cbd5e1; font-size:11px;
+    font-weight:800; cursor:pointer;
+  }
+  .mobile-target.active {
+    background:#2563eb; color:#fff; border-color:#38bdf8;
+    box-shadow:0 0 0 1px rgba(56,189,248,.25);
+  }
+
+  #slicer-right {
+    padding:10px 9px 30px; gap:8px; overflow:visible;
+  }
+  #slicer-right > .meta-box { width:100%; }
+  .folder-select-grid { grid-template-columns:1fr; gap:7px; }
+  .meta-box input, .meta-box select, .meta-box textarea {
+    min-height:40px; font-size:14px; padding:8px;
+  }
+  .meta-box textarea { line-height:1.4; }
+  .compact-meta-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  .compact-meta-row .qno-wrap, .compact-meta-row .ans-wrap,
+  .compact-meta-row .flag-wrap { width:auto; flex-basis:auto; }
+  .compact-meta-row .flag-wrap { grid-column:1 / -1; }
+  .flag-btn { min-height:40px; font-size:11px; }
+  .ocr-action-bar { grid-template-columns:repeat(2,1fr); gap:6px; }
+  .ocr-send-btn, .target-btn, .qtext-crop-btn {
+    min-height:40px; font-size:11px; padding:8px;
+  }
+  .opt-grid-2x2 { grid-template-columns:1fr; gap:7px; }
+  .opt-row { min-height:58px; padding:7px; }
+  .opt-row input { min-height:40px; font-size:14px !important; padding:8px !important; }
+  .opt-row .opt-crop-btn { min-height:32px; padding:5px 8px; font-size:10px; }
+  .slot-group { grid-template-columns:1fr 1fr; gap:7px; }
+  .preview-card { min-width:0; }
+  .preview-thumb-box { max-height:90px; min-height:55px; }
+  .preview-thumb-box img { max-height:84px; }
+  #btn-save-cloud {
+    position:sticky; bottom:8px; z-index:80;
+    min-height:48px; box-shadow:0 8px 24px rgba(0,0,0,.45);
+  }
+  .prev-q-card { width:calc(100vw - 20px); max-height:94vh; padding:14px; }
+  .student-view-box { padding:12px; }
 }
+
+/* Phone-specific sizing: one-hand use, no forced desktop canvas width. */
 @media (max-width: 600px) {
-  #slicer-left { min-height:55vh; }
-  #viewport { min-height:48vh; }
+  #navbar { position:relative; }
+  #slicer-toolbar { position:relative; top:auto; }
+  #slicer-toolbar .tool-btn { min-height:42px; }
   #slicer-toolbar > * { flex:0 0 auto; }
-  #chunk-info { width:100%; order:2; }
-  .page-jump-input { width:58px; min-height:34px; }
-  .tool-btn { font-size:10px; min-height:38px; }
-  .meta-box { padding:8px; }
-  .meta-box input, .meta-box select, .meta-box textarea { min-height:38px; font-size:13px; }
-  .opt-row input { min-height:38px; }
-  .ocr-send-btn, .target-btn, .qtext-crop-btn { min-height:38px; font-size:10px; }
+  #chunk-info { width:100%; order:20; }
+  .page-jump-input { width:64px; min-height:40px; font-size:14px; }
+  #viewport { padding:6px; }
+  .mobile-target { min-height:42px; padding:9px 12px; }
+  .meta-box { padding:9px; border-radius:9px; }
+  .compact-meta-row { grid-template-columns:1fr; }
+  .compact-meta-row .flag-wrap { grid-column:auto; }
+  .slot-group { grid-template-columns:1fr; }
+  #slicer-right { padding-left:7px; padding-right:7px; }
 }
-/* Prevent accidental page scrolling while drawing a crop on touch devices. */
-#viewport, #pdf-single-page-wrap, #pdf-canvas { touch-action:none; }
+
+/* Crop drawing owns touch gestures; outside crop the PDF remains scrollable. */
+#viewport, #pdf-single-page-wrap { touch-action:pan-x pan-y; }
+#pdf-canvas { touch-action:none; user-select:none; -webkit-user-select:none; }
 </style></head>
 <body>
 
@@ -349,6 +431,17 @@ button, input, select, textarea, label { touch-action: manipulation; }
           <div id="crop-box"></div>
         </div>
       </div>
+    </div>
+
+    <div id="mobile-crop-bar" aria-label="Mobile crop controls">
+      <div class="mobile-crop-title">✂️ Crop Target</div>
+      <button type="button" class="mobile-target active" data-mobile-target="question">Question</button>
+      <button type="button" class="mobile-target" data-mobile-target="solution">Solution</button>
+      <button type="button" class="mobile-target" data-mobile-target="qtext-image">Q.Text</button>
+      <button type="button" class="mobile-target" data-mobile-target="optA">Opt A</button>
+      <button type="button" class="mobile-target" data-mobile-target="optB">Opt B</button>
+      <button type="button" class="mobile-target" data-mobile-target="optC">Opt C</button>
+      <button type="button" class="mobile-target" data-mobile-target="optD">Opt D</button>
     </div>
 
     <div id="slicer-right">
@@ -748,7 +841,9 @@ button, input, select, textarea, label { touch-action: manipulation; }
     document.getElementById('zoom-in').onclick = () => { if (pdfDoc && pageScale < 3.0) { pageScale += 0.25; window.renderCurrentPage(); } };
     document.getElementById('zoom-out').onclick = () => { if (pdfDoc && pageScale > 0.75) { pageScale -= 0.25; window.renderCurrentPage(); } };
 
-    viewport.onmousedown = (e) => {
+    viewport.onpointerdown = (e) => {
+      if (e.pointerType === 'touch') e.preventDefault();
+      try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
       const canvasEl = pdfCanvas;
       if (canvasEl) {
         activeCanvas = canvasEl;
@@ -767,7 +862,8 @@ button, input, select, textarea, label { touch-action: manipulation; }
       }
     };
 
-    window.onmousemove = (e) => {
+    window.onpointermove = (e) => {
+      if (e.pointerType === 'touch') e.preventDefault();
       if (isCropping && activeCanvas && activeCanvasRect) {
         const curX = Math.max(0, Math.min(e.clientX - activeCanvasRect.left, activeCanvasRect.width));
         const curY = Math.max(0, Math.min(e.clientY - activeCanvasRect.top, activeCanvasRect.height));
@@ -785,7 +881,8 @@ button, input, select, textarea, label { touch-action: manipulation; }
       }
     };
 
-    window.onmouseup = async () => {
+    window.onpointerup = async (e) => {
+      if (e && e.pointerType === 'touch') e.preventDefault();
       if (isCropping) {
         isCropping = false; cropBox.style.display = 'none';
         const boxW = parseFloat(cropBox.style.width), boxH = parseFloat(cropBox.style.height);
@@ -1119,6 +1216,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
           }, 3000);
         } finally {
           saveCloudBtn.disabled = false;
+          saveCloudBtn.dataset.saving = '0';
         }
       };
     }
@@ -1138,6 +1236,42 @@ button, input, select, textarea, label { touch-action: manipulation; }
   document.addEventListener('click',e=>{if(!e.target.closest('.profile-container')){const d=document.getElementById('profile-dropdown-menu');if(d)d.classList.remove('show');}});
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
   window.addEventListener('pageshow',init);
+})();
+</script>
+<script>
+/* === SLICER FINAL MOBILE/UX WIRING === */
+(function(){
+  function setMobileTarget(target){
+    const real = document.querySelector('.target-btn[data-target="'+target+'"]');
+    if(real) real.click();
+    document.querySelectorAll('.mobile-target').forEach(b=>{
+      b.classList.toggle('active', b.dataset.mobileTarget===target);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.mobile-target').forEach(btn=>{
+      btn.addEventListener('click', function(){
+        setMobileTarget(this.dataset.mobileTarget);
+      });
+    });
+    const input=document.getElementById('file-input');
+    if(input){
+      input.addEventListener('change', function(){
+        const file=this.files && this.files[0];
+        if(!file) return;
+        const isPdf=file.type==='application/pdf' || /\.pdf$/i.test(file.name);
+        if(!isPdf){
+          alert('Please select a PDF file.');
+          this.value='';
+          return;
+        }
+        if(file.size > 100 * 1024 * 1024){
+          alert('PDF is larger than 100 MB. Please use a smaller file for reliable mobile processing.');
+          this.value='';
+        }
+      });
+    }
+  });
 })();
 </script>
 <script>
@@ -1167,6 +1301,18 @@ button, input, select, textarea, label { touch-action: manipulation; }
       }, {passive:true});
     }
   }
+})();
+</script>
+<script>
+/* === SLICER POINTER CANCEL SAFETY === */
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    const vp=document.getElementById('viewport');
+    if(!vp || !window.PointerEvent) return;
+    vp.addEventListener('pointercancel', function(e){
+      if (typeof window.__slicerCancelCrop === 'function') window.__slicerCancelCrop();
+    }, {passive:true});
+  });
 })();
 </script>
 </body>
