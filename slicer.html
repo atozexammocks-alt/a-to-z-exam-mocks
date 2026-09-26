@@ -47,8 +47,10 @@
         const privateData = privateSnap.exists() ? privateSnap.data() : {};
 
         // SOURCE OF TRUTH: only the current teacher library is loaded.
-        mainFolders = Array.isArray(privateData.mainFolders) ? privateData.mainFolders.slice() : [];
-        subFolders = (privateData.subFolders && typeof privateData.subFolders === "object") ? {...privateData.subFolders} : {};
+        if (Array.isArray(privateData.mainFolders) && privateData.mainFolders.length) {
+          mainFolders = privateData.mainFolders.slice();
+          subFolders = (privateData.subFolders && typeof privateData.subFolders === "object") ? {...privateData.subFolders} : {};
+        }
       } catch (e) { console.error("Slicer library registry load failed:", e); }
     }
 
@@ -105,8 +107,11 @@
 
     window.saveFolderRegistryToCloud = async function() {
       try {
-        await window.setDoc(window.doc(window.db, "folder_configs", "shared_registry_v4"), {
-          mainFolders, subFolders
+        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
+          ownerEmail: teacherEmailKey(),
+          mainFolders: [...mainFolders],
+          subFolders: {...subFolders},
+          updatedAt: new Date().toISOString()
         });
       } catch(e) { console.error(e); }
     };
@@ -232,6 +237,50 @@
   </style>
 <style>
 .profile-container{position:relative;display:inline-block}.profile-dropdown{position:absolute;right:0;top:40px;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);width:220px;display:none;flex-direction:column;z-index:1000;overflow:hidden}.profile-dropdown.show{display:flex}.dropdown-header{padding:12px 16px;border-bottom:1px solid #1e293b;font-size:12px;color:#38bdf8;font-weight:700;word-break:break-all}.dropdown-item{padding:10px 16px;font-size:12px;color:#fecaca;background:#7f1d1d;border:0;cursor:pointer;text-align:left;font-weight:700;width:100%}.dropdown-item:hover{background:#991b1b}
+
+/* === SLICER MOBILE + TOUCH RELIABILITY PATCH === */
+html, body { max-width:100%; }
+button, input, select, textarea, label { touch-action: manipulation; }
+#file-input { pointer-events:auto; }
+@media (max-width: 900px) {
+  body { height:auto; min-height:100vh; overflow:auto; }
+  #navbar { min-height:52px; height:auto; padding:7px 9px; gap:7px; flex-wrap:wrap; }
+  .nav-brand span { display:none; }
+  .nav-tabs { flex:1; overflow-x:auto; justify-content:flex-end; }
+  .nav-btn { white-space:nowrap; padding:7px 9px; }
+  .user-pill { white-space:nowrap; max-width:150px; overflow:hidden; text-overflow:ellipsis; }
+  .slicer-workspace { flex-direction:column; height:auto; min-height:calc(100vh - 52px); overflow:visible; }
+  #slicer-left, #slicer-right { width:100% !important; height:auto; min-height:0; border-right:0; }
+  #slicer-left { min-height:58vh; border-bottom:1px solid #1e293b; }
+  #slicer-right { max-height:none; overflow:visible; padding-bottom:24px; }
+  #slicer-toolbar { gap:6px; padding:7px; }
+  .tool-btn { min-height:36px; padding:7px 10px; }
+  #viewport { min-height:52vh; padding:10px; overflow:auto; }
+  #pdf-single-page-wrap { max-width:none; margin:0 auto; }
+  #pdf-canvas { max-width:none; }
+  .folder-select-grid { grid-template-columns:1fr; }
+  .opt-grid-2x2 { grid-template-columns:1fr; }
+  .compact-meta-row { flex-wrap:wrap; }
+  .compact-meta-row .qno-wrap, .compact-meta-row .ans-wrap { width:calc(50% - 2px); }
+  .compact-meta-row .flag-wrap { width:100%; flex-basis:100%; }
+  .ocr-action-bar { grid-template-columns:repeat(2,1fr); }
+  .slot-group { grid-template-columns:1fr; }
+  .prev-q-card { width:100%; max-height:94vh; padding:14px; }
+}
+@media (max-width: 600px) {
+  #slicer-left { min-height:55vh; }
+  #viewport { min-height:48vh; }
+  #slicer-toolbar > * { flex:0 0 auto; }
+  #chunk-info { width:100%; order:2; }
+  .page-jump-input { width:58px; min-height:34px; }
+  .tool-btn { font-size:10px; min-height:38px; }
+  .meta-box { padding:8px; }
+  .meta-box input, .meta-box select, .meta-box textarea { min-height:38px; font-size:13px; }
+  .opt-row input { min-height:38px; }
+  .ocr-send-btn, .target-btn, .qtext-crop-btn { min-height:38px; font-size:10px; }
+}
+/* Prevent accidental page scrolling while drawing a crop on touch devices. */
+#viewport, #pdf-single-page-wrap, #pdf-canvas { touch-action:none; }
 </style></head>
 <body>
 
@@ -1090,5 +1139,35 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
   window.addEventListener('pageshow',init);
 })();
-</script></body>
+</script>
+<script>
+/* === SLICER SAFETY / TOUCH PATCH === */
+(function(){
+  const log=(...a)=>console.log("[Slicer]",...a);
+  window.addEventListener("error", e => log("Runtime error:", e.message, e.filename, e.lineno));
+  window.addEventListener("unhandledrejection", e => log("Unhandled promise:", e.reason));
+
+  document.addEventListener("DOMContentLoaded", function(){
+    const input=document.getElementById("file-input");
+    if(input){
+      input.addEventListener("change", function(){
+        const file=this.files && this.files[0];
+        if(file) log("PDF selected:", file.name, Math.round(file.size/1024/1024*10)/10+" MB");
+      });
+    }
+  });
+
+  // Make crop interaction reliable on phones using Pointer Events without
+  // replacing the existing crop logic when mouse events are available.
+  if (window.PointerEvent) {
+    const vp=document.getElementById("viewport");
+    if(vp){
+      vp.addEventListener("pointerdown", function(e){
+        if(e.pointerType==="touch") { try{ vp.setPointerCapture(e.pointerId); }catch(_){} }
+      }, {passive:true});
+    }
+  }
+})();
+</script>
+</body>
 </html>
