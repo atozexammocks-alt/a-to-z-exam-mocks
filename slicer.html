@@ -736,8 +736,19 @@ button, input, select, textarea, label { touch-action: manipulation; }
 
     document.getElementById('file-input').onchange = async (e) => {
       const f = e.target.files[0];
-      if (f) {
-        try {
+      if (!f) return;
+      const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+      if (!isPdf) {
+        e.target.value = '';
+        alert('Please select a valid PDF file.');
+        return;
+      }
+      if (f.size > 100 * 1024 * 1024) {
+        e.target.value = '';
+        alert('PDF is larger than 100 MB. Please use a smaller PDF for reliable processing.');
+        return;
+      }
+      try {
           const arrayBuffer = await f.arrayBuffer();
           originalPdfBytes = arrayBuffer;
 
@@ -846,6 +857,8 @@ button, input, select, textarea, label { touch-action: manipulation; }
       try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
       const canvasEl = pdfCanvas;
       if (canvasEl) {
+        const canvasRect = canvasEl.getBoundingClientRect();
+        if (e.clientX < canvasRect.left || e.clientX > canvasRect.right || e.clientY < canvasRect.top || e.clientY > canvasRect.bottom) return;
         activeCanvas = canvasEl;
         activeCanvasRect = activeCanvas.getBoundingClientRect();
         const wrapRect = document.getElementById('pdf-single-page-wrap').getBoundingClientRect();
@@ -957,6 +970,9 @@ button, input, select, textarea, label { touch-action: manipulation; }
           }
         }
         activeCanvas = null; activeCanvasRect = null;
+        if (e && viewport.releasePointerCapture && viewport.hasPointerCapture && viewport.hasPointerCapture(e.pointerId)) {
+          try { viewport.releasePointerCapture(e.pointerId); } catch (_) {}
+        }
       }
     };
 
@@ -1135,7 +1151,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
           if (keepOptionsOn) {
             key = document.getElementById('vault-ans-mcq').value;
           } else {
-            const shortInput = document.getElementById('vault-short-ans');
+            const shortInput = document.getElementById('vault-ans-short');
             shortAns = shortInput ? shortInput.value.trim() : '';
           }
 
