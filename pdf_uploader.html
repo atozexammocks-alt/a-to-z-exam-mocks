@@ -69,27 +69,6 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 "use strict";
 var fileEl=document.getElementById("file"), chooseBtn=document.getElementById("chooseBtn"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
 
-fileEl.addEventListener("change",function(){
- var f=fileEl.files&&fileEl.files[0];
- if(!f)return;
- document.getElementById("processList").textContent="Process log:\\n📄 File selected: "+f.name+" ("+Math.round(f.size/1024)+" KB)";
- status("📄 Selected: "+f.name+" — opening PDF…");
- progress(0,1);
- var reader=new FileReader();
- reader.onload=function(){
-  status("📖 Reading PDF…");
-  logStep("🔧 Starting PDF.js engine…");
-  loadPdf(reader.result).then(function(doc){
-   pdf=doc;totalPages=doc.numPages;
-   logStep("✔ PDF.js opened PDF successfully. Total pages: "+totalPages);
-   document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
-   document.getElementById("pageRange").value="1-"+Math.min(5,totalPages);
-   show("pageOverlay",true);status("✔ PDF opened. Enter page range and press Start.");
-  }).catch(function(err){console.error(err);status("❌ PDF open failed: "+(err.message||err));alert("PDF open failed: "+(err.message||err));});
- };
- reader.onerror=function(){status("❌ Could not read the selected file.")};
- reader.readAsArrayBuffer(f);
-});
 var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
 var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4,cropAction=null,cropBase=null;
 
