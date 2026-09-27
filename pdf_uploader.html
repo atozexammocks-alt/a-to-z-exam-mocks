@@ -68,7 +68,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 (function(){
 "use strict";
 var fileEl=document.getElementById("file"), chooseBtn=document.getElementById("chooseBtn"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
-chooseBtn.addEventListener("click",function(){fileEl.value="";fileEl.click()});
+chooseBtn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();try{fileEl.click()}catch(err){status("❌ File picker failed: "+(err.message||err));}});
 var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
 var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4,cropAction=null,cropBase=null;
 
