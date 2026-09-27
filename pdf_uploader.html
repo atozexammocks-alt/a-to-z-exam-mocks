@@ -162,23 +162,38 @@ async function pageData(n){
 }
 
 function splitPage(pd){
- var lines=getLines(pd.words),starts=[],re=/^(?:Q(?:uestion)?\s*\.?\s*)?(\d{1,3})\s*[.)\-:]\s*/i;
- lines.forEach(function(l,i){var m=l.text.replace(/^[^\dQq]*/,"").match(re);if(m)starts.push({i:i,no:Number(m[1]),y:l.y})});
- 
-// Fallback if structured numbering is not matched clearly
-if(!starts.length){
-   var allText=lines.map(function(x){return x.text}).join("\n").trim();
-   if(allText) return [{qNo:1,text:allText,top:0,bottom:pd.height}];
-   return [];
- }
- var out=[];
- starts.forEach(function(a,k){
-   var b=starts[k+1],text=lines.slice(a.i,b?b.i:lines.length).map(function(x){return x.text}).join("\n").trim();
+ var words=pd.words||[],width=pd.width||1000;
+ function extractColumn(ws){
+  var lines=getLines(ws),starts=[],re=/^(?:Q(?:uestion)?\\s*\\.?\\s*)?(\\d{1,3})\\s*[.)\\-:]\\s*/i;
+  lines.forEach(function(l,i){var m=l.text.replace(/^[^\\dQq]*/,"").match(re);if(m)starts.push({i:i,no:Number(m[1]),y:l.y})});
+  var out=[];
+  starts.forEach(function(a,k){
+   var b=starts[k+1],text=lines.slice(a.i,b?b.i:lines.length).map(function(x){return x.text}).join("\\n").trim();
    if(text.length<2)return;
    var top=Math.max(0,pd.height-(a.y+18)*1.5),bottom=b?Math.min(pd.height,pd.height-(b.y-10)*1.5):pd.height;
-   out.push({qNo:a.no,text:text,top:top,bottom:bottom});
- });
- return out;
+   out.push({qNo:a.no,text:text,top:top,bottom:bottom,y:a.y});
+  });
+  return out;
+ }
+ var xs=words.map(function(w){return w.x}).filter(function(x){return isFinite(x)}),hasCols=false,cut=width*.5;
+ if(xs.length>10){
+  var left=xs.filter(function(x){return x<cut}),right=xs.filter(function(x){return x>=cut});
+  hasCols=left.length>2&&right.length>2;
+ }
+ var blocks=[];
+ if(hasCols){
+  var leftWords=words.filter(function(w){return w.x<cut}),rightWords=words.filter(function(w){return w.x>=cut});
+  blocks=extractColumn(leftWords).concat(extractColumn(rightWords));
+  blocks.sort(function(a,b){return a.qNo-b.qNo});
+ }else blocks=extractColumn(words);
+ if(!blocks.length){
+  var lines=getLines(words),clean=lines.map(function(x){return x.text}).filter(function(t){return t.trim()}).join("\\n").trim();
+  if(!clean)return [];
+  var likely=clean.split("\\n").filter(function(t){return /^(?:Q(?:uestion)?\\s*)?\\d{1,3}[.)\\-:]/i.test(t.trim())});
+  if(likely.length)return [];
+  return [];
+ }
+ return blocks;
 }
 
 function parseBlock(text){
