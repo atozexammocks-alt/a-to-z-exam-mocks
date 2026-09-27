@@ -83,29 +83,28 @@ function imageLoad(src){return new Promise(function(ok,no){var im=new Image();im
 window.addEventListener("error",function(e){status("❌ JavaScript error: "+(e.message||"unknown error"));console.error(e.error||e.message)});
 
 fileEl.addEventListener("change",function(){
- var f=fileEl.files&&fileEl.files[0]; if(!f)return;
- document.getElementById("processList").textContent="Process log:\n📄 File selected: "+f.name+" ("+Math.round(f.size/1024)+" KB)";
- status("📄 Selected: "+f.name+" — opening PDF…");
+ var f=this.files&&this.files[0];
+ if(!f)return;
+ status("📄 Selected: "+f.name+" — reading PDF…");
  progress(0,1);
  var reader=new FileReader();
  reader.onload=function(){
-   status("📖 Reading PDF…");
-   logStep("🔧 Starting PDF.js engine…");
-   loadPdf(reader.result).then(function(doc){
-     pdf=doc; totalPages=doc.numPages; logStep("✔ PDF.js opened PDF successfully. Total pages: "+totalPages);
-     document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
-     document.getElementById("pageRange").value="1-"+Math.min(5,totalPages);
-     show("pageOverlay",true);
-     logStep("✔ PDF ready. Waiting for page range."); status("✔ PDF opened. Enter page range and press Start.");
-   }).catch(function(err){
-     console.error(err); status("❌ PDF open failed: "+(err.message||err)); alert("PDF open failed: "+(err.message||err));
-   });
+  status("📖 Loading PDF engine…");
+  loadPdf(reader.result).then(function(doc){
+   pdf=doc; totalPages=doc.numPages;
+   document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
+   document.getElementById("pageRange").value="1-"+Math.min(5,totalPages);
+   show("pageOverlay",true);
+   status("✔ PDF opened. Select pages and press Start.");
+   logStep("✔ PDF loaded successfully: "+totalPages+" page(s).");
+  }).catch(function(err){
+   status("❌ PDF open failed: "+(err.message||err));
+   console.error("PDF LOAD ERROR",err);
+  });
  };
- reader.onerror=function(){status("❌ Could not read the selected file.")};
+ reader.onerror=function(){status("❌ Browser could not read this PDF file.")};
  reader.readAsArrayBuffer(f);
- });
-// Re-bind through a native input path as well, so mobile browsers cannot swallow the label click.
-
+});
 
 function loadPdf(data){
  if(!window.pdfjsLib)return Promise.reject(new Error("PDF engine did not load. Refresh the page once."));
