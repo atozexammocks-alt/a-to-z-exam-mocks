@@ -68,8 +68,7 @@ var pdf=null,totalPages=0,processPages=0,items=[],selected=-1,currentPdfPage=1,c
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}}
 function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
-function logStep(s){var p=document.getElementById("processList");if(p){p.textContent+="
-"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}activityEl.textContent="Activity: "+s;statusEl.textContent=s}
+function logStep(s){var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}activityEl.textContent="Activity: "+s;statusEl.textContent=s}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
 function show(id,on){document.getElementById(id).style.display=on?"flex":"none"}
 function imageLoad(src){return new Promise(function(ok,no){var im=new Image();im.onload=function(){ok(im)};im.onerror=no;im.src=src})}
@@ -78,7 +77,7 @@ window.addEventListener("error",function(e){status("❌ JavaScript error: "+(e.m
 fileEl.addEventListener("change",function(){
  var f=fileEl.files&&fileEl.files[0]; if(!f)return;
  document.getElementById("processList").textContent="Process log:\n📄 File selected: "+f.name+" ("+Math.round(f.size/1024)+" KB)";
-   status("📄 Selected: "+f.name+" — opening PDF…");
+ status("📄 Selected: "+f.name+" — opening PDF…");
  progress(0,1);
  var reader=new FileReader();
  reader.onload=function(){
@@ -144,8 +143,7 @@ function splitPage(pd){
  }
  var out=[];
  starts.forEach(function(a,k){
-   var b=starts[k+1],text=lines.slice(a.i,b?b.i:lines.length).map(function(x){return x.text}).join("
-").trim();
+   var b=starts[k+1],text=lines.slice(a.i,b?b.i:lines.length).map(function(x){return x.text}).join("\n").trim();
    if(text.length<3)return;
    var top=Math.max(0,pd.height-(a.y+18)*1.5),bottom=b?Math.min(pd.height,pd.height-(b.y-10)*1.5):pd.height;
    out.push({qNo:a.no,text:text,top:top,bottom:bottom});
@@ -154,8 +152,7 @@ function splitPage(pd){
 }
 
 function parseBlock(text){
- var clean=String(text||"").replace(/\r/g,"").trim(),re=/(?:^|
-|\s)\(?([A-H])\)?[.)\-:]\s+/g,marks=[],m;
+ var clean=String(text||"").replace(/\r/g,"").trim(),re=/(?:^|\n|\s)\(?([A-H])\)?[.)\-:]\s+/g,marks=[],m;
  while((m=re.exec(clean))!==null)marks.push({l:m[1],p:m.index+(m[0].length-m[0].replace(/^\s*/,"").length)});
  if(!marks.length)return {question:clean,options:[]};
  var q=clean.slice(0,marks[0].p).trim(),opts=[];
@@ -258,7 +255,7 @@ saveBtn.addEventListener("click",async function(){
  if(!good.length){alert("Confirm at least one question first.");return}
  var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
  if(!email){alert("Teacher login not found. Open Teacher Dashboard and sign in first.");return}
- status("☁ Saving "+good.length+" question(s)+"…");saveBtn.disabled=true;
+ status("☁ Saving "+good.length+" question(s)…");saveBtn.disabled=true;
  try{
   var appmod=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"),fs=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"),au=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
   var config={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfQBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
