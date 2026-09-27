@@ -49,7 +49,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 .img-editor.show{display:flex}.img-modal{width:min(1100px,96vw);height:min(88vh,900px);background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
 .img-head{padding:10px 12px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .img-body{display:grid;grid-template-columns:1fr 260px;gap:10px;flex:1;min-height:0;padding:10px}.page-stage{position:relative;background:#020617;border:1px solid #334155;border-radius:8px;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:10px}
-#editCanvas{max-width:100%;height:auto;display:block;cursor:crosshair}.selection{position:absolute;border:2px solid #38bdf8;background:rgba(56,189,248,.12);pointer-events:none}
+#editCanvas{max-width:100%;height:auto;display:block;cursor:crosshair;touch-action:none}.selection{position:absolute;border:2px solid #38bdf8;background:rgba(56,189,248,.12);pointer-events:none}.crop-handle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:3px;pointer-events:auto;z-index:3;box-shadow:0 1px 5px rgba(0,0,0,.65)}.crop-handle.nw{cursor:nwse-resize}.crop-handle.ne{cursor:nesw-resize}.crop-handle.sw{cursor:nesw-resize}.crop-handle.se{cursor:nwse-resize}.crop-handle.n{cursor:ns-resize}.crop-handle.s{cursor:ns-resize}.crop-handle.w{cursor:ew-resize}.crop-handle.e{cursor:ew-resize}.crop-handle.move{width:100%;height:100%;inset:0;background:transparent;border:0;box-shadow:none;cursor:move;border-radius:0}
 .img-side{overflow:auto}.img-side label{display:block;margin-bottom:8px}.img-side input,.img-side select{margin-top:4px}
 .img-note{font-size:10px;color:#94a3b8;line-height:1.45}.img-footer{padding:10px 12px;border-top:1px solid #1e293b;display:flex;gap:7px;justify-content:flex-end}
 @media(max-width:800px){.img-body{grid-template-columns:1fr}.img-modal{height:94vh}.img-side{max-height:260px}}
@@ -82,10 +82,10 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
  <div class="img-modal">
   <div class="img-head"><b>🖼️ Question Image Editor</b><button onclick="closeImageEditor()">✕ Close</button></div>
   <div class="img-body">
-   <div class="page-stage" id="pageStage"><canvas id="editCanvas"></canvas><div id="selection" class="selection"></div></div>
+   <div class="page-stage" id="pageStage"><canvas id="editCanvas"></canvas><div id="selection" class="selection"><div class="crop-handle nw" data-handle="nw"></div><div class="crop-handle n" data-handle="n"></div><div class="crop-handle ne" data-handle="ne"></div><div class="crop-handle w" data-handle="w"></div><div class="crop-handle move" data-handle="move"></div><div class="crop-handle e" data-handle="e"></div><div class="crop-handle sw" data-handle="sw"></div><div class="crop-handle s" data-handle="s"></div><div class="crop-handle se" data-handle="se"></div></div></div>
    <div class="img-side">
     <label>PDF Page<select id="editPage" onchange="loadEditorPage()"></select></label>
-    <div class="img-note">Drag on the page to cut/paste any question or figure from this page. You can also choose a different PDF page and crop from there.</div>
+    <div class="img-note">Drag inside the blue box to move it. Drag any blue corner/edge handle to resize width and height directly with mouse or touch. Drag outside to draw a new crop. You can also choose another PDF page.</div>
     <hr style="border:0;border-top:1px solid #1e293b;margin:10px 0">
     <label>Crop X (0–1000)<input id="cx" type="number" min="0" max="1000"></label>
     <label>Crop Y (0–1000)<input id="cy" type="number" min="0" max="1000"></label>
@@ -161,6 +161,31 @@ async function runBrowserOCR(imageDataUrl,pageNumber){
   return ret?.data||{};
 }
 
+function normalizeMathUnicode(s){
+  return String(s||'')
+    .replace(/[−–—]/g,'-').replace(/[×✕]/g,'×').replace(/÷/g,'÷')
+    .replace(/\u00ad/g,'').replace(/[\u200B-\u200D\uFEFF]/g,'')
+    .replace(/α/g,'α').replace(/β/g,'β').replace(/γ/g,'γ').replace(/δ/g,'δ').replace(/θ/g,'θ')
+    .replace(/λ/g,'λ').replace(/μ/g,'μ').replace(/ρ/g,'ρ').replace(/σ/g,'σ').replace(/φ/g,'φ').replace(/ω/g,'ω')
+    .replace(/Δ/g,'Δ').replace(/Σ/g,'Σ').replace(/Π/g,'Π').replace(/∫/g,'∫').replace(/∂/g,'∂')
+    .replace(/√/g,'√').replace(/∞/g,'∞').replace(/≤/g,'≤').replace(/≥/g,'≥').replace(/≠/g,'≠').replace(/±/g,'±').replace(/°/g,'°');
+}
+function mathToTex(s){
+  let t=normalizeMathUnicode(s).replace(/\s+/g,' ').trim();
+  t=t.replace(/([0-9]+)\s*×\s*10\s*(?:\^\s*)?([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻]+|[+-]?\d+)/g,(m,n,e)=>'\\('+n+'\\times 10^{'+e.replace(/⁰/g,'0').replace(/¹/g,'1').replace(/²/g,'2').replace(/³/g,'3').replace(/⁴/g,'4').replace(/⁵/g,'5').replace(/⁶/g,'6').replace(/⁷/g,'7').replace(/⁸/g,'8').replace(/⁹/g,'9').replace(/⁺/g,'+').replace(/⁻/g,'-')+'}\\)');
+  t=t.replace(/\bd([A-Za-z])\/d([A-Za-z])\b/g,'\\(\\frac{d$1}{d$2}\\)');
+  t=t.replace(/\bdy\/dx\b/gi,'\\(\\frac{dy}{dx}\\)');
+  t=t.replace(/\b([A-Za-z])\s*\/\s*([A-Za-z0-9()]+)\b/g,'\\(\\frac{$1}{$2}\\)');
+  t=t.replace(/\b([A-Za-z0-9)])\s*\^\s*([+-]?\d+)\b/g,'\\($1^{$2}\\)');
+  return t;
+}
+function formatExtractedText(text){
+  let t=normalizeMathUnicode(String(text||'')).replace(/[ \t]+/g,' ').trim();
+  if(!t)return '';
+  const hasMath=/[∫∂√∞≤≥≠±×÷ΔΣΠαβγδθλμρσφω]|\b(?:dy\/dx|d[A-Za-z]\/d[A-Za-z])\b|\b\d+\s*×\s*10\s*(?:\^\s*)?[-+]?\d+/.test(t);
+  if(!hasMath)return t;
+  return mathToTex(t);
+}
 function normalizeQuestionStart(text){
   const t=String(text||'').replace(/\s+/g,' ').trim();
   let m=t.match(/^(?:Q(?:uestion)?\s*)?(\d{1,3})\s*[.)\-:]/i);
@@ -172,7 +197,7 @@ function normalizeQuestionStart(text){
 function makeImageItem(pageNumber,box,text,sourceImage){
   return {
     qNo:box.number||pageNumber,
-    qText:String(text||'').replace(/\s+([,.;:)])/g,'$1').replace(/\s+([+\-×÷=])/g,' $1 ').replace(/([+\-×÷=])\s+/g,'$1 ').trim(),
+    qText:formatExtractedText(String(text||'').replace(/\s+([,.;:)])/g,'$1').replace(/\s+([+\-×÷=])/g,' $1 ').replace(/([+\-×÷=])\s+/g,'$1 ').trim()),
     optA:'',optB:'',optC:'',optD:'',
     key:'',topic:'PDF Image Extraction',
     targetPath:folders[0]||'General / General',
@@ -480,7 +505,7 @@ function applyCorrection(i){const x=items[i];x.qNo=+document.getElementById('n'+
 async function replaceImage(e,i){const f=e.target.files[0];if(!f)return;if(f.size>900000){alert('Image is too large. Please use an image below 900 KB.');return}const r=new FileReader();r.onload=()=>{items[i].questionImage=r.result;status.textContent='✔ Question image updated for Q'+(items[i].qNo||i+1);render()};r.readAsDataURL(f)}
 
 function removeImage(i){items[i].questionImage='';status.textContent='Image removed for Q'+(items[i].qNo||i+1);render()}
-let editIndex=-1,editPageImage='',dragStart=null;
+let editIndex=-1,editPageImage='',dragStart=null,resizeState=null;
 const editCanvas=document.getElementById('editCanvas'),selection=document.getElementById('selection');
 function openImageEditor(i,fromPdfPage=true){
   editIndex=i; const x=items[i]; const sel=document.getElementById('editPage');
@@ -501,10 +526,20 @@ async function loadEditorPage(){
 }
 function setCropInputs(b){cx.value=Math.round(b.x||0);cy.value=Math.round(b.y||0);cw.value=Math.round(b.w||1000);ch.value=Math.round(b.h||1000)}
 function getCrop(){return{x:Math.max(0,Math.min(1000,+cx.value||0)),y:Math.max(0,Math.min(1000,+cy.value||0)),w:Math.max(1,Math.min(1000-(+cx.value||0),+cw.value||1)),h:Math.max(1,Math.min(1000-(+cy.value||0),+ch.value||1))}}
-function drawSelectionFromInputs(){const b=getCrop(),r=editCanvas.getBoundingClientRect(),s=selection.getBoundingClientRect();selection.style.left=(b.x/1000*editCanvas.clientWidth+10)+'px';selection.style.top=(b.y/1000*editCanvas.clientHeight+10)+'px';selection.style.width=(b.w/1000*editCanvas.clientWidth)+'px';selection.style.height=(b.h/1000*editCanvas.clientHeight)+'px'}
-function applyManualCrop(){drawSelectionFromInputs();status.textContent='Crop selected. Drag on the page to change it.'}
-editCanvas.addEventListener('mousedown',e=>{const r=editCanvas.getBoundingClientRect();dragStart={x:(e.clientX-r.left)/r.width*1000,y:(e.clientY-r.top)/r.height*1000}});
-window.addEventListener('mouseup',e=>{if(!dragStart||editIndex<0)return;const r=editCanvas.getBoundingClientRect();let x=(e.clientX-r.left)/r.width*1000,y=(e.clientY-r.top)/r.height*1000;let x2=Math.max(0,Math.min(1000,x)),y2=Math.max(0,Math.min(1000,y));let sx=Math.max(0,Math.min(1000,dragStart.x)),sy=Math.max(0,Math.min(1000,dragStart.y));let b={x:Math.round(Math.min(sx,x2)),y:Math.round(Math.min(sy,y2)),w:Math.round(Math.abs(x2-sx)),h:Math.round(Math.abs(y2-sy))};if(b.w>5&&b.h>5){setCropInputs(b);drawSelectionFromInputs()}dragStart=null});
+function drawSelectionFromInputs(){const b=getCrop();selection.style.left=(b.x/1000*editCanvas.clientWidth+10)+'px';selection.style.top=(b.y/1000*editCanvas.clientHeight+10)+'px';selection.style.width=(b.w/1000*editCanvas.clientWidth)+'px';selection.style.height=(b.h/1000*editCanvas.clientHeight)+'px';positionCropHandles()}
+function positionCropHandles(){const map={nw:[0,0],n:[50,0],ne:[100,0],w:[0,50],e:[100,50],sw:[0,100],s:[50,100],se:[100,100]};selection.querySelectorAll('.crop-handle').forEach(h=>{const p=map[h.dataset.handle];if(p){h.style.left='calc('+p[0]+'% - 7px)';h.style.top='calc('+p[1]+'% - 7px)'}})}
+function applyManualCrop(){drawSelectionFromInputs();status.textContent='Crop selected. Drag inside to move; use the 8 blue handles to resize with mouse/touch.'}
+function pointerToCrop(e){const r=editCanvas.getBoundingClientRect();return{x:Math.max(0,Math.min(1000,(e.clientX-r.left)/r.width*1000)),y:Math.max(0,Math.min(1000,(e.clientY-r.top)/r.height*1000))}}
+function beginCropPointer(e,handle){e.preventDefault();e.stopPropagation();resizeState={handle,start:pointerToCrop(e),base:getCrop()};try{e.currentTarget.setPointerCapture(e.pointerId)}catch(_){}}
+function moveCropPointer(e){if(!resizeState)return;e.preventDefault();const p=pointerToCrop(e),b=resizeState.base,k=resizeState.handle,dx=p.x-resizeState.start.x,dy=p.y-resizeState.start.y;let x=b.x,y=b.y,w=b.w,h=b.h;
+if(k==='move'){x=b.x+dx;y=b.y+dy}else{if(k.includes('w')){x=b.x+dx;w=b.w-dx}if(k.includes('e'))w=b.w+dx;if(k.includes('n')){y=b.y+dy;h=b.h-dy}if(k.includes('s'))h=b.h+dy}
+const min=8;if(w<min){if(k.includes('w'))x=b.x+b.w-min;w=min}if(h<min){if(k.includes('n'))y=b.y+b.h-min;h=min}x=Math.max(0,Math.min(1000-min,x));y=Math.max(0,Math.min(1000-min,y));w=Math.max(min,Math.min(1000-x,w));h=Math.max(min,Math.min(1000-y,h));setCropInputs({x,y,w,h});drawSelectionFromInputs()}
+function endCropPointer(){resizeState=null;dragStart=null}
+selection.querySelectorAll('.crop-handle').forEach(h=>h.addEventListener('pointerdown',e=>beginCropPointer(e,h.dataset.handle)));
+window.addEventListener('pointermove',moveCropPointer,{passive:false});window.addEventListener('pointerup',endCropPointer);
+editCanvas.addEventListener('pointerdown',e=>{const p=pointerToCrop(e),b=getCrop();if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h){beginCropPointer(e,'move');return}dragStart=p;try{editCanvas.setPointerCapture(e.pointerId)}catch(_){}});
+editCanvas.addEventListener('pointermove',e=>{if(!dragStart)return;const p=pointerToCrop(e),b={x:Math.round(Math.min(dragStart.x,p.x)),y:Math.round(Math.min(dragStart.y,p.y)),w:Math.round(Math.abs(p.x-dragStart.x)),h:Math.round(Math.abs(p.y-dragStart.y))};if(b.w>5&&b.h>5){setCropInputs(b);drawSelectionFromInputs()}});
+editCanvas.addEventListener('pointerup',()=>{dragStart=null});editCanvas.addEventListener('pointercancel',endCropPointer);
 function updateImageStyle(){const v=document.getElementById('iw').value;iwv.textContent=v+'%';if(editIndex>=0){items[editIndex].imageWidth=+v;items[editIndex].imageMarginTop=+document.getElementById('imt').value;items[editIndex].imageMarginBottom=+document.getElementById('imb').value;items[editIndex].imageAlign=document.getElementById('ialign').value}}
 async function saveImageEditor(){if(editIndex<0)return;const selectedPage=document.getElementById('editPage').value;const p=/^\d+$/.test(selectedPage)?+selectedPage:(+items[editIndex].sourcePage||1);const b=getCrop();const x=items[editIndex];const img=await cropImage(editPageImage,b);x.questionImage=img;x.questionBox=b;if(/^\d+$/.test(selectedPage))x.sourcePage=p;x.imageWidth=+iw.value;x.imageMarginTop=+imt.value;x.imageMarginBottom=+imb.value;x.imageAlign=ialign.value;closeImageEditor();status.textContent='✔ Image edited for Q'+(x.qNo||editIndex+1)+' from PDF page '+p;render()}
 function closeImageEditor(){document.getElementById('imgEditor').classList.remove('show');editIndex=-1}
