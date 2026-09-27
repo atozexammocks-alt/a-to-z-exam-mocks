@@ -17,7 +17,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 .grid2{display:grid;grid-template-columns:110px 1fr;gap:7px}.field{margin-top:7px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
 input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}textarea{min-height:90px;resize:vertical}.opt{display:grid;grid-template-columns:28px 1fr;gap:5px;margin:5px 0}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.preview{background:#fff;color:#111;border-radius:7px;padding:16px;line-height:1.55;min-height:180px}.preview img{max-width:100%;max-height:350px;display:block;margin:12px auto}.previewOpt{padding:5px 0;border-bottom:1px solid #ddd}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}.modalfoot{border-top:1px solid #334155;border-bottom:0}.modalbody{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:10px;min-height:0;flex:1}.pdfpages{overflow:auto}.thumb{border:1px solid #334155;padding:4px;margin-bottom:6px;cursor:pointer}.thumb.active{border-color:#38bdf8}.thumb canvas{width:100%;display:block;background:#fff}.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none}.pdfview canvas{background:#fff;max-width:none}.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:none;pointer-events:none}.prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}.modalfoot{border-top:1px solid #334155;border-bottom:0}.modalbody{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:10px;min-height:0;flex:1}.pdfpages{overflow:auto}.thumb{border:1px solid #334155;padding:4px;margin-bottom:6px;cursor:pointer}.thumb.active{border-color:#38bdf8}.thumb canvas{width:100%;display:block;background:#fff}.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none}.pdfview canvas{background:#fff;max-width:none}.cropbox{pointer-events:auto;cursor:move}.cropHandle{position:absolute;width:14px;height:14px;background:#fff;border:2px solid #0284c7;border-radius:2px}.cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}.cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.metaPanel{background:#07101f;border:1px solid #334155;border-radius:8px;padding:9px;margin-bottom:10px}.metaGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.miniBtn{padding:5px 8px;font-size:11px}.topic{margin-top:7px}@media(max-width:850px){.metaGrid{grid-template-columns:1fr 1fr}}.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:none;pointer-events:none}.prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.nav a:nth-child(n+3){display:none}.scroll{max-height:none}.modalbody{grid-template-columns:90px 1fr}}
 </style>
 </head>
@@ -30,6 +30,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 </nav>
 
 <main class="page">
+<div class="metaPanel"><b>📚 Destination & PDF Details</b><div class="metaGrid"><div class="field"><label>Library</label><select id="globalLibrary"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div><div class="field"><label>Folder</label><div class="row" style="margin-top:0"><select id="globalFolder"><option value="">Select Folder</option></select><button id="addFolder" class="btn miniBtn" type="button">＋</button><button id="removeFolder" class="btn miniBtn" type="button">−</button></div></div><div class="field"><label>Subfolder</label><div class="row" style="margin-top:0"><select id="globalSubfolder"><option value="">Select Subfolder</option></select><button id="addSubfolder" class="btn miniBtn" type="button">＋</button><button id="removeSubfolder" class="btn miniBtn" type="button">−</button></div></div><div class="field"><label>Topic / Chapter</label><input id="globalTopic" placeholder="e.g. Ray Optics"></div></div><div class="muted topic">These details apply to all extracted questions; you can still change an individual question below.</div></div>
 <div class="toolbar">
 <button id="chooseBtn" class="choose" type="button">📄 Choose PDF</button>
 <input id="file" type="file" accept="application/pdf,.pdf" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
@@ -59,8 +60,8 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 
 <div class="overlay" id="cropOverlay"><div class="modal">
 <div class="modalhead"><b>✂ Crop from Original PDF</b><div><button id="cropPrev" class="btn">◀</button><button id="cropNext" class="btn">▶</button><button id="closeCrop" class="btn">✕</button></div></div>
-<div class="modalbody"><div class="pdfpages" id="pdfPages"></div><div class="pdfview" id="pdfView"><canvas id="pdfCanvas"></canvas><div id="cropBox" class="cropbox"></div></div></div>
-<div class="modalfoot"><span class="muted">Drag over the question on the original PDF page, then save.</span><button id="saveCrop" class="btn green">✔ Save Crop</button></div>
+<div class="modalbody"><div class="pdfpages" id="pdfPages"></div><div class="pdfview" id="pdfView"><canvas id="pdfCanvas"></canvas><div id="cropBox" class="cropbox"><i class="cropHandle nw"></i><i class="cropHandle ne"></i><i class="cropHandle sw"></i><i class="cropHandle se"></i></div></div></div>
+<div class="modalfoot"><span class="muted">Drag to create a box. Move the box or drag any corner handle to adjust width/height manually.</span><button id="saveCrop" class="btn green">✔ Save Crop</button></div>
 </div></div>
 
 <script>
@@ -69,13 +70,16 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 var fileEl=document.getElementById("file"), chooseBtn=document.getElementById("chooseBtn"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
 chooseBtn.addEventListener("click",function(){fileEl.click()});
 var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
-var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4;
+var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4,cropAction=null,cropBase=null;
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}}
 function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
 function logStep(s){var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}activityEl.textContent="Activity: "+s;statusEl.textContent=s}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
 function show(id,on){document.getElementById(id).style.display=on?"flex":"none"}
+function addChoice(select,text){var o=document.createElement("option");o.value=text;o.textContent=text;select.appendChild(o)}
+function setupMeta(){var lib=document.getElementById("globalLibrary"),folder=document.getElementById("globalFolder"),sub=document.getElementById("globalSubfolder");function key(n){return "PDFUploader_"+n+"_"+(lib.value||"Personal Library")};function load(){folder.innerHTML="<option value=\"\">Select Folder</option>";sub.innerHTML="<option value=\"\">Select Subfolder</option>";var fs=JSON.parse(localStorage.getItem(key("folders"))||"[]");fs.forEach(function(x){addChoice(folder,x)})};load();lib.onchange=load;folder.onchange=function(){sub.innerHTML="<option value=\"\">Select Subfolder</option>";var a=JSON.parse(localStorage.getItem(key("sub_"+folder.value))||"[]");a.forEach(function(x){addChoice(sub,x)})};document.getElementById("addFolder").onclick=function(){var n=prompt("New folder name:");if(!n)return;var a=JSON.parse(localStorage.getItem(key("folders"))||"[]");if(a.indexOf(n)<0)a.push(n);localStorage.setItem(key("folders"),JSON.stringify(a));load();folder.value=n};document.getElementById("removeFolder").onclick=function(){if(!folder.value)return;var n=folder.value,a=JSON.parse(localStorage.getItem(key("folders"))||"[]").filter(function(x){return x!==n});localStorage.setItem(key("folders"),JSON.stringify(a));localStorage.removeItem(key("sub_"+n));load()};document.getElementById("addSubfolder").onclick=function(){if(!folder.value){alert("Select a folder first.");return}var n=prompt("New subfolder name:");if(!n)return;var k=key("sub_"+folder.value),a=JSON.parse(localStorage.getItem(k)||"[]");if(a.indexOf(n)<0)a.push(n);localStorage.setItem(k,JSON.stringify(a));folder.onchange();sub.value=n};document.getElementById("removeSubfolder").onclick=function(){if(!folder.value||!sub.value)return;var k=key("sub_"+folder.value),n=sub.value,a=JSON.parse(localStorage.getItem(k)||"[]").filter(function(x){return x!==n});localStorage.setItem(k,JSON.stringify(a));folder.onchange()}};
+setupMeta();
 function imageLoad(src){return new Promise(function(ok,no){var im=new Image();im.onload=function(){ok(im)};im.onerror=no;im.src=src})}
 window.addEventListener("error",function(e){status("❌ JavaScript error: "+(e.message||"unknown error"));console.error(e.error||e.message)});
 
@@ -205,7 +209,7 @@ async function extract(){
    var pd=await pageData(n); logStep("✔ Page "+n+" rendered. Extracting text…"); var qs=splitPage(pd);
    logStep("🔎 Page "+n+" text scan found "+qs.length+" question block(s)."); status("⚡ Page "+n+": "+qs.length+" question block(s) found.");
    qs.forEach(function(q){
-     var p=parseBlock(q.text),item={qNo:q.qNo,qText:p.question,options:p.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.02),y:Math.round(q.top),w:Math.round(pd.width*.96),h:Math.max(80,Math.round(q.bottom-q.top))},questionImage:"",libraryType:"Personal Library",folder:"",subfolder:"",confirmed:false};
+     var p=parseBlock(q.text),item={qNo:q.qNo,qText:p.question,options:p.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.02),y:Math.round(q.top),w:Math.round(pd.width*.96),h:Math.max(80,Math.round(q.bottom-q.top))},questionImage:"",libraryType:document.getElementById("globalLibrary").value,folder:document.getElementById("globalFolder").value,subfolder:document.getElementById("globalSubfolder").value,topic:document.getElementById("globalTopic").value.trim(),confirmed:false};
      items.push(item); logStep("➕ Added Q "+(item.qNo||items.length)+" from PDF page "+n+" to question list.");
    });
    progress(idx+1,targetPages.length);render();
@@ -243,7 +247,7 @@ function select(i){if(i<0||i>=items.length)return;selected=i;render()}
 function apply(i){
  var x=items[i];x.qNo=document.getElementById("qn"+i).value;x.qText=document.getElementById("qt"+i).value;
  x.options=[0,1,2,3].map(function(k){return document.getElementById("op"+i+"_"+k).value.trim()}).filter(Boolean);
- x.libraryType=document.getElementById("lt"+i).value;x.folder=document.getElementById("fd"+i).value.trim();x.subfolder=document.getElementById("sf"+i).value.trim();
+ x.libraryType=document.getElementById("lt"+i).value;x.folder=document.getElementById("fd"+i).value.trim();x.subfolder=document.getElementById("sf"+i).value.trim();x.topic=document.getElementById("globalTopic").value.trim();
  selected=i;render();status("✔ Q "+x.qNo+" updated.");
 }
 
@@ -276,7 +280,7 @@ document.getElementById("saveCrop").onclick=async function(){
  show("cropOverlay",false);render();status("✔ Image crop saved to Q "+(items[selected].qNo||selected+1));
 };
 
-confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All questions confirmed.")});
+confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true;x.libraryType=document.getElementById("globalLibrary").value;x.folder=document.getElementById("globalFolder").value;x.subfolder=document.getElementById("globalSubfolder").value;x.topic=document.getElementById("globalTopic").value.trim()});saveBtn.disabled=!items.length;render();status("✔ All questions confirmed.")});
 saveBtn.addEventListener("click",async function(){
  var good=items.filter(function(x){return x.confirmed});
  if(!good.length){alert("Confirm at least one question first.");return}
@@ -288,7 +292,7 @@ saveBtn.addEventListener("click",async function(){
   var config={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfQBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
   var appx;try{appx=appmod.initializeApp(config,"uploader")}catch(e){appx=appmod.getApp("uploader")}
   var db=fs.getFirestore(appx),auth=au.getAuth(appx);try{await au.signInAnonymously(auth)}catch(e){}
-  for(var i=0;i<good.length;i++){var x=good[i];await fs.addDoc(fs.collection(db,"questions"),{ownerEmail:email,creatorEmail:email,qNo:String(x.qNo||""),qText:x.qText||"",options:x.options||[],keepOptions:(x.options||[]).length>0,question:x.questionImage||"",libraryType:x.libraryType,folder:x.folder,subfolder:x.subfolder,sourcePage:x.sourcePage,createdAt:new Date().toISOString()})}
+  for(var i=0;i<good.length;i++){var x=good[i];await fs.addDoc(fs.collection(db,"questions"),{ownerEmail:email,creatorEmail:email,qNo:String(x.qNo||""),qText:x.qText||"",options:x.options||[],keepOptions:(x.options||[]).length>0,question:x.questionImage||"",libraryType:x.libraryType,folder:x.folder,subfolder:x.subfolder,topic:x.topic||"",sourcePage:x.sourcePage,createdAt:new Date().toISOString()})}
   status("✔ Saved "+good.length+" question(s) to Library.");alert("✔ Saved "+good.length+" confirmed question(s).");
  }catch(e){console.error(e);status("❌ Save failed: "+(e.message||e));alert("Save failed: "+(e.message||e))}
  saveBtn.disabled=false;
