@@ -182,34 +182,127 @@ function makeOcrFallbackItem(pageNumber,pageText,ocrText){
     ocrFallback:true
   };
 }
+async function segmentPageByQuestionStarts(page,imageDataUrl){
+  try{
+    const tc=await page.getTextContent();
+    const raw=(tc.items||[]).filter(it=>it&&typeof it.str==='string'&&it.str.trim()&&Array.isArray(it.transform));
+    if(raw.length<4)return [];
+    const vp=page.getViewport({scale:1.25});
+    const H=vp.height,W=vp.width;
+    const rows=raw.map(it=>{
+      const t=it.transform, x=(t[4]||0)*1.25, base=(t[5]||0)*1.25, h=Math.max(6,Math.abs(t[3]||it.height||10)*1.25);
+      const y=Math.max(0,H-(base+h));
+      return {text:it.str.trim(),x,y,w:Math.max(1,(it.width||1)*1.25),h};
+    }).filter(r=>r.y>=0&&r.y<=H);
+    const starts=[];
+    const re=/^(?:Q(?:uestion)?\\s*)?(\\d{1,3})\\s*[\\.)\\-:]/i;
+    for(let i=0;i<rows.length;i++){
+      const m=rows[i].text.match(re);
+      if(m){
+        let y=rows[i].y,x=rows[i].x;
+        const number=+m[1];
+        if(starts.some(s=>s.number===number&&Math.abs(s.y-y)<8))continue;
+        starts.push({number,y,x});
+      }
+    }
+    if(starts.length<2)return [];
+    starts.sort((a,b)=>a.y-b.y||a.x-b.x);
+    // Detect a two-column exam layout from the question-start x positions.
+    let columns=[{min:0,max:W}];
+    const xs=starts.map(s=>s.x).sort((a,b)=>a-b);
+    let bestGap=0,bestAt=-1;
+    for(let i=1;i<xs.length;i++){const gap=xs[i]-xs[i-1];if(gap>bestGap){bestGap=gap;bestAt=i}}
+    if(bestAt>0&&bestAt<xs.length&&bestGap>W*0.18){
+      const cut=(xs[bestAt-1]+xs[bestAt])/2;
+      columns=[{min:0,max:cut-10},{min:cut+10,max:W}];
+    }
+    const grouped=[];
+    for(const col of columns){
+      const ss=starts.filter(s=>s.x>=col.min&&s.x<=col.max);
+      ss.sort((a,b)=>a.y-b.y);
+      for(let i=0;i<ss.length;i++){
+        const s=ss[i], next=ss[i+1];
+        let y1=Math.max(0,s.y-12), y2=next?Math.max(y1+20,next.y-6):H-4;
+        let x1=col.min===0?0:col.min, x2=col.max===W?W:col.max;
+        const box={x:Math.round(x1/W*1000),y:Math.round(y1/H*1000),w:Math.round((x2-x1)/W*1000),h:Math.round((y2-y1)/H*1000)};
+        const text=rows.filter(r=>r.y>=y1-4&&r.y<=y2+4&&r.x+r.w>=x1&&r.x<=x2).sort((a,b)=>a.y-b.y||a.x-b.x).map(r=>r.text).join(' ').replace(/\\s+/g,' ').trim();
+        if(text.length>3)grouped.push({number:s.number,box,text});
+      }
+    }
+    // Reading order: top-to-bottom for single column; left column then right column for two columns.
+    grouped.sort((a,b)=>a.box.y-b.box.y||a.box.x-b.box.x);
+    if(columns.length===2){
+      const left=grouped.filter(x=>x.box.x<500).sort((a,b)=>a.box.y-b.box.y);
+      const right=grouped.filter(x=>x.box.x>=500).sort((a,b)=>a.box.y-b.box.y);
+      return left.concat(right);
+    }
+    return grouped;
+  }catch(e){console.warn('[Question segmentation]',e);return []}
+}
+
 async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   const p=await pdf.getPage(n);
   const imageDataUrl=await renderPageImage(p);
   pageImages[n]=imageDataUrl;
   const pageText=await getPdfPageText(p);
+
+  // FIRST: split a text-based PDF into individual question crops locally.
+  // This avoids sending an entire page to OCR/LLM as one giant "question".
+  const segments=await segmentPageByQuestionStarts(p,imageDataUrl);
+  if(segments.length>=2){
+    status.textContent='✂️ Page '+n+': detected '+segments.length+' question regions locally…';
+    const pageItems=[];
+    for(let i=0;i<segments.length;i++){
+      if(stopRequested)break;
+      const s=segments[i];
+      const qImage=await cropImage(imageDataUrl,s.box);
+      let got=[];
+      try{
+        const aiImage=await compressForAI(qImage,1800000);
+        got=await extractWithBackend({mode:'extract',pageText:s.text,imageDataUrl:aiImage,folders:folders.join(', '),segmentedQuestion:true});
+      }catch(e){console.warn('[Segment AI]',n,s.number,e)}
+      if(got.length){
+        for(const x of got){
+          x.sourcePage=n;
+          x.confirmed=false;
+          x.questionImage=x.questionImage||qImage;
+          x.questionBox=s.box;
+          pageItems.push(x);
+        }
+      }else{
+        pageItems.push({
+          qNo:s.number,qText:s.text,optA:'',optB:'',optC:'',optD:'',key:'',
+          topic:'Auto-cropped / Review',targetPath:folders[0]||'General / General',
+          questionBox:s.box,solutionBox:{x:0,y:0,w:0,h:0},sourcePage:n,
+          confirmed:false,questionImage:qImage,imageWidth:100,imageMarginTop:8,imageMarginBottom:8,
+          imageAlign:'center',autoCropped:true
+        });
+      }
+      setProgress((n-1)+(i+1)/segments.length,total);
+    }
+    return {page:n,items:pageItems};
+  }
+
+  // No usable PDF text-layer segmentation: retain the existing AI page route.
+  // This is used for scanned/image-only PDFs.
   let got=[];
-  // Route 1: ONE COMPLETE native PDF page.
   try{
     if(!nativePdfDoc)throw new Error('Native PDF route unavailable; continue with full-page image route.');
     const pdfBase64=await pdfPageToBase64(nativePdfDoc,n);
     got=await extractWithBackend({mode:'pdf_extract',pdfBase64,pageNumber:n,folders:folders.join(', ')});
   }catch(nativeErr){console.warn('[AI native PDF extraction failed]',n,nativeErr)}
-  // Route 2: ONE COMPLETE page image + native text.
   if(!got.length){
     try{
       const aiImage=await compressForAI(imageDataUrl,2800000);
       got=await extractWithBackend({mode:'extract',pageText,imageDataUrl:aiImage,folders:folders.join(', ')});
     }catch(imageErr){console.warn('[AI image+text fallback failed]',n,imageErr)}
   }
-  // Route 3: dedicated full-page scanner.
   if(!got.length){
     try{
       const aiImage=await compressForAI(imageDataUrl,2800000);
       got=await extractWithBackend({mode:'scan_questions',pageText,imageDataUrl:aiImage,folders:folders.join(', ')});
     }catch(scanErr){console.warn('[AI scan_questions fallback failed]',n,scanErr)}
   }
-  // Route 4: browser OCR — no API key. If AI cannot parse the page, NEVER return zero:
-  // keep the complete page image plus OCR/native text so the user can edit/crop it manually.
   if(!got.length){
     try{
       const ocrText=await runBrowserOCR(imageDataUrl,n);
@@ -225,9 +318,7 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   }
   const pageItems=[];
   for(const x of got){
-    x.sourcePage=n;
-    x.confirmed=false;
-    // If AI supplied a real question box, crop it. OCR fallback deliberately keeps the full page.
+    x.sourcePage=n;x.confirmed=false;
     x.questionImage=x.questionImage||await cropImage(imageDataUrl,x.questionBox);
     pageItems.push(x);
   }
