@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDF Uploader</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}
+header{background:#fff;border-bottom:1px solid #e5e7eb;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+h1{font-size:20px;margin:0}.wrap{max-width:1200px;margin:auto;padding:18px}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin-bottom:16px}
+button,.filebtn{border:1px solid #d1d5db;background:#fff;border-radius:8px;padding:9px 13px;cursor:pointer;font-weight:600}
+button:hover,.filebtn:hover{background:#f3f4f6}.primary{background:#111827;color:#fff;border-color:#111827}.danger{color:#b91c1c}
+input[type=file]{display:none}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.layout{display:grid;grid-template-columns:340px 1fr;gap:16px}.pages{max-height:72vh;overflow:auto}
+.pageItem{border:1px solid #ddd;border-radius:9px;padding:7px;margin-bottom:9px;background:#fafafa;cursor:pointer}
+.pageItem.active{border:2px solid #111827}.pageItem canvas{display:block;width:100%;height:auto;background:white}
+#viewer{position:relative;background:#dfe3e8;overflow:auto;text-align:center;min-height:500px;padding:18px}
+#pdfCanvas{background:white;max-width:100%;height:auto;box-shadow:0 2px 8px #0002}
+#cropBox{position:absolute;border:2px dashed #111827;background:#11182718;display:none;pointer-events:none}
+.hint{font-size:13px;color:#6b7280}.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+textarea{width:100%;min-height:110px;border:1px solid #d1d5db;border-radius:8px;padding:10px;font:14px Arial}
+.opt{display:flex;gap:7px;margin:7px 0}.opt input{flex:1}
+.saved{padding:8px 10px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-top:10px}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.fields{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>PDF Uploader</h1><div class="hint" id="status">No PDF loaded</div></header>
+<div class="wrap">
+<div class="panel">
+<div class="toolbar">
+<label class="filebtn primary">Upload PDF<input id="pdfInput" type="file" accept="application/pdf"></label>
+<button id="prev">◀ Previous</button><button id="next">Next ▶</button>
+<button id="cropBtn">Crop Question</button><button id="cancelCrop" style="display:none">Cancel Crop</button>
+<button id="original">Extract Question from Original PDF</button>
+</div>
+<div class="hint" style="margin-top:9px">Upload a PDF, select a page, then drag on the page to crop a question. No AI is used in this version.</div>
+</div>
+
+<div class="layout">
+<div class="panel pages" id="pages"><div class="hint">PDF page thumbnails will appear here.</div></div>
+<div>
+<div class="panel" id="viewer"><canvas id="pdfCanvas"></canvas><div id="cropBox"></div></div>
+<div class="panel">
+<h3 style="margin-top:0">Question</h3>
+<div class="toolbar">
+<label><input type="checkbox" id="keepQuestion" checked> Keep Question</label>
+<label><input type="checkbox" id="keepImage" checked> Keep Image</label>
+<label><input type="checkbox" id="keepText" checked> Keep Text</label>
+</div>
+<div class="fields" style="margin-top:12px">
+<div><div class="hint">Question text</div><textarea id="questionText" placeholder="Enter question text manually..."></textarea></div>
+<div><div class="hint">Question image / crop</div><div id="cropPreview" style="min-height:110px;border:1px dashed #bbb;border-radius:8px;padding:8px">No crop yet.</div></div>
+</div>
+<h4>Options</h4>
+<div id="options"></div>
+<div class="toolbar">
+<button id="addOption">+ Add Option</button>
+<button id="sendEditor">Send Cropped Image to Editor</button>
+<button id="saveCloud" class="primary">Save to Cloud</button>
+</div>
+<div id="saveMsg"></div>
+</div>
+</div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<script type="module">
+const pdfjsLib=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+const $=id=>document.getElementById(id);
+let pdf=null,pageNo=1,scale=1.35,cropData=null,cropping=false,start=null;
+
+$("pdfInput").onchange=async e=>{
+ const f=e.target.files[0]; if(!f)return;
+ $("status").textContent="Loading PDF...";
+ try{pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise; pageNo=1; await renderPage(); await renderThumbs(); $("status").textContent=pdf.numPages+" pages loaded";}
+ catch(err){$("status").textContent="PDF error: "+err.message}
+};
+async function renderPage(){
+ if(!pdf)return; const p=await pdf.getPage(pageNo),v=p.getViewport({scale});
+ const c=$("pdfCanvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
+ document.querySelectorAll(".pageItem").forEach((x,i)=>x.classList.toggle("active",i+1===pageNo));
+}
+async function renderThumbs(){
+ const box=$("pages");box.innerHTML="";
+ for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i),v=p.getViewport({scale:.24}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;const d=document.createElement("div");d.className="pageItem";d.appendChild(c);d.onclick=async()=>{pageNo=i;await renderPage()};box.appendChild(d)}
+}
+$("prev").onclick=async()=>{if(pdf&&pageNo>1){pageNo--;await renderPage()}};
+$("next").onclick=async()=>{if(pdf&&pageNo<pdf.numPages){pageNo++;await renderPage()}};
+
+$("cropBtn").onclick=()=>{if(!pdf)return alert("Upload a PDF first.");cropping=true;start=null;$("cropBtn").style.display="none";$("cancelCrop").style.display="inline-block";$("status").textContent="Drag over the question on the PDF page."};
+$("cancelCrop").onclick=()=>stopCrop();
+function stopCrop(){cropping=false;start=null;$("cropBox").style.display="none";$("cropBtn").style.display="inline-block";$("cancelCrop").style.display="none";$("status").textContent="Ready"}
+$("viewer").addEventListener("pointerdown",e=>{
+ if(!cropping||e.target!==$("pdfCanvas"))return;const r=$("pdfCanvas").getBoundingClientRect();start={x:e.clientX-r.left,y:e.clientY-r.top};const b=$("cropBox");b.style.left=(e.clientX-$("viewer").getBoundingClientRect().left)+"px";b.style.top=(e.clientY-$("viewer").getBoundingClientRect().top)+"px";b.style.width=0;b.style.height=0;b.style.display="block";
+});
+$("viewer").addEventListener("pointermove",e=>{
+ if(!cropping||!start)return;const vr=$("viewer").getBoundingClientRect(),cr=$("pdfCanvas").getBoundingClientRect(),x=Math.max(0,Math.min(e.clientX-cr.left,cr.width)),y=Math.max(0,Math.min(e.clientY-cr.top,cr.height)),x0=Math.min(start.x,x),y0=Math.min(start.y,y),w=Math.abs(x-start.x),h=Math.abs(y-start.y);const b=$("cropBox");b.style.left=(cr.left-vr.left+x0)+"px";b.style.top=(cr.top-vr.top+y0)+"px";b.style.width=w+"px";b.style.height=h+"px";
+});
+$("viewer").addEventListener("pointerup",async e=>{
+ if(!cropping||!start)return;const cr=$("pdfCanvas").getBoundingClientRect(),x=Math.max(0,Math.min(e.clientX-cr.left,cr.width)),y=Math.max(0,Math.min(e.clientY-cr.top,cr.height)),x0=Math.min(start.x,x),y0=Math.min(start.y,y),w=Math.abs(x-start.x),h=Math.abs(y-start.y);
+ if(w<10||h<10){stopCrop();return}
+ const src=$("pdfCanvas"),out=document.createElement("canvas"),ratio=src.width/cr.width;out.width=Math.round(w*ratio);out.height=Math.round(h*ratio);out.getContext("2d").drawImage(src,x0*ratio,y0*ratio,w*ratio,h*ratio,0,0,out.width,out.height);cropData=out.toDataURL("image/png");
+ $("cropPreview").innerHTML="";const im=new Image();im.src=cropData;im.style.maxWidth="100%";$("cropPreview").appendChild(im);stopCrop();$("status").textContent="Crop ready";
+});
+function addOption(value=""){const d=document.createElement("div");d.className="opt";const n=$("options").children.length+1;d.innerHTML='<b>'+String.fromCharCode(64+n)+'.</b><input value="'+value.replaceAll('"','&quot;')+'" placeholder="Option '+n+'"><button type="button" class="danger">×</button>';d.querySelector("button").onclick=()=>d.remove();$("options").appendChild(d)}
+for(let i=0;i<4;i++)addOption();
+$("addOption").onclick=()=>addOption();
+$("sendEditor").onclick=()=>{if(!cropData)return alert("Crop an image first.");localStorage.setItem("pdfUploaderEditorImage",cropData);location.href="editor.html"};
+$("original").onclick=()=>{if(!pdf)return alert("Upload a PDF first.");$("status").textContent="Original PDF page "+pageNo+" is displayed above. Use Crop Question to select the question.";document.querySelector("#viewer").scrollIntoView({behavior:"smooth"})};
+$("saveCloud").onclick=()=>{
+ const data={question:$("questionText").value,options:[...document.querySelectorAll("#options input")].map(x=>x.value),image:cropData,keepQuestion:$("keepQuestion").checked,keepImage:$("keepImage").checked,keepText:$("keepText").checked,page:pageNo,createdAt:new Date().toISOString()};
+ const arr=JSON.parse(localStorage.getItem("pdfUploaderQuestions")||"[]");arr.push(data);localStorage.setItem("pdfUploaderQuestions",JSON.stringify(arr));$("saveMsg").innerHTML='<div class="saved">Saved locally. Firebase/cloud integration can be connected later.</div>';
+};
+</script>
+</body>
+</html>
