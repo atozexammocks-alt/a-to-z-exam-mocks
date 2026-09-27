@@ -762,6 +762,8 @@ button, input, select, textarea, label { touch-action: manipulation; }
     };
 
     if (window.pdfjsLib) {
+      // Keep PDF.js worker enabled. Disabling the worker here was causing
+      // large/local PDFs to fail or become extremely slow on mobile.
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     }
 
@@ -792,21 +794,22 @@ button, input, select, textarea, label { touch-action: manipulation; }
           const arrayBuffer = await f.arrayBuffer();
           originalPdfBytes = arrayBuffer;
 
-          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer, disableWorker: true });
+          // Load the original PDF directly. PDF.js handles page access internally;
+          // do not rebuild 100-page chunks with PDF-Lib (that duplicated the PDF
+          // in memory and was the main mobile failure point).
+          const loadingTask = pdfjsLib.getDocument({
+            data: new Uint8Array(arrayBuffer),
+            disableAutoFetch: true,
+            disableStream: true
+          });
           pdfDoc = await loadingTask.promise;
           totalPdfPages = pdfDoc.numPages;
-
-          if (totalPdfPages > 100) {
-            showToast(`⚡ Big PDF (${totalPdfPages}p). Loading Chunk 1-100...`);
-            await window.loadPdfChunk(1, Math.min(100, totalPdfPages));
-          } else {
-            currentChunkStart = 1;
-            document.getElementById('chunk-info').textContent = `Pages: 1-${totalPdfPages}`;
-            pageNum = 1;
-            document.getElementById('page-total-label').textContent = totalPdfPages;
-            window.renderCurrentPage();
-            showToast(`✔ Loaded (${totalPdfPages} pages)`);
-          }
+          currentChunkStart = 1;
+          pageNum = 1;
+          document.getElementById('chunk-info').textContent = `Pages: 1-${totalPdfPages}`;
+          document.getElementById('page-total-label').textContent = totalPdfPages;
+          await window.renderCurrentPage();
+          showToast(`✔ Loaded PDF (${totalPdfPages} pages)`);
         } catch (err) {
           alert("Error loading PDF file: " + err.message);
         }
@@ -814,27 +817,18 @@ button, input, select, textarea, label { touch-action: manipulation; }
     };
 
     window.loadPdfChunk = async function(start, end) {
-      currentChunkStart = start;
-      document.getElementById('chunk-info').textContent = `Pages: ${start}-${end} (Total: ${totalPdfPages})`;
-      
-      const srcDoc = await PDFLib.PDFDocument.load(originalPdfBytes);
-      const newDoc = await PDFLib.PDFDocument.create();
-      
-      const pageIndices = [];
-      for (let i = start - 1; i < end && i < srcDoc.getPageCount(); i++) {
-        pageIndices.push(i);
-      }
-      
-      const copiedPages = await newDoc.copyPages(srcDoc, pageIndices);
-      copiedPages.forEach(p => newDoc.addPage(p));
-      
-      const chunkBytes = await newDoc.save();
-      pdfDoc = await pdfjsLib.getDocument({ data: chunkBytes, disableWorker: true }).promise;
-      
-      pageNum = 1;
+      // Backward-compatible API: navigation no longer creates a second PDF.
+      // This keeps the current UI/buttons working while avoiding PDF-Lib
+      // memory duplication on phones and large documents.
+      if (!pdfDoc || !totalPdfPages) return;
+      const safeStart = Math.max(1, Math.min(totalPdfPages, parseInt(start) || 1));
+      const safeEnd = Math.max(safeStart, Math.min(totalPdfPages, parseInt(end) || totalPdfPages));
+      currentChunkStart = 1;
+      document.getElementById('chunk-info').textContent = `Pages: 1-${totalPdfPages}`;
+      pageNum = safeStart;
       document.getElementById('page-total-label').textContent = totalPdfPages;
-      window.renderCurrentPage();
-      showToast(`✔ Loaded Range (${start} to ${end})`);
+      await window.renderCurrentPage();
+      showToast(`✔ Showing Page ${safeStart} (PDF has ${totalPdfPages} pages)`);
     };
 
     window.renderCurrentPage = async function() {
@@ -864,11 +858,9 @@ button, input, select, textarea, label { touch-action: manipulation; }
         const targetChunkStart = Math.floor((target - 1) / 100) * 100 + 1;
         const targetChunkEnd = Math.min(targetChunkStart + 99, totalPdfPages);
         
-        if (targetChunkStart !== currentChunkStart) {
-          await window.loadPdfChunk(targetChunkStart, targetChunkEnd);
-        }
-        pageNum = target - targetChunkStart + 1;
-        window.renderCurrentPage();
+        currentChunkStart = 1;
+        pageNum = target;
+        await window.renderCurrentPage();
         showToast(`📄 Jumped to Page ${target}`);
       } else {
         alert(`Enter valid page between 1 and ${totalPdfPages}`);
