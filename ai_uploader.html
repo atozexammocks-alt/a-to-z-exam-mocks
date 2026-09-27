@@ -53,6 +53,41 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 .img-side{overflow:auto}.img-side label{display:block;margin-bottom:8px}.img-side input,.img-side select{margin-top:4px}
 .img-note{font-size:10px;color:#94a3b8;line-height:1.45}.img-footer{padding:10px 12px;border-top:1px solid #1e293b;display:flex;gap:7px;justify-content:flex-end}
 @media(max-width:800px){.img-body{grid-template-columns:1fr}.img-modal{height:94vh}.img-side{max-height:260px}}
+
+/* Mobile/tablet uploader: compact controls, large touch targets, no horizontal overflow. */
+html,body{max-width:100%;overflow-x:hidden}
+button,label.btn,select,input,textarea{min-height:40px}
+@media(max-width:850px){
+  .wrap{padding:10px}
+  .q{grid-template-columns:1fr;gap:8px;padding:9px}
+  .qright{border-left:0;border-top:1px solid #1e293b;padding:10px 0 0}
+  .qleft .grid{grid-template-columns:1fr 1fr}
+  .img-modal{width:100%;height:96vh;max-height:none;border-radius:10px}
+  .img-body{grid-template-columns:1fr;overflow:auto;padding:8px}
+  .page-stage{min-height:38vh}
+  .img-side{max-height:none;overflow:visible}
+  .img-footer{position:sticky;bottom:0;background:#0b1120;flex-wrap:wrap}
+  .img-footer button{flex:1;min-width:130px}
+  .img-side input,.img-side select,.q input,.q select,.q textarea{font-size:16px}
+  .card-actions{gap:5px}
+  .card-actions button{flex:1 1 46%;min-height:42px}
+  .folder-create-actions button{flex:1}
+}
+@media(max-width:560px){
+  header{height:auto;min-height:50px;padding:6px 8px}
+  .wrap{padding:7px}
+  .box{padding:8px}
+  .page-range-box{align-items:stretch}
+  .page-range-box>*{flex:1 1 45%}
+  .page-range-box b{flex-basis:100%}
+  .qleft .grid{grid-template-columns:1fr}
+  .preview{min-height:140px;padding:10px}
+  .img-editor{padding:5px}
+  .img-head{padding:8px}
+  .img-head button{font-size:0;min-width:42px}.img-head button::before{content:'✕';font-size:18px}
+  .az-nav-btn{font-size:0!important;min-width:42px;justify-content:center;padding:6px 9px}
+  .az-nav-btn::first-letter{font-size:18px}
+}
 </style>
 <style id="az-unified-nav-css">
 .az-top-nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:10000;flex-shrink:0}
@@ -89,8 +124,9 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
     <hr style="border:0;border-top:1px solid #1e293b;margin:10px 0">
     <label>Question Number<input id="editQNo" type="number" min="1" step="1"></label>
     <label>Library
-      <select id="editLibrary" onchange="syncEditorDestination()">
-        <option value="private">My Library</option>
+      <select id="editLibrary" onchange="changeEditorLibraryScope()">
+        <option value="private">📁 My / Private Library</option>
+        <option value="central">🌐 Central Library</option>
       </select>
     </label>
     <label>Main Folder<select id="editMainFolder" onchange="updateEditorFolderSelectors()"></select></label>
@@ -132,10 +168,12 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 <script>
 window.addEventListener('error',e=>{try{status.textContent='❌ Browser error: '+(e.message||'JavaScript error');console.error('[Uploader browser error]',e)}catch(_){}}); 
 window.addEventListener('unhandledrejection',e=>{try{status.textContent='❌ '+(e.reason?.message||e.reason||'Unhandled browser error');console.error('[Uploader unhandled rejection]',e)}catch(_){}}); 
-let items=[],pageImages={},folders=['General / General'],stopRequested=false,nativePdfDoc=null,ocrWorkerPromise=null,currentPdf=null;
+let items=[],pageImages={},folders=['General / General'],centralFolders=[],editorLibraryScope='private',stopRequested=false,nativePdfDoc=null,ocrWorkerPromise=null,currentPdf=null;
 const status=document.getElementById('status'),list=document.getElementById('list'),progressBar=document.getElementById('progressBar'),stopBtn=document.getElementById('stop'),count=document.getElementById('count');
 function flattenLibraryTree(nodes,prefix='',out=[]){for(const node of (Array.isArray(nodes)?nodes:[])){const name=String(node?.name||'').trim();if(!name)continue;const path=prefix?prefix+' / '+name:name;out.push(path);flattenLibraryTree(node.children,path,out)}return out}
-async function loadFolders(){try{const email=(localStorage.getItem('ExamVault_Teacher_Email')||window.currentTeacherEmail||'').trim().toLowerCase();if(email){const snap=await getDoc(doc(db,'folder_configs_private',email.replace(/[^a-zA-Z0-9]/g,'_')));if(snap.exists()){folders=flattenLibraryTree(snap.data().libraryTree||[]);if(!folders.length)folders=['General / General'];return}}const s=await getDoc(doc(db,'folder_configs','shared_registry_v4'));if(s.exists()){const d=s.data();folders=[];for(const[m,ss]of Object.entries(d.subFolders||{}))ss.forEach(x=>folders.push(m+' / '+x))}if(!folders.length)folders=['General / General']}catch(e){console.warn('[Uploader folders]',e);if(!folders.length)folders=['General / General']}}
+async function loadFolders(){try{const email=(localStorage.getItem('ExamVault_Teacher_Email')||window.currentTeacherEmail||'').trim().toLowerCase();folders=[];if(email){const snap=await getDoc(doc(db,'folder_configs_private',email.replace(/[^a-zA-Z0-9]/g,'_')));if(snap.exists())folders=flattenLibraryTree(snap.data().libraryTree||[])}if(!folders.length){const s=await getDoc(doc(db,'folder_configs','shared_registry_v4'));if(s.exists()){const d=s.data();for(const[m,ss]of Object.entries(d.subFolders||{}))ss.forEach(x=>folders.push(m+' / '+x))}}if(!folders.length)folders=['General / General'];
+centralFolders=[];try{const cs=await getDocs(collection(db,'central_library_folders'));cs.forEach(d=>{const x=d.data()||{};if(x.centralPublished&&x.folderPath)centralFolders.push(String(x.folderPath))});centralFolders=[...new Set(centralFolders)]}catch(e){console.warn('[Uploader central folders]',e)}
+}catch(e){console.warn('[Uploader folders]',e);if(!folders.length)folders=['General / General']}}
 function folderOptions(selected){const groups={};folders.forEach(path=>{const parts=String(path).split(' / '),main=parts.shift()||'General',label=parts.length?parts.join(' / '):'(main folder)';(groups[main]||(groups[main]=[])).push({value:path,label})});return Object.entries(groups).map(([main,arr])=>'<optgroup label="'+esc(main)+'">'+arr.map(o=>'<option value="'+esc(o.value)+'" '+(o.value===selected?'selected':'')+'>'+esc(o.label)+'</option>').join('')+'</optgroup>').join('')}
 async function createUploaderFolder(i,type){
   const selected=(items[i]?.targetPath||document.getElementById('p'+i)?.value||'').trim();
@@ -295,37 +333,37 @@ function buildQuestionSegments(rows,W,H){
   for(const r of rows){
     const number=normalizeQuestionStart(r.text);
     if(number===null)continue;
-    if(starts.some(s=>s.number===number&&Math.abs(s.y-r.y)<16&&Math.abs(s.x-r.x)<45))continue;
+    if(starts.some(s=>s.number===number&&Math.abs(s.y-r.y)<18&&Math.abs(s.x-r.x)<55))continue;
     starts.push({number,y:r.y,x:r.x});
   }
   if(!starts.length)return [];
-  const xs=starts.map(s=>s.x).sort((a,b)=>a-b);
-  let split=-1,gap=0;
-  for(let i=1;i<xs.length;i++){const g=xs[i]-xs[i-1];if(g>gap){gap=g;split=i}}
-  let columns=[starts];
-  if(split>0&&split<xs.length&&gap>Math.max(80,W*.18)){
-    const cut=(xs[split-1]+xs[split])/2;
-    columns=[starts.filter(s=>s.x<cut),starts.filter(s=>s.x>=cut)];
-  }
+  const left=starts.filter(s=>s.x < W*.48), right=starts.filter(s=>s.x >= W*.48);
+  const isTwoColumn=left.length>=2&&right.length>=2;
+  const columns=isTwoColumn?[left,right]:[starts];
   const grouped=[];
   for(let ci=0;ci<columns.length;ci++){
     const ss=columns[ci].slice().sort((a,b)=>a.y-b.y);
     if(!ss.length)continue;
-    const other=columns.length===2?(ci===0?columns[1]:columns[0]):null;
-    const x1=columns.length===2?(ci===0?0:Math.max(0,(Math.max(...columns[0].map(s=>s.x))+Math.min(...columns[1].map(s=>s.x)))/2)):0;
-    const x2=columns.length===2?(ci===0?Math.min(W,(Math.max(...columns[0].map(s=>s.x))+Math.min(...columns[1].map(s=>s.x)))/2):W):W;
+    let x1=0,x2=W;
+    if(isTwoColumn){
+      const leftMax=Math.max(...left.map(s=>s.x));
+      const rightMin=Math.min(...right.map(s=>s.x));
+      const cut=Math.max(leftMax+20,Math.min(rightMin-20,(leftMax+rightMin)/2));
+      x1=ci===0?0:cut;x2=ci===0?cut:W;
+    }
     for(let i=0;i<ss.length;i++){
       const cur=ss[i],next=ss[i+1];
-      const y1=Math.max(0,cur.y-12),y2=next?Math.max(y1+35,next.y-10):H;
-      const inBox=rows.filter(r=>r.y>=y1-8&&r.y<=y2+8&&r.x+r.w>=x1&&r.x<=x2);
+      const y1=Math.max(0,cur.y-14);
+      const y2=next?Math.max(y1+42,next.y-12):H;
+      const inBox=rows.filter(r=>r.y>=y1-10&&r.y<=y2+10&&r.x+r.w>=x1&&r.x<=x2);
       const text=reconstructPdfText(inBox);
-      if(text.length>2)grouped.push({number:cur.number,x:x1,y:y1,w:Math.max(40,x2-x1),h:Math.max(35,y2-y1),text,column:columns.length===2?(ci===0?'left':'right'):'single'});
+      if(text.length>2)grouped.push({number:cur.number,x:x1,y:y1,w:Math.max(60,x2-x1),h:Math.max(42,y2-y1),text,column:isTwoColumn?(ci===0?'left':'right'):'single'});
     }
   }
-  if(columns.length===2)return grouped.filter(x=>x.column==='left').sort((a,b)=>a.y-b.y).concat(grouped.filter(x=>x.column==='right').sort((a,b)=>a.y-b.y));
+  if(isTwoColumn)return grouped.filter(x=>x.column==='left').sort((a,b)=>a.y-b.y).concat(grouped.filter(x=>x.column==='right').sort((a,b)=>a.y-b.y));
   return grouped.sort((a,b)=>a.y-b.y||a.x-b.x);
 }
-async function segmentPageByQuestionStarts(page,imageDataUrl){
+async async function segmentPageByQuestionStarts(page,imageDataUrl){
   try{
     const tc=await page.getTextContent();
     const raw=(tc.items||[]).filter(it=>it&&typeof it.str==='string'&&it.str.trim()&&Array.isArray(it.transform));
@@ -570,6 +608,8 @@ function openImageEditor(i,fromPdfPage=true){
   document.getElementById('imt').value=Number(x.imageMarginTop??8);
   document.getElementById('imb').value=Number(x.imageMarginBottom??8);
   document.getElementById('ialign').value=x.imageAlign||'center';
+  editorLibraryScope=x.libraryScope==='central'?'central':'private';
+  document.getElementById('editLibrary').value=editorLibraryScope;
   populateEditorDestination(x.targetPath||'');
   updateImageStyle();
   updateEditorModeButtons();
@@ -599,28 +639,30 @@ async function loadEditorPage(){
 }
 
 function pathParts(path){return String(path||'').split(' / ').map(s=>s.trim()).filter(Boolean)}
+function activeEditorFolders(){return editorLibraryScope==='central'?centralFolders:folders}
+function changeEditorLibraryScope(){editorLibraryScope=document.getElementById('editLibrary')?.value==='central'?'central':'private';populateEditorDestination(items[editIndex]?.targetPath||'')}
 function editorDestination(){const main=document.getElementById('editMainFolder')?.value||'',sub=document.getElementById('editSubFolder')?.value||'',section=document.getElementById('editSection')?.value||'';return [main,sub,section].filter(Boolean).join(' / ')}
 function setSelectOptions(el,values,selected,placeholder){if(!el)return;el.innerHTML='<option value="">'+esc(placeholder)+'</option>'+values.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');if(selected&&values.includes(selected))el.value=selected}
 function populateEditorDestination(target){
   const parts=pathParts(target),main=parts[0]||'',sub=parts[1]||'',section=parts[2]||'';
-  const mains=[...new Set(folders.map(p=>pathParts(p)[0]).filter(Boolean))];
+  const active=activeEditorFolders();const mains=[...new Set(active.map(p=>pathParts(p)[0]).filter(Boolean))];
   setSelectOptions(document.getElementById('editMainFolder'),mains,main,'Select Main Folder');
   updateEditorFolderSelectors(sub,section);
 }
 function updateEditorFolderSelectors(preferredSub='',preferredSection=''){
   const main=document.getElementById('editMainFolder')?.value||'';
-  const subs=[...new Set(folders.map(p=>pathParts(p)).filter(a=>a[0]===main&&a[1]).map(a=>a[1]))];
+  const active=activeEditorFolders();const subs=[...new Set(active.map(p=>pathParts(p)).filter(a=>a[0]===main&&a[1]).map(a=>a[1]))];
   const currentSub=preferredSub||document.getElementById('editSubFolder')?.value||'';
   setSelectOptions(document.getElementById('editSubFolder'),subs,currentSub,'Select Subfolder (optional)');
   const sub=document.getElementById('editSubFolder')?.value||'';
-  const sections=[...new Set(folders.map(p=>pathParts(p)).filter(a=>a[0]===main&&a[1]===sub&&a[2]).map(a=>a[2]))];
+  const active=activeEditorFolders();const sections=[...new Set(active.map(p=>pathParts(p)).filter(a=>a[0]===main&&a[1]===sub&&a[2]).map(a=>a[2]))];
   const currentSection=preferredSection||document.getElementById('editSection')?.value||'';
   setSelectOptions(document.getElementById('editSection'),sections,currentSection,'Select Section (optional)');
   syncEditorDestination();
 }
 function syncEditorDestination(){
   const x=items[editIndex];if(!x)return;
-  const dest=editorDestination();x.targetPath=dest||'General / General';
+  const dest=editorDestination();x.targetPath=dest||'General / General';x.libraryScope=editorLibraryScope;
   const note=document.getElementById('editDestinationNote');if(note)note.textContent='Destination: '+x.targetPath;
 }
 function setEditorContentMode(mode){if(editIndex<0)return;items[editIndex].contentMode=mode==='text'?'text':'image';updateEditorModeButtons()}
@@ -642,7 +684,7 @@ async function saveQuestionToCloud(x){
   await addDoc(collection(db,'questions'),{
     ownerEmail:email,qNo:x.qNo||1,subject:dest,topic:x.topic||'General',qText:x.qText||'',
     optText:'(A) '+getOptText(x.optA)+' | (B) '+getOptText(x.optB)+' | (C) '+getOptText(x.optC)+' | (D) '+getOptText(x.optD),
-    key:x.key||'',questionImage:x.questionImage||'',contentMode:x.contentMode==='text'?'text':'image',
+    key:x.key||'',questionImage:x.questionImage||'',contentMode:x.contentMode==='text'?'text':'image',libraryScope:x.libraryScope==='central'?'central':'private',centralPublished:x.libraryScope==='central',
     imageWidth:Number(x.imageWidth||100),imageMarginTop:Number(x.imageMarginTop??8),imageMarginBottom:Number(x.imageMarginBottom??8),
     imageAlign:x.imageAlign||'center',questionBox:x.questionBox||null,solutionBox:x.solutionBox||null,sourcePage:x.sourcePage||null,
     creatorEmail:email,createdAt:new Date().toISOString()
