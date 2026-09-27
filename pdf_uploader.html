@@ -89,7 +89,8 @@ fileEl.addEventListener("change",function(){
  };
  reader.onerror=function(){status("❌ Could not read the selected file.")};
  reader.readAsArrayBuffer(f);
-});\nvar extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
+});
+var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
 var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4,cropAction=null,cropBase=null;
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}}
