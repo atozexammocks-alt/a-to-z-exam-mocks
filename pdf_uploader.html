@@ -91,7 +91,7 @@ function guessQuestionRegions(text){
  while((m=re.exec(text))!==null){out.push({no:+m[1],index:m.index})}
  return out;
 }
-async async function detectAutoCropForItem(item){
+async function detectAutoCropForItem(item){
  try{
   const im=await pageImage(item.sourcePage),img=await imageLoad(im);
   const tc=await pdf.getPage(item.sourcePage).then(p=>p.getTextContent());
@@ -102,14 +102,9 @@ async async function detectAutoCropForItem(item){
   const target=starts.findIndex(z=>z.no===+item.qNo);
   const H=img.naturalHeight||img.height,W=img.naturalWidth||img.width;
   let top=H*.06,bottom=H*.94;
-  if(target>=0){
-    const sorted=starts.slice().sort((a,b)=>b.y-a.y);
-    const cur=sorted[target],next=sorted[target+1];
-    const pageY=(pdfY)=>H-(pdfY/(awaitedPageHeight||1))*H;
-  }
-  // Use text order plus nearest question starts. PDF coordinates are bottom-origin.
+  // Automatic crop is based on the detected question-number positions.\n  // PDF text coordinates use a bottom-origin system; rendered pixels use top-origin.\n  // Use text order plus nearest question starts. PDF coordinates are bottom-origin.
   const page=await pdf.getPage(item.sourcePage),pv=page.getViewport({scale:1.5});
-  const qstarts=starts.map(z=>({no:z.no,y:H-(z.y/pv.height)*H})).sort((a,b)=>a.y-b.y);
+  const qstarts=starts.map(z=>({no:z.no,y:H-(z.y*1.5)})).sort((a,b)=>a.y-b.y);
   const ix=qstarts.findIndex(z=>z.no===+item.qNo);
   if(ix>=0){
     top=Math.max(0,qstarts[ix].y-28);
