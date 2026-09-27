@@ -26,11 +26,11 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 .pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none;min-height:450px}
 .pdfview canvas{background:#fff;max-width:none}
 .cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;pointer-events:auto;cursor:move}
-.cropHandle{position:absolute;width:12px;height:12px;background:#38bdf8;border:1px solid #fff;border-radius:50%}
-.cropHandle.nw{left:-6px;top:-6px;cursor:nwse-resize}
-.cropHandle.ne{right:-6px;top:-6px;cursor:nesw-resize}
-.cropHandle.sw{left:-6px;bottom:-6px;cursor:nesw-resize}
-.cropHandle.se{right:-6px;bottom:-6px;cursor:nwse-resize}
+.cropHandle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:10}
+.cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}
+.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}
+.cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}
+.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
 .prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.nav a:nth-child(n+3){display:none}.scroll{max-height:none}.qMeta{grid-template-columns:1fr 1fr}}
 </style>
@@ -328,7 +328,7 @@ async function renderCropPage(){
  }
 }
 
-// Advanced Drag & Resize Handlers
+// Stable Drag & Resize Handlers without inversion or flickering
 (function(){
  var view=document.getElementById("pdfView"), b=document.getElementById("cropBox");
  
@@ -344,7 +344,7 @@ async function renderCropPage(){
   }
   
   cropStart={x:e.clientX, y:e.clientY};
-  cropInit=Object.assign({}, cropRect);
+  cropInit={x:cropRect.x, y:cropRect.y, w:cropRect.w, h:cropRect.h};
   b.setPointerCapture(e.pointerId);
   e.stopPropagation();
  };
@@ -359,17 +359,20 @@ async function renderCropPage(){
     cropRect.x=Math.max(0, Math.min(canvas.width-cropRect.w, cropInit.x+dx));
     cropRect.y=Math.max(0, Math.min(canvas.height-cropRect.h, cropInit.y+dy));
   } else if(cropAction==="nw"){
-    var nx=Math.max(0, Math.min(cropInit.x+cropInit.w-50, cropInit.x+dx));
-    var ny=Math.max(0, Math.min(cropInit.y+cropInit.h-50, cropInit.y+dy));
-    cropRect.w=cropInit.w+(cropInit.x-nx); cropRect.x=nx;
-    cropRect.h=cropInit.h+(cropInit.y-ny); cropRect.y=ny;
+    var newX=Math.max(0, Math.min(cropInit.x+cropInit.w-50, cropInit.x+dx));
+    var newY=Math.max(0, Math.min(cropInit.y+cropInit.h-50, cropInit.y+dy));
+    cropRect.w=cropInit.w+(cropInit.x-newX);
+    cropRect.h=cropInit.h+(cropInit.y-newY);
+    cropRect.x=newX; cropRect.y=newY;
   } else if(cropAction==="ne"){
-    var ny=Math.max(0, Math.min(cropInit.y+cropInit.h-50, cropInit.y+dy));
+    var newY=Math.max(0, Math.min(cropInit.y+cropInit.h-50, cropInit.y+dy));
     cropRect.w=Math.max(50, Math.min(canvas.width-cropInit.x, cropInit.w+dx));
-    cropRect.h=cropInit.h+(cropInit.y-ny); cropRect.y=ny;
+    cropRect.h=cropInit.h+(cropInit.y-newY);
+    cropRect.y=newY;
   } else if(cropAction==="sw"){
-    var nx=Math.max(0, Math.min(cropInit.x+cropInit.w-50, cropInit.x+dx));
-    cropRect.w=cropInit.w+(cropInit.x-nx); cropRect.x=nx;
+    var newX=Math.max(0, Math.min(cropInit.x+cropInit.w-50, cropInit.x+dx));
+    cropRect.w=cropInit.w+(cropInit.x-newX);
+    cropRect.x=newX;
     cropRect.h=Math.max(50, Math.min(canvas.height-cropInit.y, cropInit.h+dy));
   } else if(cropAction==="se"){
     cropRect.w=Math.max(50, Math.min(canvas.width-cropInit.x, cropInit.w+dx));
