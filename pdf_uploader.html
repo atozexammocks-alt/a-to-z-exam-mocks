@@ -190,6 +190,21 @@ async function pageData(n){
  var tc=await p.getTextContent(),words=(tc.items||[]).map(function(it){
    return {s:String(it.str||"").trim(),x:Number(it.transform&&it.transform[4]||0),y:Number(it.transform&&it.transform[5]||0)};
  }).filter(function(x){return x.s});
+ 
+ // Fallback to Tesseract OCR if PDF has no selectable text (like scanned physics papers)
+ if(!words.length && window.Tesseract){
+   try{
+     status("🔎 Running OCR for scanned page "+n+"…");
+     var ocr=await Tesseract.recognize(c.toDataURL("image/png"), 'eng+hin');
+     var ocrText = ocr?.data?.text || "";
+     if(ocrText){
+       words = ocrText.split("\n").map(function(line, idx){
+         return {s: line.trim(), x: 20, y: c.height - (idx * 25)};
+       }).filter(function(w){ return w.s; });
+     }
+   }catch(err){console.warn("OCR failed", err);}
+ }
+
  return {image:c.toDataURL("image/png"),words:words,width:c.width,height:c.height};
 }
 
@@ -287,7 +302,7 @@ function render(){
    return h+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Crop / Edit Image</button></div></div>';
  }).join(""):'<div class="card"><div class="preview">No question selected.</div></div>';
 
- pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}});
+ pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}};
  pv.querySelectorAll("[data-pcrop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.pcrop),items[Number(b.dataset.pcrop)].sourcePage)}});
 }
 
@@ -415,7 +430,6 @@ document.getElementById("saveCrop").onclick=async function(){
 confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All questions confirmed.")});
 saveBtn.addEventListener("click",async function(){
  var good=items.filter(function(x){return x.confirmed});
- if(!good.length){alert("Confirm at least one question first.");return}
  var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
  if(!email){alert("Teacher login not found.");return}
  status("☁ Saving "+good.length+" question(s)…"); saveBtn.disabled=true;
