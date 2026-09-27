@@ -17,7 +17,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 .grid2{display:grid;grid-template-columns:110px 1fr;gap:7px}.field{margin-top:7px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
 input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}textarea{min-height:90px;resize:vertical}.opt{display:grid;grid-template-columns:28px 1fr;gap:5px;margin:5px 0}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.preview{background:#fff;color:#111;border-radius:7px;padding:16px;line-height:1.55;min-height:180px}.preview img{max-width:100%;max-height:350px;display:block;margin:12px auto}.previewOpt{padding:5px 0;border-bottom:1px solid #ddd}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}.modalfoot{border-top:1px solid #334155;border-bottom:0}.modalbody{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:10px;min-height:0;flex:1}.pdfpages{overflow:auto}.thumb{border:1px solid #334155;padding:4px;margin-bottom:6px;cursor:pointer}.thumb.active{border-color:#38bdf8}.thumb canvas{width:100%;display:block;background:#fff}.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none}.pdfview canvas{background:#fff;max-width:none}.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:none;pointer-events:none}.prompt{width:min(420px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}.modalfoot{border-top:1px solid #334155;border-bottom:0}.modalbody{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:10px;min-height:0;flex:1}.pdfpages{overflow:auto}.thumb{border:1px solid #334155;padding:4px;margin-bottom:6px;cursor:pointer}.thumb.active{border-color:#38bdf8}.thumb canvas{width:100%;display:block;background:#fff}.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none}.pdfview canvas{background:#fff;max-width:none}.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:none;pointer-events:none}.prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.nav a:nth-child(n+3){display:none}.scroll{max-height:none}.modalbody{grid-template-columns:90px 1fr}}
 </style>
 </head>
@@ -48,9 +48,13 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 </main>
 
 <div class="overlay" id="pageOverlay"><div class="prompt">
-<h3>📄 How many pages should be processed?</h3><div id="pageInfo" class="muted"></div>
-<div class="row"><input id="pageCount" type="number" min="1" value="2"><button id="startPages" class="btn primary">Start</button></div>
-<div class="muted" style="margin-top:8px">Example: enter 2 to process only the first 2 pages.</div>
+<h3>📄 Enter Page Range to Process</h3>
+<div id="pageInfo" class="muted"></div>
+<div class="row">
+  <input id="pageRange" type="text" placeholder="e.g. 1-5 or 1,3,6" value="1-2">
+  <button id="startPages" class="btn primary">Start</button>
+</div>
+<div class="muted" style="margin-top:8px">Example: type <b>1-5</b> for pages 1 to 5, or <b>1,3,7</b> for specific pages.</div>
 </div></div>
 
 <div class="overlay" id="cropOverlay"><div class="modal">
@@ -64,7 +68,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 "use strict";
 var fileEl=document.getElementById("file"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
 var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
-var pdf=null,totalPages=0,processPages=0,items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4;
+var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4;
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}}
 function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
@@ -85,10 +89,10 @@ fileEl.addEventListener("change",function(){
    logStep("🔧 Starting PDF.js engine…");
    loadPdf(reader.result).then(function(doc){
      pdf=doc; totalPages=doc.numPages; logStep("✔ PDF.js opened PDF successfully. Total pages: "+totalPages);
-     document.getElementById("pageInfo").textContent=f.name+" • "+totalPages+" pages available";
-     var pc=document.getElementById("pageCount"); pc.max=totalPages; pc.value=Math.min(2,totalPages);
+     document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
+     document.getElementById("pageRange").value="1-"+Math.min(5,totalPages);
      show("pageOverlay",true);
-     logStep("✔ PDF ready. Waiting for page count."); status("✔ PDF opened. Enter pages and press Start.");
+     logStep("✔ PDF ready. Waiting for page range."); status("✔ PDF opened. Enter page range and press Start.");
    }).catch(function(err){
      console.error(err); status("❌ PDF open failed: "+(err.message||err)); alert("PDF open failed: "+(err.message||err));
    });
@@ -102,20 +106,37 @@ function loadPdf(data){
  return window.pdfjsLib.getDocument({data:new Uint8Array(data),disableWorker:true}).promise;
 }
 
+// Parse user page range input (e.g., "1-3, 5, 7-9")
+function parsePageRange(str, max){
+ var set={};
+ str.split(",").forEach(function(part){
+   part=part.trim();
+   if(part.indexOf("-")>=0){
+     var rng=part.split("-");
+     var start=parseInt(rng[0],10)||1, end=parseInt(rng[1],10)||max;
+     for(var j=Math.min(start,end);j<=Math.max(start,end);j++){if(j>=1&&j<=max)set[j]=true;}
+   }else{
+     var p=parseInt(part,10);if(p>=1&&p<=max)set[p]=true;
+   }
+ });
+ var arr=Object.keys(set).map(Number).sort(function(a,b){return a-b});
+ return arr.length?arr:[1];
+}
+
 document.getElementById("startPages").addEventListener("click",function(){
  if(!pdf)return;
- var n=parseInt(document.getElementById("pageCount").value,10)||1;
- processPages=Math.max(1,Math.min(totalPages,n));
+ var rawRange=document.getElementById("pageRange").value.trim();
+ targetPages=parsePageRange(rawRange, totalPages);
  show("pageOverlay",false);
  extractBtn.disabled=false;confirmBtn.disabled=false;saveBtn.disabled=true;
- logStep("▶ Processing will use "+processPages+" page(s)."); status("✔ Ready: "+processPages+" page(s). Click Extract Questions.");
+ logStep("▶ Processing target pages: "+targetPages.join(", ")); status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Extract Questions.");
 });
 
 function getLines(words){
  var lines=[];
  words.slice().sort(function(a,b){return b.y-a.y||a.x-b.x}).forEach(function(w){
    var found=null;
-   for(var i=0;i<lines.length;i++){if(Math.abs(lines[i].y-w.y)<4){found=lines[i];break}}
+   for(var i=0;i<lines.length;i++){if(Math.abs(lines[i].y-w.y)<6){found=lines[i];break}}
    if(!found){found={y:w.y,items:[]};lines.push(found)}
    found.items.push(w);
  });
@@ -137,14 +158,17 @@ async function pageData(n){
 function splitPage(pd){
  var lines=getLines(pd.words),starts=[],re=/^(?:Q(?:uestion)?\s*\.?\s*)?(\d{1,3})\s*[.)\-:]\s*/i;
  lines.forEach(function(l,i){var m=l.text.replace(/^[^\dQq]*/,"").match(re);if(m)starts.push({i:i,no:Number(m[1]),y:l.y})});
- if(!starts.length){
-   var all=lines.map(function(x){return x.text}).join("\n").trim();
-   return all?[{qNo:"",text:all,top:0,bottom:pd.height}]:[];
+ 
+// Fallback if structured numbering is not matched clearly
+if(!starts.length){
+   var allText=lines.map(function(x){return x.text}).join("\n").trim();
+   if(allText) return [{qNo:1,text:allText,top:0,bottom:pd.height}];
+   return [];
  }
  var out=[];
  starts.forEach(function(a,k){
    var b=starts[k+1],text=lines.slice(a.i,b?b.i:lines.length).map(function(x){return x.text}).join("\n").trim();
-   if(text.length<3)return;
+   if(text.length<2)return;
    var top=Math.max(0,pd.height-(a.y+18)*1.5),bottom=b?Math.min(pd.height,pd.height-(b.y-10)*1.5):pd.height;
    out.push({qNo:a.no,text:text,top:top,bottom:bottom});
  });
@@ -152,7 +176,7 @@ function splitPage(pd){
 }
 
 function parseBlock(text){
- var clean=String(text||"").replace(/\r/g,"").trim(),re=/(?:^|\n|\s)\(?([A-H])\)?[.)\-:]\s+/g,marks=[],m;
+ var clean=String(text||"").replace(/\r/g,"").trim(),re=/(?:^|\n|\s)\(?([A-D])\)?[.)\-:]\s+/g,marks=[],m;
  while((m=re.exec(clean))!==null)marks.push({l:m[1],p:m.index+(m[0].length-m[0].replace(/^\s*/,"").length)});
  if(!marks.length)return {question:clean,options:[]};
  var q=clean.slice(0,marks[0].p).trim(),opts=[];
@@ -168,25 +192,25 @@ async function makeCrop(src,r){
 }
 
 async function extract(){
- if(!pdf)return;
+ if(!pdf||!targetPages.length)return;
  items=[];selected=-1;document.getElementById("editor").innerHTML="";document.getElementById("preview").innerHTML="";
- extractBtn.disabled=true;confirmBtn.disabled=true;saveBtn.disabled=true;progress(0,processPages);
+ extractBtn.disabled=true;confirmBtn.disabled=true;saveBtn.disabled=true;progress(0,targetPages.length);
  try{
-  for(var n=1;n<=processPages;n++){
-   logStep("📄 Rendering page "+n+" / "+processPages+"…"); status("⚡ Processing page "+n+" / "+processPages+"…");
+  for(var idx=0; idx<targetPages.length; idx++){
+   var n=targetPages[idx];
+   logStep("📄 Rendering page "+n+" ("+(idx+1)+"/"+targetPages.length+")…"); status("⚡ Processing page "+n+"…");
    var pd=await pageData(n); logStep("✔ Page "+n+" rendered. Extracting text…"); var qs=splitPage(pd);
-   if(!qs.length)qs=[];
    logStep("🔎 Page "+n+" text scan found "+qs.length+" question block(s)."); status("⚡ Page "+n+": "+qs.length+" question block(s) found.");
    qs.forEach(function(q){
      var p=parseBlock(q.text),item={qNo:q.qNo,qText:p.question,options:p.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.02),y:Math.round(q.top),w:Math.round(pd.width*.96),h:Math.max(80,Math.round(q.bottom-q.top))},questionImage:"",libraryType:"Personal Library",folder:"",subfolder:"",confirmed:false};
      items.push(item); logStep("➕ Added Q "+(item.qNo||items.length)+" from PDF page "+n+" to question list.");
    });
-   progress(n,processPages);render();
+   progress(idx+1,targetPages.length);render();
    await new Promise(function(r){setTimeout(r,10)});
   }
   extractBtn.disabled=false;confirmBtn.disabled=items.length===0;saveBtn.disabled=true;
   logStep("🏁 Extraction finished. Questions created: "+items.length); status("✔ Extraction complete: "+items.length+" question(s).");
-  if(items.length)select(0); else alert("No questions detected in the selected pages.");
+  if(items.length)select(0); else alert("No questions detected in the selected page range. Try adjusting the range.");
  }catch(e){console.error(e);logStep("💥 ERROR: "+(e.stack||e.message||e));extractBtn.disabled=false;status("❌ Extraction failed: "+(e.message||e));alert("Extraction failed: "+(e.message||e))}
 }
 
@@ -221,11 +245,11 @@ function apply(i){
 }
 
 async function openCrop(i,page){
- selected=i;currentPdfPage=page||1;cropRect=items[i].cropRect;show("cropOverlay",true);await renderCropPage();await buildThumbs();
+ selected=i;currentPdfPage=page||targetPages[0]||1;cropRect=items[i].cropRect;show("cropOverlay",true);await renderCropPage();await buildThumbs();
 }
 async function buildThumbs(){
  var box=document.getElementById("pdfPages");box.innerHTML="";
- for(var n=1;n<=processPages;n++){var p=await pdf.getPage(n),v=p.getViewport({scale:.2}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
+ for(var idx=0;idx<targetPages.length;idx++){var n=targetPages[idx], p=await pdf.getPage(n),v=p.getViewport({scale:.2}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
   var d=document.createElement("div");d.className="thumb "+(n===currentPdfPage?"active":"");d.innerHTML="<small>Page "+n+"</small>";d.appendChild(c);d.onclick=async function(page){currentPdfPage=page;cropRect=null;await renderCropPage();await buildThumbs()}.bind(null,n);box.appendChild(d);
  }
 }
@@ -237,8 +261,8 @@ async function renderCropPage(){
 document.getElementById("pdfView").addEventListener("pointerdown",function(e){if(e.target!==document.getElementById("pdfCanvas"))return;var r=document.getElementById("pdfCanvas").getBoundingClientRect();cropStart={x:e.clientX-r.left,y:e.clientY-r.top};cropRect={x:cropStart.x,y:cropStart.y,w:1,h:1}});
 document.getElementById("pdfView").addEventListener("pointermove",function(e){if(!cropStart)return;var r=document.getElementById("pdfCanvas").getBoundingClientRect(),vr=document.getElementById("pdfView").getBoundingClientRect(),x=Math.max(0,Math.min(r.width,e.clientX-r.left)),y=Math.max(0,Math.min(r.height,e.clientY-r.top));cropRect={x:Math.min(cropStart.x,x),y:Math.min(cropStart.y,y),w:Math.abs(x-cropStart.x),h:Math.abs(y-cropStart.y)};var b=document.getElementById("cropBox");b.style.display="block";b.style.left=(r.left-vr.left+cropRect.x)+"px";b.style.top=(r.top-vr.top+cropRect.y)+"px";b.style.width=cropRect.w+"px";b.style.height=cropRect.h+"px"});
 document.getElementById("pdfView").addEventListener("pointerup",function(){cropStart=null});
-document.getElementById("cropPrev").onclick=async function(){if(currentPdfPage>1){currentPdfPage--;cropRect=null;await renderCropPage();await buildThumbs()}};
-document.getElementById("cropNext").onclick=async function(){if(currentPdfPage<processPages){currentPdfPage++;cropRect=null;await renderCropPage();await buildThumbs()}};
+document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];cropRect=null;await renderCropPage();await buildThumbs()}};
+document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false);cropStart=null};
 document.getElementById("saveCrop").onclick=async function(){
  if(selected<0||!cropRect||cropRect.w<10||cropRect.h<10){alert("Drag a crop box first.");return}
