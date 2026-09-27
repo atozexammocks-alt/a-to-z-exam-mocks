@@ -23,11 +23,11 @@ window.MathJax={
 <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import{getFirestore,collection,addDoc,doc,getDoc,setDoc}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import{getFirestore,collection,addDoc,getDocs,doc,getDoc,setDoc}from'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 const cfg={apiKey:'AIzaSyAE7T5cToJKcoUQcj_-GZrQFbbF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
 initializeApp(cfg);
 window.db=getFirestore();
-window.collection=collection; window.addDoc=addDoc; window.doc=doc; window.getDoc=getDoc; window.setDoc=setDoc;
+window.collection=collection; window.addDoc=addDoc; window.getDocs=getDocs; window.doc=doc; window.getDoc=getDoc; window.setDoc=setDoc;
 window.currentTeacherEmail=localStorage.getItem('ExamVault_Teacher_Email')||'atozexammocks@gmail.com';
 </script>
 <style>
