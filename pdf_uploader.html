@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — PDF Uploader</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:10px}
@@ -198,6 +199,12 @@ async function makeCrop(src,r){
  c.width=w;c.height=h;c.getContext("2d").drawImage(im,x,y,w,h,0,0,w,h);return c.toDataURL("image/png");
 }
 
+async function ocrIfNeeded(pd,n){
+ if(pd.words.length||!window.Tesseract)return pd;
+ logStep("🔤 Page "+n+" has no selectable text. Running OCR for Hindi/English…");
+ try{var r=await Tesseract.recognize(pd.image,"eng+hin",{logger:function(m){if(m.status==="recognizing text"&&m.progress)activityEl.textContent="Activity: 🔤 OCR page "+n+" "+Math.round(m.progress*100)+"%"}});var text=(r.data&&r.data.text)||"";if(text.trim())pd.words=text.split(/\n/).map(function(s,i){return {s:s.trim(),x:0,y:pd.height-i*20}}).filter(function(x){return x.s});}catch(e){logStep("⚠ OCR unavailable: "+(e.message||e))}return pd;
+}
+
 async function extract(){
  if(!pdf||!targetPages.length)return;
  items=[];selected=-1;document.getElementById("editor").innerHTML="";document.getElementById("preview").innerHTML="";
@@ -206,7 +213,7 @@ async function extract(){
   for(var idx=0; idx<targetPages.length; idx++){
    var n=targetPages[idx];
    logStep("📄 Rendering page "+n+" ("+(idx+1)+"/"+targetPages.length+")…"); status("⚡ Processing page "+n+"…");
-   var pd=await pageData(n); logStep("✔ Page "+n+" rendered. Extracting text…"); var qs=splitPage(pd);
+   var pd=await pageData(n); pd=await ocrIfNeeded(pd,n); logStep("✔ Page "+n+" rendered. Extracting text…"); var qs=splitPage(pd);
    logStep("🔎 Page "+n+" text scan found "+qs.length+" question block(s)."); status("⚡ Page "+n+": "+qs.length+" question block(s) found.");
    qs.forEach(function(q){
      var p=parseBlock(q.text),item={qNo:q.qNo,qText:p.question,options:p.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.02),y:Math.round(q.top),w:Math.round(pd.width*.96),h:Math.max(80,Math.round(q.bottom-q.top))},questionImage:"",libraryType:document.getElementById("globalLibrary").value,folder:document.getElementById("globalFolder").value,subfolder:document.getElementById("globalSubfolder").value,topic:document.getElementById("globalTopic").value.trim(),confirmed:false};
@@ -265,9 +272,9 @@ async function renderCropPage(){
  var b=document.getElementById("cropBox"),vr=document.getElementById("pdfView").getBoundingClientRect(),cr=c.getBoundingClientRect();
  if(cropRect){var sx=cr.width/c.width,sy=cr.height/c.height;b.style.display="block";b.style.left=(cr.left-vr.left+cropRect.x*sx)+"px";b.style.top=(cr.top-vr.top+cropRect.y*sy)+"px";b.style.width=(cropRect.w*sx)+"px";b.style.height=(cropRect.h*sy)+"px"}else b.style.display="none";
 }
-document.getElementById("pdfView").addEventListener("pointerdown",function(e){if(e.target!==document.getElementById("pdfCanvas"))return;var r=document.getElementById("pdfCanvas").getBoundingClientRect();cropStart={x:e.clientX-r.left,y:e.clientY-r.top};cropRect={x:cropStart.x,y:cropStart.y,w:1,h:1}});
-document.getElementById("pdfView").addEventListener("pointermove",function(e){if(!cropStart)return;var r=document.getElementById("pdfCanvas").getBoundingClientRect(),vr=document.getElementById("pdfView").getBoundingClientRect(),x=Math.max(0,Math.min(r.width,e.clientX-r.left)),y=Math.max(0,Math.min(r.height,e.clientY-r.top));cropRect={x:Math.min(cropStart.x,x),y:Math.min(cropStart.y,y),w:Math.abs(x-cropStart.x),h:Math.abs(y-cropStart.y)};var b=document.getElementById("cropBox");b.style.display="block";b.style.left=(r.left-vr.left+cropRect.x)+"px";b.style.top=(r.top-vr.top+cropRect.y)+"px";b.style.width=cropRect.w+"px";b.style.height=cropRect.h+"px"});
-document.getElementById("pdfView").addEventListener("pointerup",function(){cropStart=null});
+document.getElementById("pdfView").addEventListener("pointerdown",function(e){var canvas=document.getElementById("pdfCanvas"),r=canvas.getBoundingClientRect();var h=e.target&&e.target.className;if(typeof h==="string"&&h.indexOf("cropHandle")>=0){cropAction="resize";cropBase={x:e.clientX,y:e.clientY,rect:{x:cropRect.x,y:cropRect.y,w:cropRect.w,h:cropRect.h},handle:h};e.preventDefault();return}if(e.target!==canvas)return;cropAction="draw";cropStart={x:e.clientX-r.left,y:e.clientY-r.top};cropRect={x:cropStart.x,y:cropStart.y,w:1,h:1}});
+document.getElementById("pdfView").addEventListener("pointermove",function(e){var r=document.getElementById("pdfCanvas").getBoundingClientRect(),vr=document.getElementById("pdfView").getBoundingClientRect();if(cropAction==="draw"&&cropStart){var x=Math.max(0,Math.min(r.width,e.clientX-r.left)),y=Math.max(0,Math.min(r.height,e.clientY-r.top));cropRect={x:Math.min(cropStart.x,x),y:Math.min(cropStart.y,y),w:Math.abs(x-cropStart.x),h:Math.abs(y-cropStart.y)}}else if(cropAction==="resize"&&cropBase){var dx=e.clientX-cropBase.x,dy=e.clientY-cropBase.y,z=cropBase.rect,h=cropBase.handle;if(h.indexOf("nw")>=0){cropRect.x=z.x+dx;cropRect.y=z.y+dy;cropRect.w=z.w-dx;cropRect.h=z.h-dy}else if(h.indexOf("ne")>=0){cropRect.y=z.y+dy;cropRect.w=z.w+dx;cropRect.h=z.h-dy}else if(h.indexOf("sw")>=0){cropRect.x=z.x+dx;cropRect.w=z.w-dx;cropRect.h=z.h+dy}else{cropRect.w=z.w+dx;cropRect.h=z.h+dy}cropRect.w=Math.max(10,cropRect.w);cropRect.h=Math.max(10,cropRect.h)}else return;var b=document.getElementById("cropBox");b.style.display="block";b.style.left=(r.left-vr.left+cropRect.x)+"px";b.style.top=(r.top-vr.top+cropRect.y)+"px";b.style.width=cropRect.w+"px";b.style.height=cropRect.h+"px"});
+document.getElementById("pdfView").addEventListener("pointerup",function(){cropStart=null;cropAction=null;cropBase=null});
 document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false);cropStart=null};
