@@ -12,7 +12,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 .brand{font-weight:900;color:#38bdf8;text-decoration:none;white-space:nowrap}.nav{display:flex;gap:6px;flex-wrap:wrap}.nav a,.btn{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:8px 11px;border-radius:6px;text-decoration:none;font-weight:800;font-size:12px;cursor:pointer}
 .btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn.keepOn{background:#16a34a!important;color:#fff!important;border-color:#4ade80!important;box-shadow:0 0 0 2px #4ade8044}.btn.keepOff{opacity:.55}.btn:disabled{opacity:.45;cursor:not-allowed}
 .page{padding:12px}.toolbar{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#file{display:none}.choose{background:#0284c7;border:1px solid #38bdf8;color:#fff;padding:9px 13px;border-radius:6px;font-weight:900;cursor:pointer}
+#file{position:absolute;width:1px;height:1px;opacity:0;clip:rect(0 0 0 0);clip-path:inset(50%);overflow:hidden;white-space:nowrap}.choose{background:#0284c7;border:1px solid #38bdf8;color:#fff;padding:9px 13px;border-radius:6px;font-weight:900;cursor:pointer}
 .status{font-weight:900;color:#10b981}.activity{width:100%;color:#94a3b8;font-size:12px}.progress{height:8px;background:#0f172a;border:1px solid #334155;border-radius:20px;overflow:hidden;flex:1;min-width:120px}.progress i{display:block;height:100%;width:0;background:#38bdf8}
 .workspace{display:grid;grid-template-columns:1.25fr 1fr;gap:10px;margin-top:10px}.panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.panel h3{margin:0 0 5px}.muted{color:#94a3b8;font-size:11px}.scroll{max-height:calc(100vh - 155px);overflow:auto}.card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin:8px 0}.active{border-color:#38bdf8}
 .grid2{display:grid;grid-template-columns:110px 1fr;gap:7px}.field{margin-top:7px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
@@ -32,7 +32,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 
 <main class="page">
 <div class="toolbar">
-<button id="chooseBtn" class="choose" type="button">📄 Choose PDF</button>
+<label id="chooseBtn" class="choose" for="file">📄 Choose PDF</label>
 <input id="file" type="file" accept="application/pdf,.pdf" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 <button id="extract" class="btn green" disabled>⚡ Extract Questions</button>
 <button id="confirmAll" class="btn" disabled>☑ Confirm All</button>
@@ -68,7 +68,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 (function(){
 "use strict";
 var fileEl=document.getElementById("file"), chooseBtn=document.getElementById("chooseBtn"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
-chooseBtn.addEventListener("click",function(e){e.preventDefault();e.stopPropagation();fileEl.focus();fileEl.click();});
+
 fileEl.addEventListener("change",function(){
  var f=fileEl.files&&fileEl.files[0];
  if(!f)return;
