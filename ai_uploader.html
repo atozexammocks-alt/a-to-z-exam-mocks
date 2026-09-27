@@ -105,7 +105,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 <main class="wrap">
 <div class="box">
 <p style="color:#94a3b8;margin:0 0 9px">Upload a PDF. AI extracts questions and preserves scientific equations as LaTeX. You can correct text, replace the question image, review each item, confirm it, and then send confirmed questions to Library.</p>
-<label class="btn primary">📂 Choose PDF<input id="file" type="file" accept="application/pdf" hidden></label>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="file" class="btn primary" id="choosePdfBtn">📂 Choose PDF</label><input id="file" type="file" accept="application/pdf" style="display:block;max-width:260px;color:#cbd5e1;font-size:11px"><span id="fileName" style="color:#94a3b8;font-size:11px">No PDF selected</span></div>
 <button id="stop" class="stop" onclick="stopRequested=true" disabled>⛔ Stop</button>
 <button class="green" onclick="confirmAll()">☑ Confirm All</button>
 <button class="primary" onclick="saveConfirmed()">🚀 Send Confirmed to Library</button>
@@ -330,8 +330,21 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
 
 
 const fileInput=document.getElementById('file');
+const fileName=document.getElementById('fileName');
+logActivity('Uploader build 2026-09-27 diagnostic loaded.');
+logActivity('PDF.js available: '+(typeof window.pdfjsLib!=='undefined'?'YES':'NO'));
+logActivity('File input available: '+(fileInput?'YES':'NO'));
+if(fileInput){
+  fileInput.addEventListener('click',()=>logActivity('File picker opened…'));
+  fileInput.addEventListener('input',()=>logActivity('File input event received.'));
+}
 fileInput.addEventListener('change',async e=>{
-  const f=e.target.files[0];if(!f)return;
+  logActivity('CHANGE event received.');
+
+  const f=e.target.files[0];
+  if(!f){logActivity('No file selected.');return;}
+  fileName.textContent=f.name+' ('+(f.size/1048576).toFixed(2)+' MB)';
+  setStatus('📄 File selected: '+f.name);
   items=[];pageImages={};list.innerHTML='';count.textContent='0 questions';stopRequested=false;stopBtn.disabled=false;setProgress(0,1);
   try{
     setStatus('⏳ PDF selected — reading file…');
@@ -339,11 +352,16 @@ fileInput.addEventListener('change',async e=>{
     logActivity('File read: '+(pdfBytes.byteLength/1048576).toFixed(2)+' MB');
     if(pdfBytes.byteLength<5||String.fromCharCode(...new Uint8Array(pdfBytes.slice(0,5)))!=='%PDF-')throw new Error('The selected file is not a valid PDF.');
     setStatus('📖 Opening PDF in browser…');
+    if(typeof window.pdfjsLib==='undefined')throw new Error('PDF.js did not load in this browser. Refresh once and try again.');
+    if(typeof window.pdfjsLib.getDocument!=='function')throw new Error('PDF.js loaded incorrectly: getDocument is unavailable.');
+    logActivity('PDF.js getDocument() starting…');
     // Keep PDF opening independent of the external worker. This avoids the common
     // mobile/CDN worker failure that can leave the uploader apparently idle.
-    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(pdfBytes.slice(0)),disableWorker:true,useWorkerFetch:false,disableAutoFetch:false,disableStream:false}).promise;
+    const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(pdfBytes.slice(0)),disableWorker:true,useWorkerFetch:false,disableAutoFetch:false,disableStream:false}).promise;
+    logActivity('PDF.js opened document successfully.');
     const total=pdf.numPages;
     setStatus('✔ PDF opened: '+total+' page'+(total===1?'':'s')+' — starting page-by-page processing…');
+    logActivity('Starting '+total+' page(s) with 2 processing workers.');
     // Do NOT block PDF processing on PDF-Lib. PDF.js is the only required
     // browser PDF reader. The native-PDF AI route is attempted only when PDF-Lib
     // is available; image/OCR page processing must start immediately.
