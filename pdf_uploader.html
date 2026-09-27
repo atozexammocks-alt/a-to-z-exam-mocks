@@ -31,8 +31,8 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 
 <main class="page">
 <div class="toolbar">
-<label class="choose" for="file">📄 Choose PDF</label>
-<input id="file" type="file" accept="application/pdf,.pdf">
+<button id="chooseBtn" class="choose" type="button">📄 Choose PDF</button>
+<input id="file" type="file" accept="application/pdf,.pdf" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
 <button id="extract" class="btn green" disabled>⚡ Extract Questions</button>
 <button id="confirmAll" class="btn" disabled>☑ Confirm All</button>
 <button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
@@ -66,7 +66,8 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <script>
 (function(){
 "use strict";
-var fileEl=document.getElementById("file"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
+var fileEl=document.getElementById("file"), chooseBtn=document.getElementById("chooseBtn"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
+chooseBtn.addEventListener("click",function(){fileEl.click()});
 var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
 var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4;
 
@@ -99,6 +100,9 @@ fileEl.addEventListener("change",function(){
  };
  reader.onerror=function(){status("❌ Could not read the selected file.")};
  reader.readAsArrayBuffer(f);
+ });
+// Re-bind through a native input path as well, so mobile browsers cannot swallow the label click.
+fileEl.oninput=function(){if(fileEl.files&&fileEl.files.length){var ev=new Event("change");fileEl.dispatchEvent(ev)}};
 });
 
 function loadPdf(data){
