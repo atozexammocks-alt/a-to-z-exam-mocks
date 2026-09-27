@@ -196,7 +196,7 @@ function buildQuestionSegments(rows,W,H){
       starts.push({number,y:rows[i].y,x:rows[i].x});
     }
   }
-  if(starts.length<2)return [];
+  if(starts.length<1)return [];
   starts.sort((a,b)=>a.y-b.y||a.x-b.x);
 
   let columns=[{min:0,max:W}];
@@ -285,7 +285,7 @@ async function segmentPageByOCR(imageDataUrl,pageNumber){
       }
     }
     rows.sort((a,b)=>a.y-b.y||a.x-b.x);
-    if(rows.length<2)return [];
+    if(rows.length<1)return [];
     const image=await dataUrlImage(imageDataUrl);
     const W=image.naturalWidth||image.width,H=image.naturalHeight||image.height;
     return buildQuestionSegments(rows,W,H);
