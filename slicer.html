@@ -777,78 +777,113 @@ button, input, select, textarea, label { touch-action: manipulation; }
     const cropBox = document.getElementById('crop-box');
 
     document.getElementById('file-input').onchange = async (e) => {
-      const f = e.target.files[0];
+      const f = e.target.files && e.target.files[0];
       if (!f) return;
-      const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+
+      const isPdf = f.type === 'application/pdf' || /\\.pdf$/i.test(f.name || '');
       if (!isPdf) {
         e.target.value = '';
         alert('Please select a valid PDF file.');
         return;
       }
-      if (f.size > 100 * 1024 * 1024) {
+
+      if (f.size > 150 * 1024 * 1024) {
         e.target.value = '';
-        alert('PDF is larger than 100 MB. Please use a smaller PDF for reliable processing.');
+        alert('PDF is larger than 150 MB. Please use a smaller PDF for reliable mobile processing.');
         return;
       }
+
       try {
-          // Some mobile browsers/CDNs can fail to load PDF.js before the page
-          // finishes loading. Ensure the library exists before touching it.
-          if (!window.pdfjsLib) {
-            await new Promise((resolve, reject) => {
-              const s = document.createElement('script');
-              s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js';
-              s.onload = resolve;
-              s.onerror = () => reject(new Error('PDF.js library could not be loaded. Please check your internet connection and reload the page.'));
-              document.head.appendChild(s);
-            });
-          }
+        showToast('⏳ Reading PDF...');
+        console.log('[Slicer] Selected:', f.name, f.size, f.type);
 
-          if (!window.pdfjsLib || typeof window.pdfjsLib.getDocument !== 'function') {
-            throw new Error('PDF engine is unavailable in this browser.');
-          }
+        const arrayBuffer = await f.arrayBuffer();
+        if (!arrayBuffer || arrayBuffer.byteLength < 5) {
+          throw new Error('The selected PDF file is empty or could not be read.');
+        }
 
-          // Always use the matching jsDelivr worker. The previous cdnjs worker
-          // path could leave the viewer stuck before the first page rendered.
+        // A PDF must begin with %PDF. This catches renamed/non-PDF files
+        // before PDF.js gives an unclear "Invalid PDF structure" message.
+        const header = new TextDecoder().decode(new Uint8Array(arrayBuffer.slice(0, 5)));
+        if (header !== '%PDF-') {
+          throw new Error('This file is not a valid PDF (missing %PDF header).');
+        }
+
+        originalPdfBytes = arrayBuffer;
+        pdfDoc = null;
+        totalPdfPages = 0;
+        pageNum = 1;
+
+        if (!window.pdfjsLib || typeof window.pdfjsLib.getDocument !== 'function') {
+          throw new Error('PDF.js did not load. Please refresh the Slicer page and try again.');
+        }
+
+        // IMPORTANT: PDF.js transfers the supplied ArrayBuffer to its worker.
+        // Therefore every retry MUST receive a fresh copy.
+        const makeBytes = () => new Uint8Array(arrayBuffer.slice(0));
+
+        let loadingTask = null;
+        let loaded = false;
+
+        // First try the normal worker path.
+        try {
           pdfjsLib.GlobalWorkerOptions.workerSrc =
             'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
 
-          const arrayBuffer = await f.arrayBuffer();
-          originalPdfBytes = true;
+          loadingTask = pdfjsLib.getDocument({
+            data: makeBytes(),
+            disableAutoFetch: false,
+            disableStream: false
+          });
+          pdfDoc = await loadingTask.promise;
+          loaded = true;
+          console.log('[Slicer] PDF loaded with worker');
+        } catch (workerErr) {
+          console.warn('[Slicer] Worker PDF load failed:', workerErr);
+          try { await loadingTask?.destroy(); } catch (_) {}
+          pdfDoc = null;
+        }
 
-          // Load the original PDF directly. PDF.js handles individual pages;
-          // do not rebuild 100-page chunks with PDF-Lib.
-          let loadingTask;
+        // Guaranteed compatibility fallback: PDF.js fake/main-thread worker.
+        if (!loaded) {
           try {
             loadingTask = pdfjsLib.getDocument({
-              data: new Uint8Array(arrayBuffer),
-              disableAutoFetch: true,
-              disableStream: true
-            });
-            pdfDoc = await loadingTask.promise;
-          } catch (workerErr) {
-            // Last-resort compatibility path for browsers that block Web Workers.
-            console.warn('[Slicer] Worker load failed, retrying without worker:', workerErr);
-            try { await loadingTask?.destroy(); } catch (_) {}
-            loadingTask = pdfjsLib.getDocument({
-              data: new Uint8Array(arrayBuffer),
+              data: makeBytes(),
               disableWorker: true,
-              disableAutoFetch: true,
-              disableStream: true
+              disableAutoFetch: false,
+              disableStream: false
             });
             pdfDoc = await loadingTask.promise;
+            loaded = true;
+            console.log('[Slicer] PDF loaded with main-thread fallback');
+          } catch (fallbackErr) {
+            console.error('[Slicer] Main-thread PDF load failed:', fallbackErr);
+            throw new Error(
+              'PDF engine could not open this file. ' +
+              (fallbackErr?.message || workerErr?.message || 'Unknown PDF error')
+            );
           }
-
-          totalPdfPages = pdfDoc.numPages;
-          currentChunkStart = 1;
-          pageNum = 1;
-          document.getElementById('chunk-info').textContent = `Pages: 1-${totalPdfPages}`;
-          document.getElementById('page-total-label').textContent = totalPdfPages;
-          await window.renderCurrentPage();
-          showToast(`✔ Loaded PDF (${totalPdfPages} pages)`);
-        } catch (err) {
-          console.error('[Slicer] PDF load failed:', err);
-          alert("PDF open नहीं हो रही: " + (err?.message || err));
         }
+
+        totalPdfPages = pdfDoc.numPages;
+        if (!totalPdfPages) throw new Error('PDF opened but contains no pages.');
+
+        currentChunkStart = 1;
+        pageNum = 1;
+        document.getElementById('chunk-info').textContent = `Pages: 1-${totalPdfPages}`;
+        document.getElementById('page-total-label').textContent = totalPdfPages;
+
+        await window.renderCurrentPage();
+        showToast(`✔ PDF opened — ${totalPdfPages} pages`);
+        e.target.value = '';
+      } catch (err) {
+        console.error('[Slicer] FINAL PDF ERROR:', err);
+        pdfDoc = null;
+        totalPdfPages = 0;
+        document.getElementById('chunk-info').textContent = 'Pages: Not Loaded';
+        document.getElementById('page-total-label').textContent = '0';
+        alert('PDF open failed: ' + (err?.message || String(err)));
+        e.target.value = '';
       }
     };
 
