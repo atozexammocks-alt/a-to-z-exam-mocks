@@ -16,10 +16,18 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 .status{font-weight:900;color:#10b981}.activity{width:100%;color:#94a3b8;font-size:12px}.progress{height:8px;background:#0f172a;border:1px solid #334155;border-radius:20px;overflow:hidden;flex:1;min-width:120px}.progress i{display:block;height:100%;width:0;background:#38bdf8}
 .workspace{display:grid;grid-template-columns:1.25fr 1fr;gap:10px;margin-top:10px}.panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.panel h3{margin:0 0 5px}.muted{color:#94a3b8;font-size:11px}.scroll{max-height:calc(100vh - 155px);overflow:auto}.card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin:8px 0}.active{border-color:#38bdf8}
 .grid2{display:grid;grid-template-columns:110px 1fr;gap:7px}.field{margin-top:7px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
-input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}textarea{min-height:90px;resize:vertical}.opt{display:grid;grid-template-columns:22px 1fr;gap:4px;margin:3px 0}.optionGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px}.qMeta{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}textarea{min-height:90px;resize:vertical}.opt{display:grid;grid-template-columns:22px 1fr;gap:4px;margin:3px 0}.optionGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px}.qMeta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.preview{background:#fff;color:#111;border-radius:7px;padding:16px;line-height:1.55;min-height:180px}.preview img{max-width:100%;max-height:350px;display:block;margin:12px auto}.previewOpt{padding:5px 0;border-bottom:1px solid #ddd}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}.modalfoot{border-top:1px solid #334155;border-bottom:0}.modalbody{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:10px;min-height:0;flex:1}.pdfpages{overflow:auto}.thumb{border:1px solid #334155;padding:4px;margin-bottom:6px;cursor:pointer}.thumb.active{border-color:#38bdf8}.thumb canvas{width:100%;display:block;background:#fff}.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none}.pdfview canvas{background:#fff;max-width:none}.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:none;pointer-events:none}.prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
-@media(max-width:850px){.workspace{grid-template-columns:1fr}.nav a:nth-child(n+3){display:none}.scroll{max-height:none}.modalbody{grid-template-columns:90px 1fr}}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}
+.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
+.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.modalfoot{border-top:1px solid #334155;border-bottom:0;flex-direction:column;align-items:stretch}
+.modalbody{display:block;padding:10px;min-height:0;flex:1;overflow:auto}
+.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none;min-height:450px}
+.pdfview canvas{background:#fff;max-width:none}
+.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;pointer-events:auto;cursor:move}
+.prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
+@media(max-width:850px){.workspace{grid-template-columns:1fr}.nav a:nth-child(n+3){display:none}.scroll{max-height:none}.qMeta{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -44,7 +52,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 
 <div class="workspace">
 <section class="panel"><h3>📝 Question Editor</h3><div class="muted">Questions appear here after extraction.</div><div class="scroll" id="editor"><div class="card">Choose a PDF to begin.</div></div></section>
-<section class="panel"><h3>👨‍🎓 Student Preview</h3><div class="muted">Student-facing preview. Use the image button to crop directly from the original PDF page.</div><div class="scroll" id="preview"><div class="card"><div class="preview">No question selected.</div></div></div></section>
+<section class="panel"><h3>👨‍🎓 Student Preview</h3><div class="muted">Student-facing preview.</div><div class="scroll" id="preview"><div class="card"><div class="preview">No question selected.</div></div></div></section>
 </div>
 </main>
 
@@ -58,10 +66,30 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <div class="muted" style="margin-top:8px">Example: type <b>1-5</b> for pages 1 to 5, or <b>1,3,7</b> for specific pages.</div>
 </div></div>
 
+<!-- CROP OVERLAY MODAL -->
 <div class="overlay" id="cropOverlay"><div class="modal">
-<div class="modalhead"><b>✂ Crop from Original PDF</b><div><button id="cropPrev" class="btn">◀</button><button id="cropNext" class="btn">▶</button><button id="closeCrop" class="btn">✕</button></div></div>
-<div class="modalbody"><div class="pdfpages" id="pdfPages"></div><div class="pdfview" id="pdfView"><canvas id="pdfCanvas"></canvas><div id="cropBox" class="cropbox"></div></div></div>
-<div class="modalfoot"><span class="muted">Drag over the question on the original PDF page, then save.</span><button id="saveCrop" class="btn green">✔ Save Crop</button></div>
+<div class="modalhead">
+  <b>✂ Crop Question / Image from PDF Page</b>
+  <div><button id="cropPrev" class="btn">◀ Prev Page</button><button id="cropNext" class="btn">Next Page ▶</button><button id="closeCrop" class="btn">✕ Close</button></div>
+</div>
+<div class="modalbody">
+  <div class="pdfview" id="pdfView"><canvas id="pdfCanvas"></canvas><div id="cropBox" class="cropbox"></div></div>
+</div>
+<div class="modalfoot">
+  <div class="qMeta">
+    <div><label class="muted">Library</label><select id="cropLibrary"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div>
+    <div><label class="muted">Folder</label><input id="cropFolder" placeholder="Folder name"></div>
+    <div><label class="muted">Subfolder</label><input id="cropSubfolder" placeholder="Subfolder name"></div>
+    <div><label class="muted">Topic / Chapter</label><input id="cropTopic" placeholder="Topic / Chapter"></div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+    <div style="display:flex;gap:8px;">
+      <button id="cropKeepText" class="btn miniBtn keepOff" type="button">📝 Keep Text</button>
+      <button id="cropKeepImage" class="btn miniBtn keepOff" type="button">🖼 Keep Image</button>
+    </div>
+    <button id="saveCrop" class="btn green">✔ Save Crop & Update Preview</button>
+  </div>
+</div>
 </div></div>
 
 <script>
@@ -81,29 +109,26 @@ window.addEventListener("error",function(e){status("❌ JavaScript error: "+(e.m
 
 fileEl.addEventListener("change",function(){
  var f=fileEl.files&&fileEl.files[0]; if(!f)return;
- document.getElementById("processList").textContent="Process log:\n📄 File selected: "+f.name+" ("+Math.round(f.size/1024)+" KB)";
  status("📄 Selected: "+f.name+" — opening PDF…");
  progress(0,1);
  var reader=new FileReader();
  reader.onload=function(){
    status("📖 Reading PDF…");
-   logStep("🔧 Starting PDF.js engine…");
    loadPdf(reader.result).then(function(doc){
-     pdf=doc; totalPages=doc.numPages; logStep("✔ PDF.js opened PDF successfully. Total pages: "+totalPages);
+     pdf=doc; totalPages=doc.numPages;
      document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
      document.getElementById("pageRange").value="1-"+Math.min(5,totalPages);
      show("pageOverlay",true);
-     logStep("✔ PDF ready. Waiting for page range."); status("✔ PDF opened. Enter page range and press Start.");
+     status("✔ PDF opened. Enter page range and press Start.");
    }).catch(function(err){
-     console.error(err); status("❌ PDF open failed: "+(err.message||err)); alert("PDF open failed: "+(err.message||err));
+     status("❌ PDF open failed: "+(err.message||err));
    });
  };
- reader.onerror=function(){status("❌ Could not read the selected file.")};
  reader.readAsArrayBuffer(f);
 });
 
 function loadPdf(data){
- if(!window.pdfjsLib)return Promise.reject(new Error("PDF engine did not load. Refresh the page once."));
+ if(!window.pdfjsLib)return Promise.reject(new Error("PDF engine did not load."));
  return window.pdfjsLib.getDocument({data:new Uint8Array(data),disableWorker:true}).promise;
 }
 
@@ -129,7 +154,7 @@ document.getElementById("startPages").addEventListener("click",function(){
  targetPages=parsePageRange(rawRange, totalPages);
  show("pageOverlay",false);
  extractBtn.disabled=false;confirmBtn.disabled=false;saveBtn.disabled=true;
- logStep("▶ Processing target pages: "+targetPages.join(", ")); status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Extract Questions.");
+ status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Extract Questions.");
 });
 
 function getLines(words){
@@ -195,23 +220,28 @@ async function extract(){
  try{
   for(var idx=0; idx<targetPages.length; idx++){
    var n=targetPages[idx];
-   logStep("📄 Rendering page "+n+" ("+(idx+1)+"/"+targetPages.length+")…"); status("⚡ Processing page "+n+"…");
-   var pd=await pageData(n); logStep("✔ Page "+n+" rendered. Extracting text…"); var qs=splitPage(pd);
-   logStep("🔎 Page "+n+" text scan found "+qs.length+" question block(s)."); status("⚡ Page "+n+": "+qs.length+" question block(s) found.");
+   status("⚡ Processing page "+n+"…");
+   var pd=await pageData(n); var qs=splitPage(pd);
    qs.forEach(function(q){
-     var p=parseBlock(q.text),item={qNo:q.qNo,qText:p.question,options:p.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.02),y:Math.round(q.top),w:Math.round(pd.width*.96),h:Math.max(80,Math.round(q.bottom-q.top))},questionImage:"",libraryType:"Personal Library",folder:"",subfolder:"",confirmed:false};
-     items.push(item); logStep("➕ Added Q "+(item.qNo||items.length)+" from PDF page "+n+" to question list.");
+     var p=parseBlock(q.text),item={qNo:q.qNo,qText:p.question,options:p.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.05),y:Math.round(pd.height*.1),w:Math.round(pd.width*.9),h:150},questionImage:"",libraryType:"Personal Library",folder:"",subfolder:"",topic:"",keepText:true,keepImage:false,confirmed:false};
+     items.push(item);
    });
    progress(idx+1,targetPages.length);render();
    await new Promise(function(r){setTimeout(r,10)});
   }
   extractBtn.disabled=false;confirmBtn.disabled=items.length===0;saveBtn.disabled=true;
-  logStep("🏁 Extraction finished. Questions created: "+items.length); status("✔ Extraction complete: "+items.length+" question(s).");
-  if(items.length)select(0); else alert("No questions detected in the selected page range. Try adjusting the range.");
- }catch(e){console.error(e);logStep("💥 ERROR: "+(e.stack||e.message||e));extractBtn.disabled=false;status("❌ Extraction failed: "+(e.message||e));alert("Extraction failed: "+(e.message||e))}
+  status("✔ Extraction complete: "+items.length+" question(s).");
+  if(items.length)select(0); else alert("No questions detected.");
+ }catch(e){console.error(e);extractBtn.disabled=false;status("❌ Error: "+(e.message||e))}
 }
 
 extractBtn.addEventListener("click",extract);
+
+function setKeep(i,mode){
+ var x=items[i]; if(!x)return;
+ if(mode==="image"){x.keepImage=true;x.keepText=false;} else {x.keepText=true;x.keepImage=false;}
+ render();
+}
 
 function render(){
  var ed=document.getElementById("editor"),pv=document.getElementById("preview");
@@ -219,55 +249,115 @@ function render(){
    return '<div class="card '+(i===selected?"active":"")+'"><b>Q '+esc(x.qNo||i+1)+' • PDF page '+x.sourcePage+'</b>'+
    '<div class="grid2"><div class="field"><label>Question No.</label><input id="qn'+i+'" value="'+esc(x.qNo||i+1)+'"></div><div class="field"><label>Question Text</label><textarea id="qt'+i+'">'+esc(x.qText)+'</textarea></div></div>'+
    '<div class="field"><label>Options</label>'+[0,1,2,3].map(function(k){return '<div class="opt"><b>'+String.fromCharCode(65+k)+'.</b><input id="op'+i+'_'+k+'" value="'+esc(x.options[k]||"")+'"></div>'}).join("")+'</div>'+
-   '<div class="field"><label>Library</label><select id="lt'+i+'"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div>'+
-   '<div class="grid2"><div class="field"><label>Folder</label><input id="fd'+i+'" value="'+esc(x.folder)+'"></div><div class="field"><label>Subfolder</label><input id="sf'+i+'" value="'+esc(x.subfolder)+'"></div></div>'+
-   '<div class="actions"><button class="btn" data-apply="'+i+'">✔ Apply</button><button class="btn" data-crop="'+i+'">✂ Extract Image from PDF</button><label><input type="checkbox" data-confirm="'+i+'" '+(x.confirmed?"checked":"")+'> Confirm</label></div></div>';
+   '<div class="qMeta"><div class="field"><label>Library</label><select id="lt'+i+'"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div><div class="field"><label>Topic</label><input id="tp'+i+'" value="'+esc(x.topic||"")+'"></div><div class="field"><label>Folder</label><input id="fd'+i+'" value="'+esc(x.folder||"")+'"></div><div class="field"><label>Subfolder</label><input id="sf'+i+'" value="'+esc(x.subfolder||"")+'"></div></div>'+
+   '<div class="actions"><button class="btn" data-apply="'+i+'">✔ Apply</button><button class="btn" data-crop="'+i+'">✂ Crop from PDF</button>'+
+   '<button class="btn miniBtn '+(x.keepText?"keepOn":"keepOff")+'" data-tkeep="'+i+'">📝 Keep Text</button>'+
+   '<button class="btn miniBtn '+(x.keepImage?"keepOn":"keepOff")+'" data-ikeep="'+i+'">🖼 Keep Image</button>'+
+   '<label><input type="checkbox" data-confirm="'+i+'" '+(x.confirmed?"checked":"")+'> Confirm</label></div></div>';
  }).join(""):'<div class="card">No questions found.</div>';
+
  ed.querySelectorAll("[data-apply]").forEach(function(b){b.onclick=function(){apply(Number(b.dataset.apply))}});
  ed.querySelectorAll("[data-crop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.crop),items[Number(b.dataset.crop)].sourcePage)}});
+ ed.querySelectorAll("[data-tkeep]").forEach(function(b){b.onclick=function(){setKeep(Number(b.dataset.tkeep),"text")}});
+ ed.querySelectorAll("[data-ikeep]").forEach(function(b){b.onclick=function(){setKeep(Number(b.dataset.ikeep),"image")}});
  ed.querySelectorAll("[data-confirm]").forEach(function(b){b.onchange=function(){items[Number(b.dataset.confirm)].confirmed=b.checked;saveBtn.disabled=!items.some(function(x){return x.confirmed})}});
+
  pv.innerHTML=items.length?items.map(function(x,i){
-   return '<div class="card '+(i===selected?"active":"")+'" data-select="'+i+'"><div class="preview"><b>Q '+esc(x.qNo||i+1)+'.</b> '+esc(x.qText)+(x.options||[]).map(function(o,k){return o?'<div class="previewOpt"><b>('+String.fromCharCode(65+k)+')</b> '+esc(o)+'</div>':""}).join("")+(x.questionImage?'<img src="'+x.questionImage+'">':"")+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Extract Image from Main PDF</button></div></div>';
+   var h='<div class="card '+(i===selected?"active":"")+'" data-select="'+i+'"><div class="preview"><b>Q '+esc(x.qNo||i+1)+'.</b> ';
+   if(x.keepImage && x.questionImage){
+     h+='<img src="'+x.questionImage+'" alt="Question Image">';
+   } else if(x.keepText){
+     h+=esc(x.qText)+(x.options||[]).map(function(o,k){return o?'<div class="previewOpt"><b>('+String.fromCharCode(65+k)+')</b> '+esc(o)+'</div>':""}).join("");
+   } else {
+     h+='<div class="muted">No content selected to display.</div>';
+   }
+   return h+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Crop / Edit Image</button></div></div>';
  }).join(""):'<div class="card"><div class="preview">No question selected.</div></div>';
+
  pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}});
  pv.querySelectorAll("[data-pcrop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.pcrop),items[Number(b.dataset.pcrop)].sourcePage)}});
 }
 
 function select(i){if(i<0||i>=items.length)return;selected=i;render()}
 function apply(i){
- var x=items[i];x.qNo=document.getElementById("qn"+i).value;x.qText=document.getElementById("qt"+i).value;
+ var x=items[i];
+ x.qNo=document.getElementById("qn"+i).value;x.qText=document.getElementById("qt"+i).value;
  x.options=[0,1,2,3].map(function(k){return document.getElementById("op"+i+"_"+k).value.trim()}).filter(Boolean);
- x.libraryType=document.getElementById("lt"+i).value;x.folder=document.getElementById("fd"+i).value.trim();x.subfolder=document.getElementById("sf"+i).value.trim();
+ x.libraryType=document.getElementById("lt"+i).value;x.folder=document.getElementById("fd"+i).value.trim();x.subfolder=document.getElementById("sf"+i).value.trim();x.topic=document.getElementById("tp"+i).value.trim();
  selected=i;render();status("✔ Q "+x.qNo+" updated.");
 }
 
 async function openCrop(i,page){
- selected=i;currentPdfPage=page||targetPages[0]||1;cropRect=items[i].cropRect;show("cropOverlay",true);await renderCropPage();await buildThumbs();
+ selected=i; currentPdfPage=page||targetPages[0]||1;
+ var x=items[i];
+ cropRect=x.cropRect || {x:50, y:50, w:500, h:200};
+ document.getElementById("cropLibrary").value=x.libraryType||"Personal Library";
+ document.getElementById("cropFolder").value=x.folder||"";
+ document.getElementById("cropSubfolder").value=x.subfolder||"";
+ document.getElementById("cropTopic").value=x.topic||"";
+ document.getElementById("cropKeepText").className="btn miniBtn "+(x.keepText?"keepOn":"keepOff");
+ document.getElementById("cropKeepImage").className="btn miniBtn "+(x.keepImage?"keepOn":"keepOff");
+ show("cropOverlay",true);
+ await renderCropPage();
 }
-async function buildThumbs(){
- var box=document.getElementById("pdfPages");box.innerHTML="";
- for(var idx=0;idx<targetPages.length;idx++){var n=targetPages[idx], p=await pdf.getPage(n),v=p.getViewport({scale:.2}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
-  var d=document.createElement("div");d.className="thumb "+(n===currentPdfPage?"active":"");d.innerHTML="<small>Page "+n+"</small>";d.appendChild(c);d.onclick=async function(page){currentPdfPage=page;cropRect=null;await renderCropPage();await buildThumbs()}.bind(null,n);box.appendChild(d);
+
+async function renderCropPage(){
+ var p=await pdf.getPage(currentPdfPage),v=p.getViewport({scale:renderScale}),c=document.getElementById("pdfCanvas");
+ c.width=v.width; c.height=v.height;
+ await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
+ var b=document.getElementById("cropBox"),vr=document.getElementById("pdfView").getBoundingClientRect(),cr=c.getBoundingClientRect();
+ if(cropRect){
+  var sx=cr.width/c.width, sy=cr.height/c.height;
+  b.style.display="block";
+  b.style.left=(cr.left-vr.left+cropRect.x*sx)+"px";
+  b.style.top=(cr.top-vr.top+cropRect.y*sy)+"px";
+  b.style.width=(cropRect.w*sx)+"px";
+  b.style.height=(cropRect.h*sy)+"px";
  }
 }
-async function renderCropPage(){
- var p=await pdf.getPage(currentPdfPage),v=p.getViewport({scale:renderScale}),c=document.getElementById("pdfCanvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
- var b=document.getElementById("cropBox"),vr=document.getElementById("pdfView").getBoundingClientRect(),cr=c.getBoundingClientRect();
- if(cropRect){var sx=cr.width/c.width,sy=cr.height/c.height;b.style.display="block";b.style.left=(cr.left-vr.left+cropRect.x*sx)+"px";b.style.top=(cr.top-vr.top+cropRect.y*sy)+"px";b.style.width=(cropRect.w*sx)+"px";b.style.height=(cropRect.h*sy)+"px"}else b.style.display="none";
-}
-document.getElementById("pdfView").addEventListener("pointerdown",function(e){if(e.target!==document.getElementById("pdfCanvas"))return;var r=document.getElementById("pdfCanvas").getBoundingClientRect();cropStart={x:e.clientX-r.left,y:e.clientY-r.top};cropRect={x:cropStart.x,y:cropStart.y,w:1,h:1}});
-document.getElementById("pdfView").addEventListener("pointermove",function(e){if(!cropStart)return;var r=document.getElementById("pdfCanvas").getBoundingClientRect(),vr=document.getElementById("pdfView").getBoundingClientRect(),x=Math.max(0,Math.min(r.width,e.clientX-r.left)),y=Math.max(0,Math.min(r.height,e.clientY-r.top));cropRect={x:Math.min(cropStart.x,x),y:Math.min(cropStart.y,y),w:Math.abs(x-cropStart.x),h:Math.abs(y-cropStart.y)};var b=document.getElementById("cropBox");b.style.display="block";b.style.left=(r.left-vr.left+cropRect.x)+"px";b.style.top=(r.top-vr.top+cropRect.y)+"px";b.style.width=cropRect.w+"px";b.style.height=cropRect.h+"px"});
-document.getElementById("pdfView").addEventListener("pointerup",function(){cropStart=null});
-document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];cropRect=null;await renderCropPage();await buildThumbs()}};
-document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];cropRect=null;await renderCropPage();await buildThumbs()}};
-document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false);cropStart=null};
+
+// Interactive dragging & resizing for crop box
+(function(){
+ var view=document.getElementById("pdfView"), dragging=false, dragType="", startX=0, startY=0, initRect=null;
+ var b=document.getElementById("cropBox");
+ 
+ b.onpointerdown=function(e){
+  dragging=true; startX=e.clientX; startY=e.clientY; initRect=Object.assign({}, cropRect);
+  b.setPointerCapture(e.pointerId);
+  e.stopPropagation();
+ };
+ b.onpointermove=function(e){
+  if(!dragging)return;
+  var canvas=document.getElementById("pdfCanvas"), cr=canvas.getBoundingClientRect();
+  var sx=canvas.width/cr.width, sy=canvas.height/cr.height;
+  var dx=(e.clientX-startX)*sx, dy=(e.clientY-startY)*sy;
+  cropRect.x=Math.max(0, Math.min(canvas.width-cropRect.w, initRect.x+dx));
+  cropRect.y=Math.max(0, Math.min(canvas.height-cropRect.h, initRect.y+dy));
+  renderCropPage();
+ };
+ b.onpointerup=function(e){dragging=false; try{b.releasePointerCapture(e.pointerId)}catch(_){}};
+})();
+
+document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];await renderCropPage()}};
+document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];await renderCropPage()}};
+document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false)};
+document.getElementById("cropKeepText").onclick=function(){if(selected>=0){setKeep(selected,"text");document.getElementById("cropKeepText").className="btn miniBtn keepOn";document.getElementById("cropKeepImage").className="btn miniBtn keepOff";}};
+document.getElementById("cropKeepImage").onclick=function(){if(selected>=0){setKeep(selected,"image");document.getElementById("cropKeepImage").className="btn miniBtn keepOn";document.getElementById("cropKeepText").className="btn miniBtn keepOff";}};
+
 document.getElementById("saveCrop").onclick=async function(){
- if(selected<0||!cropRect||cropRect.w<10||cropRect.h<10){alert("Drag a crop box first.");return}
- var p=await pdf.getPage(currentPdfPage),v=p.getViewport({scale:1.5}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
- var sx=v.width/document.getElementById("pdfCanvas").width,sy=v.height/document.getElementById("pdfCanvas").height;
- items[selected].questionImage=await makeCrop(c.toDataURL("image/png"),{x:cropRect.x*sx,y:cropRect.y*sy,w:cropRect.w*sx,h:cropRect.h*sy});
- items[selected].sourcePage=currentPdfPage;items[selected].cropRect={x:cropRect.x*sx,y:cropRect.y*sy,w:cropRect.w*sx,h:cropRect.h*sy};
- show("cropOverlay",false);render();status("✔ Image crop saved to Q "+(items[selected].qNo||selected+1));
+ if(selected<0||!cropRect){alert("Crop box not ready.");return}
+ var p=await pdf.getPage(currentPdfPage),v=p.getViewport({scale:1.5}),c=document.createElement("canvas");
+ c.width=v.width; c.height=v.height;
+ await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
+ var sx=v.width/document.getElementById("pdfCanvas").width, sy=v.height/document.getElementById("pdfCanvas").height;
+ var x=items[selected];
+ x.questionImage=await makeCrop(c.toDataURL("image/png"),{x:cropRect.x*sx, y:cropRect.y*sy, w:cropRect.w*sx, h:cropRect.h*sy});
+ x.sourcePage=currentPdfPage; x.cropRect=cropRect;
+ x.libraryType=document.getElementById("cropLibrary").value;
+ x.folder=document.getElementById("cropFolder").value.trim();
+ x.subfolder=document.getElementById("cropSubfolder").value.trim();
+ x.topic=document.getElementById("cropTopic").value.trim();
+ show("cropOverlay",false); render(); status("✔ Crop saved for Q "+(x.qNo||selected+1));
 };
 
 confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All questions confirmed.")});
@@ -275,16 +365,26 @@ saveBtn.addEventListener("click",async function(){
  var good=items.filter(function(x){return x.confirmed});
  if(!good.length){alert("Confirm at least one question first.");return}
  var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
- if(!email){alert("Teacher login not found. Open Teacher Dashboard and sign in first.");return}
- status("☁ Saving "+good.length+" question(s)…");saveBtn.disabled=true;
+ if(!email){alert("Teacher login not found.");return}
+ status("☁ Saving "+good.length+" question(s)…"); saveBtn.disabled=true;
  try{
   var appmod=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"),fs=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"),au=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
   var config={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfQBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
   var appx;try{appx=appmod.initializeApp(config,"uploader")}catch(e){appx=appmod.getApp("uploader")}
   var db=fs.getFirestore(appx),auth=au.getAuth(appx);try{await au.signInAnonymously(auth)}catch(e){}
-  for(var i=0;i<good.length;i++){var x=good[i];await fs.addDoc(fs.collection(db,"questions"),{ownerEmail:email,creatorEmail:email,qNo:String(x.qNo||""),qText:x.qText||"",options:x.options||[],keepOptions:(x.options||[]).length>0,question:x.questionImage||"",libraryType:x.libraryType,folder:x.folder,subfolder:x.subfolder,sourcePage:x.sourcePage,createdAt:new Date().toISOString()})}
-  status("✔ Saved "+good.length+" question(s) to Library.");alert("✔ Saved "+good.length+" confirmed question(s).");
- }catch(e){console.error(e);status("❌ Save failed: "+(e.message||e));alert("Save failed: "+(e.message||e))}
+  for(var i=0;i<good.length;i++){
+   var x=good[i];
+   await fs.addDoc(fs.collection(db,"questions"),{
+    ownerEmail:email, creatorEmail:email, qNo:String(x.qNo||""),
+    qText:x.keepText?(x.qText||""):"", options:x.keepText?(x.options||[]):[],
+    keepOptions:x.keepText&&((x.options||[]).length>0),
+    question:x.keepImage?(x.questionImage||""):"",
+    libraryType:x.libraryType, folder:x.folder, subfolder:x.subfolder, topic:x.topic||"",
+    sourcePage:x.sourcePage, createdAt:new Date().toISOString()
+   });
+  }
+  status("✔ Saved "+good.length+" question(s) to Library."); alert("✔ Saved successfully!");
+ }catch(e){console.error(e);status("❌ Save failed: "+e.message);alert("Save failed: "+e.message)}
  saveBtn.disabled=false;
 });
 
