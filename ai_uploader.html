@@ -187,7 +187,7 @@ function makeImageItem(pageNumber,box,text,sourceImage){
 }
 
 function buildQuestionSegments(rows,W,H){
-  if(!rows||rows.length<2)return [];
+  if(!rows||rows.length<1)return [];
   const starts=[];
   for(let i=0;i<rows.length;i++){
     const number=normalizeQuestionStart(rows[i].text);
@@ -319,7 +319,7 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   }
 
   const pageItems=[];
-  if(segments.length>=2){
+  if(segments.length>=1){
     for(const seg of segments){
       const box={
         x:seg.x/(await dataUrlImage(imageDataUrl)).naturalWidth*1000,
@@ -346,6 +346,83 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
   }
   return {page:n,items:pageItems};
 }
+
+
+async function processPdfFile(file){
+  if(!file) throw new Error('No PDF file selected.');
+  if(file.type && file.type!=='application/pdf' && !/\.pdf$/i.test(file.name||'')){
+    throw new Error('Please select a PDF file.');
+  }
+  stopRequested=false;
+  stopBtn.disabled=false;
+  items=[];
+  pageImages={};
+  render();
+  setProgress(0,1);
+  setStatus('📥 Reading '+file.name+'…');
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  if(bytes.length<5 || String.fromCharCode(...bytes.slice(0,5))!=='%PDF-'){
+    throw new Error('The selected file is not a valid PDF.');
+  }
+  setStatus('📄 Opening PDF ('+(bytes.length/1048576).toFixed(2)+' MB)…');
+  const pdf=await pdfjsLib.getDocument({
+    data:bytes.slice(0),
+    disableWorker:true,
+    useWorkerFetch:false,
+    disableAutoFetch:false,
+    disableStream:false
+  }).promise;
+  const total=pdf.numPages;
+  if(!total) throw new Error('PDF contains no pages.');
+  setProgress(0,total);
+  setStatus('✔ PDF opened successfully — '+total+' page'+(total===1?'':'s')+' found.');
+  const all=[];
+  for(let n=1;n<=total;n++){
+    if(stopRequested) break;
+    const result=await processOnePdfPage(pdf,n,total,null);
+    all.push(...result.items);
+    items=all.slice();
+    setProgress(n,total);
+    render();
+  }
+  if(ocrWorkerPromise){
+    try{const w=await ocrWorkerPromise; if(w?.terminate) await w.terminate();}catch(_){}
+    ocrWorkerPromise=null;
+  }
+  stopBtn.disabled=true;
+  if(stopRequested){
+    setStatus('⛔ Processing stopped. '+items.length+' item(s) kept for review.');
+  }else{
+    setStatus('✔ Processing complete — '+items.length+' item(s) ready for review.');
+  }
+  render();
+}
+
+const fileInput=document.getElementById('file');
+const fileName=document.getElementById('fileName');
+if(fileInput){
+  fileInput.addEventListener('change',async e=>{
+    const file=e.target.files?.[0];
+    if(!file){
+      fileName.textContent='No PDF selected';
+      setStatus('Ready — choose a PDF.');
+      return;
+    }
+    fileName.textContent='Selected: '+file.name+' ('+(file.size/1048576).toFixed(2)+' MB)';
+    logActivity('PDF selected: '+file.name);
+    try{
+      await processPdfFile(file);
+    }catch(err){
+      stopBtn.disabled=true;
+      console.error('[PDF processing]',err);
+      setStatus('❌ PDF processing failed: '+(err?.message||String(err)));
+    }
+  });
+  fileInput.addEventListener('input',()=>logActivity('File input event received.'));
+}
+logActivity('Uploader build 2026-09-27 active.');
+logActivity('PDF.js available: '+(typeof window.pdfjsLib!=='undefined'?'YES':'NO'));
+logActivity('File input available: '+(fileInput?'YES':'NO'));
 
 async function extractWithBackend(body){
   let last='';
