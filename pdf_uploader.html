@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — PDF Question Extractor</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";</script>
+<script>window.addEventListener("error",e=>{if(e.message)document.title="PDF Uploader • "+e.message});</script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;height:100vh;overflow:hidden}
 nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 20px}.brand{font-size:16px;font-weight:900;color:#38bdf8;text-decoration:none}.nav{display:flex;gap:8px}.nav a,.btn{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:7px 11px;border-radius:6px;text-decoration:none;font-weight:800;font-size:11px;cursor:pointer}.btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn:disabled{opacity:.45;cursor:not-allowed}
@@ -16,7 +16,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <nav id="navbar"><a class="brand" href="index.html">🏠 A to Z Exam Mocks</a><div class="nav"><a href="teacher.html">🏠 Dashboard</a><a href="admin.html">👑 Super Admin</a><a href="library.html">📁 Central Library</a><a href="library_access.html">🤝 Group Library</a><a href="slicer.html">✂️ Slicer</a><a href="builder.html">🛠️ Test Builder</a></div></nav>
 <main class="page">
 <div class="toolbar">
-<label class="btn primary filebtn">📄 Upload PDF<input id="file" type="file" accept="application/pdf"></label>
+<label class="btn primary filebtn">📄 Upload PDF<input id="file" type="file" accept=".pdf,application/pdf" style="display:block;position:absolute;opacity:0;width:1px;height:1px"></label>
 <button id="extract" class="btn green" disabled>⚡ Extract Questions</button><button id="confirmAll" class="btn" disabled>☑ Confirm All</button><button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
 <span id="status" class="status">PDF not loaded</span><div class="progress"><i id="bar"></i></div><span id="log" class="muted" style="width:100%;display:block;margin-top:4px">Activity: waiting for PDF…</span>
 </div>
@@ -39,13 +39,13 @@ let pdf=null,totalPages=0,processPages=0,items=[],selected=-1,currentPdfPage=1,c
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function status(s){$("status").textContent=s;const l=$("log");if(l)l.textContent="Activity: "+s} function bar(n,t){$("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
 function img(src){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src})}
-async function loadPdf(data){const u=new Uint8Array(data);try{return await pdfjsLib.getDocument({data:u}).promise}catch(e){console.warn("PDF worker retry",e);return await pdfjsLib.getDocument({data:u,disableWorker:true}).promise}}
+async function loadPdf(data){if(!window.pdfjsLib)throw new Error("PDF engine did not load. Please refresh once.");const u=new Uint8Array(data);try{return await pdfjsLib.getDocument({data:u,disableWorker:true}).promise}catch(e){console.warn("PDF load retry",e);return await pdfjsLib.getDocument({data:u}).promise}}
 
-$("file").onchange=async e=>{
+$("file").addEventListener("change",async e=>{
  const f=e.target.files?.[0];if(!f)return;if(f.type!=="application/pdf"&&!/\.pdf$/i.test(f.name)){alert("Please select a PDF.");return}
  status("📖 Opening PDF…");bar(0,1);
  try{pdf=await loadPdf(await f.arrayBuffer());totalPages=pdf.numPages;$("pageInfo").textContent=f.name+" • "+totalPages+" pages available";$("pageCount").value=Math.min(5,totalPages);$("pageCount").max=totalPages;$("pageOverlay").style.display="flex";status("✔ PDF opened — choose page count.")}catch(err){console.error(err);status("❌ PDF could not be opened: "+(err?.message||err));alert("PDF open failed: "+(err?.message||err))}
-};
+});
 $("startPages").onclick=()=>{processPages=Math.max(1,Math.min(totalPages,parseInt($("pageCount").value)||1));$("pageOverlay").style.display="none";$("extract").disabled=false;$("confirmAll").disabled=false;$("saveAll").disabled=false;status("✔ Ready — "+processPages+" page(s). Click Extract Questions.")};
 
 function groupLines(words){const lines=[];[...words].sort((a,b)=>b.y-a.y||a.x-b.x).forEach(w=>{let l=lines.find(z=>Math.abs(z.y-w.y)<4);if(!l){l={y:w.y,items:[w]};lines.push(l)}else l.items.push(w)});return lines.sort((a,b)=>b.y-a.y).map(l=>({y:l.y,text:l.items.sort((a,b)=>a.x-b.x).map(x=>x.s).join(" ").replace(/\s+/g," ").trim()}))}
