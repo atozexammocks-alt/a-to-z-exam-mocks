@@ -238,7 +238,7 @@ function reconstructPdfText(items){
       if(Math.abs(baselineShift)>Math.max(2.5,baseH*.22)&&t.length<=4&&/^[A-Za-z0-9+\-=()]+$/.test(t)){
         if(baselineShift>0)t=unicodeMathChar(t);
         else{
-          const sub={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₈','8':'₈','9':'₉','+':'₊','-':'₋','=':'₌','a':'ₐ','e':'ₑ','h':'ₕ','i':'ᵢ','j':'ⱼ','k':'ₖ','l':'ₗ','m':'ₘ','n':'ₙ','o':'ₒ','p':'ₚ','r':'ᵣ','s':'ₛ','t':'ₜ','u':'ᵤ','v':'ᵥ','x':'ₓ'};
+          const sub={'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉','+':'₊','-':'₋','=':'₌','a':'ₐ','e':'ₑ','h':'ₕ','i':'ᵢ','j':'ⱼ','k':'ₖ','l':'ₗ','m':'ₘ','n':'ₙ','o':'ₒ','p':'ₚ','r':'ᵣ','s':'ₛ','t':'ₜ','u':'ᵤ','v':'ᵥ','x':'ₓ'};
           t=t.split('').map(ch=>sub[ch]||ch).join('');
         }
       }
@@ -253,40 +253,66 @@ function reconstructPdfText(items){
   return out.join(' ').replace(/\s+/g,' ').trim();
 }
 function buildQuestionSegments(rows,W,H){
-  if(!rows||rows.length<1)return [];
+  if(!rows||!rows.length)return [];
   const starts=[];
-  for(let i=0;i<rows.length;i++){
-    const number=normalizeQuestionStart(rows[i].text);
-    if(number!==null){
-      if(starts.some(s=>s.number===number&&Math.abs(s.y-rows[i].y)<12))continue;
-      starts.push({number,y:rows[i].y,x:rows[i].x});
-    }
+  for(const r of rows){
+    const number=normalizeQuestionStart(r.text);
+    if(number===null)continue;
+    if(starts.some(s=>s.number===number&&Math.abs(s.y-r.y)<14&&Math.abs(s.x-r.x)<35))continue;
+    starts.push({number,y:r.y,x:r.x});
   }
-  if(starts.length<1)return [];
-  starts.sort((a,b)=>a.y-b.y||a.x-b.x);
-  let columns=[{min:0,max:W}];
-  const xs=starts.map(s=>s.x).sort((a,b)=>a-b);
+  if(!starts.length)return [];
+
+  // Detect columns from the actual question-start x positions. The largest
+  // horizontal gap is the divider; each column is then processed independently.
+  starts.sort((a,b)=>a.x-b.x||a.y-b.y);
+  let columns=[starts];
   let bestGap=0,bestAt=-1;
-  for(let i=1;i<xs.length;i++){const gap=xs[i]-xs[i-1];if(gap>bestGap){bestGap=gap;bestAt=i}}
-  if(bestAt>0&&bestAt<xs.length&&bestGap>W*.18){
-    const cut=(xs[bestAt-1]+xs[bestAt])/2;
-    columns=[{min:0,max:cut-10},{min:cut+10,max:W}];
+  for(let i=1;i<starts.length;i++){
+    const gap=starts[i].x-starts[i-1].x;
+    if(gap>bestGap){bestGap=gap;bestAt=i}
   }
+  if(bestAt>0&&bestAt<starts.length&&bestGap>Math.max(70,W*.16)){
+    columns=[starts.slice(0,bestAt),starts.slice(bestAt)];
+  }
+
   const grouped=[];
-  for(const col of columns){
-    const ss=starts.filter(q=>q.x>=col.min&&q.x<=col.max).sort((a,b)=>a.y-b.y);
+  for(const colStarts of columns){
+    const minStartX=Math.min(...colStarts.map(s=>s.x));
+    const maxStartX=Math.max(...colStarts.map(s=>s.x));
+    const dividerLeft=columns.length===2 && colStarts===columns[0] ? (maxStartX+Math.min(...columns[1].map(s=>s.x)))/2 : W;
+    const dividerRight=columns.length===2 && colStarts===columns[1] ? (Math.max(...columns[0].map(s=>s.x))+minStartX)/2 : 0;
+    const x1=columns.length===2 ? (colStarts===columns[0]?0:dividerRight) : 0;
+    const x2=columns.length===2 ? (colStarts===columns[0]?dividerLeft:W) : W;
+    const ss=colStarts.slice().sort((a,b)=>a.y-b.y||a.x-b.x);
+
     for(let i=0;i<ss.length;i++){
       const cur=ss[i],next=ss[i+1];
-      const y1=Math.max(0,cur.y-10),y2=next?Math.max(y1+20,next.y-6):H-4;
-      const x1=col.min===0?0:col.min,x2=col.max===W?W:col.max;
-      const inBox=rows.filter(r=>r.y>=y1-8&&r.y<=y2+8&&r.x+r.w>=x1&&r.x<=x2);
+      // Keep a little whitespace around the detected question. For the last
+      // question in a column, continue to the bottom so any solution/explanation
+      // printed below the question is not accidentally discarded.
+      const y1=Math.max(0,cur.y-14);
+      const y2=next ? Math.max(y1+28,next.y-8) : H;
+      const padX=Math.min(18,(x2-x1)*.04);
+      const bx1=Math.max(0,x1+padX);
+      const bx2=Math.min(W,x2-padX);
+      const inBox=rows.filter(r=>r.y>=y1-10&&r.y<=y2+10&&r.x+r.w>=bx1&&r.x<=bx2);
       const text=reconstructPdfText(inBox);
-      if(text.length>2)grouped.push({number:cur.number,x:Math.max(0,x1),y:y1,w:Math.max(1,x2-x1),h:Math.max(1,y2-y1),text});
+      if(text.length>2){
+        grouped.push({
+          number:cur.number,
+          x:bx1,y:y1,w:Math.max(1,bx2-bx1),h:Math.max(1,y2-y1),text,
+          column:columns.length===2?(colStarts===columns[0]?'left':'right'):'single'
+        });
+      }
     }
   }
+
+  // Reading order: top-to-bottom in the left column, then top-to-bottom in
+  // the right column. This prevents a two-column paper from being interleaved.
   if(columns.length===2){
-    const left=grouped.filter(x=>x.x<W*.5).sort((a,b)=>a.y-b.y);
-    const right=grouped.filter(x=>x.x>=W*.5).sort((a,b)=>a.y-b.y);
+    const left=grouped.filter(x=>x.column==='left').sort((a,b)=>a.y-b.y);
+    const right=grouped.filter(x=>x.column==='right').sort((a,b)=>a.y-b.y);
     return left.concat(right);
   }
   return grouped.sort((a,b)=>a.y-b.y||a.x-b.x);
@@ -370,12 +396,15 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
 
   const pageItems=[];
   if(segments.length>=1){
+    const pageImg=await dataUrlImage(imageDataUrl);
+    const pageW=pageImg.naturalWidth||pageImg.width;
+    const pageH=pageImg.naturalHeight||pageImg.height;
     for(const seg of segments){
       const box={
-        x:seg.x/(await dataUrlImage(imageDataUrl)).naturalWidth*1000,
-        y:seg.y/(await dataUrlImage(imageDataUrl)).naturalHeight*1000,
-        w:seg.w/(await dataUrlImage(imageDataUrl)).naturalWidth*1000,
-        h:seg.h/(await dataUrlImage(imageDataUrl)).naturalHeight*1000,
+        x:seg.x/pageW*1000,
+        y:seg.y/pageH*1000,
+        w:seg.w/pageW*1000,
+        h:seg.h/pageH*1000,
         number:seg.number
       };
       const img=await cropImage(imageDataUrl,box);
@@ -519,7 +548,7 @@ function render(){count.textContent=items.length+' questions';list.innerHTML=ite
 <label>Library<select id="p${i}">${folders.map(f=>`<option ${f===x.targetPath?'selected':''}>${esc(f)}</option>`).join('')}</select></label>
 <label>Correct / Edit Question Text<textarea id="q${i}" rows="5">${esc(x.qText||'')}</textarea></label>
 <div class="grid"><input id="a${i}" placeholder="Option A" value="${esc(a)}"><input id="b${i}" placeholder="Option B" value="${esc(b)}"><input id="c${i}" placeholder="Option C" value="${esc(c)}"><input id="d${i}" placeholder="Option D" value="${esc(d)}"></div>
-<div class="card-actions"><button onclick="applyCorrection(${i})">✏️ Save Correction</button><button onclick="document.getElementById('img${i}').click()">🖼️ Add / Replace Question Image</button><button onclick="openImageEditor(${i},false)">🛠️ Edit Question Image</button><button onclick="openImageEditor(${i},true)">📄 Edit from PDF Page</button><button onclick="removeImage(${i})">🗑 Remove Image</button><input id="img${i}" type="file" accept="image/*" hidden onchange="replaceImage(event,${i})"></div>
+<div class="card-actions"><button onclick="applyCorrection(${i})">✏️ Save Correction</button><button onclick="document.getElementById('img${i}').click()">🖼️ Add / Replace Question Image</button><button onclick="openImageEditor(${i})">🛠️ Edit / Crop from Full PDF Page</button><button onclick="removeImage(${i})">🗑 Remove Image</button><input id="img${i}" type="file" accept="image/*" hidden onchange="replaceImage(event,${i})"></div>
 <div class="img-tools"><span class="muted">Question image:</span><div class="img-preview">${x.questionImage?`<img src="${x.questionImage}" alt="Question image" style="width:${Number(x.imageWidth||100)}%;max-width:100%;margin:${Number(x.imageMarginTop??8)}px 0 ${Number(x.imageMarginBottom??8)}px ${x.imageAlign==='right'?'auto 0':x.imageAlign==='left'?'0 auto':'auto'}">`:'<span class="muted">No image</span>'}</div></div>
 <div class="card-actions"><label class="confirm"><input type="checkbox" id="ok${i}" ${x.confirmed?'checked':''} onchange="items[${i}].confirmed=this.checked"> ✔ I reviewed and confirm this question</label></div>
 </div>
@@ -533,17 +562,26 @@ function removeImage(i){items[i].questionImage='';status.textContent='Image remo
 let editIndex=-1,editPageImage='',dragStart=null,resizeState=null;
 const editCanvas=document.getElementById('editCanvas'),selection=document.getElementById('selection');
 function openImageEditor(i,fromPdfPage=true){
-  editIndex=i; const x=items[i]; const sel=document.getElementById('editPage');
-  if(!fromPdfPage && x.questionImage){
-    const p='image:'+i; pageImages[p]=x.questionImage;
-    sel.innerHTML='<option value="'+p+'">Current Question Image</option>'; sel.value=p;
-    document.getElementById('iw').value=Number(x.imageWidth||100);document.getElementById('imt').value=Number(x.imageMarginTop??8);document.getElementById('imb').value=Number(x.imageMarginBottom??8);document.getElementById('ialign').value=x.imageAlign||'center';updateImageStyle();document.getElementById('imgEditor').classList.add('show');loadEditorPage();return;
+  editIndex=i;
+  const x=items[i];
+  const sel=document.getElementById('editPage');
+  const source=String(x.sourcePage||'');
+  const pages=Object.keys(pageImages).filter(p=>/^\\d+$/.test(p)).sort((a,b)=>+a-+b);
+  sel.innerHTML=pages.map(p=>'<option value="'+p+'">PDF page '+p+'</option>').join('');
+  if(!sel.options.length){
+    alert('Original PDF page images are not available. Please keep the PDF loaded and try again.');
+    return;
   }
-  sel.innerHTML=Object.keys(pageImages).filter(p=>/^\d+$/.test(p)).sort((a,b)=>+a-+b).map(p=>'<option value="'+p+'">PDF page '+p+'</option>').join('');
-  if(!sel.options.length){alert('PDF page images are not available. Please keep the PDF loaded and try again.');return}
-  sel.value=String(x.sourcePage||sel.options[0].value);
-  document.getElementById('iw').value=Number(x.imageWidth||100);document.getElementById('imt').value=Number(x.imageMarginTop??8);document.getElementById('imb').value=Number(x.imageMarginBottom??8);document.getElementById('ialign').value=x.imageAlign||'center';updateImageStyle();document.getElementById('imgEditor').classList.add('show');loadEditorPage();
+  sel.value=pages.includes(source)?source:pages[0];
+  document.getElementById('iw').value=Number(x.imageWidth||100);
+  document.getElementById('imt').value=Number(x.imageMarginTop??8);
+  document.getElementById('imb').value=Number(x.imageMarginBottom??8);
+  document.getElementById('ialign').value=x.imageAlign||'center';
+  updateImageStyle();
+  document.getElementById('imgEditor').classList.add('show');
+  loadEditorPage();
 }
+
 async function loadEditorPage(){
   const p=document.getElementById('editPage').value; editPageImage=pageImages[p]; if(!editPageImage)return;
   const im=await dataUrlImage(editPageImage); editCanvas.width=im.naturalWidth||im.width; editCanvas.height=im.naturalHeight||im.height; editCanvas.getContext('2d').drawImage(im,0,0);
@@ -581,3 +619,5 @@ window.toggleProfileDropdown=function(){const d=document.getElementById('profile
 </script>
 </body>
 </html>
+
+
