@@ -16,7 +16,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <nav id="navbar"><a class="brand" href="index.html">🏠 A to Z Exam Mocks</a><div class="nav"><a href="teacher.html">🏠 Dashboard</a><a href="admin.html">👑 Super Admin</a><a href="library.html">📁 Central Library</a><a href="library_access.html">🤝 Group Library</a><a href="slicer.html">✂️ Slicer</a><a href="builder.html">🛠️ Test Builder</a></div></nav>
 <main class="page">
 <div class="toolbar">
-<label class="btn primary filebtn">📄 Upload PDF<input id="file" type="file" accept=".pdf,application/pdf" style="display:block;position:absolute;opacity:0;width:1px;height:1px"></label>
+<button id="uploadBtn" class="btn primary" type="button">📄 Upload PDF</button><input id="file" type="file" accept=".pdf,application/pdf" style="display:none">
 <button id="extract" class="btn green" disabled>⚡ Extract Questions</button><button id="confirmAll" class="btn" disabled>☑ Confirm All</button><button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
 <span id="status" class="status">PDF not loaded</span><div class="progress"><i id="bar"></i></div><span id="log" class="muted" style="width:100%;display:block;margin-top:4px">Activity: waiting for PDF…</span>
 </div>
@@ -41,6 +41,7 @@ function status(s){$("status").textContent=s;const l=$("log");if(l)l.textContent
 function img(src){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src})}
 async function loadPdf(data){if(!window.pdfjsLib)throw new Error("PDF engine did not load. Please refresh once.");const u=new Uint8Array(data);try{return await pdfjsLib.getDocument({data:u,disableWorker:true}).promise}catch(e){console.warn("PDF load retry",e);return await pdfjsLib.getDocument({data:u}).promise}}
 
+$("uploadBtn").onclick=()=>$("file").click();
 $("file").addEventListener("change",async e=>{
  const f=e.target.files?.[0];if(!f)return;if(f.type!=="application/pdf"&&!/\.pdf$/i.test(f.name)){alert("Please select a PDF.");return}
  status("📖 Opening PDF…");bar(0,1);
