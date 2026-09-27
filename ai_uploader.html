@@ -400,56 +400,41 @@ async function processOnePdfPage(pdf,n,total,nativePdfDoc){
 }
 
 
-async function processPdfFile(file){
-  if(!file) throw new Error('No PDF file selected.');
-  if(file.type && file.type!=='application/pdf' && !/\.pdf$/i.test(file.name||'')){
-    throw new Error('Please select a PDF file.');
-  }
-  stopRequested=false;
-  stopBtn.disabled=false;
-  items=[];
-  pageImages={};
-  render();
-  setProgress(0,1);
+async function openPdfFile(file){
+  if(!file)throw new Error('No PDF file selected.');
+  if(file.type&&file.type!=='application/pdf'&&!/\\.pdf$/i.test(file.name||''))throw new Error('Please select a PDF file.');
   setStatus('📥 Reading '+file.name+'…');
   const bytes=new Uint8Array(await file.arrayBuffer());
-  if(bytes.length<5 || String.fromCharCode(...bytes.slice(0,5))!=='%PDF-'){
-    throw new Error('The selected file is not a valid PDF.');
-  }
+  if(bytes.length<5||String.fromCharCode(...bytes.slice(0,5))!=='%PDF-')throw new Error('The selected file is not a valid PDF.');
   setStatus('📄 Opening PDF ('+(bytes.length/1048576).toFixed(2)+' MB)…');
-  const pdf=await pdfjsLib.getDocument({
-    data:bytes.slice(0),
-    disableWorker:true,
-    useWorkerFetch:false,
-    disableAutoFetch:false,
-    disableStream:false
-  }).promise;
-  currentPdf=pdf;
-  const total=pdf.numPages;
-  if(!total) throw new Error('PDF contains no pages.');
-  setProgress(0,total);
-  setStatus('✔ PDF opened successfully — '+total+' page'+(total===1?'':'s')+' found.');
-  const all=[];
-  for(let n=1;n<=total;n++){
-    if(stopRequested) break;
-    const result=await processOnePdfPage(pdf,n,total,null);
-    all.push(...result.items);
-    items=all.slice();
-    setProgress(n,total);
-    render();
-  }
-  if(ocrWorkerPromise){
-    try{const w=await ocrWorkerPromise; if(w?.terminate) await w.terminate();}catch(_){}
-    ocrWorkerPromise=null;
-  }
-  stopBtn.disabled=true;
-  if(stopRequested){
-    setStatus('⛔ Processing stopped. '+items.length+' item(s) kept for review.');
-  }else{
-    setStatus('✔ Processing complete — '+items.length+' item(s) ready for review.');
-  }
-  render();
+  currentPdf=await pdfjsLib.getDocument({data:bytes.slice(0),disableWorker:true,useWorkerFetch:false,disableAutoFetch:false,disableStream:false}).promise;
+  if(!currentPdf.numPages)throw new Error('PDF contains no pages.');
+  const from=document.getElementById('pageFrom'),to=document.getElementById('pageTo'),pc=document.getElementById('pdfPageCount');
+  from.max=to.max=currentPdf.numPages;from.value=1;to.value=currentPdf.numPages;if(pc)pc.textContent=currentPdf.numPages+' pages';
+  setProgress(0,1);setStatus('✔ PDF opened — '+currentPdf.numPages+' pages. Select the page range to process.');
 }
+async function processSelectedRange(){
+  if(!currentPdf)return alert('Please choose a PDF first.');
+  let from=Number(document.getElementById('pageFrom').value)||1,to=Number(document.getElementById('pageTo').value)||currentPdf.numPages;
+  from=Math.max(1,Math.min(currentPdf.numPages,from));to=Math.max(1,Math.min(currentPdf.numPages,to));if(from>to){const t=from;from=to;to=t;}
+  document.getElementById('pageFrom').value=from;document.getElementById('pageTo').value=to;
+  await processPdfRange(from,to);
+}
+async function processPdfRange(from,to){
+  stopRequested=false;stopBtn.disabled=false;
+  items=items.filter(x=>!(Number(x.sourcePage)>=from&&Number(x.sourcePage)<=to));
+  setProgress(0,to-from+1);render();
+  let added=0;
+  for(let n=from;n<=to;n++){
+    if(stopRequested)break;
+    const result=await processOnePdfPage(currentPdf,n,currentPdf.numPages,null);
+    items.push(...result.items);added+=result.items.length;setProgress(n-from+1,to-from+1);render();
+  }
+  if(ocrWorkerPromise){try{const w=await ocrWorkerPromise;if(w?.terminate)await w.terminate()}catch(_){}ocrWorkerPromise=null;}
+  stopBtn.disabled=true;
+  setStatus(stopRequested?'⛔ Processing stopped — '+items.length+' item(s) kept.':'✔ Pages '+from+'–'+to+' processed — '+added+' question(s) added. Total extracted: '+items.length+'.');
+}
+function clearExtracted(){if(!confirm('Clear all extracted questions from this uploader?'))return;items=[];pageImages={};render();setProgress(0,1);setStatus('🧹 Extracted questions cleared. The PDF remains open.');}
 
 const fileInput=document.getElementById('file');
 const fileName=document.getElementById('fileName');
@@ -464,7 +449,7 @@ if(fileInput){
     fileName.textContent='Selected: '+file.name+' ('+(file.size/1048576).toFixed(2)+' MB)';
     logActivity('PDF selected: '+file.name);
     try{
-      await processPdfFile(file);
+      await openPdfFile(file);
     }catch(err){
       stopBtn.disabled=true;
       console.error('[PDF processing]',err);
