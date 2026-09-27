@@ -103,7 +103,6 @@ fileEl.addEventListener("change",function(){
  });
 // Re-bind through a native input path as well, so mobile browsers cannot swallow the label click.
 fileEl.oninput=function(){if(fileEl.files&&fileEl.files.length){var ev=new Event("change");fileEl.dispatchEvent(ev)}};
-});
 
 function loadPdf(data){
  if(!window.pdfjsLib)return Promise.reject(new Error("PDF engine did not load. Refresh the page once."));
