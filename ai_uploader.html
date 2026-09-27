@@ -104,7 +104,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 </div>
 <main class="wrap">
 <div class="box">
-<p style="color:#94a3b8;margin:0 0 9px">Upload a PDF. AI extracts questions and preserves scientific equations as LaTeX. You can correct text, replace the question image, review each item, confirm it, and then send confirmed questions to Library.</p>
+<p style="color:#94a3b8;margin:0 0 9px">Upload a PDF. The uploader first separates individual questions using the PDF text layer. For scanned PDFs, OCR is used only to locate question boundaries; the final question is preserved as the original image crop. No AI is used in this extraction stage. You can edit, crop, confirm, and send questions to Library.</p>
 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label for="file" class="btn primary" id="choosePdfBtn">📂 Choose PDF</label><input id="file" type="file" accept="application/pdf" style="display:block;max-width:260px;color:#cbd5e1;font-size:11px"><span id="fileName" style="color:#94a3b8;font-size:11px">No PDF selected</span></div>
 <button id="stop" class="stop" onclick="stopRequested=true" disabled>⛔ Stop</button>
 <button class="green" onclick="confirmAll()">☑ Confirm All</button>
@@ -156,276 +156,196 @@ async function getBrowserOcrWorker(){
 }
 async function runBrowserOCR(imageDataUrl,pageNumber){
   const worker=await getBrowserOcrWorker();
-  status.textContent='🔎 OCR fallback — scanning full PDF page '+pageNumber+'…';
+  setStatus('🔎 Reading question positions on PDF page '+pageNumber+'…');
   const ret=await worker.recognize(imageDataUrl);
-  return String(ret?.data?.text||'').trim();
+  return ret?.data||{};
 }
-function makeOcrFallbackItem(pageNumber,pageText,ocrText){
-  const text=String(pageText||ocrText||'').trim();
+
+function normalizeQuestionStart(text){
+  const t=String(text||'').replace(/\s+/g,' ').trim();
+  let m=t.match(/^(?:Q(?:uestion)?\s*)?(\d{1,3})\s*[.)\-:]/i);
+  if(m)return +m[1];
+  m=t.match(/^(?:Q(?:uestion)?\s*)?(\d{1,3})\s+([.)\-:])/i);
+  return m?+m[1]:null;
+}
+
+function makeImageItem(pageNumber,box,text,sourceImage){
   return {
-    qNo:pageNumber,
-    qText:text||'PDF page '+pageNumber+' — no readable text detected. Use Edit from PDF Page to crop the question manually.',
-    optA:{text:'',box:{x:0,y:0,w:1000,h:0}},
-    optB:{text:'',box:{x:0,y:0,w:1000,h:0}},
-    optC:{text:'',box:{x:0,y:0,w:1000,h:0}},
-    optD:{text:'',box:{x:0,y:0,w:1000,h:0}},
-    key:'',
-    topic:'OCR / Manual Review',
+    qNo:box.number||pageNumber,
+    qText:String(text||'').trim(),
+    optA:'',optB:'',optC:'',optD:'',
+    key:'',topic:'PDF Image Extraction',
     targetPath:folders[0]||'General / General',
-    questionBox:{x:0,y:0,w:1000,h:1000},
+    questionBox:{x:Math.round(box.x),y:Math.round(box.y),w:Math.round(box.w),h:Math.round(box.h)},
     solutionBox:{x:0,y:0,w:0,h:0},
     sourcePage:pageNumber,
     confirmed:false,
-    questionImage:pageImages[pageNumber],
-    imageWidth:100,
-    imageMarginTop:8,
-    imageMarginBottom:8,
-    imageAlign:'center',
-    ocrFallback:true
+    questionImage:sourceImage,
+    imageWidth:100,imageMarginTop:8,imageMarginBottom:8,imageAlign:'center',
+    imageOnly:true
   };
 }
+
+function buildQuestionSegments(rows,W,H){
+  if(!rows||rows.length<2)return [];
+  const starts=[];
+  for(let i=0;i<rows.length;i++){
+    const number=normalizeQuestionStart(rows[i].text);
+    if(number!==null){
+      if(starts.some(s=>s.number===number&&Math.abs(s.y-rows[i].y)<12))continue;
+      starts.push({number,y:rows[i].y,x:rows[i].x});
+    }
+  }
+  if(starts.length<2)return [];
+  starts.sort((a,b)=>a.y-b.y||a.x-b.x);
+
+  let columns=[{min:0,max:W}];
+  const xs=starts.map(s=>s.x).sort((a,b)=>a-b);
+  let bestGap=0,bestAt=-1;
+  for(let i=1;i<xs.length;i++){
+    const gap=xs[i]-xs[i-1];
+    if(gap>bestGap){bestGap=gap;bestAt=i}
+  }
+  if(bestAt>0&&bestAt<xs.length&&bestGap>W*.18){
+    const cut=(xs[bestAt-1]+xs[bestAt])/2;
+    columns=[{min:0,max:cut-10},{min:cut+10,max:W}];
+  }
+
+  const grouped=[];
+  for(const col of columns){
+    const ss=starts.filter(q=>q.x>=col.min&&q.x<=col.max).sort((a,b)=>a.y-b.y);
+    for(let i=0;i<ss.length;i++){
+      const cur=ss[i],next=ss[i+1];
+      const y1=Math.max(0,cur.y-10);
+      const y2=next?Math.max(y1+20,next.y-6):H-4;
+      const x1=col.min===0?0:col.min;
+      const x2=col.max===W?W:col.max;
+      const text=rows.filter(r=>r.y>=y1-5&&r.y<=y2+5&&r.x+r.w>=x1&&r.x<=x2)
+        .sort((a,b)=>a.y-b.y||a.x-b.x).map(r=>r.text).join(' ').replace(/\s+/g,' ').trim();
+      if(text.length>2){
+        grouped.push({
+          number:cur.number,
+          x:Math.max(0,x1),
+          y:y1,
+          w:Math.max(1,x2-x1),
+          h:Math.max(1,y2-y1),
+          text
+        });
+      }
+    }
+  }
+  if(columns.length===2){
+    const left=grouped.filter(x=>x.x<W*.5).sort((a,b)=>a.y-b.y);
+    const right=grouped.filter(x=>x.x>=W*.5).sort((a,b)=>a.y-b.y);
+    return left.concat(right);
+  }
+  return grouped.sort((a,b)=>a.y-b.y||a.x-b.x);
+}
+
 async function segmentPageByQuestionStarts(page,imageDataUrl){
   try{
     const tc=await page.getTextContent();
     const raw=(tc.items||[]).filter(it=>it&&typeof it.str==='string'&&it.str.trim()&&Array.isArray(it.transform));
     if(raw.length<4)return [];
-    const vp=page.getViewport({scale:1.25});
-    const H=vp.height,W=vp.width;
+    const vp=page.getViewport({scale:1.25}),W=vp.width,H=vp.height;
     const rows=raw.map(it=>{
-      const t=it.transform, x=(t[4]||0)*1.25, base=(t[5]||0)*1.25, h=Math.max(6,Math.abs(t[3]||it.height||10)*1.25);
-      const y=Math.max(0,H-(base+h));
-      return {text:it.str.trim(),x,y,w:Math.max(1,(it.width||1)*1.25),h};
+      const t=it.transform;
+      const x=(t[4]||0)*1.25;
+      const base=(t[5]||0)*1.25;
+      const h=Math.max(6,Math.abs(t[3]||it.height||10)*1.25);
+      return {text:it.str.trim(),x,y:Math.max(0,H-(base+h)),w:Math.max(1,(it.width||1)*1.25),h};
     }).filter(r=>r.y>=0&&r.y<=H);
-    const starts=[];
-    const re=/^(?:Q(?:uestion)?\s*)?(\d{1,3})\s*[\.)\-:]/i;
-    for(let i=0;i<rows.length;i++){
-      const m=rows[i].text.match(re);
-      if(m){
-        let y=rows[i].y,x=rows[i].x;
-        const number=+m[1];
-        if(starts.some(s=>s.number===number&&Math.abs(s.y-y)<8))continue;
-        starts.push({number,y,x});
+    return buildQuestionSegments(rows,W,H);
+  }catch(e){
+    console.warn('[PDF text segmentation]',e);
+    return [];
+  }
+}
+
+async function segmentPageByOCR(imageDataUrl,pageNumber){
+  try{
+    const data=await runBrowserOCR(imageDataUrl,pageNumber);
+    const words=Array.isArray(data.words)?data.words:[];
+    if(words.length<4)return [];
+    const rows=[];
+    for(const w of words){
+      const text=String(w.text||'').trim();
+      const b=w.bbox||{};
+      if(!text||typeof b.x0!=='number'||typeof b.y0!=='number')continue;
+      const x=b.x0,y=b.y0,wid=Math.max(1,(b.x1||x+1)-x),h=Math.max(6,(b.y1||y+6)-y);
+      const cy=y+h/2;
+      let row=rows.find(r=>Math.abs(r.cy-cy)<=Math.max(8,h*.65));
+      if(!row){row={cy,y,x,w:wid,h,text};rows.push(row)}
+      else{
+        row.x=Math.min(row.x,x);
+        row.w=Math.max(row.x+row.w,x+wid)-row.x;
+        row.h=Math.max(row.h,h);
+        row.y=Math.min(row.y,y);
+        row.text+=' '+text;
       }
     }
-    if(starts.length<2)return [];
-    starts.sort((a,b)=>a.y-b.y||a.x-b.x);
-    // Detect a two-column exam layout from the question-start x positions.
-    let columns=[{min:0,max:W}];
-    const xs=starts.map(s=>s.x).sort((a,b)=>a-b);
-    let bestGap=0,bestAt=-1;
-    for(let i=1;i<xs.length;i++){const gap=xs[i]-xs[i-1];if(gap>bestGap){bestGap=gap;bestAt=i}}
-    if(bestAt>0&&bestAt<xs.length&&bestGap>W*0.18){
-      const cut=(xs[bestAt-1]+xs[bestAt])/2;
-      columns=[{min:0,max:cut-10},{min:cut+10,max:W}];
-    }
-    const grouped=[];
-    for(const col of columns){
-      const ss=starts.filter(s=>s.x>=col.min&&s.x<=col.max);
-      ss.sort((a,b)=>a.y-b.y);
-      for(let i=0;i<ss.length;i++){
-        const s=ss[i], next=ss[i+1];
-        let y1=Math.max(0,s.y-12), y2=next?Math.max(y1+20,next.y-6):H-4;
-        let x1=col.min===0?0:col.min, x2=col.max===W?W:col.max;
-        const box={x:Math.round(x1/W*1000),y:Math.round(y1/H*1000),w:Math.round((x2-x1)/W*1000),h:Math.round((y2-y1)/H*1000)};
-        const text=rows.filter(r=>r.y>=y1-4&&r.y<=y2+4&&r.x+r.w>=x1&&r.x<=x2).sort((a,b)=>a.y-b.y||a.x-b.x).map(r=>r.text).join(' ').replace(/\s+/g,' ').trim();
-        if(text.length>3)grouped.push({number:s.number,box,text});
-      }
-    }
-    // Reading order: top-to-bottom for single column; left column then right column for two columns.
-    grouped.sort((a,b)=>a.box.y-b.box.y||a.box.x-b.box.x);
-    if(columns.length===2){
-      const left=grouped.filter(x=>x.box.x<500).sort((a,b)=>a.box.y-b.box.y);
-      const right=grouped.filter(x=>x.box.x>=500).sort((a,b)=>a.box.y-b.box.y);
-      return left.concat(right);
-    }
-    return grouped;
-  }catch(e){console.warn('[Question segmentation]',e);return []}
+    rows.sort((a,b)=>a.y-b.y||a.x-b.x);
+    if(rows.length<2)return [];
+    const image=await dataUrlImage(imageDataUrl);
+    const W=image.naturalWidth||image.width,H=image.naturalHeight||image.height;
+    return buildQuestionSegments(rows,W,H);
+  }catch(e){
+    console.warn('[OCR segmentation]',e);
+    return [];
+  }
+}
+
+function makeFullPageImageItem(pageNumber,imageDataUrl,text){
+  return makeImageItem(pageNumber,{number:pageNumber,x:0,y:0,w:1000,h:1000},text||'PDF page '+pageNumber,imageDataUrl);
 }
 
 async function processOnePdfPage(pdf,n,total,nativePdfDoc){
-  const p=await pdf.getPage(n);
-  const imageDataUrl=await renderPageImage(p);
+  if(stopRequested)throw new Error('Stopped by user.');
+  const page=await pdf.getPage(n);
+  const imageDataUrl=await renderPageImage(page);
   pageImages[n]=imageDataUrl;
-  const pageText=await getPdfPageText(p);
+  setStatus('🖼️ Page '+n+'/'+total+' rendered. Finding individual questions…');
 
-  // FIRST: split a text-based PDF into individual question crops locally.
-  // This avoids sending an entire page to OCR/LLM as one giant "question".
-  const segments=await segmentPageByQuestionStarts(p,imageDataUrl);
-  if(segments.length>=2){
-    status.textContent='✂️ Page '+n+': detected '+segments.length+' question regions locally…';
-    const pageItems=[];
-    for(let i=0;i<segments.length;i++){
-      if(stopRequested)break;
-      const s=segments[i];
-      const qImage=await cropImage(imageDataUrl,s.box);
-      let got=[];
-      try{
-        const aiImage=await compressForAI(qImage,1800000);
-        got=await extractWithBackend({mode:'extract',pageText:s.text,imageDataUrl:aiImage,folders:folders.join(', '),segmentedQuestion:true});
-      }catch(e){console.warn('[Segment AI]',n,s.number,e)}
-      if(got.length){
-        for(const x of got){
-          x.sourcePage=n;
-          x.confirmed=false;
-          x.questionImage=x.questionImage||qImage;
-          x.questionBox=s.box;
-          pageItems.push(x);
-        }
-      }else{
-        pageItems.push({
-          qNo:s.number,qText:s.text,optA:'',optB:'',optC:'',optD:'',key:'',
-          topic:'Auto-cropped / Review',targetPath:folders[0]||'General / General',
-          questionBox:s.box,solutionBox:{x:0,y:0,w:0,h:0},sourcePage:n,
-          confirmed:false,questionImage:qImage,imageWidth:100,imageMarginTop:8,imageMarginBottom:8,
-          imageAlign:'center',autoCropped:true
-        });
-      }
-      setProgress((n-1)+(i+1)/segments.length,total);
-    }
-    return {page:n,items:pageItems};
+  // PRIMARY: use the PDF's own text layer. No AI is involved.
+  let segments=await segmentPageByQuestionStarts(page,imageDataUrl);
+  let method='PDF text layer';
+
+  // SECONDARY: for scanned/image PDFs, OCR is used only to locate question
+  // boundaries. The final result remains the original cropped PDF image.
+  if(segments.length<2){
+    setStatus('🔎 Page '+n+' has no usable question text layer — locating question boundaries with OCR…');
+    segments=await segmentPageByOCR(imageDataUrl,n);
+    method='OCR position detection';
   }
 
-  // No usable PDF text-layer segmentation: retain the existing AI page route.
-  // This is used for scanned/image-only PDFs.
-  let got=[];
-  try{
-    if(!nativePdfDoc)throw new Error('Native PDF route unavailable; continue with full-page image route.');
-    const pdfBase64=await pdfPageToBase64(nativePdfDoc,n);
-    got=await extractWithBackend({mode:'pdf_extract',pdfBase64,pageNumber:n,folders:folders.join(', ')});
-  }catch(nativeErr){console.warn('[AI native PDF extraction failed]',n,nativeErr)}
-  if(!got.length){
-    try{
-      const aiImage=await compressForAI(imageDataUrl,2800000);
-      got=await extractWithBackend({mode:'extract',pageText,imageDataUrl:aiImage,folders:folders.join(', ')});
-    }catch(imageErr){console.warn('[AI image+text fallback failed]',n,imageErr)}
-  }
-  if(!got.length){
-    try{
-      const aiImage=await compressForAI(imageDataUrl,2800000);
-      got=await extractWithBackend({mode:'scan_questions',pageText,imageDataUrl:aiImage,folders:folders.join(', ')});
-    }catch(scanErr){console.warn('[AI scan_questions fallback failed]',n,scanErr)}
-  }
-  if(!got.length){
-    try{
-      const ocrText=await runBrowserOCR(imageDataUrl,n);
-      const fallbackText=ocrText||pageText;
-      got=[makeOcrFallbackItem(n,pageText,ocrText)];
-      if(fallbackText)got[0].qText=fallbackText;
-      status.textContent='🖼️ Page '+n+' preserved as editable image + OCR text.';
-    }catch(ocrErr){
-      console.warn('[Browser OCR fallback failed]',n,ocrErr);
-      got=[makeOcrFallbackItem(n,pageText,'')];
-      status.textContent='🖼️ Page '+n+' preserved as editable full-page image.';
-    }
-  }
   const pageItems=[];
-  for(const x of got){
-    x.sourcePage=n;x.confirmed=false;
-    x.questionImage=x.questionImage||await cropImage(imageDataUrl,x.questionBox);
-    pageItems.push(x);
+  if(segments.length>=2){
+    for(const seg of segments){
+      const box={
+        x:seg.x/(await dataUrlImage(imageDataUrl)).naturalWidth*1000,
+        y:seg.y/(await dataUrlImage(imageDataUrl)).naturalHeight*1000,
+        w:seg.w/(await dataUrlImage(imageDataUrl)).naturalWidth*1000,
+        h:seg.h/(await dataUrlImage(imageDataUrl)).naturalHeight*1000,
+        number:seg.number
+      };
+      const img=await cropImage(imageDataUrl,box);
+      pageItems.push(makeImageItem(n,box,seg.text,img));
+    }
+    setStatus('✔ Page '+n+': extracted '+pageItems.length+' individual question images ('+method+').');
+  }else{
+    // Never send the page to Gemini. Preserve it as an image so the user can
+    // crop it manually in the built-in editor instead of losing the source.
+    pageItems.push(makeFullPageImageItem(n,imageDataUrl,''));
+    setStatus('⚠ Page '+n+': individual question boundaries not detected. Full page preserved as image for manual crop.');
+  }
+
+  for(const x of pageItems){
+    x.sourcePage=n;
+    x.confirmed=false;
+    x.questionImage=x.questionImage||imageDataUrl;
   }
   return {page:n,items:pageItems};
 }
-
-
-
-const fileInput=document.getElementById('file');
-const fileName=document.getElementById('fileName');
-logActivity('Uploader build 2026-09-27 diagnostic loaded.');
-logActivity('PDF.js available: '+(typeof window.pdfjsLib!=='undefined'?'YES':'NO'));
-logActivity('File input available: '+(fileInput?'YES':'NO'));
-if(fileInput){
-  fileInput.addEventListener('click',()=>logActivity('File picker opened…'));
-  fileInput.addEventListener('input',()=>logActivity('File input event received.'));
-}
-fileInput.addEventListener('change',async e=>{
-  logActivity('CHANGE event received.');
-
-  const f=e.target.files[0];
-  if(!f){logActivity('No file selected.');return;}
-  fileName.textContent='Selected: '+f.name+' ('+(f.size/1048576).toFixed(2)+' MB)';
-  setStatus('📄 File selected: '+f.name);
-  items=[];pageImages={};list.innerHTML='';count.textContent='0 questions';stopRequested=false;stopBtn.disabled=false;setProgress(0,1);
-  try{
-    setStatus('⏳ PDF selected — reading file…');
-    const pdfBytes=await f.arrayBuffer();
-    logActivity('File read: '+(pdfBytes.byteLength/1048576).toFixed(2)+' MB');
-    if(pdfBytes.byteLength<5||String.fromCharCode(...new Uint8Array(pdfBytes.slice(0,5)))!=='%PDF-')throw new Error('The selected file is not a valid PDF.');
-    setStatus('📖 Opening PDF in browser…');
-    if(typeof window.pdfjsLib==='undefined')throw new Error('PDF.js did not load in this browser. Refresh once and try again.');
-    if(typeof window.pdfjsLib.getDocument!=='function')throw new Error('PDF.js loaded incorrectly: getDocument is unavailable.');
-    logActivity('PDF.js getDocument() starting…');
-    // Keep PDF opening independent of the external worker. This avoids the common
-    // mobile/CDN worker failure that can leave the uploader apparently idle.
-    const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(pdfBytes.slice(0)),disableWorker:true,useWorkerFetch:false,disableAutoFetch:false,disableStream:false}).promise;
-    logActivity('PDF.js opened document successfully.');
-    const total=pdf.numPages;
-    setStatus('✔ PDF opened: '+total+' page'+(total===1?'':'s')+' — starting page-by-page processing…');
-    logActivity('Starting '+total+' page(s) with 2 processing workers.');
-    // Do NOT block PDF processing on PDF-Lib. PDF.js is the only required
-    // browser PDF reader. The native-PDF AI route is attempted only when PDF-Lib
-    // is available; image/OCR page processing must start immediately.
-    nativePdfDoc=null;
-    /* PDF-Lib is optional and must never block page processing. */
-    if(false && window.PDFLib?.PDFDocument){
-      try{
-        status.textContent='📄 PDF opened — preparing page-by-page processing…';
-        nativePdfDoc=await PDFLib.PDFDocument.load(pdfBytes);
-      }catch(pdfLibErr){
-        console.warn('[PDF-Lib optional route unavailable]',pdfLibErr);
-        nativePdfDoc=null;
-      }
-    }
-    let nextPage=1,completed=0,queue=new Map();
-
-    // Two whole-page workers: each request always contains exactly ONE complete PDF page.
-    // While the current page is being reviewed, the next page can already be processed.
-    async function worker(){
-      while(true){
-        const n=nextPage++;
-        if(n>total||stopRequested)return;
-        setStatus('🤖 Processing PDF page '+n+'/'+total+'…');
-        try{
-          const result=await processOnePdfPage(pdf,n,total,nativePdfDoc);
-          queue.set(n,result);
-          completed++;
-          setProgress(completed,total);
-          flushReadyPages();
-        }catch(err){
-          console.error('[AI page '+n+']',err);
-          queue.set(n,{page:n,items:[],error:err?.message||String(err)});
-          completed++;
-          setProgress(completed,total);
-          flushReadyPages();
-        }
-      }
-    }
-    let nextToRender=1;
-    function flushReadyPages(){
-      while(queue.has(nextToRender)){
-        const result=queue.get(nextToRender);queue.delete(nextToRender);
-        if(result.error){
-          const failedPage=result.page;
-          const errorCard=document.createElement('div');
-          errorCard.className='box';
-          errorCard.style.borderColor='#7f1d1d';
-          errorCard.innerHTML='<b>⚠ PDF page '+failedPage+' failed</b><div style="margin-top:6px;color:#fca5a5">'+esc(result.error)+'</div>';
-          list.appendChild(errorCard);
-        }
-        items.push(...result.items);
-        nextToRender++;
-        render();
-      }
-    }
-
-    await Promise.all([worker(),worker()]);
-    flushReadyPages();
-    if(!stopRequested)setStatus('✔ Finished '+total+' pages. '+items.length+' review items are ready.');
-    stopBtn.disabled=true;
-  }catch(err){
-    console.error('[Uploader fatal]',err);logActivity('FATAL: '+(err?.message||String(err)));status.textContent='❌ '+(err?.message||String(err));alert('PDF processing failed: '+(err?.message||String(err)));stopBtn.disabled=true
-  }
-});
 
 async function extractWithBackend(body){
   let last='';
