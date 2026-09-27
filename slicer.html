@@ -6,8 +6,8 @@
   <title>A to Z Exam Mocks - Slicer Studio</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
   
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf_viewer.css">
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/web/pdf_viewer.css">
   <script src="https://unpkg.com/pdf-lib@1.4.0/dist/pdf-lib.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@v4.0.2/dist/tesseract.min.js"></script>
   
@@ -764,7 +764,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
     if (window.pdfjsLib) {
       // Keep PDF.js worker enabled. Disabling the worker here was causing
       // large/local PDFs to fail or become extremely slow on mobile.
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
     }
 
     let pdfDoc = null, pageNum = 1, pageScale = 1.5;
@@ -791,18 +791,53 @@ button, input, select, textarea, label { touch-action: manipulation; }
         return;
       }
       try {
-          const arrayBuffer = await f.arrayBuffer();
-          originalPdfBytes = arrayBuffer;
+          // Some mobile browsers/CDNs can fail to load PDF.js before the page
+          // finishes loading. Ensure the library exists before touching it.
+          if (!window.pdfjsLib) {
+            await new Promise((resolve, reject) => {
+              const s = document.createElement('script');
+              s.src = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.min.js';
+              s.onload = resolve;
+              s.onerror = () => reject(new Error('PDF.js library could not be loaded. Please check your internet connection and reload the page.'));
+              document.head.appendChild(s);
+            });
+          }
 
-          // Load the original PDF directly. PDF.js handles page access internally;
-          // do not rebuild 100-page chunks with PDF-Lib (that duplicated the PDF
-          // in memory and was the main mobile failure point).
-          const loadingTask = pdfjsLib.getDocument({
-            data: new Uint8Array(arrayBuffer),
-            disableAutoFetch: true,
-            disableStream: true
-          });
-          pdfDoc = await loadingTask.promise;
+          if (!window.pdfjsLib || typeof window.pdfjsLib.getDocument !== 'function') {
+            throw new Error('PDF engine is unavailable in this browser.');
+          }
+
+          // Always use the matching jsDelivr worker. The previous cdnjs worker
+          // path could leave the viewer stuck before the first page rendered.
+          pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdn.jsdelivr.net/npm/pdfjs-dist@2.16.105/build/pdf.worker.min.js';
+
+          const arrayBuffer = await f.arrayBuffer();
+          originalPdfBytes = true;
+
+          // Load the original PDF directly. PDF.js handles individual pages;
+          // do not rebuild 100-page chunks with PDF-Lib.
+          let loadingTask;
+          try {
+            loadingTask = pdfjsLib.getDocument({
+              data: new Uint8Array(arrayBuffer),
+              disableAutoFetch: true,
+              disableStream: true
+            });
+            pdfDoc = await loadingTask.promise;
+          } catch (workerErr) {
+            // Last-resort compatibility path for browsers that block Web Workers.
+            console.warn('[Slicer] Worker load failed, retrying without worker:', workerErr);
+            try { await loadingTask?.destroy(); } catch (_) {}
+            loadingTask = pdfjsLib.getDocument({
+              data: new Uint8Array(arrayBuffer),
+              disableWorker: true,
+              disableAutoFetch: true,
+              disableStream: true
+            });
+            pdfDoc = await loadingTask.promise;
+          }
+
           totalPdfPages = pdfDoc.numPages;
           currentChunkStart = 1;
           pageNum = 1;
@@ -811,7 +846,8 @@ button, input, select, textarea, label { touch-action: manipulation; }
           await window.renderCurrentPage();
           showToast(`✔ Loaded PDF (${totalPdfPages} pages)`);
         } catch (err) {
-          alert("Error loading PDF file: " + err.message);
+          console.error('[Slicer] PDF load failed:', err);
+          alert("PDF open नहीं हो रही: " + (err?.message || err));
         }
       }
     };
