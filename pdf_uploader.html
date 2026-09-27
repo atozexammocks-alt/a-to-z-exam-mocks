@@ -256,7 +256,7 @@ function apply(i){
  selected=i;render();status("✔ Q "+x.qNo+" updated.");
 }
 
-async function openCrop(i,page){selected=i;currentPdfPage=page||targetPages[0]||1;cropRect=items[i].cropRect||null;document.getElementById("cropLibrary").value=items[i].libraryType||"Personal Library";document.getElementById("cropFolder").value=items[i].folder||"";document.getElementById("cropSubfolder").value=items[i].subfolder||"";document.getElementById("cropTopic").value=items[i].topic||"";show("cropOverlay",true);await renderCropPage();await buildThumbs();}
+async function openCrop(i,page){selected=i;currentPdfPage=page||targetPages[0]||1;cropRect=items[i].cropRect||{x:Math.round((pdf&&items[i].sourcePage?0:0)),y:Math.max(0,Math.round((items[i].cropTop||items[i].cropRect?.y)||0)),w:Math.round((items[i].cropRect&&items[i].cropRect.w)||0),h:Math.round((items[i].cropRect&&items[i].cropRect.h)||0)};if(!cropRect.w||!cropRect.h)cropRect={x:0,y:0,w:1,h:1};document.getElementById("cropLibrary").value=items[i].libraryType||"Personal Library";document.getElementById("cropFolder").value=items[i].folder||"";document.getElementById("cropSubfolder").value=items[i].subfolder||"";document.getElementById("cropTopic").value=items[i].topic||"";show("cropOverlay",true);await renderCropPage();await buildThumbs();}
 async function buildThumbs(){
  var box=document.getElementById("pdfPages");box.innerHTML="";
  for(var idx=0;idx<targetPages.length;idx++){var n=targetPages[idx], p=await pdf.getPage(n),v=p.getViewport({scale:.2}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
@@ -268,9 +268,32 @@ async function renderCropPage(){
  var b=document.getElementById("cropBox"),vr=document.getElementById("pdfView").getBoundingClientRect(),cr=c.getBoundingClientRect();
  if(cropRect){var sx=cr.width/c.width,sy=cr.height/c.height;b.style.display="block";b.style.left=(cr.left-vr.left+cropRect.x*sx)+"px";b.style.top=(cr.top-vr.top+cropRect.y*sy)+"px";b.style.width=(cropRect.w*sx)+"px";b.style.height=(cropRect.h*sy)+"px"}else b.style.display="none";
 }
-document.getElementById("pdfView").addEventListener("pointerdown",function(e){var canvas=document.getElementById("pdfCanvas"),r=canvas.getBoundingClientRect();var h=e.target&&e.target.className;if(typeof h==="string"&&h.indexOf("cropHandle")>=0){cropAction="resize";cropBase={x:e.clientX,y:e.clientY,rect:{x:cropRect.x,y:cropRect.y,w:cropRect.w,h:cropRect.h},handle:h};e.preventDefault();return}if(e.target===document.getElementById("cropBox")){cropAction="move";cropBase={x:e.clientX,y:e.clientY,rect:{x:cropRect.x,y:cropRect.y,w:cropRect.w,h:cropRect.h}};e.preventDefault();return}if(e.target!==canvas)return;cropAction="draw";cropStart={x:e.clientX-r.left,y:e.clientY-r.top};cropRect={x:cropStart.x,y:cropStart.y,w:1,h:1}});
-document.getElementById("pdfView").addEventListener("pointermove",function(e){var r=document.getElementById("pdfCanvas").getBoundingClientRect(),vr=document.getElementById("pdfView").getBoundingClientRect();if(cropAction==="draw"&&cropStart){var x=Math.max(0,Math.min(r.width,e.clientX-r.left)),y=Math.max(0,Math.min(r.height,e.clientY-r.top));cropRect={x:Math.min(cropStart.x,x),y:Math.min(cropStart.y,y),w:Math.abs(x-cropStart.x),h:Math.abs(y-cropStart.y)}}else if(cropAction==="resize"&&cropBase){var dx=e.clientX-cropBase.x,dy=e.clientY-cropBase.y,z=cropBase.rect,h=cropBase.handle;if(h.indexOf("nw")>=0){cropRect.x=z.x+dx;cropRect.y=z.y+dy;cropRect.w=z.w-dx;cropRect.h=z.h-dy}else if(h.indexOf("ne")>=0){cropRect.y=z.y+dy;cropRect.w=z.w+dx;cropRect.h=z.h-dy}else if(h.indexOf("sw")>=0){cropRect.x=z.x+dx;cropRect.w=z.w-dx;cropRect.h=z.h+dy}else{cropRect.w=z.w+dx;cropRect.h=z.h+dy}cropRect.w=Math.max(10,cropRect.w);cropRect.h=Math.max(10,cropRect.h)}else if(cropAction==="move"&&cropBase){cropRect={x:cropBase.rect.x+(e.clientX-cropBase.x),y:cropBase.rect.y+(e.clientY-cropBase.y),w:cropBase.rect.w,h:cropBase.rect.h}}else return;var b=document.getElementById("cropBox");b.style.display="block";b.style.left=(r.left-vr.left+cropRect.x)+"px";b.style.top=(r.top-vr.top+cropRect.y)+"px";b.style.width=cropRect.w+"px";b.style.height=cropRect.h+"px"});
-document.getElementById("pdfView").addEventListener("pointerup",function(){cropStart=null;cropAction=null;cropBase=null});
+(function(){
+var view=document.getElementById("pdfView");
+view.addEventListener("pointerdown",function(e){
+ var canvas=document.getElementById("pdfCanvas"),r=canvas.getBoundingClientRect(),b=document.getElementById("cropBox"),h=e.target&&e.target.className;
+ if(!cropRect)return;
+ if(typeof h==="string"&&h.indexOf("cropHandle")>=0){cropAction="resize";cropBase={x:e.clientX,y:e.clientY,rect:{x:cropRect.x,y:cropRect.y,w:cropRect.w,h:cropRect.h},handle:h};e.preventDefault();return}
+ if(e.target===b){cropAction="move";cropBase={x:e.clientX,y:e.clientY,rect:{x:cropRect.x,y:cropRect.y,w:cropRect.w,h:cropRect.h}};e.preventDefault();return}
+});
+view.addEventListener("pointermove",function(e){
+ if(!cropBase)return;
+ var canvas=document.getElementById("pdfCanvas"),r=canvas.getBoundingClientRect(),vr=view.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height,dx=(e.clientX-cropBase.x)*sx,dy=(e.clientY-cropBase.y)*sy,z=cropBase.rect;
+ if(cropAction==="move"){cropRect={x:z.x+dx,y:z.y+dy,w:z.w,h:z.h}}
+ else if(cropAction==="resize"){
+  var h=cropBase.handle;
+  if(h.indexOf("nw")>=0){cropRect={x:z.x+dx,y:z.y+dy,w:z.w-dx,h:z.h-dy}}
+  else if(h.indexOf("ne")>=0){cropRect={x:z.x,y:z.y+dy,w:z.w+dx,h:z.h-dy}}
+  else if(h.indexOf("sw")>=0){cropRect={x:z.x+dx,y:z.y,w:z.w-dx,h:z.h+dy}}
+  else{cropRect={x:z.x,y:z.y,w:z.w+dx,h:z.h+dy}}
+ }
+ cropRect.w=Math.max(20,cropRect.w);cropRect.h=Math.max(20,cropRect.h);
+ cropRect.x=Math.max(0,Math.min(canvas.width-cropRect.w,cropRect.x));cropRect.y=Math.max(0,Math.min(canvas.height-cropRect.h,cropRect.y));
+ b.style.display="block";b.style.left=(r.left-vr.left+cropRect.x/sx)+"px";b.style.top=(r.top-vr.top+cropRect.y/sy)+"px";b.style.width=(cropRect.w/sx)+"px";b.style.height=(cropRect.h/sy)+"px";
+ e.preventDefault();
+});
+window.addEventListener("pointerup",function(){cropStart=null;cropAction=null;cropBase=null});
+})();
 document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false);cropStart=null};
