@@ -61,7 +61,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <div class="overlay" id="cropOverlay"><div class="modal">
 <div class="modalhead"><b>✂ Crop from Original PDF</b><div><button id="cropPrev" class="btn">◀</button><button id="cropNext" class="btn">▶</button><button id="closeCrop" class="btn">✕</button></div></div>
 <div class="modalbody"><div class="pdfpages" id="pdfPages"></div><div class="pdfview" id="pdfView"><canvas id="pdfCanvas"></canvas><div id="cropBox" class="cropbox"><i class="cropHandle nw"></i><i class="cropHandle ne"></i><i class="cropHandle sw"></i><i class="cropHandle se"></i></div></div></div>
-<div class="modalfoot"><span class="muted">Drag to create a box. Move the box or drag any corner handle to adjust width/height manually.</span><button id="saveCrop" class="btn green">✔ Save Crop</button></div>
+<div class="modalfoot"><div class="qMeta" style="flex:1"><div><label class="muted">Library</label><select id="cropLibrary"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div><div><label class="muted">Folder / Subfolder</label><div class="row" style="margin-top:0"><input id="cropFolder" placeholder="Folder"><input id="cropSubfolder" placeholder="Subfolder"></div></div><div><label class="muted">Topic / Chapter</label><input id="cropTopic" placeholder="Topic / Chapter"></div><div><label class="muted">Keep</label><div class="actions" style="margin-top:0"><button id="cropKeepText" class="btn miniBtn" type="button">📝 Text</button><button id="cropKeepImage" class="btn miniBtn" type="button">🖼 Image</button><button id="cropCloud" class="btn green miniBtn" type="button">☁ Save to Cloud</button></div></div></div><button id="saveCrop" class="btn green">✔ Save Crop</button></div>
 </div></div>
 
 <script>
@@ -182,8 +182,8 @@ if(!starts.length){
 }
 
 function parseBlock(text){
- var clean=String(text||"").replace(/\r/g,"").trim(),re=/(?:^|\n|\s)\(?([A-D])\)?[.)\-:]\s+/g,marks=[],m;
- while((m=re.exec(clean))!==null)marks.push({l:m[1],p:m.index+(m[0].length-m[0].replace(/^\s*/,"").length)});
+ var clean=String(text||"").replace(/\r/g,"").trim(),re=/(?:^|\n|\s)\(?([A-D])\)?\s*[.)\-:]\s*/gi,marks=[],m;
+ while((m=re.exec(clean))!==null)marks.push({l:m[1].toUpperCase(),p:m.index+m[0].length});
  if(!marks.length)return {question:clean,options:[]};
  var q=clean.slice(0,marks[0].p).trim(),opts=[];
  for(var i=0;i<marks.length;i++)opts.push(clean.slice(marks[i].p,i+1<marks.length?marks[i+1].p:clean.length).trim());
@@ -256,9 +256,7 @@ function apply(i){
  selected=i;render();status("✔ Q "+x.qNo+" updated.");
 }
 
-async function openCrop(i,page){
- selected=i;currentPdfPage=page||targetPages[0]||1;cropRect=items[i].cropRect;show("cropOverlay",true);await renderCropPage();await buildThumbs();
-}
+async function openCrop(i,page){selected=i;currentPdfPage=page||targetPages[0]||1;cropRect=items[i].cropRect||null;document.getElementById("cropLibrary").value=items[i].libraryType||"Personal Library";document.getElementById("cropFolder").value=items[i].folder||"";document.getElementById("cropSubfolder").value=items[i].subfolder||"";document.getElementById("cropTopic").value=items[i].topic||"";show("cropOverlay",true);await renderCropPage();await buildThumbs();}
 async function buildThumbs(){
  var box=document.getElementById("pdfPages");box.innerHTML="";
  for(var idx=0;idx<targetPages.length;idx++){var n=targetPages[idx], p=await pdf.getPage(n),v=p.getViewport({scale:.2}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
@@ -276,6 +274,7 @@ document.getElementById("pdfView").addEventListener("pointerup",function(){cropS
 document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false);cropStart=null};
+document.getElementById("cropKeepText").onclick=function(){if(selected>=0){items[selected].keepText=true;items[selected].keepImage=false}};document.getElementById("cropKeepImage").onclick=function(){if(selected>=0){items[selected].keepImage=true;items[selected].keepText=false}};document.getElementById("cropCloud").onclick=function(){if(selected>=0){items[selected].libraryType=document.getElementById("cropLibrary").value;items[selected].folder=document.getElementById("cropFolder").value.trim();items[selected].subfolder=document.getElementById("cropSubfolder").value.trim();items[selected].topic=document.getElementById("cropTopic").value.trim();items[selected].confirmed=true;saveBtn.disabled=false;saveBtn.click()}};
 document.getElementById("saveCrop").onclick=async function(){
  if(selected<0||!cropRect||cropRect.w<10||cropRect.h<10){alert("Drag a crop box first.");return}
  var p=await pdf.getPage(currentPdfPage),v=p.getViewport({scale:1.5}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
