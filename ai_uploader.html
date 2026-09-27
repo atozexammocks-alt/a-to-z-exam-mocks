@@ -309,7 +309,7 @@ fileInput.addEventListener('change',async e=>{
   }catch(err){
     console.error(err);status.textContent='❌ '+err.message;alert(err.message);stopBtn.disabled=true
   }
-};
+});
 
 async function extractWithBackend(body){
   let last='';

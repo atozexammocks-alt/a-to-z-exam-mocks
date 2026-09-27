@@ -29,28 +29,61 @@
     window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
     window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc;
 
-    let mainFolders = ["Classical Mechanics", "Quantum Mechanics", "Mathematical Physics", "Electronics", "EMT", "Solid State Mechanics", "Thermo & Statical", "Atomic", "Nuclear", "PYP"];
-    let subFolders = {
-      "Classical Mechanics": ["General", "Lagrangian", "Hamiltonian"],
-      "Quantum Mechanics": ["General", "Operators", "Wave Function"],
-      "Mathematical Physics": ["General", "Vector Analysis", "Matrices"],
-      "Electronics": ["General", "Transistors", "Diodes"],
-      "EMT": ["General"], "Solid State Mechanics": ["General"], "Thermo & Statical": ["General"], "Atomic": ["General"], "Nuclear": ["General"], "PYP": ["General"]
-    };
+    // libraryTree is the REAL source of truth — the exact same nested tree
+    // that library.html / dashboard.html / builder.html read and write.
+    // mainFolders/subFolders below are just a flat view of it, rebuilt every
+    // time the tree changes, so Slicer always matches the current library
+    // instead of a separate, easily-stale copy of the folder list.
+    let libraryTree = [];
+    let folderPdfs = {};
+    let mainFolders = [];
+    let subFolders = {};
 
     const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
     const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
+
+    function rebuildFlatFoldersFromTree() {
+      mainFolders = libraryTree.map(n => String(n.name || '').trim()).filter(Boolean);
+      subFolders = {};
+      const collect = (nodes, root, rel = []) => {
+        (nodes || []).forEach(n => {
+          const name = String(n.name || '').trim();
+          if (!name) return;
+          const next = rel.concat(name);
+          subFolders[root] = subFolders[root] || [];
+          subFolders[root].push(next.join(' / '));
+          collect(n.children || [], root, next);
+        });
+      };
+      libraryTree.forEach(root => collect(root.children || [], String(root.name || '').trim(), []));
+    }
 
     async function loadLibraryState() {
       try {
         const privateSnap = await window.getDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())));
         const privateData = privateSnap.exists() ? privateSnap.data() : {};
 
-        // SOURCE OF TRUTH: only the current teacher library is loaded.
-        if (Array.isArray(privateData.mainFolders) && privateData.mainFolders.length) {
-          mainFolders = privateData.mainFolders.slice();
-          subFolders = (privateData.subFolders && typeof privateData.subFolders === "object") ? {...privateData.subFolders} : {};
+        // SOURCE OF TRUTH: the real folder tree for this teacher.
+        libraryTree = Array.isArray(privateData.libraryTree) ? privateData.libraryTree : [];
+        folderPdfs = (privateData.folderPdfs && typeof privateData.folderPdfs === "object") ? { ...privateData.folderPdfs } : {};
+
+        // Backward-compat only: a library that has never been saved as a
+        // tree yet (old flat mainFolders/subFolders fields) still loads.
+        if (!libraryTree.length && Array.isArray(privateData.mainFolders)) {
+          libraryTree = privateData.mainFolders.map(name => ({
+            id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+            name: String(name).trim(),
+            type: "folder",
+            children: (Array.isArray(privateData.subFolders?.[name]) ? privateData.subFolders[name] : []).map(s => ({
+              id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+              name: String(s).trim(),
+              type: "folder",
+              children: []
+            }))
+          }));
         }
+
+        rebuildFlatFoldersFromTree();
       } catch (e) { console.error("Slicer library registry load failed:", e); }
     }
 
@@ -79,27 +112,33 @@
       if (mainSel) window.populateSlicerSubDropdown(mainSel.value);
     };
 
+    function findTreeNodeByName(name) {
+      return libraryTree.find(n => String(n.name || '').trim().toLowerCase() === String(name).trim().toLowerCase());
+    }
+
     window.addNewFolderDynamic = async function() {
       const type = prompt("क्या जोड़ना चाहते हैं? टाइप करें:\n1 -> Main Folder\n2 -> Sub Folder");
       if (type === "1") {
-        const newMain = prompt("नया Main Folder नाम डालें:");
-        if (newMain && !mainFolders.includes(newMain)) {
-          mainFolders.push(newMain);
-          subFolders[newMain] = ["General"];
+        const newMain = (prompt("नया Main Folder नाम डालें:") || "").trim();
+        if (newMain && !findTreeNodeByName(newMain)) {
+          libraryTree.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newMain, type: "folder", children: [] });
+          rebuildFlatFoldersFromTree();
           window.initSlicerStudio();
-          await window.saveFolderRegistryToCloud();
-          alert("✔ Main Folder Successfully Added!");
+          const saved = await window.saveFolderRegistryToCloud();
+          if (saved) alert("✔ Main Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
         }
       } else if (type === "2") {
         const currentMain = document.getElementById('vault-main-cat').value;
-        const newSub = prompt(`"${currentMain}" के लिए नया Sub Folder नाम डालें:`);
-        if (newSub) {
-          if (!subFolders[currentMain]) subFolders[currentMain] = [];
-          if (!subFolders[currentMain].includes(newSub)) {
-            subFolders[currentMain].push(newSub);
+        const newSub = (prompt(`"${currentMain}" के लिए नया Sub Folder नाम डालें:`) || "").trim();
+        const parent = findTreeNodeByName(currentMain);
+        if (newSub && parent) {
+          parent.children = Array.isArray(parent.children) ? parent.children : [];
+          if (!parent.children.some(n => String(n.name || '').trim().toLowerCase() === newSub.toLowerCase())) {
+            parent.children.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newSub, type: "folder", children: [] });
+            rebuildFlatFoldersFromTree();
             window.populateSlicerSubDropdown(currentMain);
-            await window.saveFolderRegistryToCloud();
-            alert("✔ Sub Folder Successfully Added!");
+            const saved = await window.saveFolderRegistryToCloud();
+            if (saved) alert("✔ Sub Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
           }
         }
       }
@@ -109,11 +148,12 @@
       try {
         await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
           ownerEmail: teacherEmailKey(),
-          mainFolders: [...mainFolders],
-          subFolders: {...subFolders},
+          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
+          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
           updatedAt: new Date().toISOString()
         });
-      } catch(e) { console.error(e); }
+        return true;
+      } catch(e) { console.error(e); return false; }
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
