@@ -109,7 +109,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 <button id="stop" class="stop" onclick="stopRequested=true" disabled>⛔ Stop</button>
 <button class="green" onclick="confirmAll()">☑ Confirm All</button>
 <button class="primary" onclick="saveConfirmed()">🚀 Send Confirmed to Library</button>
-<span id="status" class="status"></span>
+<span id="status" class="status">Ready — choose a PDF.</span><div id="activity" style="margin-top:8px;padding:8px 10px;background:#020617;border:1px solid #1e293b;border-radius:7px;color:#94a3b8;font-size:11px;line-height:1.5;max-height:130px;overflow:auto">Waiting for PDF…</div>
 <div class="progress"><div id="progressBar"></div></div>
 </div>
 <div class="box"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b>Review / Correct extracted questions</b><span id="count" class="badge">0 questions</span></div><div id="list"></div></div>
@@ -122,6 +122,8 @@ const status=document.getElementById('status'),list=document.getElementById('lis
 async function loadFolders(){try{const s=await getDoc(doc(db,'folder_configs','shared_registry_v4'));if(s.exists()){const d=s.data();folders=[];for(const[m,ss]of Object.entries(d.subFolders||{}))ss.forEach(x=>folders.push(m+' / '+x));if(!folders.length)folders=['General / General'];}}catch(e){}}
 loadFolders();
 function setProgress(n,total){progressBar.style.width=(total?Math.round(n*100/total):0)+'%'}
+function logActivity(msg){const a=document.getElementById('activity');if(!a)return;const t=new Date().toLocaleTimeString();a.insertAdjacentHTML('beforeend','<div>['+esc(t)+'] '+esc(msg)+'</div>');a.scrollTop=a.scrollHeight}
+function setStatus(msg){status.textContent=msg;logActivity(msg)}
 async function renderPageImage(p){const v=p.getViewport({scale:1.25}),c=document.createElement('canvas');c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext('2d'),viewport:v}).promise;return c.toDataURL('image/jpeg',.72)}
 async function compressForAI(dataUrl,maxChars=3000000){try{const im=await dataUrlImage(dataUrl);let w=im.naturalWidth||im.width,h=im.naturalHeight||im.height;const c=document.createElement('canvas'),ctx=c.getContext('2d');for(let pass=0;pass<6;pass++){c.width=w;c.height=h;ctx.clearRect(0,0,w,h);ctx.drawImage(im,0,0,w,h);for(const q of [.62,.52,.42,.34]){const out=c.toDataURL('image/jpeg',q);if(out.length<=maxChars)return out}w=Math.round(w*.82);h=Math.round(h*.82)}return c.toDataURL('image/jpeg',.3)}catch(e){return dataUrl}}
 function dataUrlImage(dataUrl){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>res(im);im.onerror=rej;im.src=dataUrl})}
@@ -139,7 +141,7 @@ async function pdfPageToBase64(nativePdfDoc,pageNumber){
 async function getPdfPageText(p){
   try{
     const tc=await p.getTextContent();
-    return (tc.items||[]).map(x=>x.str||'').join(' ').replace(/\\s+/g,' ').trim();
+    return (tc.items||[]).map(x=>x.str||'').join(' ').replace(/\s+/g,' ').trim();
   }catch(e){
     console.warn('[PDF text extraction]',e);
     return '';
@@ -332,17 +334,22 @@ fileInput.addEventListener('change',async e=>{
   const f=e.target.files[0];if(!f)return;
   items=[];pageImages={};list.innerHTML='';count.textContent='0 questions';stopRequested=false;stopBtn.disabled=false;setProgress(0,1);
   try{
-    status.textContent='⏳ PDF selected — reading file…';
+    setStatus('⏳ PDF selected — reading file…');
     const pdfBytes=await f.arrayBuffer();
-    status.textContent='📖 Opening PDF…';
-    const pdf=await pdfjsLib.getDocument({data:pdfBytes,useWorkerFetch:true,isEvalSupported:true}).promise;
+    logActivity('File read: '+(pdfBytes.byteLength/1048576).toFixed(2)+' MB');
+    if(pdfBytes.byteLength<5||String.fromCharCode(...new Uint8Array(pdfBytes.slice(0,5)))!=='%PDF-')throw new Error('The selected file is not a valid PDF.');
+    setStatus('📖 Opening PDF in browser…');
+    // Keep PDF opening independent of the external worker. This avoids the common
+    // mobile/CDN worker failure that can leave the uploader apparently idle.
+    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(pdfBytes.slice(0)),disableWorker:true,useWorkerFetch:false,disableAutoFetch:false,disableStream:false}).promise;
     const total=pdf.numPages;
-    status.textContent='✔ PDF opened: '+total+' page'+(total===1?'':'s')+' — starting page-by-page processing…';
+    setStatus('✔ PDF opened: '+total+' page'+(total===1?'':'s')+' — starting page-by-page processing…');
     // Do NOT block PDF processing on PDF-Lib. PDF.js is the only required
     // browser PDF reader. The native-PDF AI route is attempted only when PDF-Lib
     // is available; image/OCR page processing must start immediately.
     nativePdfDoc=null;
-    if(window.PDFLib?.PDFDocument){
+    /* PDF-Lib is optional and must never block page processing. */
+    if(false && window.PDFLib?.PDFDocument){
       try{
         status.textContent='📄 PDF opened — preparing page-by-page processing…';
         nativePdfDoc=await PDFLib.PDFDocument.load(pdfBytes);
@@ -359,7 +366,7 @@ fileInput.addEventListener('change',async e=>{
       while(true){
         const n=nextPage++;
         if(n>total||stopRequested)return;
-        status.textContent='🤖 AI processing PDF page '+n+'/'+total+' (full page)';
+        setStatus('🤖 Processing PDF page '+n+'/'+total+'…');
         try{
           const result=await processOnePdfPage(pdf,n,total,nativePdfDoc);
           queue.set(n,result);
@@ -395,10 +402,10 @@ fileInput.addEventListener('change',async e=>{
 
     await Promise.all([worker(),worker()]);
     flushReadyPages();
-    if(!stopRequested)status.textContent='✔ Finished '+total+' pages. '+items.length+' review items are ready. AI/OCR pages are editable below.';
+    if(!stopRequested)setStatus('✔ Finished '+total+' pages. '+items.length+' review items are ready.');
     stopBtn.disabled=true;
   }catch(err){
-    console.error(err);status.textContent='❌ '+err.message;alert(err.message);stopBtn.disabled=true
+    console.error('[Uploader fatal]',err);logActivity('FATAL: '+(err?.message||String(err)));status.textContent='❌ '+(err?.message||String(err));alert('PDF processing failed: '+(err?.message||String(err)));stopBtn.disabled=true
   }
 });
 
