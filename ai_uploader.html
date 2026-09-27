@@ -49,7 +49,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 .img-editor.show{display:flex}.img-modal{width:min(1100px,96vw);height:min(88vh,900px);background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
 .img-head{padding:10px 12px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .img-body{display:grid;grid-template-columns:1fr 260px;gap:10px;flex:1;min-height:0;padding:10px}.page-stage{position:relative;background:#020617;border:1px solid #334155;border-radius:8px;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:10px}
-#editCanvas{max-width:100%;height:auto;display:block;cursor:crosshair;touch-action:none}.selection{position:absolute;border:2px solid #38bdf8;background:rgba(56,189,248,.12);pointer-events:none;user-select:none;-webkit-user-select:none;touch-action:none}.crop-handle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:3px;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;z-index:4;box-shadow:0 1px 5px rgba(0,0,0,.65)}.crop-handle.nw{cursor:nwse-resize}.crop-handle.ne{cursor:nesw-resize}.crop-handle.sw{cursor:nesw-resize}.crop-handle.se{cursor:nwse-resize}.crop-handle.n{cursor:ns-resize}.crop-handle.s{cursor:ns-resize}.crop-handle.w{cursor:ew-resize}.crop-handle.e{cursor:ew-resize}.crop-handle.move{width:100%;height:100%;inset:0;background:transparent;border:0;box-shadow:none;cursor:move;border-radius:0;z-index:1}
+#editCanvas{max-width:100%;height:auto;display:block;cursor:crosshair;touch-action:none}.selection{position:absolute;border:2px solid #38bdf8;background:rgba(56,189,248,.12);pointer-events:auto;user-select:none;-webkit-user-select:none;touch-action:none}.crop-handle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:3px;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;z-index:10;box-shadow:0 1px 5px rgba(0,0,0,.65)}.crop-handle.nw{cursor:nwse-resize}.crop-handle.ne{cursor:nesw-resize}.crop-handle.sw{cursor:nesw-resize}.crop-handle.se{cursor:nwse-resize}.crop-handle.n{cursor:ns-resize}.crop-handle.s{cursor:ns-resize}.crop-handle.w{cursor:ew-resize}.crop-handle.e{cursor:ew-resize}.crop-handle.move{width:100%;height:100%;inset:0;background:transparent;border:0;box-shadow:none;cursor:move;border-radius:0;z-index:2}
 .img-side{overflow:auto}.img-side label{display:block;margin-bottom:8px}.img-side input,.img-side select{margin-top:4px}
 .img-note{font-size:10px;color:#94a3b8;line-height:1.45}.img-footer{padding:10px 12px;border-top:1px solid #1e293b;display:flex;gap:7px;justify-content:flex-end}
 @media(max-width:800px){.img-body{grid-template-columns:1fr}.img-modal{height:94vh}.img-side{max-height:260px}}
@@ -237,11 +237,29 @@ function normalizeQuestionStart(text){
   return m?+m[1]:null;
 }
 
+function parseExtractedQuestionOptions(rawText){
+  const raw=normalizeMathUnicode(String(rawText||'')).replace(/\s+/g,' ').trim();
+  if(!raw)return {question:'',optA:'',optB:'',optC:'',optD:''};
+  const marker=/((?:^|[\\s])(?:\\(?[A-Da-dकखगघ]\)?[.)\-:])(?=\\s|$))/g;
+  const matches=[];let m;
+  while((m=marker.exec(raw))!==null){matches.push({index:m.index+(m[1].startsWith(' ')?1:0),label:m[1].trim().replace(/[().:\-]/g,'').toUpperCase()})}
+  if(matches.length<2)return {question:raw,optA:'',optB:'',optC:'',optD:''};
+  const q=raw.slice(0,matches[0].index).trim();
+  const out={question:q,optA:'',optB:'',optC:'',optD:''};
+  const map={A:'optA',B:'optB',C:'optC',D:'optD','क':'optA','ख':'optB','ग':'optC','घ':'optD'};
+  for(let i=0;i<matches.length;i++){
+    const end=i+1<matches.length?matches[i+1].index:raw.length;
+    const key=map[matches[i].label];
+    if(key)out[key]=formatExtractedText(raw.slice(matches[i].index).replace(/^[^A-Za-zक-घ0-9]*[A-Da-dकखगघ][).:\-]?\s*/,'').trim());
+  }
+  return out;
+}
 function makeImageItem(pageNumber,box,text,sourceImage){
+  const parsed=parseExtractedQuestionOptions(text);
   return {
     qNo:box.number||pageNumber,
-    qText:formatExtractedText(String(text||'').replace(/\s+([,.;:)])/g,'$1').replace(/\s+([+\-×÷=])/g,' $1 ').replace(/([+\-×÷=])\s+/g,'$1 ').trim()),
-    optA:'',optB:'',optC:'',optD:'',
+    qText:formatExtractedText(parsed.question.replace(/\s+([,.;:)])/g,'$1').replace(/\s+([+\-×÷=])/g,' $1 ').replace(/([+\-×÷=])\s+/g,'$1 ').trim()),
+    optA:parsed.optA,optB:parsed.optB,optC:parsed.optC,optD:parsed.optD,
     key:'',topic:'PDF Image Extraction',
     targetPath:folders[0]||'General / General',
     questionBox:{x:Math.round(box.x),y:Math.round(box.y),w:Math.round(box.w),h:Math.round(box.h)},
@@ -570,7 +588,7 @@ function openImageEditor(i,fromPdfPage=true,mode='question'){
   const pageList=[...pages].sort((a,b)=>+a-+b);
   sel.innerHTML=pageList.map(p=>'<option value="'+p+'">PDF page '+p+'</option>').join('');
   if(!pageList.length){alert('Original PDF is no longer loaded. Please select the PDF again, then open the editor.');return;}
-  const source=String(x.sourcePage||'');
+  const source=String(editCropMode==='solution'?x.solutionSourcePage:x.sourcePage||'');
   sel.value=pageList.includes(source)?source:pageList[0];
   document.getElementById('editQNo').value=Number(x.qNo||i+1);
   document.getElementById('iw').value=Number(x.imageWidth||100);
@@ -687,6 +705,13 @@ if(k==='move'){x=b.x+dx;y=b.y+dy}else{if(k.includes('w')){x=b.x+dx;w=b.w-dx}if(k
 const min=8;if(w<min){if(k.includes('w'))x=b.x+b.w-min;w=min}if(h<min){if(k.includes('n'))y=b.y+b.h-min;h=min}x=Math.max(0,Math.min(1000-min,x));y=Math.max(0,Math.min(1000-min,y));w=Math.max(min,Math.min(1000-x,w));h=Math.max(min,Math.min(1000-y,h));setCropInputs({x,y,w,h});drawSelectionFromInputs()}
 function endCropPointer(){resizeState=null;dragStart=null}
 selection.querySelectorAll('.crop-handle').forEach(h=>h.addEventListener('pointerdown',e=>beginCropPointer(e,h.dataset.handle)));
+selection.addEventListener('pointerdown',e=>{
+  if(e.target.classList.contains('crop-handle'))return;
+  const b=getCrop();
+  resizeState={handle:'move',start:pointerToCrop(e),base:b};
+  e.preventDefault();e.stopPropagation();
+  try{selection.setPointerCapture(e.pointerId)}catch(_){}
+});
 window.addEventListener('pointermove',moveCropPointer,{passive:false});window.addEventListener('pointerup',endCropPointer);
 editCanvas.addEventListener('pointerdown',e=>{const p=pointerToCrop(e),b=getCrop();if(p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h){beginCropPointer(e,'move');return}dragStart=p;try{editCanvas.setPointerCapture(e.pointerId)}catch(_){}});
 editCanvas.addEventListener('pointermove',e=>{if(!dragStart)return;const p=pointerToCrop(e),b={x:Math.round(Math.min(dragStart.x,p.x)),y:Math.round(Math.min(dragStart.y,p.y)),w:Math.round(Math.abs(p.x-dragStart.x)),h:Math.round(Math.abs(p.y-dragStart.y))};if(b.w>5&&b.h>5){setCropInputs(b);drawSelectionFromInputs()}});
