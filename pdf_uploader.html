@@ -3,7 +3,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — PDF Question Extractor</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script>window.addEventListener("error",e=>{if(e.message)document.title="PDF Uploader • "+e.message});</script>
+
 <style>
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;height:100vh;overflow:hidden}
 nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 20px}.brand{font-size:16px;font-weight:900;color:#38bdf8;text-decoration:none}.nav{display:flex;gap:8px}.nav a,.btn{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:7px 11px;border-radius:6px;text-decoration:none;font-weight:800;font-size:11px;cursor:pointer}.btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn:disabled{opacity:.45;cursor:not-allowed}
@@ -16,7 +16,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <nav id="navbar"><a class="brand" href="index.html">🏠 A to Z Exam Mocks</a><div class="nav"><a href="teacher.html">🏠 Dashboard</a><a href="admin.html">👑 Super Admin</a><a href="library.html">📁 Central Library</a><a href="library_access.html">🤝 Group Library</a><a href="slicer.html">✂️ Slicer</a><a href="builder.html">🛠️ Test Builder</a></div></nav>
 <main class="page">
 <div class="toolbar">
-<label class="btn primary" style="position:relative;overflow:hidden">📄 Choose PDF <input id="file" type="file" accept=".pdf,application/pdf" style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer"></label>
+<div style="display:flex;align-items:center;gap:8px"><input id="file" type="file" accept=".pdf,application/pdf" style="display:block;width:240px;padding:6px;background:#07101f;color:#fff;border:1px solid #38bdf8;border-radius:6px"><span class="muted">Select the PDF directly</span></div>
 <button id="extract" class="btn green" disabled>⚡ Extract Questions</button><button id="confirmAll" class="btn" disabled>☑ Confirm All</button><button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
 <span id="status" class="status">PDF not loaded</span><div class="progress"><i id="bar"></i></div><span id="log" class="muted" style="width:100%;display:block;margin-top:4px">Activity: waiting for PDF…</span>
 </div>
