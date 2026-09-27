@@ -606,12 +606,11 @@ async function loadEditorPage(){
   const x=items[editIndex];
   const savedBox=editCropMode==='solution'?x.solutionBox:x.questionBox;
   const hasBox=savedBox&&Number(savedBox.w)>0&&Number(savedBox.h)>0;
-  const b=(p===+x.sourcePage&&hasBox)?savedBox:{x:0,y:0,w:1000,h:1000};
+  const savedPage=editCropMode==='solution'?x.solutionSourcePage:x.sourcePage;const b=(p===+savedPage&&hasBox)?savedBox:{x:0,y:0,w:1000,h:1000};
   setCropInputs(b);requestAnimationFrame(()=>drawSelectionFromInputs());
 }
 function setEditorCropMode(mode){if(editIndex<0)return;editCropMode=mode==='solution'?'solution':'question';updateEditorCropModeButtons();loadEditorPage()}
 function updateEditorCropModeButtons(){const q=document.getElementById('editQuestionCropBtn'),s=document.getElementById('editSolutionCropBtn'),n=document.getElementById('editCropModeNote');if(q)q.className=editCropMode==='question'?'primary':'';if(s)s.className=editCropMode==='solution'?'primary':'';if(n)n.textContent='Editing: '+(editCropMode==='solution'?'SOLUTION':'QUESTION')+' crop'}
-}
 
 function pathParts(path){return String(path||'').split(' / ').map(s=>s.trim()).filter(Boolean)}
 function activeEditorFolders(){return editorLibraryScope==='central'?centralFolders:folders}
