@@ -117,7 +117,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 <script>
 window.addEventListener('error',e=>{try{status.textContent='❌ Browser error: '+(e.message||'JavaScript error');console.error('[Uploader browser error]',e)}catch(_){}}); 
 window.addEventListener('unhandledrejection',e=>{try{status.textContent='❌ '+(e.reason?.message||e.reason||'Unhandled browser error');console.error('[Uploader unhandled rejection]',e)}catch(_){}}); 
-let items=[],pageImages={},folders=['General / General'],stopRequested=false,nativePdfDoc=null,ocrWorkerPromise=null;
+let items=[],pageImages={},folders=['General / General'],stopRequested=false,nativePdfDoc=null,ocrWorkerPromise=null,currentPdf=null;
 const status=document.getElementById('status'),list=document.getElementById('list'),progressBar=document.getElementById('progressBar'),stopBtn=document.getElementById('stop'),count=document.getElementById('count');
 async function loadFolders(){try{const s=await getDoc(doc(db,'folder_configs','shared_registry_v4'));if(s.exists()){const d=s.data();folders=[];for(const[m,ss]of Object.entries(d.subFolders||{}))ss.forEach(x=>folders.push(m+' / '+x));if(!folders.length)folders=['General / General'];}}catch(e){}}
 loadFolders();
@@ -451,6 +451,7 @@ async function processPdfFile(file){
     disableAutoFetch:false,
     disableStream:false
   }).promise;
+  currentPdf=pdf;
   const total=pdf.numPages;
   if(!total) throw new Error('PDF contains no pages.');
   setProgress(0,total);
