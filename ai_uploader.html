@@ -564,16 +564,14 @@ let editIndex=-1,editPageImage='',dragStart=null,resizeState=null;
 const editCanvas=document.getElementById('editCanvas'),selection=document.getElementById('selection');
 function openImageEditor(i,fromPdfPage=true){
   editIndex=i;
-  const x=items[i];
-  const sel=document.getElementById('editPage');
+  const x=items[i],sel=document.getElementById('editPage');
+  const pages=new Set(Object.keys(pageImages).filter(p=>/^\d+$/.test(p)));
+  if(currentPdf){for(let p=1;p<=currentPdf.numPages;p++)pages.add(String(p));}
+  const pageList=[...pages].sort((a,b)=>+a-+b);
+  sel.innerHTML=pageList.map(p=>'<option value="'+p+'">PDF page '+p+'</option>').join('');
+  if(!pageList.length){alert('Original PDF is no longer loaded. Please select the PDF again, then open the editor.');return;}
   const source=String(x.sourcePage||'');
-  const pages=Object.keys(pageImages).filter(p=>/^\\d+$/.test(p)).sort((a,b)=>+a-+b);
-  sel.innerHTML=pages.map(p=>'<option value="'+p+'">PDF page '+p+'</option>').join('');
-  if(!sel.options.length){
-    alert('Original PDF page images are not available. Please keep the PDF loaded and try again.');
-    return;
-  }
-  sel.value=pages.includes(source)?source:pages[0];
+  sel.value=pageList.includes(source)?source:pageList[0];
   document.getElementById('iw').value=Number(x.imageWidth||100);
   document.getElementById('imt').value=Number(x.imageMarginTop??8);
   document.getElementById('imb').value=Number(x.imageMarginBottom??8);
@@ -584,10 +582,26 @@ function openImageEditor(i,fromPdfPage=true){
 }
 
 async function loadEditorPage(){
-  const p=document.getElementById('editPage').value; editPageImage=pageImages[p]; if(!editPageImage)return;
-  const im=await dataUrlImage(editPageImage); editCanvas.width=im.naturalWidth||im.width; editCanvas.height=im.naturalHeight||im.height; editCanvas.getContext('2d').drawImage(im,0,0);
-  const x=items[editIndex]; let b=(+p===+x.sourcePage&&x.questionBox)?x.questionBox:{x:0,y:0,w:1000,h:1000}; setCropInputs(b); drawSelectionFromInputs();
+  const p=Number(document.getElementById('editPage').value);
+  if(!p)return;
+  if(!pageImages[p]&&currentPdf){
+    try{
+      setStatus('🖼️ Loading original PDF page '+p+' for manual editing…');
+      const pg=await currentPdf.getPage(p);
+      pageImages[p]=await renderPageImage(pg);
+    }catch(e){console.error('[Editor page render]',e);alert('Could not render original PDF page '+p+'. Please reselect the PDF.');return;}
+  }
+  editPageImage=pageImages[p];
+  if(!editPageImage)return;
+  const im=await dataUrlImage(editPageImage);
+  editCanvas.width=im.naturalWidth||im.width;
+  editCanvas.height=im.naturalHeight||im.height;
+  const ctx=editCanvas.getContext('2d');ctx.clearRect(0,0,editCanvas.width,editCanvas.height);ctx.drawImage(im,0,0);
+  const x=items[editIndex];
+  const b=(p===+x.sourcePage&&x.questionBox)?x.questionBox:{x:0,y:0,w:1000,h:1000};
+  setCropInputs(b);drawSelectionFromInputs();
 }
+
 function setCropInputs(b){cx.value=Math.round(b.x||0);cy.value=Math.round(b.y||0);cw.value=Math.round(b.w||1000);ch.value=Math.round(b.h||1000)}
 function getCrop(){return{x:Math.max(0,Math.min(1000,+cx.value||0)),y:Math.max(0,Math.min(1000,+cy.value||0)),w:Math.max(1,Math.min(1000-(+cx.value||0),+cw.value||1)),h:Math.max(1,Math.min(1000-(+cy.value||0),+ch.value||1))}}
 function drawSelectionFromInputs(){const b=getCrop();selection.style.left=(b.x/1000*editCanvas.clientWidth+10)+'px';selection.style.top=(b.y/1000*editCanvas.clientHeight+10)+'px';selection.style.width=(b.w/1000*editCanvas.clientWidth)+'px';selection.style.height=(b.h/1000*editCanvas.clientHeight)+'px';positionCropHandles()}
