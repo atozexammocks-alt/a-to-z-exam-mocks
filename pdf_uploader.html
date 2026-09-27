@@ -18,7 +18,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <div class="toolbar">
 <label class="btn primary filebtn">📄 Upload PDF<input id="file" type="file" accept="application/pdf"></label>
 <button id="extract" class="btn green" disabled>⚡ Extract Questions</button><button id="confirmAll" class="btn" disabled>☑ Confirm All</button><button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
-<span id="status" class="status">PDF not loaded</span><div class="progress"><i id="bar"></i></div>
+<span id="status" class="status">PDF not loaded</span><div class="progress"><i id="bar"></i></div><span id="log" class="muted" style="width:100%;display:block;margin-top:4px">Activity: waiting for PDF…</span>
 </div>
 <div class="workspace">
 <section class="panel"><h3>📝 Question Editor</h3><div class="muted">Left side: question number, text, options, library destination, folder/subfolder and confirmation.</div><div class="scroll" id="editor"><div class="card">Upload a PDF to begin.</div></div></section>
@@ -37,7 +37,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 const $=id=>document.getElementById(id);
 let pdf=null,totalPages=0,processPages=0,items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.5;
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
-function status(s){$("status").textContent=s} function bar(n,t){$("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
+function status(s){$("status").textContent=s;const l=$("log");if(l)l.textContent="Activity: "+s} function bar(n,t){$("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
 function img(src){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=src})}
 async function loadPdf(data){const u=new Uint8Array(data);try{return await pdfjsLib.getDocument({data:u}).promise}catch(e){console.warn("PDF worker retry",e);return await pdfjsLib.getDocument({data:u,disableWorker:true}).promise}}
 
@@ -50,12 +50,55 @@ $("startPages").onclick=()=>{processPages=Math.max(1,Math.min(totalPages,parseIn
 
 function groupLines(words){const lines=[];[...words].sort((a,b)=>b.y-a.y||a.x-b.x).forEach(w=>{let l=lines.find(z=>Math.abs(z.y-w.y)<4);if(!l){l={y:w.y,items:[w]};lines.push(l)}else l.items.push(w)});return lines.sort((a,b)=>b.y-a.y).map(l=>({y:l.y,text:l.items.sort((a,b)=>a.x-b.x).map(x=>x.s).join(" ").replace(/\s+/g," ").trim()}))}
 async function pageData(n){const p=await pdf.getPage(n),v=p.getViewport({scale:1.5}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;const tc=await p.getTextContent();const words=(tc.items||[]).map(it=>({s:String(it.str||"").trim(),x:+(it.transform?.[4]||0),y:+(it.transform?.[5]||0)})).filter(x=>x.s);return{image:c.toDataURL("image/png"),words,width:c.width,height:c.height}}
-function splitPage(pd){const lines=groupLines(pd.words),starts=[];const re=/^(?:Q(?:uestion)?\s*)?(\d{1,3})\s*[.)\-:]\s*/i;lines.forEach((l,i)=>{const m=l.text.match(re);if(m)starts.push({i,no:+m[1],y:l.y})});if(!starts.length){const t=lines.map(x=>x.text).join("\n").trim();return t?[{qNo:"",text:t,top:0,bottom:pd.height}]:[]}const out=[];for(let k=0;k<starts.length;k++){const a=starts[k],b=starts[k+1],text=lines.slice(a.i,b?b.i:lines.length).map(x=>x.text).join("\n").trim();if(text.length<3)continue;const top=Math.max(0,pd.height-(a.y+18)*1.5),bottom=b?Math.min(pd.height,pd.height-(b.y-10)*1.5):pd.height;out.push({qNo:a.no,text,top,bottom})}return out}
+function splitPage(pd){
+ const lines=groupLines(pd.words),starts=[];
+ const re=/^(?:Q(?:uestion)?\\s*\\.?\\s*)?(\\d{1,3})\\s*[.)\\-:]\\s*/i;
+ lines.forEach((l,i)=>{const m=l.text.replace(/^[^\\dQq]*/,"").match(re);if(m)starts.push({i,no:+m[1],y:l.y})});
+ if(!starts.length){
+   const t=lines.map(x=>x.text).join("\n").trim();
+   return t?[{qNo:"",text:t,top:0,bottom:pd.height}]:[];
+ }
+ const out=[];
+ for(let k=0;k<starts.length;k++){
+   const a=starts[k],b=starts[k+1],text=lines.slice(a.i,b?b.i:lines.length).map(x=>x.text).join("\n").trim();
+   if(text.length<3)continue;
+   const top=Math.max(0,pd.height-(a.y+18)*1.5),bottom=b?Math.min(pd.height,pd.height-(b.y-10)*1.5):pd.height;
+   out.push({qNo:a.no,text,top,bottom});
+ }
+ return out
+}
+async function loadOCR(){
+ if(window.Tesseract)return window.Tesseract;
+ await new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)});
+ return window.Tesseract;
+}
+async function ocrPage(pd){
+ status("🔎 No PDF text found — running OCR…");
+ const T=await loadOCR();
+ const worker=await T.createWorker("eng");
+ const r=await worker.recognize(pd.image);
+ const lines=(r.data?.lines||[]).filter(x=>String(x.text||"").trim()).map(x=>({text:String(x.text).trim(),y:+(x.bbox?.y0||0)}));
+ await worker.terminate();
+ const starts=[],re=/^(?:Q(?:uestion)?\\s*\\.?\\s*)?(\\d{1,3})\\s*[.)\\-:]\\s*/i;
+ lines.forEach((l,i)=>{const m=l.text.match(re);if(m)starts.push({i,no:+m[1],y:l.y})});
+ if(!starts.length){
+   const t=lines.map(x=>x.text).join("\n").trim();
+   return t?[{qNo:"",text:t,top:0,bottom:pd.height}]:[];
+ }
+ const out=[];
+ for(let k=0;k<starts.length;k++){
+   const a=starts[k],b=starts[k+1],text=lines.slice(a.i,b?b.i:lines.length).map(x=>x.text).join("\n").trim();
+   if(text.length<3)continue;
+   const top=Math.max(0,a.y-10),bottom=b?Math.min(pd.height,b.y+10):pd.height;
+   out.push({qNo:a.no,text,top,bottom});
+ }
+ return out;
+}
 function parseBlock(text){const clean=text.replace(/\r/g,"").trim();const re=/(?:^|\n|\s)\(?([A-H])\)?[.)\-:]\s+/g;const marks=[];let m;while((m=re.exec(clean))!==null)marks.push({l:m[1],p:m.index+(m[0].length-m[0].replace(/^\s*/,"").length)});if(!marks.length)return{question:clean,options:[]};const q=clean.slice(0,marks[0].p).trim(),opts=[];for(let i=0;i<marks.length;i++)opts.push(clean.slice(marks[i].p,i+1<marks.length?marks[i+1].p:clean.length).trim());return{question:q,options:opts}}
 async function makeCrop(src,r){const im=await img(src),c=document.createElement("canvas"),x=Math.max(0,Math.min(im.width-1,r.x)),y=Math.max(0,Math.min(im.height-1,r.y)),w=Math.max(1,Math.min(im.width-x,r.w)),h=Math.max(1,Math.min(im.height-y,r.h));c.width=w;c.height=h;c.getContext("2d").drawImage(im,x,y,w,h,0,0,w,h);return c.toDataURL("image/png")}
 
 async function extract(){if(!pdf)return;items=[];selected=-1;$("editor").innerHTML="";$("preview").innerHTML="";$("extract").disabled=true;bar(0,processPages);status("⚡ Extracting…");
-for(let n=1;n<=processPages;n++){status("⚡ Reading page "+n+"/"+processPages+"…");const pd=await pageData(n),qs=splitPage(pd);for(const q of qs){const parsed=parseBlock(q.text);const item={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),qNo:q.qNo,qText:parsed.question,options:parsed.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.02),y:Math.round(q.top),w:Math.round(pd.width*.96),h:Math.max(80,Math.round(q.bottom-q.top))},questionImage:"",libraryType:"Personal Library",folder:"",subfolder:"",confirmed:false};item.questionImage=await makeCrop(pd.image,item.cropRect);items.push(item)}bar(n,processPages);render();await new Promise(r=>setTimeout(r,5))}$("extract").disabled=false;status("✔ "+items.length+" question(s) extracted.");if(items.length)select(0)}
+for(let n=1;n<=processPages;n++){status("⚡ Reading page "+n+"/"+processPages+"…");const pd=await pageData(n);let qs=splitPage(pd);if(!qs.length||!qs.some(q=>q.qNo)){qs=await ocrPage(pd)}status("⚡ Page "+n+" found "+qs.length+" question block(s)…");for(const q of qs){const parsed=parseBlock(q.text);const item={id:crypto.randomUUID?.()||String(Date.now()+Math.random()),qNo:q.qNo,qText:parsed.question,options:parsed.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.02),y:Math.round(q.top),w:Math.round(pd.width*.96),h:Math.max(80,Math.round(q.bottom-q.top))},questionImage:"",libraryType:"Personal Library",folder:"",subfolder:"",confirmed:false};item.questionImage=await makeCrop(pd.image,item.cropRect);items.push(item)}bar(n,processPages);render();await new Promise(r=>setTimeout(r,5))}$("extract").disabled=false;status("✔ "+items.length+" question(s) extracted.");if(!items.length)alert("No questions were detected. The PDF may be image-only or use an unusual layout; OCR was attempted automatically.");if(items.length)select(0)}
 $("extract").onclick=extract;
 
 function render(){renderEditor();renderPreview()}
