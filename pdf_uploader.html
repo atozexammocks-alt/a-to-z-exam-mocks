@@ -38,7 +38,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
 <span id="status" class="status">PDF not selected</span>
 <div class="progress"><i id="bar"></i></div>
-<div id="activity" class="activity">Activity: waiting for PDF…</div>
+<div id="activity" class="activity">Activity: waiting for PDF…</div><div id="processList" class="activity" style="max-height:150px;overflow:auto;background:#07101f;border:1px solid #334155;border-radius:6px;padding:7px;margin-top:6px;white-space:pre-wrap">Process log: waiting…</div>
 </div>
 
 <div class="workspace">
@@ -66,8 +66,8 @@ var fileEl=document.getElementById("file"), statusEl=document.getElementById("st
 var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
 var pdf=null,totalPages=0,processPages=0,items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4;
 
-function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s}
-function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
+function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}}
+function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}\nfunction logStep(s){var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}activityEl.textContent="Activity: "+s;statusEl.textContent=s}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
 function show(id,on){document.getElementById(id).style.display=on?"flex":"none"}
 function imageLoad(src){return new Promise(function(ok,no){var im=new Image();im.onload=function(){ok(im)};im.onerror=no;im.src=src})}
@@ -75,17 +75,17 @@ window.addEventListener("error",function(e){status("❌ JavaScript error: "+(e.m
 
 fileEl.addEventListener("change",function(){
  var f=fileEl.files&&fileEl.files[0]; if(!f)return;
- status("📄 Selected: "+f.name+" — opening PDF…");
+ document.getElementById("processList").textContent="Process log:\n📄 File selected: "+f.name+" ("+Math.round(f.size/1024)+" KB)";\n   status("📄 Selected: "+f.name+" — opening PDF…");
  progress(0,1);
  var reader=new FileReader();
  reader.onload=function(){
    status("📖 Reading PDF…");
-   loadPdf(reader.result).then(function(doc){
-     pdf=doc; totalPages=doc.numPages;
+   logStep("🔧 Starting PDF.js engine…");\n   loadPdf(reader.result).then(function(doc){
+     pdf=doc; totalPages=doc.numPages; logStep("✔ PDF.js opened PDF successfully. Total pages: "+totalPages);
      document.getElementById("pageInfo").textContent=f.name+" • "+totalPages+" pages available";
      var pc=document.getElementById("pageCount"); pc.max=totalPages; pc.value=Math.min(2,totalPages);
      show("pageOverlay",true);
-     status("✔ PDF opened. Enter pages and press Start.");
+     logStep("✔ PDF ready. Waiting for page count."); status("✔ PDF opened. Enter pages and press Start.");
    }).catch(function(err){
      console.error(err); status("❌ PDF open failed: "+(err.message||err)); alert("PDF open failed: "+(err.message||err));
    });
@@ -105,7 +105,7 @@ document.getElementById("startPages").addEventListener("click",function(){
  processPages=Math.max(1,Math.min(totalPages,n));
  show("pageOverlay",false);
  extractBtn.disabled=false;confirmBtn.disabled=false;saveBtn.disabled=true;
- status("✔ Ready: "+processPages+" page(s). Click Extract Questions.");
+ logStep("▶ Processing will use "+processPages+" page(s)."); status("✔ Ready: "+processPages+" page(s). Click Extract Questions.");
 });
 
 function getLines(words){
@@ -170,21 +170,21 @@ async function extract(){
  extractBtn.disabled=true;confirmBtn.disabled=true;saveBtn.disabled=true;progress(0,processPages);
  try{
   for(var n=1;n<=processPages;n++){
-   status("⚡ Processing page "+n+" / "+processPages+"…");
-   var pd=await pageData(n),qs=splitPage(pd);
+   logStep("📄 Rendering page "+n+" / "+processPages+"…"); status("⚡ Processing page "+n+" / "+processPages+"…");
+   var pd=await pageData(n); logStep("✔ Page "+n+" rendered. Extracting text…"); var qs=splitPage(pd);
    if(!qs.length)qs=[];
-   status("⚡ Page "+n+": "+qs.length+" question block(s) found.");
+   logStep("🔎 Page "+n+" text scan found "+qs.length+" question block(s)."); status("⚡ Page "+n+": "+qs.length+" question block(s) found.");
    qs.forEach(function(q){
      var p=parseBlock(q.text),item={qNo:q.qNo,qText:p.question,options:p.options,sourcePage:n,fullPageImage:pd.image,cropRect:{x:Math.round(pd.width*.02),y:Math.round(q.top),w:Math.round(pd.width*.96),h:Math.max(80,Math.round(q.bottom-q.top))},questionImage:"",libraryType:"Personal Library",folder:"",subfolder:"",confirmed:false};
-     items.push(item);
+     items.push(item); logStep("➕ Added Q "+(item.qNo||items.length)+" from PDF page "+n+" to question list.");
    });
    progress(n,processPages);render();
    await new Promise(function(r){setTimeout(r,10)});
   }
   extractBtn.disabled=false;confirmBtn.disabled=items.length===0;saveBtn.disabled=true;
-  status("✔ Extraction complete: "+items.length+" question(s).");
+  logStep("🏁 Extraction finished. Questions created: "+items.length); status("✔ Extraction complete: "+items.length+" question(s).");
   if(items.length)select(0); else alert("No questions detected in the selected pages.");
- }catch(e){console.error(e);extractBtn.disabled=false;status("❌ Extraction failed: "+(e.message||e));alert("Extraction failed: "+(e.message||e))}
+ }catch(e){console.error(e);logStep("💥 ERROR: "+(e.stack||e.message||e));extractBtn.disabled=false;status("❌ Extraction failed: "+(e.message||e));alert("Extraction failed: "+(e.message||e))}
 }
 
 extractBtn.addEventListener("click",extract);
