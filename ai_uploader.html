@@ -49,7 +49,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
 .img-editor.show{display:flex}.img-modal{width:min(1100px,96vw);height:min(88vh,900px);background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
 .img-head{padding:10px 12px;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .img-body{display:grid;grid-template-columns:1fr 260px;gap:10px;flex:1;min-height:0;padding:10px}.page-stage{position:relative;background:#020617;border:1px solid #334155;border-radius:8px;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:10px}
-#editCanvas{max-width:100%;height:auto;display:block;cursor:crosshair;touch-action:none}.selection{position:absolute;border:2px solid #38bdf8;background:rgba(56,189,248,.12);pointer-events:none}.crop-handle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:3px;pointer-events:auto;z-index:3;box-shadow:0 1px 5px rgba(0,0,0,.65)}.crop-handle.nw{cursor:nwse-resize}.crop-handle.ne{cursor:nesw-resize}.crop-handle.sw{cursor:nesw-resize}.crop-handle.se{cursor:nwse-resize}.crop-handle.n{cursor:ns-resize}.crop-handle.s{cursor:ns-resize}.crop-handle.w{cursor:ew-resize}.crop-handle.e{cursor:ew-resize}.crop-handle.move{width:100%;height:100%;inset:0;background:transparent;border:0;box-shadow:none;cursor:move;border-radius:0}
+#editCanvas{max-width:100%;height:auto;display:block;cursor:crosshair;touch-action:none}.selection{position:absolute;border:2px solid #38bdf8;background:rgba(56,189,248,.12);pointer-events:none;user-select:none;-webkit-user-select:none;touch-action:none}.crop-handle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:3px;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;z-index:3;box-shadow:0 1px 5px rgba(0,0,0,.65)}.crop-handle.nw{cursor:nwse-resize}.crop-handle.ne{cursor:nesw-resize}.crop-handle.sw{cursor:nesw-resize}.crop-handle.se{cursor:nwse-resize}.crop-handle.n{cursor:ns-resize}.crop-handle.s{cursor:ns-resize}.crop-handle.w{cursor:ew-resize}.crop-handle.e{cursor:ew-resize}.crop-handle.move{width:100%;height:100%;inset:0;background:transparent;border:0;box-shadow:none;cursor:move;border-radius:0}
 .img-side{overflow:auto}.img-side label{display:block;margin-bottom:8px}.img-side input,.img-side select{margin-top:4px}
 .img-note{font-size:10px;color:#94a3b8;line-height:1.45}.img-footer{padding:10px 12px;border-top:1px solid #1e293b;display:flex;gap:7px;justify-content:flex-end}
 @media(max-width:800px){.img-body{grid-template-columns:1fr}.img-modal{height:94vh}.img-side{max-height:260px}}
@@ -86,6 +86,7 @@ header{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:fl
   <div class="img-body">
    <div class="page-stage" id="pageStage"><canvas id="editCanvas"></canvas><div id="selection" class="selection"><div class="crop-handle nw" data-handle="nw"></div><div class="crop-handle n" data-handle="n"></div><div class="crop-handle ne" data-handle="ne"></div><div class="crop-handle w" data-handle="w"></div><div class="crop-handle move" data-handle="move"></div><div class="crop-handle e" data-handle="e"></div><div class="crop-handle sw" data-handle="sw"></div><div class="crop-handle s" data-handle="s"></div><div class="crop-handle se" data-handle="se"></div></div></div>
    <div class="img-side">
+    <div class="card-actions" style="margin-bottom:8px"><button type="button" id="editQuestionCropBtn" class="primary" onclick="setEditorCropMode('question')">🟦 Question Crop</button><button type="button" id="editSolutionCropBtn" onclick="setEditorCropMode('solution')">🟨 Solution Crop</button></div><div class="mode-note" id="editCropModeNote">Editing: QUESTION crop</div>
     <label>PDF Page<select id="editPage" onchange="loadEditorPage()"></select></label>
     <div class="img-note">Crop directly on the page: drag the blue box to move it or use the 8 handles to resize. The controls below decide where this question will be sent.</div>
     <hr style="border:0;border-top:1px solid #1e293b;margin:10px 0">
@@ -546,8 +547,8 @@ function render(){count.textContent=items.length+' questions';list.innerHTML=ite
 <label>Library — Folder / Subfolder / Section<select id="p${i}">${folderOptions(x.targetPath||'')}</select></label><div class="folder-create-actions"><button type="button" onclick="createUploaderFolder(${i},'main')">＋ Folder</button><button type="button" onclick="createUploaderFolder(${i},'sub')">＋ Subfolder</button><button type="button" onclick="createUploaderFolder(${i},'section')">＋ Section</button></div>
 <label>Correct / Edit Question Text<textarea id="q${i}" rows="5">${esc(x.qText||'')}</textarea></label>
 <div class="grid"><input id="a${i}" placeholder="Option A" value="${esc(a)}"><input id="b${i}" placeholder="Option B" value="${esc(b)}"><input id="c${i}" placeholder="Option C" value="${esc(c)}"><input id="d${i}" placeholder="Option D" value="${esc(d)}"></div>
-<div class="card-actions"><button class="mode-btn ${x.contentMode==='text'?'active-text':''}" onclick="setContentMode(${i},'text')">📝 Keep Text</button><button class="mode-btn ${x.contentMode!=='text'?'active-image':''}" onclick="setContentMode(${i},'image')">🖼️ Keep Image</button><button onclick="applyCorrection(${i})">✏️ Save Correction</button><button onclick="document.getElementById('img${i}').click()">🖼️ Add / Replace Question Image</button><button onclick="openImageEditor(${i})">🛠️ Edit / Crop from Full PDF Page</button><button onclick="removeImage(${i})">🗑 Remove Image</button><input id="img${i}" type="file" accept="image/*" hidden onchange="replaceImage(event,${i})"></div>
-<div class="mode-note">Final library mode: <b>${x.contentMode==='text'?'TEXT':'IMAGE'}</b>. IMAGE is recommended for equations, diagrams and scientific notation.</div><div class="img-tools"><span class="muted">Question image:</span><div class="img-preview">${x.questionImage?`<img src="${x.questionImage}" alt="Question image" style="width:${Number(x.imageWidth||100)}%;max-width:100%;margin:${Number(x.imageMarginTop??8)}px 0 ${Number(x.imageMarginBottom??8)}px ${x.imageAlign==='right'?'auto 0':x.imageAlign==='left'?'0 auto':'auto'}">`:'<span class="muted">No image</span>'}</div></div>
+<div class="card-actions"><button class="mode-btn ${x.contentMode==='text'?'active-text':''}" onclick="setContentMode(${i},'text')">📝 Keep Text</button><button class="mode-btn ${x.contentMode!=='text'?'active-image':''}" onclick="setContentMode(${i},'image')">🖼️ Keep Image</button><button onclick="applyCorrection(${i})">✏️ Save Correction</button><button onclick="document.getElementById('img${i}').click()">🖼️ Add / Replace Question Image</button><button onclick="openImageEditor(${i},true,'question')">🛠️ Edit / Crop Question</button><button onclick="openImageEditor(${i},true,'solution')">🟨 Crop Solution</button><button onclick="removeImage(${i})">🗑 Remove Image</button><input id="img${i}" type="file" accept="image/*" hidden onchange="replaceImage(event,${i})"></div>
+<div class="mode-note">Final library mode: <b>${x.contentMode==='text'?'TEXT':'IMAGE'}</b>. IMAGE is recommended for equations, diagrams and scientific notation.</div><div class="img-tools"><span class="muted">Question image:</span><div class="img-preview">${x.questionImage?`<img src="${x.questionImage}" alt="Question image" style="width:${Number(x.imageWidth||100)}%;max-width:100%;margin:${Number(x.imageMarginTop??8)}px 0 ${Number(x.imageMarginBottom??8)}px ${x.imageAlign==='right'?'auto 0':x.imageAlign==='left'?'0 auto':'auto'}">`:'<span class="muted">No image</span>'}</div></div>${x.solutionImage?'<div class="img-tools"><span class="muted">Solution image:</span><div class="img-preview"><img src="'+x.solutionImage+'" alt="Solution image" style="width:100%;max-width:100%;display:block"></div></div>':''}
 <div class="card-actions"><label class="confirm"><input type="checkbox" id="ok${i}" ${x.confirmed?'checked':''} onchange="items[${i}].confirmed=this.checked"> ✔ I reviewed and confirm this question</label></div>
 </div>
 <div class="qright"><div class="preview">${x.contentMode==='image' ? (x.questionImage?`<img src="${x.questionImage}" alt="Question image" style="width:${Number(x.imageWidth||100)}%;max-width:100%;margin:${Number(x.imageMarginTop??8)}px 0 ${Number(x.imageMarginBottom??8)}px ${x.imageAlign==='right'?'auto 0':x.imageAlign==='left'?'0 auto':'auto'}">`:'<div style="color:#64748b;text-align:center;padding:40px 10px">No question image available.</div>') : `<div><b>Q${esc(x.qNo||i+1)}.</b> ${esc(x.qText||'')}</div><div class="opts"><div class="op"><b>(A)</b> ${esc(a)}</div><div class="op"><b>(B)</b> ${esc(b)}</div><div class="op"><b>(C)</b> ${esc(c)}</div><div class="op"><b>(D)</b> ${esc(d)}</div></div>`}</div></div>
@@ -558,10 +559,11 @@ function applyCorrection(i){const x=items[i];x.qNo=+document.getElementById('n'+
 async function replaceImage(e,i){const f=e.target.files[0];if(!f)return;if(f.size>900000){alert('Image is too large. Please use an image below 900 KB.');return}const r=new FileReader();r.onload=()=>{items[i].questionImage=r.result;status.textContent='✔ Question image updated for Q'+(items[i].qNo||i+1);render()};r.readAsDataURL(f)}
 
 function removeImage(i){items[i].questionImage='';status.textContent='Image removed for Q'+(items[i].qNo||i+1);render()}
-let editIndex=-1,editPageImage='',dragStart=null,resizeState=null;
+let editIndex=-1,editPageImage='',dragStart=null,resizeState=null,editCropMode='question';
 const editCanvas=document.getElementById('editCanvas'),selection=document.getElementById('selection');
-function openImageEditor(i,fromPdfPage=true){
+function openImageEditor(i,fromPdfPage=true,mode='question'){
   editIndex=i;
+  editCropMode=mode==='solution'?'solution':'question';
   const x=items[i],sel=document.getElementById('editPage');
   const pages=new Set(Object.keys(pageImages).filter(p=>/^\d+$/.test(p)));
   if(currentPdf){for(let p=1;p<=currentPdf.numPages;p++)pages.add(String(p));}
@@ -580,8 +582,9 @@ function openImageEditor(i,fromPdfPage=true){
   populateEditorDestination(x.targetPath||'');
   updateImageStyle();
   updateEditorModeButtons();
+  updateEditorCropModeButtons();
   document.getElementById('imgEditor').classList.add('show');
-  loadEditorPage();
+  requestAnimationFrame(()=>loadEditorPage());
 }
 
 async function loadEditorPage(){
@@ -601,8 +604,13 @@ async function loadEditorPage(){
   editCanvas.height=im.naturalHeight||im.height;
   const ctx=editCanvas.getContext('2d');ctx.clearRect(0,0,editCanvas.width,editCanvas.height);ctx.drawImage(im,0,0);
   const x=items[editIndex];
-  const b=(p===+x.sourcePage&&x.questionBox)?x.questionBox:{x:0,y:0,w:1000,h:1000};
-  setCropInputs(b);drawSelectionFromInputs();
+  const savedBox=editCropMode==='solution'?x.solutionBox:x.questionBox;
+  const hasBox=savedBox&&Number(savedBox.w)>0&&Number(savedBox.h)>0;
+  const b=(p===+x.sourcePage&&hasBox)?savedBox:{x:0,y:0,w:1000,h:1000};
+  setCropInputs(b);requestAnimationFrame(()=>drawSelectionFromInputs());
+}
+function setEditorCropMode(mode){if(editIndex<0)return;editCropMode=mode==='solution'?'solution':'question';updateEditorCropModeButtons();loadEditorPage()}
+function updateEditorCropModeButtons(){const q=document.getElementById('editQuestionCropBtn'),s=document.getElementById('editSolutionCropBtn'),n=document.getElementById('editCropModeNote');if(q)q.className=editCropMode==='question'?'primary':'';if(s)s.className=editCropMode==='solution'?'primary':'';if(n)n.textContent='Editing: '+(editCropMode==='solution'?'SOLUTION':'QUESTION')+' crop'}
 }
 
 function pathParts(path){return String(path||'').split(' / ').map(s=>s.trim()).filter(Boolean)}
@@ -653,7 +661,7 @@ async function saveQuestionToCloud(x){
     optText:'(A) '+getOptText(x.optA)+' | (B) '+getOptText(x.optB)+' | (C) '+getOptText(x.optC)+' | (D) '+getOptText(x.optD),
     key:x.key||'',questionImage:x.questionImage||'',contentMode:x.contentMode==='text'?'text':'image',libraryScope:x.libraryScope==='central'?'central':'private',centralPublished:x.libraryScope==='central',
     imageWidth:Number(x.imageWidth||100),imageMarginTop:Number(x.imageMarginTop??8),imageMarginBottom:Number(x.imageMarginBottom??8),
-    imageAlign:x.imageAlign||'center',questionBox:x.questionBox||null,solutionBox:x.solutionBox||null,sourcePage:x.sourcePage||null,
+    imageAlign:x.imageAlign||'center',questionBox:x.questionBox||null,solutionBox:x.solutionBox||null,solutionImage:x.solutionImage||'',solutionSourcePage:x.solutionSourcePage||null,sourcePage:x.sourcePage||null,
     creatorEmail:email,createdAt:new Date().toISOString()
   });
 }
@@ -685,8 +693,8 @@ editCanvas.addEventListener('pointerdown',e=>{const p=pointerToCrop(e),b=getCrop
 editCanvas.addEventListener('pointermove',e=>{if(!dragStart)return;const p=pointerToCrop(e),b={x:Math.round(Math.min(dragStart.x,p.x)),y:Math.round(Math.min(dragStart.y,p.y)),w:Math.round(Math.abs(p.x-dragStart.x)),h:Math.round(Math.abs(p.y-dragStart.y))};if(b.w>5&&b.h>5){setCropInputs(b);drawSelectionFromInputs()}});
 editCanvas.addEventListener('pointerup',()=>{dragStart=null});editCanvas.addEventListener('pointercancel',endCropPointer);
 function updateImageStyle(){const v=document.getElementById('iw').value;iwv.textContent=v+'%';if(editIndex>=0){items[editIndex].imageWidth=+v;items[editIndex].imageMarginTop=+document.getElementById('imt').value;items[editIndex].imageMarginBottom=+document.getElementById('imb').value;items[editIndex].imageAlign=document.getElementById('ialign').value}}
-async function saveImageEditor(){if(editIndex<0)return;const selectedPage=document.getElementById('editPage').value;const p=/^\d+$/.test(selectedPage)?+selectedPage:(+items[editIndex].sourcePage||1);const b=getCrop();const x=items[editIndex];const img=await cropImage(editPageImage,b);x.questionImage=img;x.questionBox=b;if(/^\d+$/.test(selectedPage))x.sourcePage=p;x.imageWidth=+iw.value;x.imageMarginTop=+imt.value;x.imageMarginBottom=+imb.value;x.imageAlign=ialign.value;closeImageEditor();status.textContent='✔ Image edited for Q'+(x.qNo||editIndex+1)+' from PDF page '+p;render()}
-function closeImageEditor(){document.getElementById('imgEditor').classList.remove('show');editIndex=-1}
+async function saveImageEditor(){if(editIndex<0)return;const selectedPage=document.getElementById('editPage').value;const p=/^\d+$/.test(selectedPage)?+selectedPage:(+items[editIndex].sourcePage||1);const b=getCrop();const x=items[editIndex];const img=await cropImage(editPageImage,b);if(editCropMode==='solution'){x.solutionImage=img;x.solutionBox=b;x.solutionSourcePage=p;status.textContent='✔ Solution cropped for Q'+(x.qNo||editIndex+1)+' from PDF page '+p}else{x.questionImage=img;x.questionBox=b;x.sourcePage=p;status.textContent='✔ Question image cropped for Q'+(x.qNo||editIndex+1)+' from PDF page '+p}x.imageWidth=+iw.value;x.imageMarginTop=+imt.value;x.imageMarginBottom=+imb.value;x.imageAlign=ialign.value;closeImageEditor();render()}
+function closeImageEditor(){document.getElementById('imgEditor').classList.remove('show');editIndex=-1;editCropMode='question';resizeState=null;dragStart=null}
 
 function confirmAll(){items.forEach(x=>x.confirmed=true);render();status.textContent='☑ All questions confirmed. Review once, then send to Library.'}
 function collectFromForm(i){const x=items[i];x.qNo=+document.getElementById('n'+i).value||i+1;x.key=document.getElementById('k'+i).value;x.topic=document.getElementById('t'+i).value;x.targetPath=document.getElementById('p'+i).value;x.qText=document.getElementById('q'+i).value;x.optA=document.getElementById('a'+i).value;x.optB=document.getElementById('b'+i).value;x.optC=document.getElementById('c'+i).value;x.optD=document.getElementById('d'+i).value}
