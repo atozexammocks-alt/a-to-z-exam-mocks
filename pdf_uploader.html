@@ -10,7 +10,7 @@
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:10px}
 .brand{font-weight:900;color:#38bdf8;text-decoration:none;white-space:nowrap}.nav{display:flex;gap:6px;flex-wrap:wrap}.nav a,.btn{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:8px 11px;border-radius:6px;text-decoration:none;font-weight:800;font-size:12px;cursor:pointer}
-.btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn.keepOn{background:#16a34a!important;color:#fff!important;border-color:#4ade80!important;box-shadow:0 0 0 2px #4ade8044}.btn.keepOff{opacity:.55}.btn:disabled{opacity:.45;cursor:not-allowed}
 .page{padding:12px}.toolbar{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #file{display:none}.choose{background:#0284c7;border:1px solid #38bdf8;color:#fff;padding:9px 13px;border-radius:6px;font-weight:900;cursor:pointer}
 .status{font-weight:900;color:#10b981}.activity{width:100%;color:#94a3b8;font-size:12px}.progress{height:8px;background:#0f172a;border:1px solid #334155;border-radius:20px;overflow:hidden;flex:1;min-width:120px}.progress i{display:block;height:100%;width:0;background:#38bdf8}
@@ -18,7 +18,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 .grid2{display:grid;grid-template-columns:110px 1fr;gap:7px}.field{margin-top:7px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
 input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}textarea{min-height:90px;resize:vertical}.opt{display:grid;grid-template-columns:22px 1fr;gap:4px;margin:3px 0}.optionGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px}.qMeta{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.preview{background:#fff;color:#111;border-radius:7px;padding:16px;line-height:1.55;min-height:180px}.preview img{max-width:100%;max-height:350px;display:block;margin:12px auto}.previewOpt{padding:5px 0;border-bottom:1px solid #ddd}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}.modalfoot{border-top:1px solid #334155;border-bottom:0}.modalbody{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:10px;min-height:0;flex:1}.pdfpages{overflow:auto}.thumb{border:1px solid #334155;padding:4px;margin-bottom:6px;cursor:pointer}.thumb.active{border-color:#38bdf8}.thumb canvas{width:100%;display:block;background:#fff}.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none}.pdfview canvas{background:#fff;max-width:none}.cropbox{pointer-events:auto;cursor:move}.cropHandle{position:absolute;width:14px;height:14px;background:#fff;border:2px solid #0284c7;border-radius:2px}.cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}.cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.metaPanel{background:#07101f;border:1px solid #334155;border-radius:8px;padding:9px;margin-bottom:10px}.metaGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.miniBtn{padding:5px 8px;font-size:11px}.topic{margin-top:7px}@media(max-width:850px){.metaGrid{grid-template-columns:1fr 1fr}}.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:none;pointer-events:none}.prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}.modalfoot{border-top:1px solid #334155;border-bottom:0}.modalbody{display:grid;grid-template-columns:170px 1fr;gap:10px;padding:10px;min-height:0;flex:1}.pdfpages{overflow:auto}.thumb{border:1px solid #334155;padding:4px;margin-bottom:6px;cursor:pointer}.thumb.active{border-color:#38bdf8}.thumb canvas{width:100%;display:block;background:#fff}.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none}.pdfview canvas{background:#fff;max-width:none}.cropbox{pointer-events:auto;cursor:move;touch-action:none;user-select:none}.cropHandle{position:absolute;width:14px;height:14px;background:#fff;border:2px solid #0284c7;border-radius:2px}.cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}.cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}.metaPanel{background:#07101f;border:1px solid #334155;border-radius:8px;padding:9px;margin-bottom:10px}.metaGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.miniBtn{padding:5px 8px;font-size:11px}.topic{margin-top:7px}@media(max-width:850px){.metaGrid{grid-template-columns:1fr 1fr}}.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:none;pointer-events:none}.prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
 @media(max-width:850px){.workspace{grid-template-columns:1fr}.nav a:nth-child(n+3){display:none}.scroll{max-height:none}.modalbody{grid-template-columns:90px 1fr}}
 </style>
 </head>
@@ -68,7 +68,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 (function(){
 "use strict";
 var fileEl=document.getElementById("file"), chooseBtn=document.getElementById("chooseBtn"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
-chooseBtn.addEventListener("click",function(){fileEl.click()});
+chooseBtn.addEventListener("click",function(){fileEl.value="";fileEl.click()});
 var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
 var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropStart=null,cropRect=null,renderScale=1.4,cropAction=null,cropBase=null;
 
@@ -105,7 +105,7 @@ fileEl.addEventListener("change",function(){
  reader.readAsArrayBuffer(f);
  });
 // Re-bind through a native input path as well, so mobile browsers cannot swallow the label click.
-fileEl.oninput=function(){if(fileEl.files&&fileEl.files.length){var ev=new Event("change");fileEl.dispatchEvent(ev)}};
+
 
 function loadPdf(data){
  if(!window.pdfjsLib)return Promise.reject(new Error("PDF engine did not load. Refresh the page once."));
@@ -243,6 +243,7 @@ async function extract(){
 
 extractBtn.addEventListener("click",extract);
 
+function setKeep(i,mode){var x=items[i];if(!x)return;if(mode==="image"){x.keepImage=true;x.keepText=false}else{x.keepText=true;x.keepImage=false}render();status((mode==="image"?"🖼 Image":"📝 Text")+" selected for Q "+(x.qNo||i+1)+" — Student Preview updated.");}
 function render(){
  var ed=document.getElementById("editor"),pv=document.getElementById("preview");
  ed.innerHTML=items.length?items.map(function(x,i){
@@ -254,11 +255,9 @@ function render(){
    '<div class="actions"><button class="btn" data-apply="'+i+'">✔ Apply</button><button class="btn" data-crop="'+i+'">✂ Extract Image from PDF</button><button class="btn miniBtn" data-text="'+i+'">📝 Keep Text</button><button class="btn miniBtn" data-image="'+i+'">🖼 Keep Image</button><label><input type="checkbox" data-confirm="'+i+'" '+(x.confirmed?"checked":"")+'> Confirm</label></div></div>';
  }).join(""):'<div class="card">No questions found.</div>';
  ed.querySelectorAll("[data-apply]").forEach(function(b){b.onclick=function(){apply(Number(b.dataset.apply))}});
- ed.querySelectorAll("[data-crop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.crop),items[Number(b.dataset.crop)].sourcePage)}});ed.querySelectorAll("[data-text]").forEach(function(b){b.onclick=function(){items[+b.dataset.text].keepText=true;items[+b.dataset.text].keepImage=false;render()}});ed.querySelectorAll("[data-image]").forEach(function(b){b.onclick=function(){items[+b.dataset.image].keepImage=true;items[+b.dataset.image].keepText=false;render()}});
+ ed.querySelectorAll("[data-crop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.crop),items[Number(b.dataset.crop)].sourcePage)}});ed.querySelectorAll("[data-text]").forEach(function(b){b.onclick=function(){setKeep(Number(b.dataset.text),"text")}});ed.querySelectorAll("[data-image]").forEach(function(b){b.onclick=function(){setKeep(Number(b.dataset.image),"image")}});
  ed.querySelectorAll("[data-confirm]").forEach(function(b){b.onchange=function(){items[Number(b.dataset.confirm)].confirmed=b.checked;saveBtn.disabled=!items.some(function(x){return x.confirmed})}});
- pv.innerHTML=items.length?items.map(function(x,i){
-   return '<div class="card '+(i===selected?"active":"")+'" data-select="'+i+'"><div class="preview"><b>Q '+esc(x.qNo||i+1)+'.</b> '+esc(x.qText)+(x.options||[]).map(function(o,k){return o?'<div class="previewOpt"><b>('+String.fromCharCode(65+k)+')</b> '+esc(o)+'</div>':""}).join("")+(x.questionImage?'<img src="'+x.questionImage+'">':"")+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Extract Image from Main PDF</button></div></div>';
- }).join(""):'<div class="card"><div class="preview">No question selected.</div></div>';
+ pv.innerHTML=items.length?items.map(function(x,i){var h='<div class="card '+(i===selected?"active":"")+'" data-select="'+i+'"><div class="preview"><b>Q '+esc(x.qNo||i+1)+'.</b> ';if(x.keepImage&&x.questionImage)h+='<img src="'+x.questionImage+'" alt="Question image">';else if(x.keepText)h+=esc(x.qText)+(x.options||[]).map(function(o,k){return o?'<div class="previewOpt"><b>('+String.fromCharCode(65+k)+')</b> '+esc(o)+'</div>':""}).join("");else h+='<div class="muted">No representation selected.</div>';return h+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Extract Image from Main PDF</button></div></div>';}).join(""):'<div class="card"><div class="preview">No question selected.</div></div>';
  pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}});
  pv.querySelectorAll("[data-pcrop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.pcrop),items[Number(b.dataset.pcrop)].sourcePage)}});
 }
@@ -271,7 +270,7 @@ function apply(i){
  selected=i;render();status("✔ Q "+x.qNo+" updated.");
 }
 
-async function openCrop(i,page){selected=i;currentPdfPage=page||targetPages[0]||1;cropRect=items[i].cropRect||{x:Math.round((pdf&&items[i].sourcePage?0:0)),y:Math.max(0,Math.round((items[i].cropTop||items[i].cropRect?.y)||0)),w:Math.round((items[i].cropRect&&items[i].cropRect.w)||0),h:Math.round((items[i].cropRect&&items[i].cropRect.h)||0)};if(!cropRect.w||!cropRect.h)cropRect={x:0,y:0,w:1,h:1};document.getElementById("cropLibrary").value=items[i].libraryType||"Personal Library";document.getElementById("cropFolder").value=items[i].folder||"";document.getElementById("cropSubfolder").value=items[i].subfolder||"";document.getElementById("cropTopic").value=items[i].topic||"";show("cropOverlay",true);await renderCropPage();await buildThumbs();}
+async function openCrop(i,page){selected=i;currentPdfPage=page||targetPages[0]||1;cropRect=items[i].cropRect||{x:Math.round((pdf&&items[i].sourcePage?0:0)),y:Math.max(0,Math.round((items[i].cropTop||items[i].cropRect?.y)||0)),w:Math.round((items[i].cropRect&&items[i].cropRect.w)||0),h:Math.round((items[i].cropRect&&items[i].cropRect.h)||0)};if(!cropRect.w||!cropRect.h)cropRect={x:0,y:0,w:1,h:1};document.getElementById("cropLibrary").value=items[i].libraryType||"Personal Library";document.getElementById("cropFolder").value=items[i].folder||"";document.getElementById("cropSubfolder").value=items[i].subfolder||"";document.getElementById("cropTopic").value=items[i].topic||"";document.getElementById("cropKeepText").classList.toggle("keepOn",!!items[i].keepText);document.getElementById("cropKeepImage").classList.toggle("keepOn",!!items[i].keepImage);show("cropOverlay",true);await renderCropPage();await buildThumbs();}
 async function buildThumbs(){
  var box=document.getElementById("pdfPages");box.innerHTML="";
  for(var idx=0;idx<targetPages.length;idx++){var n=targetPages[idx], p=await pdf.getPage(n),v=p.getViewport({scale:.2}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
@@ -293,7 +292,7 @@ view.addEventListener("pointerdown",function(e){
 });
 view.addEventListener("pointermove",function(e){
  if(!cropBase)return;
- var canvas=document.getElementById("pdfCanvas"),r=canvas.getBoundingClientRect(),vr=view.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height,dx=(e.clientX-cropBase.x)*sx,dy=(e.clientY-cropBase.y)*sy,z=cropBase.rect;
+ var canvas=document.getElementById("pdfCanvas"),b=document.getElementById("cropBox"),r=canvas.getBoundingClientRect(),vr=view.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height,dx=(e.clientX-cropBase.x)*sx,dy=(e.clientY-cropBase.y)*sy,z=cropBase.rect;
  if(cropAction==="move"){cropRect={x:z.x+dx,y:z.y+dy,w:z.w,h:z.h}}
  else if(cropAction==="resize"){
   var h=cropBase.handle;
@@ -312,7 +311,7 @@ window.addEventListener("pointerup",function(){cropStart=null;cropAction=null;cr
 document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];cropRect=null;await renderCropPage();await buildThumbs()}};
 document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false);cropStart=null};
-document.getElementById("cropKeepText").onclick=function(){if(selected>=0){items[selected].keepText=true;items[selected].keepImage=false}};document.getElementById("cropKeepImage").onclick=function(){if(selected>=0){items[selected].keepImage=true;items[selected].keepText=false}};document.getElementById("cropCloud").onclick=function(){if(selected>=0){items[selected].libraryType=document.getElementById("cropLibrary").value;items[selected].folder=document.getElementById("cropFolder").value.trim();items[selected].subfolder=document.getElementById("cropSubfolder").value.trim();items[selected].topic=document.getElementById("cropTopic").value.trim();items[selected].confirmed=true;saveBtn.disabled=false;saveBtn.click()}};
+document.getElementById("cropKeepText").onclick=function(){if(selected>=0)setKeep(selected,"text")};document.getElementById("cropKeepImage").onclick=function(){if(selected>=0)setKeep(selected,"image")};document.getElementById("cropCloud").onclick=function(){if(selected>=0){items[selected].libraryType=document.getElementById("cropLibrary").value;items[selected].folder=document.getElementById("cropFolder").value.trim();items[selected].subfolder=document.getElementById("cropSubfolder").value.trim();items[selected].topic=document.getElementById("cropTopic").value.trim();items[selected].confirmed=true;saveBtn.disabled=false;saveBtn.click()}};
 document.getElementById("saveCrop").onclick=async function(){
  if(selected<0||!cropRect||cropRect.w<10||cropRect.h<10){alert("Drag a crop box first.");return}
  var p=await pdf.getPage(currentPdfPage),v=p.getViewport({scale:1.5}),c=document.createElement("canvas");c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
