@@ -23,10 +23,10 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:56px;background:#0b1
 .panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}
 .pdfview{position:relative;background:#020617;text-align:center;padding:10px;touch-action:none;height:calc(100vh - 240px);overflow:auto;border:1px solid #334155;border-radius:8px}
 .pdfview canvas{background:#fff;max-width:none;transform-origin:top center}
-.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;pointer-events:auto;cursor:move;z-index:10}
-.cropHandle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:11}
-.cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}
-.cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
+.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf844;display:block;touch-action:none;cursor:move;z-index:10}
+.cropHandle{position:absolute;width:18px;height:18px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:11}
+.cropHandle.nw{left:-9px;top:-9px;cursor:nwse-resize}.cropHandle.ne{right:-9px;top:-9px;cursor:nesw-resize}
+.cropHandle.sw{left:-9px;bottom:-9px;cursor:nesw-resize}.cropHandle.se{right:-9px;bottom:-9px;cursor:nwse-resize}
 
 /* STUDENT PREVIEW PANEL */
 .preview-box{background:#fff;color:#111;border-radius:8px;padding:14px;min-height:calc(100vh - 260px);overflow-y:auto;line-height:1.5}
@@ -81,7 +81,7 @@ textarea{min-height:60px;resize:vertical}
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <h3 style="margin:0">📄 PDF Page Viewer</h3>
-      <div style="font-size:12px;color:#38bdf8">Precise box dragging enabled</div>
+      <div style="font-size:12px;color:#38bdf8">Mobile-friendly touch dragging enabled</div>
     </div>
     <div class="pdfview" id="pdfView">
       <canvas id="pdfCanvas"></canvas>
@@ -121,7 +121,7 @@ textarea{min-height:60px;resize:vertical}
 <div style="font-size:11px;color:#94a3b8;margin-top:8px">Enter specific page limits like <b>1-50</b> to process only those pages.</div>
 </div></div>
 
-<!-- POPUP MODAL WITH OCR TOGGLE SWITCH & STRICT CROP -->
+<!-- POPUP MODAL -->
 <div class="overlay" id="cropPopup"><div class="modal">
 <div class="modalhead">
   <b style="color:#38bdf8">📝 Slicer Configurator: Strict Crop & Options Matrix</b>
@@ -220,7 +220,7 @@ var prevBtn=document.getElementById("prevPg"), nextBtn=document.getElementById("
 var zoomInBtn=document.getElementById("zoomIn"), zoomOutBtn=document.getElementById("zoomOut"), zoomLbl=document.getElementById("zoomLbl");
 var saveBtn=document.getElementById("saveAll"), viewQueueBtn=document.getElementById("viewQueueBtn");
 var pdf=null, totalPages=0, allowedPages=[], pageIdxInList=0, items=[], renderScale=1.4;
-var cropRect={x:30, y:30, w:500, h:160};
+var cropRect={x:30, y:30, w:300, h:120};
 var cropAction=null, cropStart=null, cropInit=null;
 var tempCropData=null;
 
@@ -291,6 +291,13 @@ async function renderPage(){
  var p=await pdf.getPage(currPage), v=p.getViewport({scale:renderScale}), c=document.getElementById("pdfCanvas");
  c.width=v.width; c.height=v.height;
  await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
+ 
+ // Ensure crop box stays within canvas bounds when zoom changes
+ var canvasW = c.width;
+ var canvasH = c.height;
+ if(cropRect.x + cropRect.w > canvasW) cropRect.w = Math.max(100, canvasW - cropRect.x - 20);
+ if(cropRect.y + cropRect.h > canvasH) cropRect.h = Math.max(60, canvasH - cropRect.y - 20);
+
  document.getElementById("cropBox").style.display="block";
  zoomLbl.textContent = Math.round(renderScale * 71) + "%";
  updateCropBoxUI();
@@ -305,6 +312,7 @@ function updateCropBoxUI(){
  b.style.height=(cropRect.h*sy)+"px";
 }
 
+// Robust Touch & Mouse Pointer Event Handler for Mobile/Desktop dragging & resizing
 (function(){
  var b=document.getElementById("cropBox");
  b.onpointerdown=function(e){
@@ -348,259 +356,4 @@ function updateCropBoxUI(){
 })();
 
 prevBtn.onclick=async function(){if(pageIdxInList>0){pageIdxInList--;await renderPage()}};
-nextBtn.onclick=async function(){if(pageIdxInList<allowedPages.length-1){pageIdxInList++;await renderPage()}};
-
-zoomInBtn.onclick=async function(){if(renderScale<2.5){renderScale+=0.3;await renderPage()}};
-zoomOutBtn.onclick=async function(){if(renderScale>0.8){renderScale-=0.3;await renderPage()}};
-
-async function runOcrOnImage(dataUrl){
- try {
-   if(window.Tesseract){
-     var ocrRes = await Tesseract.recognize(dataUrl, 'eng+hin');
-     return ocrRes?.data?.text?.trim() || "";
-   }
- } catch(err){}
- return "";
-}
-
-captureBtn.onclick=async function(){
- if(!pdf||!allowedPages.length)return;
- var currPage = allowedPages[pageIdxInList];
- status("✂ Strictly cropping image from page "+currPage+"…");
- 
- // High-res rendering for crystal clear crop output
- var p=await pdf.getPage(currPage), v=p.getViewport({scale:2.2}), c=document.createElement("canvas");
- c.width=v.width; c.height=v.height;
- await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
- 
- var canvasUI = document.getElementById("pdfCanvas");
- var sx=v.width/canvasUI.width, sy=v.height/canvasUI.height;
- var im=await imageLoad(c.toDataURL("image/png")), cc=document.createElement("canvas");
- 
- var rx=Math.max(0,Math.round(cropRect.x*sx)), ry=Math.max(0,Math.round(cropRect.y*sy));
- var rw=Math.max(10,Math.round(cropRect.w*sx)), rh=Math.max(10,Math.round(cropRect.h*sy));
- 
- cc.width=rw; cc.height=rh; 
- var ctx=cc.getContext("2d");
- ctx.drawImage(im, rx, ry, rw, rh, 0, 0, rw, rh);
-
- // Premium Image Enhancement: High contrast B&W sharpening
- var imgData = ctx.getImageData(0, 0, rw, rh);
- var data = imgData.data;
- for (var i = 0; i < data.length; i += 4) {
-   var r = data[i], g = data[i+1], b = data[i+2];
-   var avg = (r + g + b) / 3;
-   var enhanced = avg < 210 ? Math.max(0, avg - 25) : 255;
-   data[i] = enhanced; data[i+1] = enhanced; data[i+2] = enhanced;
- }
- ctx.putImageData(imgData, 0, 0);
-
- tempCropData = cc.toDataURL("image/png");
- document.getElementById("popupImg").src = tempCropData;
- document.getElementById("popQNo").value = items.length + 1;
- document.getElementById("popText").value = "";
- showModal("cropPopup", true);
- status("✔ Strict crop captured successfully.");
-
- // Run OCR only if toggle switch is enabled
- var ocrEnabled = document.getElementById("ocrToggle").checked;
- if(ocrEnabled){
-   document.getElementById("popText").value = "Extracting OCR text (Eng + Hin)...";
-   var text = await runOcrOnImage(tempCropData);
-   document.getElementById("popText").value = text;
- }
-};
-
-document.getElementById("ocrToggle").onchange = async function(){
- if(this.checked && tempCropData){
-   document.getElementById("popText").value = "Extracting OCR text...";
-   var text = await runOcrOnImage(tempCropData);
-   document.getElementById("popText").value = text;
-   updateStudentPreview(getLiveDraftData());
- } else if(!this.checked) {
-   document.getElementById("popText").value = "";
-   updateStudentPreview(getLiveDraftData());
- }
-};
-
-function getLiveDraftData(){
-  return {
-    qNo: document.getElementById("popQNo").value.trim() || "1",
-    qText: document.getElementById("popText").value.trim(),
-    qImg: activeDraft.qImg,
-    optAImg: activeDraft.optAImg, optBImg: activeDraft.optBImg, optCImg: activeDraft.optCImg, optDImg: activeDraft.optDImg,
-    optAText: document.getElementById("popOptAText").value.trim(),
-    optBText: document.getElementById("popOptBText").value.trim(),
-    optCText: document.getElementById("popOptCText").value.trim(),
-    optDText: document.getElementById("popOptDText").value.trim(),
-    qType: document.getElementById("popQType").value,
-    level: document.getElementById("popLevel").value
-  };
-}
-
-document.getElementById("assignQImg").onclick = function(){
- activeDraft.qImg = tempCropData;
- updateStudentPreview(getLiveDraftData());
- alert("✔ Cropped image set as Question Image!");
-};
-document.getElementById("assignOptA").onclick = function(){
- activeDraft.optAImg = tempCropData;
- document.getElementById("statusOptA").textContent = "Image: Assigned ✔";
- updateStudentPreview(getLiveDraftData());
-};
-document.getElementById("assignOptB").onclick = function(){
- activeDraft.optBImg = tempCropData;
- document.getElementById("statusOptB").textContent = "Image: Assigned ✔";
- updateStudentPreview(getLiveDraftData());
-};
-document.getElementById("assignOptC").onclick = function(){
- activeDraft.optCImg = tempCropData;
- document.getElementById("statusOptC").textContent = "Image: Assigned ✔";
- updateStudentPreview(getLiveDraftData());
-};
-document.getElementById("assignOptD").onclick = function(){
- activeDraft.optDImg = tempCropData;
- document.getElementById("statusOptD").textContent = "Image: Assigned ✔";
- updateStudentPreview(getLiveDraftData());
-};
-
-document.getElementById("popText").oninput = function(){ updateStudentPreview(getLiveDraftData()); };
-document.getElementById("popOptAText").oninput = function(){ updateStudentPreview(getLiveDraftData()); };
-document.getElementById("popOptBText").oninput = function(){ updateStudentPreview(getLiveDraftData()); };
-document.getElementById("popOptCText").oninput = function(){ updateStudentPreview(getLiveDraftData()); };
-document.getElementById("popOptDText").oninput = function(){ updateStudentPreview(getLiveDraftData()); };
-document.getElementById("popQType").onchange = function(){ updateStudentPreview(getLiveDraftData()); };
-document.getElementById("popLevel").onchange = function(){ updateStudentPreview(getLiveDraftData()); };
-
-document.getElementById("closeModal").onclick = function(){ showModal("cropPopup", false); };
-
-document.getElementById("confirmCropBtn").onclick = function(){
- var newItem = {
-   qNo: document.getElementById("popQNo").value.trim() || String(items.length + 1),
-   qText: document.getElementById("popText").value.trim(),
-   qImg: activeDraft.qImg,
-   optAImg: activeDraft.optAImg, optBImg: activeDraft.optBImg, optCImg: activeDraft.optCImg, optDImg: activeDraft.optDImg,
-   optAText: document.getElementById("popOptAText").value.trim(),
-   optBText: document.getElementById("popOptBText").value.trim(),
-   optCText: document.getElementById("popOptCText").value.trim(),
-   optDText: document.getElementById("popOptDText").value.trim(),
-   libraryType: document.getElementById("popLibrary").value,
-   folder: document.getElementById("popFolder").value.trim(),
-   subfolder: document.getElementById("popSubfolder").value.trim(),
-   topic: document.getElementById("popTopic").value.trim() || "Physics",
-   qType: document.getElementById("popQType").value,
-   level: document.getElementById("popLevel").value,
-   sourcePage: allowedPages[pageIdxInList]
- };
-
- items.push(newItem);
- activeDraft = { qImg: "", optAImg: "", optBImg: "", optCImg: "", optDImg: "", optAText: "", optBText: "", optCText: "", optDText: "" };
- document.getElementById("statusOptA").textContent = "Image: Not assigned";
- document.getElementById("statusOptB").textContent = "Image: Not assigned";
- document.getElementById("statusOptC").textContent = "Image: Not assigned";
- document.getElementById("statusOptD").textContent = "Image: Not assigned";
- document.getElementById("popOptAText").value = "";
- document.getElementById("popOptBText").value = "";
- document.getElementById("popOptCText").value = "";
- document.getElementById("popOptDText").value = "";
-
- showModal("cropPopup", false);
- updateQueueUI();
- status("✔ Question added to queue successfully!");
-};
-
-function updateStudentPreview(x){
- var prev = document.getElementById("studentPreview");
- var h = '<b>Q ' + esc(x.qNo) + '. [' + esc(x.qType) + ' | ' + esc(x.level) + ']</b><br>';
- if(x.qImg) h += '<img src="' + x.qImg + '" alt="Q Image">';
- if(x.qText) h += '<div style="margin:6px 0;">' + esc(x.qText) + '</div>';
-
- var opts = [
-   {k:'A', img:x.optAImg, txt:x.optAText},
-   {k:'B', img:x.optBImg, txt:x.optBText},
-   {k:'C', img:x.optCImg, txt:x.optCText},
-   {k:'D', img:x.optDImg, txt:x.optDText}
- ];
-
- h += '<div class="preview-opt-grid">';
- opts.forEach(function(o){
-   if(o.img || o.txt){
-     h += '<div class="preview-opt"><b>(' + o.k + ')</b> ';
-     if(o.img) h += '<img src="' + o.img + '" style="max-height:35px;display:inline-block;margin:0 4px;">';
-     if(o.txt) h += '<span>' + esc(o.txt) + '</span>';
-     h += '</div>';
-   }
- });
- h += '</div>';
- prev.innerHTML = h;
-}
-
-function updateQueueUI(){
- document.getElementById("queueCount").textContent = items.length;
- document.getElementById("saveAll").disabled = items.length === 0;
- document.getElementById("viewQueueBtn").disabled = items.length === 0;
-
- var c = document.getElementById("queueListContainer");
- c.innerHTML = items.length ? items.map(function(x, i){
-   return '<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px;display:flex;justify-content:space-between;align-items:center;">'+
-   '<div><b>Q '+esc(x.qNo)+'</b> (Page '+x.sourcePage+') • <i>'+esc(x.libraryType)+' / '+esc(x.folder||"General")+' ['+esc(x.qType)+']</i></div>'+
-   '<button class="btn" style="background:#7f1d1d;color:#fecaca" data-del="'+i+'">🗑 Delete</button></div>';
- }).join("") : '<div style="color:#94a3b8">Queue is empty.</div>';
-
- c.querySelectorAll("[data-del]").forEach(function(b){
-   b.onclick = function(){
-     items.splice(Number(b.dataset.del), 1);
-     updateQueueUI();
-     status("✔ Item removed from queue.");
-   }
- });
-}
-
-viewQueueBtn.onclick = function(){ showModal("queuePopup", true); };
-document.getElementById("closeQueueModal").onclick = function(){ showModal("queuePopup", false); };
-
-function executeSave(){
- if(!items.length)return;
- var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
- if(!email){alert("Teacher login not found in localStorage.");return}
- status("☁ Saving "+items.length+" question(s) to Firebase…");
- saveBtn.disabled=true; document.getElementById("saveAllFromQueue").disabled=true;
- 
- import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js").then(async function(appmod){
-  var fs=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-  var au=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
-  var config={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfQBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
-  var appx;try{appx=appmod.initializeApp(config,"uploader")}catch(e){appx=appmod.getApp("uploader")}
-  var db=fs.getFirestore(appx),auth=au.getAuth(appx);try{await au.signInAnonymously(auth)}catch(e){}
-  
-  for(var i=0;i<items.length;i++){
-   var x=items[i];
-   var optsArr = [x.optAText, x.optBText, x.optCText, x.optDText].filter(Boolean);
-   await fs.addDoc(fs.collection(db,"questions"),{
-    ownerEmail:email, creatorEmail:email, qNo:String(x.qNo||(i+1)),
-    qText:x.qText||"", question:x.qImg||"",
-    optAImg:x.optAImg||"", optBImg:x.optBImg||"", optCImg:x.optCImg||"", optDImg:x.optDImg||"",
-    options:optsArr, keepOptions:optsArr.length>0,
-    libraryType:x.libraryType||"Personal Library", folder:x.folder||"", subfolder:x.subfolder||"", 
-    topic:x.topic||"Physics", qType:x.qType||"MCQ", level:x.level||"Medium",
-    sourcePage:x.sourcePage, createdAt:new Date().toISOString()
-   });
-  }
-  status("✔ Saved "+items.length+" question(s) successfully!");
-  alert("✔ Successfully saved all questions to Firebase Library!");
-  items=[]; updateQueueUI(); showModal("queuePopup", false);
- }).catch(function(e){
-  console.error(e); status("❌ Save failed: "+e.message); alert("Save failed: "+e.message);
- }).finally(function(){
-  saveBtn.disabled=false; document.getElementById("saveAllFromQueue").disabled=false;
- });
-}
-
-saveBtn.onclick = executeSave;
-document.getElementById("saveAllFromQueue").onclick = executeSave;
-
-status("✔ Professional Slicer loaded. Choose PDF to begin.");
-})();
-</script>
-</body>
-</html>
+nextBtn.onclick=async function(){if(pageIdxInList<allowedPages.length-1
