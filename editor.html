@@ -620,6 +620,48 @@
         }
         return;
       }
+      // TEST BUILDER EDIT MODE:
+      // Save the edited question back to the original Library question.
+      // This branch intentionally does NOT run for Paper Designer (paperMode).
+      if (new URLSearchParams(window.location.search).get('builderEdit') === '1') {
+        const qid = localStorage.getItem('AZ_BUILDER_EDIT_ID');
+        if (!qid || !window.editorDb) {
+          alert('Question ID / database unavailable.');
+          return;
+        }
+        try {
+          const keepOptions = document.getElementById('editor-keep-options-toggle')?.checked;
+          const opts = keepOptions ? [
+            document.getElementById('fallback-opta')?.value.trim() || '',
+            document.getElementById('fallback-optb')?.value.trim() || '',
+            document.getElementById('fallback-optc')?.value.trim() || '',
+            document.getElementById('fallback-optd')?.value.trim() || ''
+          ].filter(Boolean) : [];
+
+          await window.editorUpdateDoc(
+            window.editorDoc(window.editorDb, 'questions', qid),
+            {
+              question: finalUrl,
+              qText: document.getElementById('fallback-qtext')?.value.trim() || '',
+              optText: opts.join(' | '),
+              updatedAt: new Date().toISOString()
+            }
+          );
+
+          localStorage.removeItem('AZ_BUILDER_EDIT_ID');
+          localStorage.removeItem('AZ_BUILDER_EDIT_RETURN');
+          localStorage.removeItem('Temp_Editor_Image');
+          localStorage.removeItem('Temp_Editor_Synced_Image');
+
+          showToast('✔ Original Library question updated!');
+          setTimeout(() => { window.location.href = 'builder.html'; }, 900);
+        } catch (err) {
+          console.error('Builder → Library update failed:', err);
+          alert('Library update failed: ' + (err?.message || err));
+        }
+        return;
+      }
+
       if (new URLSearchParams(window.location.search).get('paperMode') === '1') {
         window.location.href = 'paper_designer.html';
         return;
