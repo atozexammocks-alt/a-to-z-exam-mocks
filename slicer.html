@@ -29,54 +29,34 @@
     window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
     window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc;
 
-    let libraryTree = [];
-    let folderPdfs = {};
-    let mainFolders = [];
-    let subFolders = {};
-
-    const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-    const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
-
-    function rebuildFlatFoldersFromTree() {
-      mainFolders = libraryTree.map(n => String(n.name || '').trim()).filter(Boolean);
-      subFolders = {};
-      const collect = (nodes, root, rel = []) => {
-        (nodes || []).forEach(n => {
-          const name = String(n.name || '').trim();
-          if (!name) return;
-          const next = rel.concat(name);
-          subFolders[root] = subFolders[root] || [];
-          subFolders[root].push(next.join(' / '));
-          collect(n.children || [], root, next);
-        });
-      };
-      libraryTree.forEach(root => collect(root.children || [], String(root.name || '').trim(), []));
-    }
+    let mainFolders = ["Classical Mechanics", "Quantum Mechanics", "Mathematical Physics", "Electronics", "EMT", "Solid State Mechanics", "Thermo & Statical", "Atomic", "Nuclear", "PYP"];
+    let subFolders = {
+      "Classical Mechanics": ["General", "Lagrangian", "Hamiltonian"],
+      "Quantum Mechanics": ["General", "Operators", "Wave Function"],
+      "Mathematical Physics": ["General", "Vector Analysis", "Matrices"],
+      "Electronics": ["General", "Transistors", "Diodes"],
+      "EMT": ["General"], "Solid State Mechanics": ["General"], "Thermo & Statical": ["General"], "Atomic": ["General"], "Nuclear": ["General"], "PYP": ["General"]
+    };
 
     async function loadLibraryState() {
       try {
-        const privateSnap = await window.getDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())));
-        const privateData = privateSnap.exists() ? privateSnap.data() : {};
-
-        libraryTree = Array.isArray(privateData.libraryTree) ? privateData.libraryTree : [];
-        folderPdfs = (privateData.folderPdfs && typeof privateData.folderPdfs === "object") ? { ...privateData.folderPdfs } : {};
-
-        if (!libraryTree.length && Array.isArray(privateData.mainFolders)) {
-          libraryTree = privateData.mainFolders.map(name => ({
-            id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
-            name: String(name).trim(),
-            type: "folder",
-            children: (Array.isArray(privateData.subFolders?.[name]) ? privateData.subFolders[name] : []).map(s => ({
-              id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
-              name: String(s).trim(),
-              type: "folder",
-              children: []
-            }))
-          }));
+        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        const snap = await window.getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.mainFolders) mainFolders = data.mainFolders;
+          if (data.subFolders) subFolders = data.subFolders;
         }
+      } catch (e) {}
+    }
 
-        rebuildFlatFoldersFromTree();
-      } catch (e) { console.error("Slicer library registry load failed:", e); }
+    async function saveLibraryStateToFirebase() {
+      try {
+        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
+        await window.setDoc(ref, { mainFolders, subFolders }, { merge: true });
+      } catch (e) {
+        console.error("Error saving folders:", e);
+      }
     }
 
     window.populateSlicerSubDropdown = function(mainName) {
@@ -104,53 +84,54 @@
       if (mainSel) window.populateSlicerSubDropdown(mainSel.value);
     };
 
-    function findTreeNodeByName(name) {
-      return libraryTree.find(n => String(n.name || '').trim().toLowerCase() === String(name).trim().toLowerCase());
-    }
+    window.addNewMainFolderPrompt = async function() {
+      const folderName = prompt("Enter new Main Folder name:");
+      if (!folderName || !folderName.trim()) return;
+      const cleanName = folderName.trim();
 
-    window.addNewFolderDynamic = async function() {
-      const type = prompt("क्या जोड़ना चाहते हैं? टाइप करें:\n1 -> Main Folder\n2 -> Sub Folder");
-      if (type === "1") {
-        const newMain = (prompt("नया Main Folder नाम डालें:") || "").trim();
-        if (newMain && !findTreeNodeByName(newMain)) {
-          libraryTree.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newMain, type: "folder", children: [] });
-          rebuildFlatFoldersFromTree();
-          window.initSlicerStudio();
-          const saved = await window.saveFolderRegistryToCloud();
-          if (saved) alert("✔ Main Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
-        }
-      } else if (type === "2") {
-        const currentMain = document.getElementById('vault-main-cat').value;
-        const newSub = (prompt(`"${currentMain}" के लिए नया Sub Folder नाम डालें:`) || "").trim();
-        const parent = findTreeNodeByName(currentMain);
-        if (newSub && parent) {
-          parent.children = Array.isArray(parent.children) ? parent.children : [];
-          if (!parent.children.some(n => String(n.name || '').trim().toLowerCase() === newSub.toLowerCase())) {
-            parent.children.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newSub, type: "folder", children: [] });
-            rebuildFlatFoldersFromTree();
-            window.populateSlicerSubDropdown(currentMain);
-            const saved = await window.saveFolderRegistryToCloud();
-            if (saved) alert("✔ Sub Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
-          }
-        }
+      if (mainFolders.includes(cleanName)) {
+        return alert("This main folder already exists!");
       }
+
+      mainFolders.push(cleanName);
+      if (!subFolders[cleanName]) {
+        subFolders[cleanName] = ["General"];
+      }
+
+      await saveLibraryStateToFirebase();
+      window.initSlicerStudio();
+      document.getElementById('vault-main-cat').value = cleanName;
+      window.populateSlicerSubDropdown(cleanName);
+      if (typeof showToast === 'function') showToast(`📁 Main Folder '${cleanName}' Added!`);
     };
 
-    window.saveFolderRegistryToCloud = async function() {
-      try {
-        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
-          ownerEmail: teacherEmailKey(),
-          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
-          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
-          updatedAt: new Date().toISOString()
-        });
-        return true;
-      } catch(e) { console.error(e); return false; }
+    window.addNewSubFolderPrompt = async function() {
+      const mainSel = document.getElementById('vault-main-cat');
+      const currentMain = mainSel ? mainSel.value : '';
+      if (!currentMain) return alert("Please select a main folder first!");
+
+      const subName = prompt(`Enter new Sub Folder name under '${currentMain}':`);
+      if (!subName || !subName.trim()) return;
+      const cleanSub = subName.trim();
+
+      if (!subFolders[currentMain]) {
+        subFolders[currentMain] = [];
+      }
+
+      if (subFolders[currentMain].includes(cleanSub)) {
+        return alert("This sub folder already exists under this main folder!");
+      }
+
+      subFolders[currentMain].push(cleanSub);
+
+      await saveLibraryStateToFirebase();
+      window.populateSlicerSubDropdown(currentMain);
+      document.getElementById('vault-sub-cat').value = `${currentMain} / ${cleanSub}`;
+      if (typeof showToast === 'function') showToast(`📂 Sub Folder '${cleanSub}' Added!`);
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
-      const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-      if (!savedEmail) { window.location.href = 'teacher.html'; return; }
+      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email') || 'atozexammocks@gmail.com';
       window.currentTeacherEmail = savedEmail;
       const userTag = document.getElementById('current-user-tag');
       if (userTag) userTag.textContent = savedEmail;
@@ -184,55 +165,42 @@
     .tool-btn:hover { border-color: #38bdf8; }
     .page-jump-input { width: 50px; padding: 3px; background: #060911; border: 1px solid #334155; border-radius: 4px; color: white; text-align: center; font-size: 11px; font-weight: 700; }
 
+    #viewport, #pdf-canvas, #pdf-single-page-wrap { 
+      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewport="0 0 32 32" style="fill:red;stroke:red;"><line x1="16" y1="0" x2="16" y2="32" stroke="red" stroke-width="3"/><line x1="0" y1="16" x2="32" y2="16" stroke="red" stroke-width="3"/></svg>') 16 16, crosshair !important;
+    }
+
     #viewport { 
       flex: 1; overflow: auto; position: relative; background: #060911; display: flex; align-items: flex-start; justify-content: center; padding: 20px; 
     }
     
     #pdf-single-page-wrap { position: relative; background: #ffffff; box-shadow: 0 15px 40px rgba(0,0,0,0.6); display: block; margin: auto; }
-    #pdf-canvas { display: block; width: 100%; height: auto; cursor: crosshair !important; }
+    #pdf-canvas { display: block; width: 100%; height: auto; }
     
     #crop-box { 
       position: absolute; 
-      border: 2px solid #ef4444 !important; 
-      background: rgba(239, 68, 68, 0.15) !important; 
+      border: 3px solid #ff0000 !important; 
+      background: rgba(255, 0, 0, 0.25) !important; 
+      pointer-events: none; 
       display: none; 
-      z-index: 50; 
-      pointer-events: auto;
+      z-index: 999999; 
     }
-    .crop-handle {
-      position: absolute; width: 10px; height: 10px; background: #ef4444; border: 1px solid #ffffff; z-index: 51;
-    }
-    .handle-nw { top: -5px; left: -5px; cursor: nwse-resize; }
-    .handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
-    .handle-sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
-    .handle-se { bottom: -5px; right: -5px; cursor: nwse-resize; }
 
     #slicer-right { width: 32%; height: 100%; padding: 8px 10px; background: #0b1120; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
     .meta-box { background: #060911; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
     .meta-box label { color: #94a3b8; font-weight: 700; font-size: 10px; display: flex; justify-content: space-between; align-items: center; }
     .meta-box select, .meta-box input, .meta-box textarea { width: 100%; padding: 4px 6px; font-size: 11px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: white; }
     
-    .folder-select-grid { display: grid; grid-template-columns: 95px 1fr; gap: 4px; }
-    
     .opt-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-    .opt-row { display: flex; flex-direction: column; gap: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 4px; position: relative; }
+    .opt-row { display: flex; flex-direction: column; gap: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 4px; }
     .opt-row span { font-weight: 800; color: #38bdf8; font-size: 10px; }
     .opt-row input { border: none !important; background: #060911 !important; padding: 4px !important; font-size: 11px !important; color: white !important; }
-    .opt-row .opt-crop-btn { position: absolute; top: 2px; right: 2px; background: #0284c7; border: 1px solid #38bdf8; color: white; border-radius: 3px; font-size: 8px; padding: 1px 4px; cursor: pointer; font-weight: 700; }
-    .opt-row .opt-crop-btn.active { background: #10b981; border-color: #34d399; }
 
     .ocr-action-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 2px; }
     .ocr-send-btn { background: #0284c7; border: 1px solid #38bdf8; color: white; padding: 4px 2px; border-radius: 3px; font-size: 9px; font-weight: 700; cursor: pointer; text-align: center; }
     .ocr-send-btn:hover { background: #0369a1; }
 
-    .compact-meta-row { display: flex; gap: 4px; align-items: flex-end; margin-top: 2px; }
-    .compact-meta-row .qno-wrap { width: 45px; flex-shrink: 0; }
-    .compact-meta-row .ans-wrap { width: 110px; flex-shrink: 0; }
-    .compact-meta-row .type-wrap { flex: 1; }
-    .compact-meta-row label { font-size: 8px; margin-bottom: 1px; display: block; color: #94a3b8; font-weight: 700; }
-
-    .flag-group { display: flex; gap: 2px; }
-    .flag-btn { flex: 1; padding: 5px 0; border: 1px solid #334155; background: #0f172a; color: #94a3b8; border-radius: 3px; font-size: 9px; font-weight: 700; cursor: pointer; text-align: center; }
+    .flag-group { display: flex; gap: 4px; justify-content: space-between; }
+    .flag-btn { flex: 1; padding: 3px; border: 1px solid #334155; background: #0f172a; color: #94a3b8; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; text-align: center; }
     .flag-btn.active-flag-red { background: #7f1d1d; color: #fecaca; border-color: #ef4444; }
     .flag-btn.active-flag-blue { background: #1e3a8a; color: #bfdbfe; border-color: #3b82f6; }
     .flag-btn.active-flag-green { background: #064e3b; color: #a7f3d0; border-color: #10b981; }
@@ -253,145 +221,8 @@
 
     #studio-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 50000; flex-direction: column; }
     #studio-iframe { width: 100%; height: 100%; border: none; background: #060911; }
-
-    .toggle-switch { position: relative; display: inline-block; width: 34px; height: 18px; }
-    .toggle-switch input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .3s; border-radius: 18px; }
-    .toggle-slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-    input:checked + .toggle-slider { background-color: #10b981; }
-    input:checked + .toggle-slider:before { transform: translateX(16px); }
-
-    .qtext-crop-btn { background: #0284c7; border: 1px solid #38bdf8; color: white; border-radius: 3px; font-size: 9px; padding: 2px 8px; cursor: pointer; font-weight: 700; }
-    .qtext-crop-btn:hover { background: #0369a1; }
-    .qtext-crop-btn.active { background: #10b981; border-color: #34d399; box-shadow: 0 0 0 2px rgba(16,185,129,.3); }
-
-    .answer-input-wrapper { display: flex; gap: 4px; align-items: center; }
-    .answer-input-wrapper input { flex: 1; }
-    .answer-img-preview { max-height: 28px; max-width: 28px; object-fit: contain; border-radius: 3px; cursor: pointer; border: 1px solid #334155; }
-    .short-ans-input { width: 100%; padding: 4px 6px; font-size: 11px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: white; }
   </style>
-<style>
-.profile-container{position:relative;display:inline-block}.profile-dropdown{position:absolute;right:0;top:40px;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);width:220px;display:none;flex-direction:column;z-index:1000;overflow:hidden}.profile-dropdown.show{display:flex}.dropdown-header{padding:12px 16px;border-bottom:1px solid #1e293b;font-size:12px;color:#38bdf8;font-weight:700;word-break:break-all}.dropdown-item{padding:10px 16px;font-size:12px;color:#fecaca;background:#7f1d1d;border:0;cursor:pointer;text-align:left;font-weight:700;width:100%}.dropdown-item:hover{background:#991b1b}
-
-html, body { max-width:100%; }
-button, input, select, textarea, label { touch-action: manipulation; }
-#file-input { pointer-events:auto; }
-#mobile-crop-bar { display:none; }
-
-@media (max-width: 900px) {
-  body { height:auto; min-height:100vh; overflow:auto; }
-  #navbar {
-    min-height:52px; height:auto; padding:7px 9px; gap:7px;
-    flex-wrap:wrap; position:sticky; top:0;
-  }
-  .nav-brand span { display:none; }
-  .nav-tabs { flex:1; min-width:0; overflow-x:auto; justify-content:flex-end; }
-  .nav-btn { white-space:nowrap; min-height:38px; padding:8px 10px; }
-  .user-pill { white-space:nowrap; max-width:150px; overflow:hidden; text-overflow:ellipsis; min-height:34px; display:flex; align-items:center; }
-
-  .slicer-workspace {
-    flex-direction:column; height:auto; min-height:calc(100vh - 52px);
-    overflow:visible;
-  }
-  #slicer-left, #slicer-right {
-    width:100% !important; height:auto; min-height:0;
-    border-right:0;
-  }
-  #slicer-left {
-    min-height:0; border-bottom:1px solid #1e293b;
-    position:relative;
-  }
-  #slicer-toolbar {
-    gap:6px; padding:7px; flex-wrap:wrap;
-    position:sticky; top:52px; z-index:90;
-  }
-  .tool-btn { min-height:40px; padding:8px 11px; }
-  #chunk-info { font-size:10px; }
-  #viewport {
-    min-height:0; height:auto; max-height:none;
-    padding:10px; overflow:auto; align-items:flex-start;
-    -webkit-overflow-scrolling:touch;
-  }
-  #pdf-single-page-wrap {
-    width:100% !important; height:auto !important;
-    max-width:100%; margin:0 auto;
-  }
-  #pdf-canvas {
-    display:block; width:100% !important; max-width:100%;
-    height:auto !important;
-  }
-
-  #mobile-crop-bar {
-    display:flex; position:sticky; top:0; z-index:95;
-    width:100%; padding:8px; gap:6px; overflow-x:auto;
-    background:#0b1120; border-bottom:1px solid #1e293b;
-    -webkit-overflow-scrolling:touch;
-  }
-  .mobile-crop-title {
-    flex:0 0 auto; display:flex; align-items:center;
-    color:#38bdf8; font-size:11px; font-weight:800;
-    padding:0 3px;
-  }
-  .mobile-target {
-    flex:0 0 auto; min-height:40px; padding:8px 11px;
-    border:1px solid #334155; border-radius:8px;
-    background:#0f172a; color:#cbd5e1; font-size:11px;
-    font-weight:800; cursor:pointer;
-  }
-  .mobile-target.active {
-    background:#2563eb; color:#fff; border-color:#38bdf8;
-    box-shadow:0 0 0 1px rgba(56,189,248,.25);
-  }
-
-  #slicer-right {
-    padding:10px 9px 30px; gap:8px; overflow:visible;
-  }
-  #slicer-right > .meta-box { width:100%; }
-  .folder-select-grid { grid-template-columns:1fr; gap:7px; }
-  .meta-box input, .meta-box select, .meta-box textarea {
-    min-height:40px; font-size:14px; padding:8px;
-  }
-  .meta-box textarea { line-height:1.4; }
-  .compact-meta-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
-  .compact-meta-row .qno-wrap, .compact-meta-row .ans-wrap,
-  .compact-meta-row .type-wrap { width:auto; flex-basis:auto; }
-  .compact-meta-row .type-wrap { grid-column:1 / -1; }
-  .flag-btn { min-height:40px; font-size:11px; }
-  .ocr-action-bar { grid-template-columns:repeat(2,1fr); gap:6px; }
-  .ocr-send-btn, .target-btn, .qtext-crop-btn {
-    min-height:40px; font-size:11px; padding:8px;
-  }
-  .opt-grid-2x2 { grid-template-columns:1fr; gap:7px; }
-  .opt-row { min-height:58px; padding:7px; }
-  .opt-row input { min-height:40px; font-size:14px !important; padding:8px !important; }
-  .opt-row .opt-crop-btn { min-height:32px; padding:5px 8px; font-size:10px; }
-  .slot-group { grid-template-columns:1fr 1fr; gap:7px; }
-  .preview-card { min-width:0; }
-  .preview-thumb-box { max-height:90px; min-height:55px; }
-  .preview-thumb-box img { max-height:84px; }
-  .prev-q-card { width:calc(100vw - 20px); max-height:94vh; padding:14px; }
-  .student-view-box { padding:12px; }
-}
-
-@media (max-width: 600px) {
-  #navbar { position:relative; }
-  #slicer-toolbar { position:relative; top:auto; }
-  #slicer-toolbar .tool-btn { min-height:42px; }
-  #slicer-toolbar > * { flex:0 0 auto; }
-  #chunk-info { width:100%; order:20; }
-  .page-jump-input { width:64px; min-height:40px; font-size:14px; }
-  #viewport { padding:6px; }
-  .mobile-target { min-height:42px; padding:9px 12px; }
-  .meta-box { padding:9px; border-radius:9px; }
-  .compact-meta-row { grid-template-columns:1fr; }
-  .compact-meta-row .type-wrap { grid-column:auto; }
-  .slot-group { grid-template-columns:1fr; }
-  #slicer-right { padding-left:7px; padding-right:7px; }
-}
-
-#viewport, #pdf-single-page-wrap { touch-action:pan-x pan-y; }
-#pdf-canvas { touch-action:none; user-select:none; -webkit-user-select:none; }
-</style></head>
+</head>
 <body>
 
   <div id="toast-msg">✔ Action Successful!</div>
@@ -400,44 +231,32 @@ button, input, select, textarea, label { touch-action: manipulation; }
     <iframe id="studio-iframe" src=""></iframe>
   </div>
 
+  <!-- Student Preview Overlay Modal -->
   <div id="prev-q-overlay">
     <div class="prev-q-card">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px;">
-        <h3 id="preview-modal-title" style="color:#38bdf8; font-size:16px;">👁️ Persistent Hard Storage (Last Saved Question)</h3>
-        <div style="display:flex; gap:8px;">
-          <button class="tool-btn" style="background:#b91c1c;" onclick="window.deleteLastSavedQuestion()">🗑️ Delete Last Saved</button>
-          <button class="tool-btn" style="background:#334155;" onclick="document.getElementById('prev-q-overlay').style.display='none'">✕ Close</button>
-        </div>
+        <h3 id="preview-modal-title" style="color:#38bdf8; font-size:16px;">👁️ Last Saved Question Preview</h3>
+        <button class="tool-btn" style="background:#7f1d1d;" onclick="document.getElementById('prev-q-overlay').style.display='none'">✕ Close</button>
       </div>
       <div id="prev-q-body" style="display:flex; flex-direction:column; gap:12px;"></div>
     </div>
   </div>
 
   <div id="navbar">
-    <a href="teacher.html" class="nav-brand">
-      🏠 <span>A to Z Exam Mocks</span>
-    </a>
+    <div class="nav-brand">✂️ A to Z Exam Mocks - Slicer Studio</div>
     <div class="nav-tabs">
-      <a class="nav-btn" href="teacher.html">🏠 Dashboard</a>
-      <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
-      <a class="nav-btn" href="library.html">📁 Central Library</a>
-      <a class="nav-btn" href="library_access.html">🤝 Group Library</a>
-      <div class="profile-container">
-        <div class="user-pill" onclick="toggleProfileDropdown()">
-          👤 <span id="current-user-tag">Educator</span> ▼
-        </div>
-        <div class="profile-dropdown" id="profile-dropdown-menu">
-          <div class="dropdown-header" id="dropdown-user-email">Not Logged In</div>
-          <button class="dropdown-item" onclick="logoutTeacher()">🔒 Logout</button>
-        </div>
-      </div>
+      <button class="tool-btn" id="ocr-only-btn" style="background:#065f46; border-color:#10b981;" onclick="window.toggleOcrOnlyMode()">✨ OCR Only Mode: OFF</button>
+      <button class="tool-btn" style="background:#0284c7;" onclick="window.openFullscreenEditor()">🖥️ Open Fullscreen Editor Studio</button>
+      <button class="tool-btn" style="background:#1d4ed8;" onclick="window.openLastSavedQuestionPreview()">👁️ Student Preview</button>
+      <a href="teacher.html" class="nav-btn">🏠 Dashboard</a>
+      <span class="user-pill" id="current-user-tag">Educator</span>
     </div>
   </div>
 
   <div class="slicer-workspace">
     <div id="slicer-left" style="width: 68%; height: 100%; display: flex; flex-direction: column; border-right: 1px solid #1e293b; background: #060911;">
       <div id="slicer-toolbar">
-        <label class="tool-btn" style="background:#0284c7; cursor:pointer;">📂 Open PDF<input type="file" id="file-input" accept="application/pdf,.pdf" style="display:none;"></label>
+        <label class="tool-btn" style="background:#0284c7; cursor:pointer;">📂 Open PDF<input type="file" id="file-input" accept="application/pdf" style="display:none;"></label>
         
         <span id="chunk-info" style="font-size:10px; color:#38bdf8; font-weight:bold;">Pages: Not Loaded</span>
 
@@ -449,164 +268,96 @@ button, input, select, textarea, label { touch-action: manipulation; }
         <span id="zoom-val" style="font-size:10px;">150%</span>
         <button class="tool-btn" id="zoom-in">🔍 +</button>
         
-        <button class="tool-btn" id="ocr-only-btn" onclick="window.toggleOcrOnlyMode()" style="background:#065f46; border-color:#10b981; margin-left:8px;">✨ OCR Only Mode: OFF</button>
-         <span id="ocr-status-label" style="font-size:9px; color:#10b981; font-weight:bold; margin-left:8px;">✨ HD Crop Ready</span>
+        <span id="ocr-status-label" style="font-size:9px; color:#10b981; font-weight:bold; margin-left:8px;">✨ HD Crop Ready</span>
       </div>
 
       <div id="viewport">
         <div id="pdf-single-page-wrap">
           <canvas id="pdf-canvas"></canvas>
-          <div id="crop-box">
-            <div class="crop-handle handle-nw" data-handle="nw"></div>
-            <div class="crop-handle handle-ne" data-handle="ne"></div>
-            <div class="crop-handle handle-sw" data-handle="sw"></div>
-            <div class="crop-handle handle-se" data-handle="se"></div>
-          </div>
+          <div id="crop-box"></div>
         </div>
       </div>
-    </div>
-
-    <div id="mobile-crop-bar" aria-label="Mobile crop controls">
-      <div class="mobile-crop-title">✂️ Crop Target</div>
-      <button type="button" class="mobile-target active" data-mobile-target="question">Question</button>
-      <button type="button" class="mobile-target" data-mobile-target="solution">Solution</button>
-      <button type="button" class="mobile-target" data-mobile-target="qtext-image">Q.Text</button>
-      <button type="button" class="mobile-target" data-mobile-target="optA">Opt A</button>
-      <button type="button" class="mobile-target" data-mobile-target="optB">Opt B</button>
-      <button type="button" class="mobile-target" data-mobile-target="optC">Opt C</button>
-      <button type="button" class="mobile-target" data-mobile-target="optD">Opt D</button>
     </div>
 
     <div id="slicer-right">
       <div class="meta-box">
-        <label style="display:flex; justify-content:space-between; align-items:center;">
-          <span>Book & Section:</span>
-          <button class="tool-btn" style="padding:2px 6px; font-size:9px; background:#0284c7;" onclick="window.addNewFolderDynamic()">➕ Add Folder</button>
-        </label>
-        <div class="folder-select-grid">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Main Folder:</span>
+            <button class="tool-btn" style="background:#0284c7; padding:1px 5px; font-size:9px;" onclick="window.addNewMainFolderPrompt()" title="Add New Main Folder">+ Add</button>
+          </label>
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Sub Folder:</span>
+            <button class="tool-btn" style="background:#0284c7; padding:1px 5px; font-size:9px;" onclick="window.addNewSubFolderPrompt()" title="Add New Sub Folder">+ Add</button>
+          </label>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
           <select id="vault-main-cat" onchange="window.onSlicerMainFolderChange()"></select>
           <select id="vault-sub-cat"></select>
         </div>
 
-        <div class="compact-meta-row">
-          <div class="qno-wrap">
-            <label>Q.No</label>
-            <input type="number" id="vault-qno" value="1" min="1">
-          </div>
-          <div class="ans-wrap">
-            <label id="ans-label">Ans</label>
-            <div id="ans-input-wrapper">
-              <select id="vault-ans-mcq"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
-            </div>
-            <div id="vault-ans-short-wrapper" class="answer-input-wrapper" style="display:none;">
-              <input type="text" id="vault-ans-short" class="short-ans-input" placeholder="Answer...">
-              <button class="opt-crop-btn" onclick="window.startShortAnsCrop()" title="Crop Image">✂️</button>
-              <img id="short-ans-img-preview" class="answer-img-preview" style="display:none;" title="Click to clear" onclick="window.clearShortAnsImage()">
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1.2fr; gap:4px; margin-top:4px;">
+          <div><label>Q.No & Ans:</label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2px;">
+              <input type="number" id="vault-qno" value="1" min="1">
+              <select id="vault-ans"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
             </div>
           </div>
-          <div class="type-wrap">
-            <label>Question Type</label>
-            <select id="vault-q-type">
-              <option value="mcq">MCQ (Single Correct)</option>
-              <option value="mcq_multi">MCQ (Multiple Correct)</option>
-              <option value="very_short">Very Short Answer</option>
-              <option value="short">Short Answer Type</option>
-              <option value="long">Long Answer Type</option>
-              <option value="numerical">Numerical / Integer</option>
-              <option value="assertion">Assertion & Reason</option>
-              <option value="passage">Passage / Comprehension</option>
+          <div><label>Question Type:</label>
+            <select id="vault-q-type" style="width:100%; background:#0f172a; border:1px solid #334155; color:white; padding:4px; border-radius:4px; font-size:11px;">
+              <option value="mcq">MCQ (Single)</option>
+              <option value="mcq_multi">MCQ (Multi)</option>
+              <option value="very_short">Very Short</option>
+              <option value="short">Short Answer</option>
+              <option value="long">Long Answer</option>
+              <option value="numerical">Numerical</option>
+              <option value="assertion">Assertion</option>
+              <option value="passage">Passage</option>
             </select>
           </div>
-        </div>
-
-        <label style="margin-top:4px;">Flags</label>
-        <div class="flag-group">
-          <button class="flag-btn" id="flag-red" onclick="window.toggleFlag('red')">🔴 Red</button>
-          <button class="flag-btn" id="flag-blue" onclick="window.toggleFlag('blue')">🔵 Blue</button>
-          <button class="flag-btn" id="flag-green" onclick="window.toggleFlag('green')">🟢 Green</button>
-          <button class="flag-btn" id="flag-yellow" onclick="window.toggleFlag('yellow')">🟡 Yellow</button>
-        </div>
-
-        <label style="margin-top:2px; display:flex; justify-content:space-between; align-items:center;">
-          <span>Question Text Note:</span>
-          <button class="qtext-crop-btn" id="crop-btn-qtext" onclick="window.startQTextCrop()">✂️ Crop</button>
-        </label>
-        <textarea id="vault-q-text" rows="2" placeholder="Question statement text..."></textarea>
-        <div id="qtext-img-preview-wrap" style="display:none; background:#ffffff; border-radius:3px; padding:2px; max-height:50px; overflow:hidden; align-items:center; justify-content:center;">
-          <img id="qtext-img-preview" style="max-width:100%; max-height:46px; object-fit:contain;">
-          <button onclick="window.clearQTextImage()" style="background:#b91c1c; border:none; color:white; border-radius:3px; font-size:8px; padding:2px 6px; margin-left:4px; cursor:pointer; font-weight:700;">✕</button>
-        </div>
-        
-        <!-- OCR Conditional Group -->
-        <div id="ocr-conditional-box" style="display:none; flex-direction:column; gap:4px; margin-top:2px;">
-          <label style="color:#38bdf8; display:flex; justify-content:space-between;">
-            <span>Free OCR Scratchpad:</span>
-            <button onclick="document.getElementById('vault-free-ocr').value=''" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">Clear OCR</button>
-          </label>
-          <textarea id="vault-free-ocr" rows="2" placeholder="Crop text here first, then send to Q.Text or Options..."></textarea>
-          
-          <div class="ocr-action-bar">
-            <button class="ocr-send-btn" onclick="window.sendOcrTo('qtext')">➡️ Q.Text</button>
-            <button class="ocr-send-btn" onclick="window.sendOcrTo('opta')">➡️ Opt A</button>
-            <button class="ocr-send-btn" onclick="window.sendOcrTo('optb')">➡️ Opt B</button>
-            <button class="ocr-send-btn" onclick="window.sendOcrTo('optc')">➡️ Opt C</button>
-            <button class="ocr-send-btn" onclick="window.sendOcrTo('optd')">➡️ Opt D</button>
+          <div><label>Flags / Tags:</label>
+            <div class="flag-group">
+              <button class="flag-btn" id="flag-red" onclick="window.toggleFlag('red')">🚩</button>
+              <button class="flag-btn" id="flag-blue" onclick="window.toggleFlag('blue')">🔵</button>
+              <button class="flag-btn" id="flag-green" onclick="window.toggleFlag('green')">🟢</button>
+              <button class="flag-btn" id="flag-yellow" onclick="window.toggleFlag('yellow')">🟡</button>
+            </div>
           </div>
+        </div>
+
+        <label style="margin-top:2px;"><span>Question Text Note:</span></label>
+        <textarea id="vault-q-text" rows="2" placeholder="Question statement text..."></textarea>
+        
+        <label style="color:#38bdf8; margin-top:2px; display:flex; justify-content:space-between;">
+          <span>Free OCR Scratchpad:</span>
+          <button onclick="document.getElementById('vault-free-ocr').value=''" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">Clear OCR</button>
+        </label>
+        <textarea id="vault-free-ocr" rows="2" placeholder="Crop text here first, then send to Q.Text or Options..."></textarea>
+        
+        <div class="ocr-action-bar">
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('qtext')">➡️ Q.Text</button>
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('opta')">➡️ Opt A</button>
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('optb')">➡️ Opt B</button>
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('optc')">➡️ Opt C</button>
+          <button class="ocr-send-btn" onclick="window.sendOcrTo('optd')">➡️ Opt D</button>
         </div>
 
         <label style="margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
           <span>Options (A, B, C, D) [2x2 Grid Layout]:</span>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:9px; color:#94a3b8;">Keep Options</span>
-            <label class="toggle-switch">
-              <input type="checkbox" id="keep-options-toggle" checked onchange="window.toggleKeepOptions()">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
+          <button onclick="window.clearMainOptions()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:9px; font-weight:bold;">🗑️ Clear Options</button>
         </label>
-        <div class="opt-grid-2x2" id="options-grid">
-          <div class="opt-row">
-            <span>(A)</span>
-            <input type="text" id="opt-a" placeholder="Option A">
-            <button class="opt-crop-btn" id="crop-btn-a" onclick="window.startOptionCrop('A')">✂️</button>
-            <div id="opt-a-img-wrap" style="display:none; margin-top:2px; background:#fff; border-radius:2px; padding:1px; max-height:30px; overflow:hidden;">
-              <img id="opt-a-img" style="max-width:100%; max-height:28px; object-fit:contain;">
-              <button onclick="window.clearOptionImage('A')" style="background:#b91c1c; border:none; color:white; border-radius:2px; font-size:7px; padding:1px 3px; cursor:pointer; font-weight:700;">✕</button>
-            </div>
-          </div>
-          <div class="opt-row">
-            <span>(B)</span>
-            <input type="text" id="opt-b" placeholder="Option B">
-            <button class="opt-crop-btn" id="crop-btn-b" onclick="window.startOptionCrop('B')">✂️</button>
-            <div id="opt-b-img-wrap" style="display:none; margin-top:2px; background:#fff; border-radius:2px; padding:1px; max-height:30px; overflow:hidden;">
-              <img id="opt-b-img" style="max-width:100%; max-height:28px; object-fit:contain;">
-              <button onclick="window.clearOptionImage('B')" style="background:#b91c1c; border:none; color:white; border-radius:2px; font-size:7px; padding:1px 3px; cursor:pointer; font-weight:700;">✕</button>
-            </div>
-          </div>
-          <div class="opt-row">
-            <span>(C)</span>
-            <input type="text" id="opt-c" placeholder="Option C">
-            <button class="opt-crop-btn" id="crop-btn-c" onclick="window.startOptionCrop('C')">✂️</button>
-            <div id="opt-c-img-wrap" style="display:none; margin-top:2px; background:#fff; border-radius:2px; padding:1px; max-height:30px; overflow:hidden;">
-              <img id="opt-c-img" style="max-width:100%; max-height:28px; object-fit:contain;">
-              <button onclick="window.clearOptionImage('C')" style="background:#b91c1c; border:none; color:white; border-radius:2px; font-size:7px; padding:1px 3px; cursor:pointer; font-weight:700;">✕</button>
-            </div>
-          </div>
-          <div class="opt-row">
-            <span>(D)</span>
-            <input type="text" id="opt-d" placeholder="Option D">
-            <button class="opt-crop-btn" id="crop-btn-d" onclick="window.startOptionCrop('D')">✂️</button>
-            <div id="opt-d-img-wrap" style="display:none; margin-top:2px; background:#fff; border-radius:2px; padding:1px; max-height:30px; overflow:hidden;">
-              <img id="opt-d-img" style="max-width:100%; max-height:28px; object-fit:contain;">
-              <button onclick="window.clearOptionImage('D')" style="background:#b91c1c; border:none; color:white; border-radius:2px; font-size:7px; padding:1px 3px; cursor:pointer; font-weight:700;">✕</button>
-            </div>
-          </div>
+        <div class="opt-grid-2x2">
+          <div class="opt-row"><span>(A)</span><input type="text" id="opt-a" placeholder="Option A"></div>
+          <div class="opt-row"><span>(B)</span><input type="text" id="opt-b" placeholder="Option B"></div>
+          <div class="opt-row"><span>(C)</span><input type="text" id="opt-c" placeholder="Option C"></div>
+          <div class="opt-row"><span>(D)</span><input type="text" id="opt-d" placeholder="Option D"></div>
         </div>
       </div>
 
       <div class="slot-group">
-        <button class="target-btn active" id="btn-target-question" data-target="question">✂️ Question Cut (HD)</button>
-        <button class="target-btn" id="btn-target-solution" data-target="solution">💡 Solution Cut (HD)</button>
+        <button class="target-btn active" data-target="question">✂️ Question Cut (HD)</button>
+        <button class="target-btn" data-target="solution">💡 Solution Cut (HD)</button>
       </div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
@@ -620,11 +371,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
         </div>
       </div>
 
-      <!-- Action Footer Buttons Split -->
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:auto;">
-        <button class="tool-btn" id="btn-student-preview" onclick="window.openLastSavedQuestionPreview()" style="background:#0284c7; padding:9px; font-size:11px; font-weight:800; justify-content:center;">👁️ Student Preview</button>
-        <button class="tool-btn" id="btn-save-cloud" style="background:#10b981; padding:9px; font-size:11px; font-weight:800; justify-content:center;">☁️ Save to Cloud</button>
-      </div>
+      <button class="tool-btn" id="btn-save-cloud" style="background:#10b981; padding:8px; font-size:12px; font-weight:800; justify-content:center; margin-top:auto;">☁️ Save Question to Cloud</button>
     </div>
   </div>
 
@@ -638,121 +385,35 @@ button, input, select, textarea, label { touch-action: manipulation; }
 
     let activeFlags = { red: false, blue: false, green: false, yellow: false };
     let ocrOnlyMode = false;
-    let keepOptionsOn = true;
-
-    let optionImages = { A: null, B: null, C: null, D: null };
-    let qTextImage = null;
-    let shortAnsImage = null;
-
-    let cropTarget = 'question';
 
     window.toggleOcrOnlyMode = function() {
       ocrOnlyMode = !ocrOnlyMode;
       const btn = document.getElementById('ocr-only-btn');
-      const ocrBox = document.getElementById('ocr-conditional-box');
       if (btn) {
         if (ocrOnlyMode) {
           btn.style.background = '#d97706'; btn.style.borderColor = '#f59e0b';
           btn.textContent = "✨ OCR Only Mode: ON";
-          if (ocrBox) ocrBox.style.display = 'flex';
           showToast("✨ OCR Only Mode Enabled (Text Extraction Only)");
         } else {
           btn.style.background = '#065f46'; btn.style.borderColor = '#10b981';
           btn.textContent = "✨ OCR Only Mode: OFF";
-          if (ocrBox) ocrBox.style.display = 'none';
           showToast("✂️ Standard HD Crop Mode Enabled");
         }
       }
     };
 
-    window.toggleKeepOptions = function() {
-      const toggle = document.getElementById('keep-options-toggle');
-      keepOptionsOn = toggle.checked;
-      const mcqAns = document.getElementById('vault-ans-mcq');
-      const shortWrapper = document.getElementById('vault-ans-short-wrapper');
-      const optionsGrid = document.getElementById('options-grid');
-      const ansLabel = document.getElementById('ans-label');
-      
-      if (keepOptionsOn) {
-        mcqAns.style.display = '';
-        shortWrapper.style.display = 'none';
-        optionsGrid.style.display = 'grid';
-        ansLabel.textContent = 'Ans';
-        showToast("✔ MCQ Mode (Keep Options ON)");
-      } else {
-        mcqAns.style.display = 'none';
-        shortWrapper.style.display = 'flex';
-        optionsGrid.style.display = 'none';
-        ansLabel.textContent = 'Short Answer';
-        showToast("✔ Short Answer Mode");
-      }
-    };
-
     window.toggleFlag = function(color) {
-      Object.keys(activeFlags).forEach(k => activeFlags[k] = false);
-      activeFlags[color] = true;
+      activeFlags[color] = !activeFlags[color];
+      const btn = document.getElementById(`flag-${color}`);
+      if (btn) btn.className = activeFlags[color] ? `flag-btn active-flag-${color}` : `flag-btn`;
+    };
 
-      ['red', 'blue', 'green', 'yellow'].forEach(c => {
-        const btn = document.getElementById(`flag-${c}`);
-        if (btn) {
-          btn.className = (c === color) ? `flag-btn active-flag-${c}` : `flag-btn`;
-        }
+    window.clearMainOptions = function() {
+      ['opt-a', 'opt-b', 'opt-c', 'opt-d'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
       });
-      showToast(`🚩 Flag set to: ${color.toUpperCase()}`);
-    };
-
-    function clearAllCropButtonsActive() {
-      const qBtn = document.getElementById('crop-btn-qtext');
-      if(qBtn) qBtn.classList.remove('active');
-      ['A','B','C','D'].forEach(l => {
-        const b = document.getElementById(`crop-btn-${l.toLowerCase()}`);
-        if(b) b.classList.remove('active');
-      });
-    }
-
-    window.startQTextCrop = function() {
-      clearAllCropButtonsActive();
-      cropTarget = 'qtext-image';
-      const btn = document.getElementById('crop-btn-qtext');
-      if(btn) btn.classList.add('active');
-      showToast("✂️ Crop area for Question Text image — drag on PDF");
-    };
-
-    window.startOptionCrop = function(optLetter) {
-      clearAllCropButtonsActive();
-      cropTarget = 'opt' + optLetter;
-      const btn = document.getElementById(`crop-btn-${optLetter.toLowerCase()}`);
-      if(btn) btn.classList.add('active');
-      showToast(`✂️ Crop area for Option ${optLetter} — drag on PDF`);
-    };
-
-    window.startShortAnsCrop = function() {
-      clearAllCropButtonsActive();
-      cropTarget = 'short-ans';
-      showToast("✂️ Crop area for Answer image — drag on PDF");
-    };
-
-    window.clearQTextImage = function() {
-      qTextImage = null;
-      document.getElementById('qtext-img-preview-wrap').style.display = 'none';
-      document.getElementById('qtext-img-preview').src = '';
-      showToast("🗑️ Q.Text image cleared");
-    };
-
-    window.clearOptionImage = function(optLetter) {
-      optionImages[optLetter] = null;
-      const wrap = document.getElementById(`opt-${optLetter.toLowerCase()}-img-wrap`);
-      const img = document.getElementById(`opt-${optLetter.toLowerCase()}-img`);
-      if (wrap) wrap.style.display = 'none';
-      if (img) img.src = '';
-      showToast(`🗑️ Option ${optLetter} image cleared`);
-    };
-
-    window.clearShortAnsImage = function() {
-      shortAnsImage = null;
-      const preview = document.getElementById('short-ans-img-preview');
-      if (preview) { preview.style.display = 'none'; preview.src = ''; }
-      showToast("🗑️ Answer image cleared");
+      showToast("🗑️ All Options Cleared!");
     };
 
     window.sendOcrTo = function(target) {
@@ -782,40 +443,38 @@ button, input, select, textarea, label { touch-action: manipulation; }
 
     let pdfDoc = null, pageNum = 1, pageScale = 1.5;
     let originalPdfBytes = null, totalPdfPages = 0, currentChunkStart = 1;
-    let isCropping = false, isResizing = false, activeHandle = null;
-    let cropStartX = 0, cropStartY = 0;
+    let isCropping = false, cropStartX = 0, cropStartY = 0, activeCanvas = null, activeCanvasRect = null;
     let questionParts = [], solutionParts = [], activeTarget = 'question';
 
+    const viewport = document.getElementById('viewport');
     const pdfCanvas = document.getElementById('pdf-canvas');
     const cropBox = document.getElementById('crop-box');
-    const pageWrap = document.getElementById('pdf-single-page-wrap');
 
     document.getElementById('file-input').onchange = async (e) => {
       const f = e.target.files[0];
-      if (!f) return;
-      
-      try {
-        const arrayBuffer = await f.arrayBuffer();
-        originalPdfBytes = arrayBuffer;
+      if (f) {
+        try {
+          const arrayBuffer = await f.arrayBuffer();
+          originalPdfBytes = arrayBuffer;
 
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-        pdfDoc = await loadingTask.promise;
-        totalPdfPages = pdfDoc.numPages;
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          pdfDoc = await loadingTask.promise;
+          totalPdfPages = pdfDoc.numPages;
 
-        if (totalPdfPages > 100) {
-          showToast(`⚡ Big PDF (${totalPdfPages}p). Loading Chunk 1-100...`);
-          await window.loadPdfChunk(1, Math.min(100, totalPdfPages));
-        } else {
-          currentChunkStart = 1;
-          document.getElementById('chunk-info').textContent = `Pages: 1-${totalPdfPages}`;
-          pageNum = 1;
-          document.getElementById('page-total-label').textContent = totalPdfPages;
-          await window.renderCurrentPage();
-          showToast(`✔ Loaded (${totalPdfPages} pages)`);
+          if (totalPdfPages > 100) {
+            showToast(`⚡ Big PDF (${totalPdfPages}p). Loading Chunk 1-100...`);
+            await window.loadPdfChunk(1, Math.min(100, totalPdfPages));
+          } else {
+            currentChunkStart = 1;
+            document.getElementById('chunk-info').textContent = `Pages: 1-${totalPdfPages}`;
+            pageNum = 1;
+            document.getElementById('page-total-label').textContent = totalPdfPages;
+            window.renderCurrentPage();
+            showToast(`✔ Loaded (${totalPdfPages} pages)`);
+          }
+        } catch (err) {
+          alert("Error loading PDF file: " + err.message);
         }
-      } catch (err) {
-        alert("Error loading PDF file: " + err.message);
-        e.target.value = '';
       }
     };
 
@@ -839,7 +498,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
       
       pageNum = 1;
       document.getElementById('page-total-label').textContent = totalPdfPages;
-      await window.renderCurrentPage();
+      window.renderCurrentPage();
       showToast(`✔ Loaded Range (${start} to ${end})`);
     };
 
@@ -851,6 +510,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
       pdfCanvas.height = viewportObj.height; 
       pdfCanvas.width = viewportObj.width;
 
+      const pageWrap = document.getElementById('pdf-single-page-wrap');
       pageWrap.style.width = `${viewportObj.width}px`;
       pageWrap.style.height = `${viewportObj.height}px`;
 
@@ -859,7 +519,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
 
       document.getElementById('page-num-input').value = currentChunkStart + pageNum - 1;
       document.getElementById('zoom-val').textContent = `${Math.round(pageScale * 100)}%`;
-      document.getElementById('viewport').scrollTop = 0; 
+      viewport.scrollTop = 0; 
     };
 
     window.jumpToSpecificPage = async function(pNum) {
@@ -873,7 +533,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
           await window.loadPdfChunk(targetChunkStart, targetChunkEnd);
         }
         pageNum = target - targetChunkStart + 1;
-        await window.renderCurrentPage();
+        window.renderCurrentPage();
         showToast(`📄 Jumped to Page ${target}`);
       } else {
         alert(`Enter valid page between 1 and ${totalPdfPages}`);
@@ -894,129 +554,67 @@ button, input, select, textarea, label { touch-action: manipulation; }
       }
     };
     
-    document.getElementById('zoom-in').onclick = async () => { if (pdfDoc && pageScale < 3.0) { pageScale += 0.25; await window.renderCurrentPage(); } };
-    document.getElementById('zoom-out').onclick = async () => { if (pdfDoc && pageScale > 0.75) { pageScale -= 0.25; await window.renderCurrentPage(); } };
+    document.getElementById('zoom-in').onclick = () => { if (pdfDoc && pageScale < 3.0) { pageScale += 0.25; window.renderCurrentPage(); } };
+    document.getElementById('zoom-out').onclick = () => { if (pdfDoc && pageScale > 0.75) { pageScale -= 0.25; window.renderCurrentPage(); } };
 
-    // --- Precise Cropping & Resize Logic ---
-    document.querySelectorAll('.crop-handle').forEach(h => {
-      h.onpointerdown = (e) => {
-        e.stopPropagation();
-        isResizing = true;
-        activeHandle = e.target.dataset.handle;
-        try { e.target.setPointerCapture(e.pointerId); } catch(_) {}
-      };
-    });
-
-    pdfCanvas.onpointerdown = (e) => {
-      if (isResizing) return;
-      if (e.target.classList.contains('crop-handle')) return;
-      if (e.pointerType === 'touch') e.preventDefault();
-      try { pdfCanvas.setPointerCapture(e.pointerId); } catch (_) {}
-      
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-      const wrapRect = pageWrap.getBoundingClientRect();
-      
-      isCropping = true; 
-      cropStartX = e.clientX - canvasRect.left; 
-      cropStartY = e.clientY - canvasRect.top;
-      
-      const relLeft = canvasRect.left - wrapRect.left + cropStartX;
-      const relTop = canvasRect.top - wrapRect.top + cropStartY;
-
-      cropBox.style.left = `${relLeft}px`; 
-      cropBox.style.top = `${relTop}px`; 
-      cropBox.style.width = '0px'; 
-      cropBox.style.height = '0px'; 
-      cropBox.style.display = 'block';
-    };
-
-    window.onpointermove = (e) => {
-      if (e.pointerType === 'touch') e.preventDefault();
-      const canvasRect = pdfCanvas.getBoundingClientRect();
-      const wrapRect = pageWrap.getBoundingClientRect();
-      const offsetLeft = canvasRect.left - wrapRect.left;
-      const offsetTop = canvasRect.top - wrapRect.top;
-
-      if (isResizing && activeHandle) {
-        let l = parseFloat(cropBox.style.left) - offsetLeft || 0;
-        let t = parseFloat(cropBox.style.top) - offsetTop || 0;
-        let w = parseFloat(cropBox.style.width) || 0;
-        let h = parseFloat(cropBox.style.height) || 0;
+    viewport.onmousedown = (e) => {
+      const canvasEl = pdfCanvas;
+      if (canvasEl) {
+        activeCanvas = canvasEl;
+        activeCanvasRect = activeCanvas.getBoundingClientRect();
+        const wrapRect = document.getElementById('pdf-single-page-wrap').getBoundingClientRect();
         
-        const curX = Math.max(0, Math.min(e.clientX - canvasRect.left, canvasRect.width));
-        const curY = Math.max(0, Math.min(e.clientY - canvasRect.top, canvasRect.height));
-
-        if (activeHandle === 'nw') {
-          let right = l + w, bottom = t + h;
-          l = Math.min(curX, right - 10);
-          t = Math.min(curY, bottom - 10);
-          w = right - l; h = bottom - t;
-        } else if (activeHandle === 'ne') {
-          let left = l, bottom = t + h;
-          let right = Math.max(curX, left + 10);
-          t = Math.min(curY, bottom - 10);
-          w = right - left; h = bottom - t;
-        } else if (activeHandle === 'sw') {
-          let right = l + w, top = t;
-          l = Math.min(curX, right - 10);
-          let bottom = Math.max(curY, top + 10);
-          w = right - l; h = bottom - top;
-        } else if (activeHandle === 'se') {
-          let left = l, top = t;
-          let right = Math.max(curX, left + 10);
-          let bottom = Math.max(curY, top + 10);
-          w = right - left; h = bottom - top;
-        }
-
-        cropBox.style.left = `${offsetLeft + l}px`;
-        cropBox.style.top = `${offsetTop + t}px`;
-        cropBox.style.width = `${w}px`;
-        cropBox.style.height = `${h}px`;
-        return;
-      }
-
-      if (isCropping) {
-        const curX = Math.max(0, Math.min(e.clientX - canvasRect.left, canvasRect.width));
-        const curY = Math.max(0, Math.min(e.clientY - canvasRect.top, canvasRect.height));
+        isCropping = true; 
+        cropStartX = e.clientX - activeCanvasRect.left; 
+        cropStartY = e.clientY - activeCanvasRect.top;
         
-        const startX = cropStartX;
-        const startY = cropStartY;
-
-        cropBox.style.left = `${offsetLeft + Math.min(startX, curX)}px`; 
-        cropBox.style.top = `${offsetTop + Math.min(startY, curY)}px`;
-        cropBox.style.width = `${Math.abs(curX - startX)}px`; 
-        cropBox.style.height = `${Math.abs(curY - startY)}px`;
+        cropBox.style.left = `${activeCanvasRect.left - wrapRect.left + cropStartX}px`; 
+        cropBox.style.top = `${activeCanvasRect.top - wrapRect.top + cropStartY}px`; 
+        cropBox.style.width = '0px'; 
+        cropBox.style.height = '0px'; 
+        cropBox.style.display = 'block';
       }
     };
 
-    window.onpointerup = async (e) => {
-      if (isResizing) {
-        isResizing = false; activeHandle = null;
-        return;
+    window.onmousemove = (e) => {
+      if (isCropping && activeCanvas && activeCanvasRect) {
+        const curX = Math.max(0, Math.min(e.clientX - activeCanvasRect.left, activeCanvasRect.width));
+        const curY = Math.max(0, Math.min(e.clientY - activeCanvasRect.top, activeCanvasRect.height));
+        const wrapRect = document.getElementById('pdf-single-page-wrap').getBoundingClientRect();
+        
+        const startX = activeCanvasRect.left - wrapRect.left + cropStartX;
+        const startY = activeCanvasRect.top - wrapRect.top + cropStartY;
+        const currX = activeCanvasRect.left - wrapRect.left + curX;
+        const currY = activeCanvasRect.top - wrapRect.top + curY;
+
+        cropBox.style.left = `${Math.min(startX, currX)}px`; 
+        cropBox.style.top = `${Math.min(startY, currY)}px`;
+        cropBox.style.width = `${Math.abs(currX - startX)}px`; 
+        cropBox.style.height = `${Math.abs(currY - startY)}px`;
       }
+    };
+
+    window.onmouseup = async () => {
       if (isCropping) {
-        isCropping = false; 
+        isCropping = false; cropBox.style.display = 'none';
         const boxW = parseFloat(cropBox.style.width), boxH = parseFloat(cropBox.style.height);
-        if (boxW > 10 && boxH > 10) {
-          const canvasRect = pdfCanvas.getBoundingClientRect();
-          const wrapRect = pageWrap.getBoundingClientRect();
-          const scaleX = pdfCanvas.width / canvasRect.width;
-          const scaleY = pdfCanvas.height / canvasRect.height;
+        if (boxW > 10 && boxH > 10 && activeCanvas) {
+          const scaleX = activeCanvas.width / activeCanvasRect.width;
+          const scaleY = activeCanvas.height / activeCanvasRect.height;
           
-          const cropLeft = (parseFloat(cropBox.style.left) - (canvasRect.left - wrapRect.left)) * scaleX;
-          const cropTop = (parseFloat(cropBox.style.top) - (canvasRect.top - wrapRect.top)) * scaleY;
+          const cropLeft = (parseFloat(cropBox.style.left) - (activeCanvas.getBoundingClientRect().left - document.getElementById('pdf-single-page-wrap').getBoundingClientRect().left)) * scaleX;
+          const cropTop = (parseFloat(cropBox.style.top) - (activeCanvas.getBoundingClientRect().top - document.getElementById('pdf-single-page-wrap').getBoundingClientRect().top)) * scaleY;
           
-          // Ultra-HD Rendering Enhancement
           let tC = document.createElement('canvas'); 
-          tC.width = boxW * scaleX * 2; 
-          tC.height = boxH * scaleY * 2;
+          tC.width = boxW * scaleX; 
+          tC.height = boxH * scaleY;
           
           const tCtx = tC.getContext('2d');
           tCtx.imageSmoothingEnabled = true;
           tCtx.imageSmoothingQuality = 'high';
 
-          tCtx.drawImage(pdfCanvas, cropLeft, cropTop, boxW * scaleX, boxH * scaleY, 0, 0, tC.width, tC.height);
-          const cutUrl = tC.toDataURL('image/png', 1.0);
+          tCtx.drawImage(activeCanvas, cropLeft, cropTop, tC.width, tC.height, 0, 0, tC.width, tC.height);
+          const cutUrl = tC.toDataURL('image/png');
           
           if (ocrOnlyMode) {
             showToast("✨ Running OCR on Selected Area...");
@@ -1034,42 +632,12 @@ button, input, select, textarea, label { touch-action: manipulation; }
               showToast("❌ OCR Failed");
             }
           } else {
-            if (cropTarget === 'question') {
-              questionParts.push(cutUrl);
-              window.renderLivePreviews();
-              showToast("✂️ HD Question Cropped!");
-            } else if (cropTarget === 'solution') {
-              solutionParts.push(cutUrl);
-              window.renderLivePreviews();
-              showToast("✂️ HD Solution Cropped!");
-            } else if (cropTarget === 'qtext-image') {
-              qTextImage = cutUrl;
-              const wrap = document.getElementById('qtext-img-preview-wrap');
-              const img = document.getElementById('qtext-img-preview');
-              if (wrap && img) { wrap.style.display = 'flex'; img.src = cutUrl; }
-              showToast("✂️ Question Text Image Set!");
-            } else if (cropTarget.startsWith('opt')) {
-              const letter = cropTarget.replace('opt', '');
-              optionImages[letter] = cutUrl;
-              const wrap = document.getElementById(`opt-${letter.toLowerCase()}-img-wrap`);
-              const img = document.getElementById(`opt-${letter.toLowerCase()}-img`);
-              if (wrap && img) { wrap.style.display = 'block'; img.src = cutUrl; }
-              showToast(`✂️ Option ${letter} Image Set!`);
-            } else if (cropTarget === 'short-ans') {
-              shortAnsImage = cutUrl;
-              const preview = document.getElementById('short-ans-img-preview');
-              if (preview) { preview.style.display = 'block'; preview.src = cutUrl; }
-              showToast("✂️ Answer Image Set!");
-            }
-            
-            clearAllCropButtonsActive();
-            if (cropTarget !== 'question' && cropTarget !== 'solution') {
-              cropTarget = 'question';
-              const qBtnTarget = document.getElementById('btn-target-question');
-              if (qBtnTarget) qBtnTarget.classList.add('active');
-            }
+            if (activeTarget === 'question') questionParts.push(cutUrl); else solutionParts.push(cutUrl);
+            window.renderLivePreviews();
+            showToast("✂️ HD Cropped!");
           }
         }
+        activeCanvas = null; activeCanvasRect = null;
       }
     };
 
@@ -1078,10 +646,9 @@ button, input, select, textarea, label { touch-action: manipulation; }
       const loaded = await Promise.all(dataUrls.map(url => new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = url; })));
       const maxW = Math.max(...loaded.map(i => i.width)), totalH = loaded.reduce((acc, i) => acc + i.height, 0);
       const mCanvas = document.createElement('canvas'); mCanvas.width = maxW; mCanvas.height = totalH;
-      const mCtx = mCanvas.getContext('2d'); mCtx.imageSmoothingEnabled = true; mCtx.imageSmoothingQuality = 'high';
-      mCtx.fillStyle = '#fff'; mCtx.fillRect(0, 0, maxW, totalH);
+      const mCtx = mCanvas.getContext('2d'); mCtx.fillStyle = '#fff'; mCtx.fillRect(0, 0, maxW, totalH);
       let y = 0; loaded.forEach(img => { mCtx.drawImage(img, 0, y); y += img.height; });
-      return mCanvas.toDataURL('image/png', 1.0);
+      return mCanvas.toDataURL('image/png');
     }
 
     window.renderLivePreviews = async function() {
@@ -1092,8 +659,18 @@ button, input, select, textarea, label { touch-action: manipulation; }
     };
 
     window.clearTarget = function(t) { 
-      if (t === 'question') questionParts = []; 
-      else if (t === 'solution') solutionParts = [];
+      if (t === 'question') {
+        questionParts = []; 
+        localStorage.removeItem('Temp_Editor_Synced_Image');
+        localStorage.removeItem('Temp_Editor_Image');
+        localStorage.removeItem('Temp_Fallback_QText');
+        localStorage.removeItem('Temp_Fallback_OptA');
+        localStorage.removeItem('Temp_Fallback_OptB');
+        localStorage.removeItem('Temp_Fallback_OptC');
+        localStorage.removeItem('Temp_Fallback_OptD');
+      } else if (t === 'solution') {
+        solutionParts = [];
+      }
       window.renderLivePreviews();
       showToast(`🗑️ ${t.toUpperCase()} Image Cleared!`);
     };
@@ -1101,51 +678,76 @@ button, input, select, textarea, label { touch-action: manipulation; }
     document.querySelectorAll('.target-btn').forEach(b => b.onclick = () => {
       document.querySelectorAll('.target-btn').forEach(btn => btn.classList.remove('active'));
       b.classList.add('active'); activeTarget = b.dataset.target;
-      cropTarget = activeTarget;
-      clearAllCropButtonsActive();
     });
+
+    window.openFullscreenEditor = async function() {
+      if (!questionParts.length) return alert("Please crop a question image first from the PDF before opening the Editor Studio!");
+      const stitchedImg = await stitchImages(questionParts);
+      localStorage.setItem('Temp_Editor_Image', stitchedImg);
+      
+      localStorage.setItem('Temp_Opt_A', document.getElementById('opt-a').value);
+      localStorage.setItem('Temp_Opt_B', document.getElementById('opt-b').value);
+      localStorage.setItem('Temp_Opt_C', document.getElementById('opt-c').value);
+      localStorage.setItem('Temp_Opt_D', document.getElementById('opt-d').value);
+      localStorage.setItem('Temp_QText', document.getElementById('vault-q-text').value);
+
+      const modal = document.getElementById('studio-modal-overlay');
+      const iframe = document.getElementById('studio-iframe');
+      if (modal && iframe) {
+        iframe.src = 'editor.html';
+        modal.style.display = 'flex';
+      }
+    };
+
+    window.closeStudioModal = function() {
+      const modal = document.getElementById('studio-modal-overlay');
+      const iframe = document.getElementById('studio-iframe');
+      if (modal && iframe) {
+        modal.style.display = 'none';
+        iframe.src = '';
+      }
+
+      const syncedImg = localStorage.getItem('Temp_Editor_Synced_Image');
+      if (syncedImg) {
+        questionParts = [syncedImg];
+        window.renderLivePreviews();
+      }
+
+      const qText = localStorage.getItem('Temp_Fallback_QText');
+      if (qText) document.getElementById('vault-q-text').value = qText;
+
+      const optA = localStorage.getItem('Temp_Fallback_OptA');
+      const optB = localStorage.getItem('Temp_Fallback_OptB');
+      const optC = localStorage.getItem('Temp_Fallback_OptC');
+      const optD = localStorage.getItem('Temp_Fallback_OptD');
+
+      if (optA !== null) document.getElementById('opt-a').value = optA;
+      if (optB !== null) document.getElementById('opt-b').value = optB;
+      if (optC !== null) document.getElementById('opt-c').value = optC;
+      if (optD !== null) document.getElementById('opt-d').value = optD;
+
+      showToast("✔ Changes Synced Back Successfully!");
+    };
 
     window.openLastSavedQuestionPreview = async function() {
       const body = document.getElementById('prev-q-body');
       if (!body) return;
 
-      const storedObj = localStorage.getItem('ExamVault_Hard_Last_Saved_Question');
-      if (!storedObj) {
-        body.innerHTML = `<p style="color:#64748b;">No saved question found in persistent hard storage.</p>`;
+      if (!window.lastSavedQuestionObject) {
+        body.innerHTML = `<p style="color:#64748b;">No question saved in this session yet.</p>`;
       } else {
-        const obj = JSON.parse(storedObj);
-        let optDisplay = '';
-        if (obj.optText) {
-          optDisplay = `<div style="font-weight:bold; color:#0f172a; font-size:13px; margin-top:16px; border-top:1px solid #e2e8f0; padding-top:10px;">Options:</div><div style="font-size:13px; color:#334155; margin-top:6px;">${obj.optText}</div>`;
-        }
-        if (obj.optionImages) {
-          for (let [k, v] of Object.entries(obj.optionImages)) {
-            if (v) optDisplay += `<div style="margin-top:4px;"><b>(${k})</b> <img src="${v}" style="max-height:40px; vertical-align:middle;"></div>`;
-          }
-        }
-        if (obj.shortAnsImg) {
-          optDisplay += `<div style="margin-top:8px;"><b>Answer Image:</b><br><img src="${obj.shortAnsImg}" style="max-height:60px; border-radius:4px;"></div>`;
-        }
+        const obj = window.lastSavedQuestionObject;
         body.innerHTML = `
-          <div style="color:#10b981; font-weight:bold; margin-bottom:8px;">✔ Last Saved Question | Q.No: ${obj.qNo} | Type: ${obj.qType || 'MCQ'} | Ans: ${obj.key || obj.shortAns || '-'}</div>
+          <div style="color:#10b981; font-weight:bold; margin-bottom:8px;">✔ Successfully Saved to Cloud | Q.No: ${obj.qNo} | Type: ${obj.qType || 'MCQ'} | Ans: ${obj.key}</div>
           <div class="student-view-box">
             ${obj.qText ? `<div style="font-size:14px; font-weight:bold; color:#0f172a; margin-bottom:12px;">${obj.qText}</div>` : ''}
-            ${obj.qTextImage ? `<img src="${obj.qTextImage}" style="max-width:100%; margin-bottom:12px; border-radius:4px;">` : ''}
-            ${obj.question ? `<img src="${obj.question}" class="student-question-img">` : ''}
-            ${optDisplay}
+            ${obj.question && obj.question.trim() !== '' ? `<img src="${obj.question}" class="student-question-img">` : ''}
+            ${obj.optText ? `<div style="font-weight:bold; color:#0f172a; font-size:13px; margin-top:16px; border-top:1px solid #e2e8f0; padding-top:10px;">Options:</div><div style="font-size:13px; color:#334155; margin-top:6px;">${obj.optText}</div>` : ''}
           </div>
         `;
       }
       const overlay = document.getElementById('prev-q-overlay');
       if (overlay) overlay.style.display = 'flex';
-    };
-
-    window.deleteLastSavedQuestion = function() {
-      if (confirm("Are you sure you want to delete the last saved question from hard storage?")) {
-        localStorage.removeItem('ExamVault_Hard_Last_Saved_Question');
-        document.getElementById('prev-q-body').innerHTML = `<p style="color:#ef4444;">Last saved question deleted from hard storage.</p>`;
-        showToast("🗑️ Deleted from Hard Storage!");
-      }
     };
 
     const saveCloudBtn = document.getElementById('btn-save-cloud');
@@ -1156,18 +758,35 @@ button, input, select, textarea, label { touch-action: manipulation; }
 
         try {
           saveCloudBtn.style.background = '#2563eb';
-          saveCloudBtn.innerHTML = "⚡ Saving...";
+          saveCloudBtn.innerHTML = "⚡ Saving Instantly to Cloud...";
 
-          const syncedImg = localStorage.getItem('Temp_Editor_Synced_Image');
-          const finalQImg = syncedImg || (questionParts.length ? await stitchImages(questionParts) : '');
+          let finalQImg = '';
+          if (questionParts.length > 0) {
+            const syncedImg = localStorage.getItem('Temp_Editor_Synced_Image');
+            finalQImg = syncedImg || await stitchImages(questionParts);
+          } else {
+            finalQImg = '';
+          }
+
           const finalSolImg = solutionParts.length ? await stitchImages(solutionParts) : '';
           
           const qTextEl = document.getElementById('vault-q-text');
+          const fallbackQText = localStorage.getItem('Temp_Fallback_QText');
+          if (fallbackQText) qTextEl.value = fallbackQText;
+
+          const fallbackOptA = localStorage.getItem('Temp_Fallback_OptA');
+          const fallbackOptB = localStorage.getItem('Temp_Fallback_OptB');
+          const fallbackOptC = localStorage.getItem('Temp_Fallback_OptC');
+          const fallbackOptD = localStorage.getItem('Temp_Fallback_OptD');
+
+          if (fallbackOptA !== null) document.getElementById('opt-a').value = fallbackOptA;
+          if (fallbackOptB !== null) document.getElementById('opt-b').value = fallbackOptB;
+          if (fallbackOptC !== null) document.getElementById('opt-c').value = fallbackOptC;
+          if (fallbackOptD !== null) document.getElementById('opt-d').value = fallbackOptD;
+
           const hasText = qTextEl && qTextEl.value.trim().length > 0;
-          const hasQTextImage = qTextImage && qTextImage.length > 0;
-          
-          if (!finalQImg && !hasText && !hasQTextImage) {
-            alert('Please crop or edit the question image first!');
+          if (!finalQImg && !hasText) {
+            alert('Please provide either question text or a question image/crop!');
             saveCloudBtn.disabled = false;
             saveCloudBtn.style.background = '#10b981';
             saveCloudBtn.innerHTML = originalText;
@@ -1176,11 +795,12 @@ button, input, select, textarea, label { touch-action: manipulation; }
           
           const subCat = document.getElementById('vault-sub-cat');
           const qNoInput = document.getElementById('vault-qno');
-          const qTypeSelect = document.getElementById('vault-q-type');
+          const ansEl = document.getElementById('vault-ans');
+          const qTypeEl = document.getElementById('vault-q-type');
 
           const chosenSub = subCat ? subCat.value : 'General';
           const qNo = qNoInput ? (parseInt(qNoInput.value) || 1) : 1;
-          const qType = qTypeSelect ? qTypeSelect.value : 'mcq';
+          const qType = qTypeEl ? qTypeEl.value : 'mcq';
           
           const optA = document.getElementById('opt-a').value.trim();
           const optB = document.getElementById('opt-b').value.trim();
@@ -1188,31 +808,17 @@ button, input, select, textarea, label { touch-action: manipulation; }
           const optD = document.getElementById('opt-d').value.trim();
           
           let optTextFormatted = '';
-          if (keepOptionsOn && (optA || optB || optC || optD)) {
+          if (optA || optB || optC || optD) {
             optTextFormatted = `(A) ${optA} | (B) ${optB} | (C) ${optC} | (D) ${optD}`;
           }
 
-          let key = '', shortAns = '';
-          if (keepOptionsOn) {
-            key = document.getElementById('vault-ans-mcq').value;
-          } else {
-            const shortInput = document.getElementById('vault-ans-short');
-            shortAns = shortInput ? shortInput.value.trim() : '';
-          }
-
           const newQ = {
-            ownerEmail: (localStorage.getItem("ExamVault_Teacher_Email") || "").trim().toLowerCase(),
             qNo, subject: chosenSub, topic: 'General',
             qType: qType,
             qText: qTextEl ? qTextEl.value.trim() : '',
-            qTextImage: qTextImage || '',
             optText: optTextFormatted,
-            optionImages: keepOptionsOn ? { ...optionImages } : null,
-            keepOptions: keepOptionsOn,
             flags: { ...activeFlags },
-            key: keepOptionsOn ? key : '',
-            shortAns: !keepOptionsOn ? shortAns : '',
-            shortAnsImg: shortAnsImage || '',
+            key: ansEl ? ansEl.value : 'A',
             question: finalQImg,
             solution: finalSolImg,
             creatorEmail: window.currentTeacherEmail || 'atozexammocks@gmail.com',
@@ -1220,51 +826,35 @@ button, input, select, textarea, label { touch-action: manipulation; }
           };
 
           await window.addDoc(window.collection(window.db, "questions"), newQ);
-          
-          localStorage.setItem('ExamVault_Hard_Last_Saved_Question', JSON.stringify(newQ));
+          window.lastSavedQuestionObject = newQ;
+
+          localStorage.removeItem('Temp_Editor_Synced_Image');
+          localStorage.removeItem('Temp_Editor_Image');
+          localStorage.removeItem('Temp_Fallback_QText');
+          localStorage.removeItem('Temp_Fallback_OptA');
+          localStorage.removeItem('Temp_Fallback_OptB');
+          localStorage.removeItem('Temp_Fallback_OptC');
+          localStorage.removeItem('Temp_Fallback_OptD');
 
           questionParts = []; solutionParts = []; window.renderLivePreviews();
           if (qTextEl) qTextEl.value = '';
-          qTextImage = null;
-          document.getElementById('qtext-img-preview-wrap').style.display = 'none';
-          document.getElementById('qtext-img-preview').src = '';
-          
           ['opt-a', 'opt-b', 'opt-c', 'opt-d', 'vault-free-ocr'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
           });
-          ['A','B','C','D'].forEach(l => {
-            optionImages[l] = null;
-            const w = document.getElementById(`opt-${l.toLowerCase()}-img-wrap`);
-            const im = document.getElementById(`opt-${l.toLowerCase()}-img`);
-            if (w) w.style.display = 'none';
-            if (im) im.src = '';
-          });
-          shortAnsImage = null;
-          const saPre = document.getElementById('short-ans-img-preview');
-          if (saPre) { saPre.style.display = 'none'; saPre.src = ''; }
-          
           if (qNoInput) qNoInput.value = qNo + 1;
-
-          activeTarget = 'question';
-          cropTarget = 'question';
-          document.querySelectorAll('.target-btn').forEach(btn => btn.classList.remove('active'));
-          const qBtnTarget = document.getElementById('btn-target-question');
-          if (qBtnTarget) qBtnTarget.classList.add('active');
           
-          document.getElementById('crop-box').style.display = 'none';
-
           saveCloudBtn.style.background = '#10b981';
-          saveCloudBtn.innerHTML = "✔ Saved!";
+          saveCloudBtn.innerHTML = "✔ Saved Instantly!";
           setTimeout(() => {
             saveCloudBtn.innerHTML = originalText;
           }, 2000);
 
-          showToast(`✔ Q${qNo} Saved Successfully!`);
+          showToast(`✔ Q${qNo} Saved Instantly to Cloud!`);
         } catch (err) {
           alert("Failed to save question: " + err.message);
           saveCloudBtn.style.background = '#b91c1c';
-          saveCloudBtn.innerHTML = "❌ Failed";
+          saveCloudBtn.innerHTML = "❌ Failed - Try Again";
           setTimeout(() => {
             saveCloudBtn.style.background = '#10b981';
             saveCloudBtn.innerHTML = originalText;
@@ -1275,40 +865,5 @@ button, input, select, textarea, label { touch-action: manipulation; }
       };
     }
   </script>
-<script>
-(function(){
-  function init(){
-    const email=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase();
-    const tag=document.getElementById('current-user-tag'), head=document.getElementById('dropdown-user-email');
-    if(tag) tag.textContent=email||'Educator';
-    if(head) head.textContent=email||'Not Logged In';
-    const admin=document.getElementById('super-admin-nav-btn');
-    if(admin) admin.style.display=(email==='atozexammocks@gmail.com'||email==='vikasattri3003@gmail.com')?'inline-flex':'none';
-  }
-  window.toggleProfileDropdown=function(){const d=document.getElementById('profile-dropdown-menu');if(d)d.classList.toggle('show');};
-  window.logoutTeacher=function(){localStorage.removeItem('ExamVault_Teacher_Email');localStorage.removeItem('ExamVault_Teacher_UID');location.replace('index.html');};
-  document.addEventListener('click',e=>{if(!e.target.closest('.profile-container')){const d=document.getElementById('profile-dropdown-menu');if(d)d.classList.remove('show');}});
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
-  window.addEventListener('pageshow',init);
-})();
-</script>
-<script>
-(function(){
-  function setMobileTarget(target){
-    const real = document.querySelector('.target-btn[data-target="'+target+'"]');
-    if(real) real.click();
-    document.querySelectorAll('.mobile-target').forEach(b=>{
-      b.classList.toggle('active', b.dataset.mobileTarget===target);
-    });
-  }
-  document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('.mobile-target').forEach(btn=>{
-      btn.addEventListener('click', function(){
-        setMobileTarget(this.dataset.mobileTarget);
-      });
-    });
-  });
-})();
-</script>
 </body>
 </html>
