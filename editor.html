@@ -208,16 +208,34 @@
         </div>
         
         <label style="font-size:10px; color:#94a3b8; font-weight:bold;">Edit Question Statement:</label>
+        <div style="display:flex; gap:4px; margin-bottom:4px;">
+          <button type="button" class="tool-btn editor-target-btn active" id="target-question" onclick="window.setOCRTarget('question')">🔍 OCR Question</button>
+          <button type="button" class="tool-btn editor-crop-btn" onclick="window.setCropTarget('question')">✂️ Crop Question</button>
+        </div>
         <textarea id="fallback-qtext" rows="2" class="fallback-input" placeholder="Edit question statement..."></textarea>
+        <div id="question-image-status" style="font-size:9px;color:#64748b;margin-top:3px;"></div>
         
         <!-- MCQ Options Section -->
-        <div id="editor-mcq-options-wrap" style="display:flex; flex-direction:column; gap:4px; margin-top:2px;">
+        <div id="editor-mcq-options-wrap" style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
-            <div><label style="font-size:9px; color:#94a3b8;">Opt A:</label><input type="text" id="fallback-opta" class="fallback-input"></div>
-            <div><label style="font-size:9px; color:#94a3b8;">Opt B:</label><input type="text" id="fallback-optb" class="fallback-input"></div>
-            <div><label style="font-size:9px; color:#94a3b8;">Opt C:</label><input type="text" id="fallback-optc" class="fallback-input"></div>
-            <div><label style="font-size:9px; color:#94a3b8;">Opt D:</label><input type="text" id="fallback-optd" class="fallback-input"></div>
+            <div>
+              <label style="font-size:9px; color:#94a3b8;">Opt A:</label>
+              <div style="display:flex;gap:3px;"><input type="text" id="fallback-opta" class="fallback-input"><button type="button" class="tool-btn mini-target" onclick="window.setOCRTarget('A')">🔍</button><button type="button" class="tool-btn mini-crop" onclick="window.setCropTarget('A')">✂️</button></div>
+            </div>
+            <div>
+              <label style="font-size:9px; color:#94a3b8;">Opt B:</label>
+              <div style="display:flex;gap:3px;"><input type="text" id="fallback-optb" class="fallback-input"><button type="button" class="tool-btn mini-target" onclick="window.setOCRTarget('B')">🔍</button><button type="button" class="tool-btn mini-crop" onclick="window.setCropTarget('B')">✂️</button></div>
+            </div>
+            <div>
+              <label style="font-size:9px; color:#94a3b8;">Opt C:</label>
+              <div style="display:flex;gap:3px;"><input type="text" id="fallback-optc" class="fallback-input"><button type="button" class="tool-btn mini-target" onclick="window.setOCRTarget('C')">🔍</button><button type="button" class="tool-btn mini-crop" onclick="window.setCropTarget('C')">✂️</button></div>
+            </div>
+            <div>
+              <label style="font-size:9px; color:#94a3b8;">Opt D:</label>
+              <div style="display:flex;gap:3px;"><input type="text" id="fallback-optd" class="fallback-input"><button type="button" class="tool-btn mini-target" onclick="window.setOCRTarget('D')">🔍</button><button type="button" class="tool-btn mini-crop" onclick="window.setCropTarget('D')">✂️</button></div>
+            </div>
           </div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">🔍 OCR = scan selected region into that field · ✂️ Crop = save selected region as an image for that field.</div>
         </div>
 
         <!-- Numerical / Short Answer Section -->
@@ -262,6 +280,36 @@
     let activeTextFieldId = null;
     let selectedWhitenerColor = '#ffffff';
     let imageEnhancement = false;
+    let ocrTarget = 'question';
+    let cropTarget = null;
+    const editorCropImages = {question:'',A:'',B:'',C:'',D:''};
+
+    window.setOCRTarget = function(target) {
+      ocrTarget = target;
+      cropTarget = null;
+      document.querySelectorAll('.editor-target-btn,.mini-target').forEach(b=>b.classList.remove('active'));
+      const id = target === 'question' ? 'target-question' : null;
+      if (id) document.getElementById(id)?.classList.add('active');
+      showToast('🔍 OCR target: ' + (target === 'question' ? 'Question Statement' : 'Option ' + target) + '. Now click Real OCR and draw a region.');
+      window.setMode('ocr');
+    };
+
+    window.setCropTarget = function(target) {
+      cropTarget = target;
+      ocrTarget = null;
+      document.querySelectorAll('.editor-crop-btn,.mini-crop').forEach(b=>b.classList.remove('active'));
+      showToast('✂️ Crop target: ' + (target === 'question' ? 'Question Statement' : 'Option ' + target) + '. Now draw a region on the image.');
+      window.setMode('crop');
+    };
+
+    function putOCRText(target, text) {
+      const id = target === 'question' ? 'fallback-qtext' : 'fallback-opt' + target.toLowerCase();
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = el.value.trim() ? el.value.trim() + ' ' + text : text;
+      el.dispatchEvent(new Event('input',{bubbles:true}));
+    }
+
 
     window.enhancePreview = function() {
       imageEnhancement = !imageEnhancement;
@@ -369,6 +417,7 @@
 
       document.getElementById('mode-whitener').style.background = (currentMode === 'whitener') ? '#059669' : '#1e293b';
       document.getElementById('mode-ocr').style.background = (currentMode === 'ocr') ? '#0284c7' : '#1e293b';
+      if (currentMode === 'crop') showToast('✂️ Crop Mode ON: drag a region to save as an image.');
 
       if (currentMode === 'whitener') {
         showToast("⬜ Whitener Mode ON: Drag to apply whiteout.");
@@ -451,6 +500,19 @@
           whiteners.push({ x, y, w, h, color: selectedWhitenerColor });
           redrawCanvas();
           showToast("⬜ Solid Whitener Applied!");
+        } else if (executedMode === 'crop') {
+          const target = cropTarget || 'question';
+          const cropCanvas = document.createElement('canvas');
+          cropCanvas.width = Math.max(1, Math.round(w));
+          cropCanvas.height = Math.max(1, Math.round(h));
+          cropCanvas.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, cropCanvas.width, cropCanvas.height);
+          editorCropImages[target] = cropCanvas.toDataURL('image/png');
+          const status = target === 'question' ? 'Question Statement' : 'Option ' + target;
+          const el = document.getElementById(target === 'question' ? 'question-image-status' : 'fallback-opt' + target.toLowerCase());
+          if (el && target !== 'question') el.placeholder = '✂️ Image crop saved — text optional';
+          if (target === 'question') document.getElementById('question-image-status').textContent = '✂️ Question image crop ready';
+          showToast('✔ ' + status + ' image crop saved!');
+          window.setMode('select');
         } else if (executedMode === 'ocr') {
           showToast("⏳ Scanning text via OCR...");
           try {
@@ -464,8 +526,13 @@
             const result = await Tesseract.recognize(dataUrl, 'eng+hin');
             const extractedText = result.data.text.trim() || "No text detected";
             
-            window.addNewTextBoxAt(parseFloat(drawBox.style.left), parseFloat(drawBox.style.top), Math.max(boxW, 220), Math.max(boxH, 50), extractedText);
-            showToast("✔ Text Extracted Successfully!");
+            if (ocrTarget) {
+              putOCRText(ocrTarget, extractedText);
+              showToast("✔ OCR text sent to " + (ocrTarget === 'question' ? 'Question Statement' : 'Option ' + ocrTarget));
+            } else {
+              window.addNewTextBoxAt(parseFloat(drawBox.style.left), parseFloat(drawBox.style.top), Math.max(boxW, 220), Math.max(boxH, 50), extractedText);
+              showToast("✔ Text Extracted Successfully!");
+            }
           } catch (err) {
             console.error(err);
             showToast("❌ OCR Failed. Created empty box.");
@@ -715,6 +782,9 @@
 
       const finalUrl = canvas.toDataURL('image/png');
 
+      // Keep crop-to-field images available for Builder/Library editing.
+      localStorage.setItem('AZ_EDITOR_CROP_IMAGES', JSON.stringify(editorCropImages));
+
       // TEST BUILDER EDIT MODE: permanently update the same Library question.
       // Paper Designer never enters this branch.
       if (new URLSearchParams(window.location.search).get('builderEdit') === '1') {
@@ -738,6 +808,11 @@
               question: finalUrl,
               qText: document.getElementById('fallback-qtext')?.value.trim() || '',
               optText: opts.join(' | '),
+              optImageA: editorCropImages.A || '',
+              optImageB: editorCropImages.B || '',
+              optImageC: editorCropImages.C || '',
+              optImageD: editorCropImages.D || '',
+              questionImage: editorCropImages.question || '',
               updatedAt: new Date().toISOString()
             }
           );
