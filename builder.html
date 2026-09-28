@@ -357,7 +357,9 @@
           @page { size:A4; margin:12mm; }
           *{box-sizing:border-box}
           html,body{margin:0;padding:0;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif}
-          body{font-size:11pt}
+          body{font-size:11pt;position:relative}
+          body::before{content:"A TO Z EXAM MOCKS";position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-32deg);font-size:42pt;font-weight:800;letter-spacing:4px;color:rgba(100,116,139,.075);white-space:nowrap;z-index:0;pointer-events:none}
+          .paper-grid{position:relative;z-index:1}
           .paper-header{grid-column:1/-1;text-align:center;border-bottom:1px solid #222;padding-bottom:8px;margin-bottom:4px}
           .paper-header h1{font-size:18pt;margin:0 0 3px}
           .paper-header .inst{font-size:13pt;font-weight:700}
@@ -366,7 +368,7 @@
           .print-question{width:100%;min-width:0;break-inside:avoid;page-break-inside:avoid;border-bottom:1px solid #ddd;padding-bottom:5mm}
           .q-number{font-size:11pt;margin-bottom:2mm}
           .q-text{font-size:10.5pt;line-height:1.45;margin-bottom:2mm;white-space:pre-wrap;overflow-wrap:anywhere}
-          .question-image{display:block;width:100%;height:auto;max-width:100%;object-fit:contain;margin:2mm 0 3mm}
+          .question-image{display:block;width:100%;height:auto;max-width:100%;object-fit:contain;margin:2mm 0 3mm;filter:contrast(1.08) brightness(1.01) saturate(.92);image-rendering:auto}
           .options{display:grid;grid-template-columns:1fr 1fr;gap:2mm 5mm;font-size:10pt;line-height:1.35}
           .answer-key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5mm;border-top:1px solid #222;padding-top:5mm}
           .answer-item{display:flex;justify-content:space-between;border:1px solid #aaa;padding:3mm}
