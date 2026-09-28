@@ -79,6 +79,9 @@
     .pdf-input { width: 100%; padding: 7px 10px; background: #060911; border: 1px solid #334155; border-radius: 6px; color: white; font-size: 12px; }
 
     #library-access-modal { position: fixed; inset: 0; background: rgba(0,0,0,.88); display: none; align-items: center; justify-content: center; z-index: 95000; padding: 18px; }
+    .picker-question { background:#0b1120; border:1px solid #334155; border-radius:10px; padding:12px; display:flex; gap:12px; align-items:flex-start; }
+    .picker-question img { max-width:180px; max-height:120px; object-fit:contain; background:#fff; border-radius:6px; }
+    .picker-insert { background:#10b981; color:#fff; border:0; border-radius:7px; padding:7px 12px; cursor:pointer; font-weight:800; font-size:11px; white-space:nowrap; }
   </style>
 
 <style>
@@ -166,6 +169,13 @@
     <!-- MAIN FOLDER GRID / FOLDER CONTENT CONTAINER -->
     <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:12px; overflow-y:auto; flex:1;">
       <div class="folder-grid" id="folder-cards-container"></div>
+      <div id="picker-questions-section" style="display:none; background:#090d16; border:1px solid #1e293b; border-radius:12px; padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <h4 style="color:#10b981;font-size:14px;">📝 Questions in this Folder</h4>
+          <input id="picker-question-search" class="pdf-input" style="max-width:280px;" placeholder="Search questions..." oninput="renderPickerQuestions()">
+        </div>
+        <div id="picker-questions-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
 
       <!-- PDF LINKS SECTION INSIDE FOLDERS -->
       <div id="pdf-links-section" style="display:none; background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:16px; margin-top:10px;">
@@ -207,6 +217,8 @@
     
     let folderPdfs = {}; // Stores PDF links per folder path
     let currentFolderPath = "";
+    let pickerMode = new URLSearchParams(location.search).get('picker') === '1';
+    let pickerQuestions = [];
 
     window.switchLibraryMode = async function(mode) {
       activeLibraryMode = mode;
@@ -221,6 +233,7 @@
       }
 
       await loadLibraryStateForCurrentMode();
+      await loadPickerQuestions();
       renderLibraryBrowser();
     };
 
@@ -412,6 +425,46 @@
         : modeTitle;
     }
 
+    function questionImage(q){
+      const vals=[q.image,q.img,q.questionImage,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image];
+      for(const v of vals){
+        if(typeof v==='string' && /^(data:image\/|https?:\/\/|blob:)/i.test(v.trim())) return v.trim();
+        if(typeof v==='object' && v) return String(v.src||v.url||v.data||v.base64||v.image||'');
+      }
+      return '';
+    }
+    async function loadPickerQuestions(){
+      if(!pickerMode || !window.db) return;
+      try{
+        const snap=await window.getDocs(window.collection(window.db,"questions"));
+        pickerQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
+      }catch(e){ pickerQuestions=[]; console.error("Picker question load failed:",e); }
+    }
+    function renderPickerQuestions(){
+      const box=document.getElementById('picker-questions-section');
+      const list=document.getElementById('picker-questions-list');
+      if(!pickerMode || !box || !list) return;
+      box.style.display=currentFolderPath?'block':'none';
+      if(!currentFolderPath){list.innerHTML='';return;}
+      const term=(document.getElementById('picker-question-search')?.value||'').toLowerCase();
+      const rows=pickerQuestions.filter(q=>{
+        const subject=String(q.subject||q.folderPath||q.path||'').trim();
+        const text=String(q.text||q.qText||q.questionText||q.question||'').toLowerCase();
+        return subject===currentFolderPath && (!term || text.includes(term));
+      });
+      list.innerHTML=rows.length?rows.map(q=>{
+        const text=String(q.text||q.qText||q.questionText||'');
+        const img=questionImage(q);
+        return '<div class="picker-question"><div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:#f8fafc;white-space:pre-wrap;">'+escapeHtml(text||'Image-based question')+'</div><div style="font-size:10px;color:#64748b;margin-top:5px;">ID: '+escapeHtml(q.id)+' • '+escapeHtml(q.type||q.questionType||'MCQ')+' • '+escapeHtml(q.marks??1)+' marks</div>'+(img?'<img src="'+escapeHtml(img)+'" style="margin-top:8px;max-width:280px;max-height:180px;object-fit:contain;background:#fff;border-radius:6px;">':'')+'</div><button class="picker-insert" onclick="insertPickerQuestion(\''+escapeHtml(q.id)+'\')">＋ Insert</button></div>';
+      }).join(''):'<div style="padding:25px;text-align:center;color:#64748b;">No questions found in this folder.</div>';
+    }
+    window.insertPickerQuestion=function(id){
+      const q=pickerQuestions.find(x=>String(x.id)===String(id));
+      if(!q)return;
+      window.parent.postMessage({type:'AZ_LIBRARY_QUESTION_SELECTED',question:q,libraryMode:activeLibraryMode,folderPath:currentFolderPath},'*');
+      showToast('✔ Question sent to Paper Designer');
+    };
+
     function renderLibraryBrowser() {
       const cards = document.getElementById('folder-cards-container');
       const pdfSection = document.getElementById('pdf-links-section');
@@ -448,6 +501,7 @@
         empty.innerHTML = '📂 No subfolders here.<br><span style="font-size:11px;">Click "Create Folder" above to add subfolders.</span>';
         cards.appendChild(empty);
       }
+      renderPickerQuestions();
     }
 
     // PDF Link Management functions inside Folders
@@ -546,6 +600,11 @@
       }
       await loadLibraryStateForCurrentMode();
       renderLibraryBrowser();
+      if(pickerMode){
+        const create=document.getElementById('create-folder-btn'); if(create) create.style.display='none';
+        const pdf=document.getElementById('pdf-links-section'); if(pdf) pdf.style.display='none';
+        const title=document.getElementById('library-main-title'); if(title) title.innerHTML='📚 Select a Library → Folder → Question';
+      }
     });
   </script>
 </body>
