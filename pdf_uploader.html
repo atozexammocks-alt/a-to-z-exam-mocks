@@ -3,34 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>A to Z Exam Mocks — PDF Uploader</title>
+<title>A to Z Exam Mocks — PDF Slicer & Cropper</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:10px}
 .brand{font-weight:900;color:#38bdf8;text-decoration:none;white-space:nowrap}.nav{display:flex;gap:6px;flex-wrap:wrap}.nav a,.btn{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:8px 11px;border-radius:6px;text-decoration:none;font-weight:800;font-size:12px;cursor:pointer}
-.btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn.keepOn{background:#16a34a!important;color:#fff!important;border-color:#4ade80!important}.btn.keepOff{opacity:.55}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn:disabled{opacity:.45;cursor:not-allowed}
 .page{padding:12px}.toolbar{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #file{display:none}
 .choose{background:#0284c7;border:1px solid #38bdf8;color:#fff;padding:9px 13px;border-radius:6px;font-weight:900;cursor:pointer;display:inline-block}
-.status{font-weight:900;color:#10b981}.activity{width:100%;color:#94a3b8;font-size:12px}.progress{height:8px;background:#0f172a;border:1px solid #334155;border-radius:20px;overflow:hidden;flex:1;min-width:120px}.progress i{display:block;height:100%;width:0;background:#38bdf8}
-.workspace{display:grid;grid-template-columns:1.25fr 1fr;gap:10px;margin-top:10px}.panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.panel h3{margin:0 0 5px}.muted{color:#94a3b8;font-size:11px}.scroll{max-height:calc(100vh - 155px);overflow:auto}.card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin:8px 0}.active{border-color:#38bdf8}
-.grid2{display:grid;grid-template-columns:110px 1fr;gap:7px}.field{margin-top:7px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
-input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}textarea{min-height:90px;resize:vertical}.opt{display:grid;grid-template-columns:22px 1fr;gap:4px;margin:3px 0}.qMeta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.preview{background:#fff;color:#111;border-radius:7px;padding:16px;line-height:1.55;min-height:180px}.preview img{max-width:100%;max-height:350px;display:block;margin:12px auto}.previewOpt{padding:5px 0;border-bottom:1px solid #ddd}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}
-.modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
-.modalhead,.modalfoot{padding:10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.modalfoot{border-top:1px solid #334155;border-bottom:0;flex-direction:column;align-items:stretch}
-.modalbody{display:block;padding:10px;min-height:0;flex:1;overflow:auto}
-.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none;min-height:450px}
+.status{font-weight:900;color:#10b981}.activity{width:100%;color:#94a3b8;font-size:12px}
+.workspace{display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin-top:10px}.panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.panel h3{margin:0 0 5px}.muted{color:#94a3b8;font-size:11px}.scroll{max-height:calc(100vh - 155px);overflow:auto}
+.card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin:8px 0}.active{border-color:#38bdf8}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:7px}.field{margin-top:7px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
+input,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.preview{background:#fff;color:#111;border-radius:7px;padding:12px;text-align:center}.preview img{max-width:100%;max-height:200px;display:block;margin:auto}
+.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none;min-height:500px;border:1px solid #334155;border-radius:8px}
 .pdfview canvas{background:#fff;max-width:none}
-.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;pointer-events:auto;cursor:move}
-.cropHandle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:10}
+.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;pointer-events:auto;cursor:move;z-index:10}
+.cropHandle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:11}
 .cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}
 .cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
 .prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
+@media(max-width:850px){.workspace{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -39,8 +36,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <div class="nav">
 <a href="teacher.html">🏠 Dashboard</a>
 <a href="library.html">📁 Central Library</a>
-<a href="library_access.html">🤝 Group Library</a>
-<a href="pdf_uploader.html" class="btn primary" style="background:#2563eb!important;">📄 PDF Uploader — Semi-Auto</a>
+<a href="pdf_uploader.html" class="btn primary" style="background:#2563eb!important;">📄 PDF Slicer & Cropper</a>
 </div>
 </nav>
 
@@ -48,268 +44,92 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <div class="toolbar">
 <label class="choose" for="file">📄 Choose PDF</label>
 <input id="file" type="file" accept="application/pdf,.pdf">
-<button id="extract" class="btn green" disabled>⚡ Load Pages & Questions</button>
-<button id="addCard" class="btn" disabled>➕ Add Question Card</button>
-<button id="confirmAll" class="btn" disabled>☑ Confirm All</button>
-<button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
+<button id="prevPg" class="btn" disabled>◀ Prev Page</button>
+<span id="pageIndicator" style="font-weight:800;color:#38bdf8">Page 0 / 0</span>
+<button id="nextPg" class="btn" disabled>Next Page ▶</button>
+<button id="captureBtn" class="btn green" disabled>✂ Crop & Add as Question</button>
 <span id="status" class="status">PDF not selected</span>
-<div class="progress"><i id="bar"></i></div>
 <div id="activity" class="activity">Activity: waiting for PDF…</div>
 </div>
 
 <div class="workspace">
-<section class="panel"><h3>📝 Question Editor</h3><div class="muted">Add, edit or crop questions from PDF pages.</div><div class="scroll" id="editor"><div class="card">Choose a PDF to begin.</div></div></section>
-<section class="panel"><h3>👨‍🎓 Student Preview</h3><div class="muted">Student-facing live preview.</div><div class="scroll" id="preview"><div class="card"><div class="preview">No question selected.</div></div></div></section>
-</div>
-</main>
-
-<div class="overlay" id="pageOverlay"><div class="prompt">
-<h3>📄 Enter Page Range to Load</h3>
-<div id="pageInfo" class="muted"></div>
-<div class="row">
-  <input id="pageRange" type="text" placeholder="e.g. 1-5 or 1,3,6" value="1-2">
-  <button id="startPages" class="btn primary">Start</button>
-</div>
-</div></div>
-
-<!-- CROP OVERLAY MODAL -->
-<div class="overlay" id="cropOverlay"><div class="modal">
-<div class="modalhead">
-  <b>✂ Crop Question / Image from PDF Page</b>
-  <div><button id="cropPrev" class="btn">◀ Prev Page</button><button id="cropNext" class="btn">Next Page ▶</button><button id="closeCrop" class="btn">✕ Close</button></div>
-</div>
-<div class="modalbody">
+<section class="panel">
+  <h3>📄 PDF Page Viewer (Drag Box over Question)</h3>
+  <div class="muted">Drag the dashed box or resize handles to cover a question, then click "Crop & Add".</div>
   <div class="pdfview" id="pdfView">
     <canvas id="pdfCanvas"></canvas>
-    <div id="cropBox" class="cropbox">
+    <div id="cropBox" class="cropbox" style="display:none">
       <div class="cropHandle nw"></div><div class="cropHandle ne"></div>
       <div class="cropHandle sw"></div><div class="cropHandle se"></div>
     </div>
   </div>
-</div>
-<div class="modalfoot">
-  <div class="qMeta">
-    <div><label class="muted">Library</label><select id="cropLibrary"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div>
-    <div><label class="muted">Folder</label><input id="cropFolder" placeholder="Folder name"></div>
-    <div><label class="muted">Subfolder</label><input id="cropSubfolder" placeholder="Subfolder name"></div>
-    <div><label class="muted">Topic / Chapter</label><input id="cropTopic" placeholder="Topic / Chapter"></div>
+</section>
+
+<section class="panel">
+  <h3>📝 Captured Questions Library Queue</h3>
+  <div class="muted">Capped questions will appear here ready to save to Cloud.</div>
+  <div class="scroll" id="editor">
+    <div class="card">No questions cropped yet. Drag box on PDF and click "Crop & Add".</div>
   </div>
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-    <div style="display:flex;gap:8px;">
-      <button id="cropKeepText" class="btn miniBtn keepOff" type="button">📝 Keep Text</button>
-      <button id="cropKeepImage" class="btn miniBtn keepOff" type="button">🖼 Keep Image</button>
-    </div>
-    <button id="saveCrop" class="btn green">✔ Save Crop & Update Preview</button>
+  <div style="margin-top:10px">
+    <button id="saveAll" class="btn primary" style="width:100%;padding:12px;" disabled>☁ Save All to Cloud Library</button>
   </div>
+</section>
 </div>
-</div></div>
+</main>
 
 <script>
 (function(){
 "use strict";
 var fileEl=document.getElementById("file"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
-var extractBtn=document.getElementById("extract"), addCardBtn=document.getElementById("addCard"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
-var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropRect={x:50,y:50,w:400,h:150},renderScale=1.4;
+var prevBtn=document.getElementById("prevPg"), nextBtn=document.getElementById("nextPg"), captureBtn=document.getElementById("saveAll");
+var cropCaptureBtn=document.getElementById("captureBtn");
+var pdf=null, totalPages=0, currPage=1, items=[], renderScale=1.4;
+var cropRect={x:30, y:30, w:500, h:160};
 var cropAction=null, cropStart=null, cropInit=null;
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;}
-function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
-function show(id,on){document.getElementById(id).style.display=on?"flex":"none"}
 function imageLoad(src){return new Promise(function(ok,no){var im=new Image();im.onload=function(){ok(im)};im.onerror=no;im.src=src})}
 
 fileEl.addEventListener("change",async function(){
  var f=fileEl.files&&fileEl.files[0]; if(!f)return;
  status("📄 Selected: "+f.name+" — opening PDF…");
- progress(0,1);
  try{
    var pdfBytes=await f.arrayBuffer();
    pdf=await pdfjsLib.getDocument({data:pdfBytes}).promise;
    totalPages=pdf.numPages;
-   document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
-   document.getElementById("pageRange").value="1-"+totalPages;
-   show("pageOverlay",true);
-   status("✔ PDF opened. Enter page range and press Start.");
+   currPage=1;
+   prevBtn.disabled=false; nextBtn.disabled=false; cropCaptureBtn.disabled=false;
+   await renderPage();
+   status("✔ PDF opened. Adjust crop box and click Crop & Add.");
  }catch(err){
    status("❌ PDF open failed: "+(err.message||err));
  }
 });
 
-function parsePageRange(str, max){
- var set={};
- str.split(",").forEach(function(part){
-   part=part.trim();
-   if(part.indexOf("-")>=0){
-     var rng=part.split("-");
-     var start=parseInt(rng[0],10)||1, end=parseInt(rng[1],10)||max;
-     for(var j=Math.min(start,end);j<=Math.max(start,end);j++){if(j>=1&&j<=max)set[j]=true;}
-   }else{
-     var p=parseInt(part,10);if(p>=1&&p<=max)set[p]=true;
-   }
- });
- var arr=Object.keys(set).map(Number).sort(function(a,b){return a-b});
- return arr.length?arr:[1];
-}
-
-document.getElementById("startPages").addEventListener("click",function(){
- var rawRange=document.getElementById("pageRange").value.trim();
- targetPages=parsePageRange(rawRange, totalPages);
- show("pageOverlay",false);
- extractBtn.disabled=false; addCardBtn.disabled=false; confirmBtn.disabled=false; saveBtn.disabled=true;
- status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Load Pages or Add Question Card.");
-});
-
-async function extract(){
- if(!pdf||!targetPages.length)return;
- items=[]; selected=-1;
- document.getElementById("editor").innerHTML=""; document.getElementById("preview").innerHTML="";
- extractBtn.disabled=true; addCardBtn.disabled=true; confirmBtn.disabled=true; saveBtn.disabled=true;
- progress(0, targetPages.length);
-
- try{
-  for(var idx=0; idx<targetPages.length; idx++){
-   var n=targetPages[idx];
-   status("📄 Loading page "+n+" ("+(idx+1)+"/"+targetPages.length+")…");
-   var page=await pdf.getPage(n);
-   var textContent=await page.getTextContent();
-   var fullText=textContent.items.map(function(item){return item.str;}).join(" ");
-
-   // Create initial cards (e.g. 1 card per page or blank template)
-   items.push({
-     qNo: String(items.length + 1),
-     qText: fullText ? "Page " + n + " content excerpt..." : "Page " + n + " question",
-     optA: "", optB: "", optC: "", optD: "",
-     sourcePage: n,
-     confirmed: false,
-     keepText: true,
-     keepImage: false,
-     libraryType: "Personal Library",
-     folder: "",
-     subfolder: "",
-     topic: "Physics"
-   });
-
-   progress(idx+1, targetPages.length);
-   render();
-  }
-
-  extractBtn.disabled=false; addCardBtn.disabled=false; confirmBtn.disabled=items.length===0; saveBtn.disabled=true;
-  status("✔ Loaded "+items.length+" item(s). Use 'Add Question Card' to add more or crop from PDF.");
-  if(items.length) select(0);
-
- }catch(e){
-   console.error(e); extractBtn.disabled=false; addCardBtn.disabled=false; status("❌ Load failed: "+e.message); alert("Error: "+e.message);
- }
-}
-
-extractBtn.addEventListener("click", extract);
-
-addCardBtn.addEventListener("click", function(){
- items.push({
-   qNo: String(items.length + 1),
-   qText: "New question text...",
-   optA: "", optB: "", optC: "", optD: "",
-   sourcePage: targetPages[0] || 1,
-   confirmed: false,
-   keepText: true,
-   keepImage: false,
-   libraryType: "Personal Library",
-   folder: "",
-   subfolder: "",
-   topic: "Physics"
- });
- render();
- select(items.length - 1);
- status("✔ Added new question card manually.");
-});
-
-function setKeep(i,mode){
- var x=items[i]; if(!x)return;
- if(mode==="image"){x.keepImage=true;x.keepText=false;} else {x.keepText=true;x.keepImage=false;}
- render();
-}
-
-function render(){
- var ed=document.getElementById("editor"),pv=document.getElementById("preview");
- ed.innerHTML=items.length?items.map(function(x,i){
-   return '<div class="card '+(i===selected?"active":"")+'"><b>Question '+(i+1)+' (Q.No: '+esc(x.qNo)+') • Page '+x.sourcePage+'</b>'+
-   '<div class="grid2"><div class="field"><label>Question No.</label><input id="qn'+i+'" value="'+esc(x.qNo||i+1)+'"></div><div class="field"><label>Question Text</label><textarea id="qt'+i+'">'+esc(x.qText)+'</textarea></div></div>'+
-   '<div class="field"><label>Options</label>'+['A','B','C','D'].map(function(k){return '<div class="opt"><b>'+k+'.</b><input id="op'+i+'_'+k+'" value="'+esc(x['opt'+k]||"")+'"></div>'}).join("")+'</div>'+
-   '<div class="qMeta"><div class="field"><label>Library</label><select id="lt'+i+'"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div><div class="field"><label>Topic</label><input id="tp'+i+'" value="'+esc(x.topic||"")+'"></div><div class="field"><label>Folder</label><input id="fd'+i+'" value="'+esc(x.folder||"")+'"></div><div class="field"><label>Subfolder</label><input id="sf'+i+'" value="'+esc(x.subfolder||"")+'"></div></div>'+
-   '<div class="actions"><button class="btn" data-apply="'+i+'">✔ Apply</button><button class="btn" data-crop="'+i+'">✂ Crop from PDF</button>'+
-   '<button class="btn miniBtn '+(x.keepText?"keepOn":"keepOff")+'" data-tkeep="'+i+'">📝 Keep Text</button>'+
-   '<button class="btn miniBtn '+(x.keepImage?"keepOn":"keepOff")+'" data-ikeep="'+i+'">🖼 Keep Image</button>'+
-   '<button class="btn" style="background:#7f1d1d;border-color:#991b1b;color:#fecaca;" data-del="'+i+'">🗑 Delete</button>'+
-   '<label><input type="checkbox" data-confirm="'+i+'" '+(x.confirmed?"checked":"")+'> Confirm</label></div></div>';
- }).join(""):'<div class="card">No questions loaded.</div>';
-
- ed.querySelectorAll("[data-apply]").forEach(function(b){b.onclick=function(){apply(Number(b.dataset.apply))}});
- ed.querySelectorAll("[data-crop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.crop),items[Number(b.dataset.crop)].sourcePage)}});
- ed.querySelectorAll("[data-tkeep]").forEach(function(b){b.onclick=function(){setKeep(Number(b.dataset.tkeep),"text")}});
- ed.querySelectorAll("[data-ikeep]").forEach(function(b){b.onclick=function(){setKeep(Number(b.dataset.ikeep),"image")}});
- ed.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){items.splice(Number(b.dataset.del),1);render();status("✔ Question deleted.");}});
- ed.querySelectorAll("[data-confirm]").forEach(function(b){b.onchange=function(){items[Number(b.dataset.confirm)].confirmed=b.checked;saveBtn.disabled=!items.some(function(x){return x.confirmed})}});
-
- pv.innerHTML=items.length?items.map(function(x,i){
-   var h='<div class="card '+(i===selected?"active":"")+'" data-select="'+i+'"><div class="preview"><b>Q '+esc(x.qNo||i+1)+'.</b> ';
-   if(x.keepImage && x.questionImage){
-     h+='<img src="'+x.questionImage+'" alt="Question Image">';
-   } else if(x.keepText){
-     h+=esc(x.qText)+['A','B','C','D'].map(function(k){var o=x['opt'+k]; return o?'<div class="previewOpt"><b>('+k+')</b> '+esc(o)+'</div>':""}).join("");
-   } else {
-     h+='<div class="muted">No content selected.</div>';
-   }
-   return h+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Crop / Edit Image</button></div></div>';
- }).join(""):'<div class="card"><div class="preview">No question selected.</div></div>';
-
- pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}});
- pv.querySelectorAll("[data-pcrop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.pcrop),items[Number(b.dataset.pcrop)].sourcePage)}});
-}
-
-function select(i){if(i<0||i>=items.length)return;selected=i;render()}
-function apply(i){
- var x=items[i];
- x.qNo=document.getElementById("qn"+i).value; x.qText=document.getElementById("qt"+i).value;
- ['A','B','C','D'].forEach(function(k){ x['opt'+k]=document.getElementById("op"+i+"_"+k).value.trim(); });
- x.libraryType=document.getElementById("lt"+i).value; x.folder=document.getElementById("fd"+i).value.trim(); x.subfolder=document.getElementById("sf"+i).value.trim(); x.topic=document.getElementById("tp"+i).value.trim();
- selected=i; render(); status("✔ Question "+x.qNo+" updated.");
-}
-
-async function openCrop(i,page){
- selected=i; currentPdfPage=page||targetPages[0]||1;
- var x=items[i];
- cropRect=x.cropRect ? Object.assign({}, x.cropRect) : {x:50, y:50, w:400, h:150};
- document.getElementById("cropLibrary").value=x.libraryType||"Personal Library";
- document.getElementById("cropFolder").value=x.folder||"";
- document.getElementById("cropSubfolder").value=x.subfolder||"";
- document.getElementById("cropTopic").value=x.topic||"";
- document.getElementById("cropKeepText").className="btn miniBtn "+(x.keepText?"keepOn":"keepOff");
- document.getElementById("cropKeepImage").className="btn miniBtn "+(x.keepImage?"keepOn":"keepOff");
- show("cropOverlay",true);
- await renderCropPage();
-}
-
-async function renderCropPage(){
- var p=await pdf.getPage(currentPdfPage),v=p.getViewport({scale:renderScale}),c=document.getElementById("pdfCanvas");
+async function renderPage(){
+ if(!pdf)return;
+ document.getElementById("pageIndicator").textContent="Page "+currPage+" / "+totalPages;
+ var p=await pdf.getPage(currPage), v=p.getViewport({scale:renderScale}), c=document.getElementById("pdfCanvas");
  c.width=v.width; c.height=v.height;
  await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
+ document.getElementById("cropBox").style.display="block";
  updateCropBoxUI();
 }
 
 function updateCropBoxUI(){
  var b=document.getElementById("cropBox"), c=document.getElementById("pdfCanvas"), vr=document.getElementById("pdfView").getBoundingClientRect(), cr=c.getBoundingClientRect();
- if(cropRect){
-  var sx=cr.width/c.width, sy=cr.height/c.height;
-  b.style.display="block";
-  b.style.left=(cr.left-vr.left+cropRect.x*sx)+"px";
-  b.style.top=(cr.top-vr.top+cropRect.y*sy)+"px";
-  b.style.width=(cropRect.w*sx)+"px";
-  b.style.height=(cropRect.h*sy)+"px";
- }
+ var sx=cr.width/c.width, sy=cr.height/c.height;
+ b.style.left=(cr.left-vr.left+cropRect.x*sx)+"px";
+ b.style.top=(cr.top-vr.top+cropRect.y*sy)+"px";
+ b.style.width=(cropRect.w*sx)+"px";
+ b.style.height=(cropRect.h*sy)+"px";
 }
 
+// Pointer events for dragging and resizing crop box smoothly on mobile & desktop
 (function(){
- var view=document.getElementById("pdfView"), b=document.getElementById("cropBox");
+ var b=document.getElementById("cropBox");
  b.onpointerdown=function(e){
   var canvas=document.getElementById("pdfCanvas"), cr=canvas.getBoundingClientRect();
   var sx=canvas.width/cr.width, sy=canvas.height/cr.height;
@@ -350,62 +170,87 @@ function updateCropBoxUI(){
  b.onpointerup=function(e){ cropAction=null; try{b.releasePointerCapture(e.pointerId)}catch(_){} };
 })();
 
-document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];await renderCropPage()}};
-document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];await renderCropPage()}};
-document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false)};
-document.getElementById("cropKeepText").onclick=function(){if(selected>=0){setKeep(selected,"text");document.getElementById("cropKeepText").className="btn miniBtn keepOn";document.getElementById("cropKeepImage").className="btn miniBtn keepOff";}};
-document.getElementById("cropKeepImage").onclick=function(){if(selected>=0){setKeep(selected,"image");document.getElementById("cropKeepImage").className="btn miniBtn keepOn";document.getElementById("cropKeepText").className="btn miniBtn keepOff";}};
+prevBtn.onclick=async function(){if(currPage>1){currPage--;await renderPage()}};
+nextBtn.onclick=async function(){if(currPage<totalPages){currPage++;await renderPage()}};
 
-document.getElementById("saveCrop").onclick=async function(){
- if(selected<0||!cropRect){alert("Crop box not ready.");return}
- var p=await pdf.getPage(currentPdfPage),v=p.getViewport({scale:1.5}),c=document.createElement("canvas");
+cropCaptureBtn.onclick=async function(){
+ if(!pdf)return;
+ status("✂ Cropping question from page "+currPage+"…");
+ var p=await pdf.getPage(currPage), v=p.getViewport({scale:1.5}), c=document.createElement("canvas");
  c.width=v.width; c.height=v.height;
  await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
  var sx=v.width/document.getElementById("pdfCanvas").width, sy=v.height/document.getElementById("pdfCanvas").height;
- var x=items[selected];
  var im=await imageLoad(c.toDataURL("image/png")), cc=document.createElement("canvas");
  var rx=Math.max(0,Math.min(im.width-1,Math.round(cropRect.x*sx))), ry=Math.max(0,Math.min(im.height-1,Math.round(cropRect.y*sy)));
  var rw=Math.max(1,Math.min(im.width-rx,Math.round(cropRect.w*sx))), rh=Math.max(1,Math.min(im.height-ry,Math.round(cropRect.h*sy)));
  cc.width=rw; cc.height=rh; cc.getContext("2d").drawImage(im, rx, ry, rw, rh, 0, 0, rw, rh);
- x.questionImage=cc.toDataURL("image/png");
- x.sourcePage=currentPdfPage; x.cropRect=Object.assign({}, cropRect);
- x.libraryType=document.getElementById("cropLibrary").value;
- x.folder=document.getElementById("cropFolder").value.trim();
- x.subfolder=document.getElementById("cropSubfolder").value.trim();
- x.topic=document.getElementById("cropTopic").value.trim();
- show("cropOverlay",false); render(); status("✔ Crop saved for Question "+(x.qNo||selected+1));
+ 
+ items.push({
+   qNo: String(items.length + 1),
+   questionImage: cc.toDataURL("image/png"),
+   sourcePage: currPage,
+   libraryType: "Personal Library",
+   folder: "",
+   subfolder: "",
+   topic: "Physics"
+ });
+ renderQueue();
+ status("✔ Question cropped & added! Total items: "+items.length);
 };
 
-confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All questions confirmed.")});
-saveBtn.addEventListener("click",async function(){
- var good=items.filter(function(x){return x.confirmed});
- if(!good.length){alert("Confirm at least one question first.");return}
+function renderQueue(){
+ var ed=document.getElementById("editor");
+ ed.innerHTML=items.length?items.map(function(x,i){
+   return '<div class="card"><b>Question '+(i+1)+' (Page '+x.sourcePage+')</b>'+
+   '<div class="preview"><img src="'+x.questionImage+'"></div>'+
+   '<div class="grid2"><div class="field"><label>Q. No.</label><input data-qn="'+i+'" value="'+esc(x.qNo)+'"></div>'+
+   '<div class="field"><label>Library</label><select data-lt="'+i+'"><option '+(x.libraryType==="Personal Library"?"selected":"")+'>Personal Library</option><option '+(x.libraryType==="Central Library"?"selected":"")+'>Central Library</option><option '+(x.libraryType==="Group Library"?"selected":"")+'>Group Library</option></select></div></div>'+
+   '<div class="grid2"><div class="field"><label>Folder</label><input data-fd="'+i+'" value="'+esc(x.folder)+'" placeholder="Folder"></div>'+
+   '<div class="field"><label>Topic</label><input data-tp="'+i+'" value="'+esc(x.topic)+'" placeholder="Topic"></div></div>'+
+   '<div class="actions"><button class="btn" style="background:#7f1d1d;color:#fecaca" data-del="'+i+'">🗑 Delete</button></div></div>';
+ }).join(""):'<div class="card">No questions cropped yet.</div>';
+
+ ed.querySelectorAll("[data-qn]").forEach(function(el){el.oninput=function(){items[Number(el.dataset.qn)].qNo=el.value}});
+ ed.querySelectorAll("[data-lt]").forEach(function(el){el.onchange=function(){items[Number(el.dataset.lt)].libraryType=el.value}});
+ ed.querySelectorAll("[data-fd]").forEach(function(el){el.oninput=function(){items[Number(el.dataset.fd)].folder=el.value.trim()}});
+ ed.querySelectorAll("[data-tp]").forEach(function(el){el.oninput=function(){items[Number(el.dataset.tp)].topic=el.value.trim()}});
+ ed.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){items.splice(Number(b.dataset.del),1);renderQueue();status("✔ Item deleted.")}});
+ 
+ document.getElementById("saveAll").disabled=items.length===0;
+}
+
+document.getElementById("saveAll").onclick=async function(){
+ if(!items.length)return;
  var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
- if(!email){alert("Teacher login not found.");return}
- status("☁ Saving "+good.length+" question(s)…"); saveBtn.disabled=true;
+ if(!email){alert("Teacher login not found in localStorage.");return}
+ status("☁ Saving "+items.length+" question(s) to Firebase…");
+ document.getElementById("saveAll").disabled=true;
  try{
   var appmod=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"),fs=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"),au=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js");
   var config={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfQBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
   var appx;try{appx=appmod.initializeApp(config,"uploader")}catch(e){appx=appmod.getApp("uploader")}
   var db=fs.getFirestore(appx),auth=au.getAuth(appx);try{await au.signInAnonymously(auth)}catch(e){}
-  for(var i=0;i<good.length;i++){
-   var x=good[i];
-   var optsArr=[x.optA, x.optB, x.optC, x.optD].filter(Boolean);
+  
+  for(var i=0;i<items.length;i++){
+   var x=items[i];
    await fs.addDoc(fs.collection(db,"questions"),{
-    ownerEmail:email, creatorEmail:email, qNo:String(x.qNo||""),
-    qText:x.keepText?(x.qText||""):"", options:x.keepText?optsArr:[],
-    keepOptions:x.keepText&&(optsArr.length>0),
-    question:x.keepImage?(x.questionImage||""):"",
-    libraryType:x.libraryType, folder:x.folder, subfolder:x.subfolder, topic:x.topic||"",
+    ownerEmail:email, creatorEmail:email, qNo:String(x.qNo||(i+1)),
+    qText:"", options:[], keepOptions:false,
+    question:x.questionImage||"",
+    libraryType:x.libraryType||"Personal Library", folder:x.folder||"", subfolder:"", topic:x.topic||"Physics",
     sourcePage:x.sourcePage, createdAt:new Date().toISOString()
    });
   }
-  status("✔ Saved "+good.length+" question(s) to Library."); alert("✔ Saved successfully!");
- }catch(e){console.error(e);status("❌ Save failed: "+e.message);alert("Save failed: "+e.message)}
- saveBtn.disabled=false;
-});
+  status("✔ Saved "+items.length+" question(s) successfully!");
+  alert("✔ Successfully saved all questions to Firebase Library!");
+  items=[]; renderQueue();
+ }catch(e){
+  console.error(e); status("❌ Save failed: "+e.message); alert("Save failed: "+e.message);
+ }
+ document.getElementById("saveAll").disabled=false;
+};
 
-status("✔ Uploader loaded. Choose PDF to begin.");
+status("✔ Slicer loaded. Choose PDF to begin.");
 })();
 </script>
 </body>
