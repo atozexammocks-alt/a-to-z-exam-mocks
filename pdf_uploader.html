@@ -26,13 +26,13 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 .cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
 /* POPUP MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}
-.modal{width:min(650px,96vw);max-height:90vh;background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.modal{width:min(700px,96vw);max-height:92vh;background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
 .modalhead{padding:12px 16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}
 .modalbody{padding:16px;overflow-y:auto;flex:1}
 .modalfoot{padding:12px 16px;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{margin-top:8px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
 input,select,textarea{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}
-textarea{min-height:70px;resize:vertical}
+textarea{min-height:80px;resize:vertical}
 .queue-bar{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 </style>
 </head>
@@ -42,7 +42,8 @@ textarea{min-height:70px;resize:vertical}
 <div class="nav">
 <a href="teacher.html">🏠 Dashboard</a>
 <a href="library.html">📁 Central Library</a>
-<a href="pdf_uploader.html" class="btn primary" style="background:#2563eb!important;">📄 PDF Cropper & Popup</a>
+<a href="library_access.html">🤝 Group Library</a>
+<a href="pdf_uploader.html" class="btn primary" style="background:#2563eb!important;">📄 PDF Cropper & Slicer</a>
 </div>
 </nav>
 
@@ -84,12 +85,12 @@ textarea{min-height:70px;resize:vertical}
 <!-- POPUP MODAL FOR CROPPED QUESTION DETAILS -->
 <div class="overlay" id="cropPopup"><div class="modal">
 <div class="modalhead">
-  <b style="color:#38bdf8">📝 Configure Cropped Question</b>
+  <b style="color:#38bdf8">📝 Configure Cropped Question (Enhanced B&W)</b>
   <button id="closeModal" class="btn" style="background:#7f1d1d;color:#fecaca">✕ Cancel</button>
 </div>
 <div class="modalbody">
   <div style="text-align:center;background:#fff;border-radius:6px;padding:8px;margin-bottom:10px;">
-    <img id="popupImg" style="max-width:100%;max-height:180px;display:block;margin:auto;" alt="Crop Preview">
+    <img id="popupImg" style="max-width:100%;max-height:220px;display:block;margin:auto;" alt="Crop Preview">
   </div>
   <div class="grid2">
     <div class="field"><label>Question No.</label><input id="popQNo" value="1"></div>
@@ -97,18 +98,23 @@ textarea{min-height:70px;resize:vertical}
   </div>
   <div class="grid2">
     <div class="field"><label>Folder</label><input id="popFolder" placeholder="Folder name"></div>
+    <div class="field"><label>Subfolder</label><input id="popSubfolder" placeholder="Subfolder name"></div>
+  </div>
+  <div class="grid2">
     <div class="field"><label>Topic / Chapter</label><input id="popTopic" placeholder="Topic name" value="Physics"></div>
+    <div class="field"><label>Display Mode</label>
+      <div style="display:flex;gap:6px;margin-top:4px;">
+        <button id="popKeepText" class="btn keepOff" type="button" style="flex:1">📝 Text</button>
+        <button id="popKeepImage" class="btn keepOn" type="button" style="flex:1">🖼 Image</button>
+      </div>
+    </div>
   </div>
   <div class="field">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
       <label style="margin:0">OCR Extracted Text (Editable)</label>
-      <button id="runOcrBtn" class="btn" style="font-size:10px;padding:3px 6px;">🔄 Run OCR on Crop</button>
+      <button id="runOcrBtn" class="btn" style="font-size:10px;padding:3px 6px;">🔄 Re-run OCR</button>
     </div>
     <textarea id="popText" placeholder="Extracted text will appear here..."></textarea>
-  </div>
-  <div style="display:flex;gap:10px;margin-top:8px;">
-    <button id="popKeepText" class="btn keepOff" type="button">📝 Keep Text</button>
-    <button id="popKeepImage" class="btn keepOn" type="button">🖼 Keep Image</button>
   </div>
 </div>
 <div class="modalfoot">
@@ -228,24 +234,38 @@ nextBtn.onclick=async function(){if(currPage<totalPages){currPage++;await render
 
 captureBtn.onclick=async function(){
  if(!pdf)return;
- status("✂ Cropping question from page "+currPage+"…");
- var p=await pdf.getPage(currPage), v=p.getViewport({scale:1.5}), c=document.createElement("canvas");
+ status("✂ Cropping and enhancing image from page "+currPage+"…");
+ var p=await pdf.getPage(currPage), v=p.getViewport({scale:1.8}), c=document.createElement("canvas");
  c.width=v.width; c.height=v.height;
  await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
  var sx=v.width/document.getElementById("pdfCanvas").width, sy=v.height/document.getElementById("pdfCanvas").height;
  var im=await imageLoad(c.toDataURL("image/png")), cc=document.createElement("canvas");
  var rx=Math.max(0,Math.min(im.width-1,Math.round(cropRect.x*sx))), ry=Math.max(0,Math.min(im.height-1,Math.round(cropRect.y*sy)));
  var rw=Math.max(1,Math.min(im.width-rx,Math.round(cropRect.w*sx))), rh=Math.max(1,Math.min(im.height-ry,Math.round(cropRect.h*sy)));
- cc.width=rw; cc.height=rh; cc.getContext("2d").drawImage(im, rx, ry, rw, rh, 0, 0, rw, rh);
+ cc.width=rw; cc.height=rh; 
  
+ var ctx=cc.getContext("2d");
+ ctx.drawImage(im, rx, ry, rw, rh, 0, 0, rw, rh);
+
+ // Image Enhancement: Increase contrast and clean light watermark/background
+ var imgData = ctx.getImageData(0, 0, rw, rh);
+ var data = imgData.data;
+ for (var i = 0; i < data.length; i += 4) {
+   var r = data[i], g = data[i+1], b = data[i+2];
+   var avg = (r + g + b) / 3;
+   // High contrast threshold to make text crisp black and background clean white
+   var enhanced = avg < 200 ? Math.max(0, avg - 30) : 255;
+   data[i] = enhanced; data[i+1] = enhanced; data[i+2] = enhanced;
+ }
+ ctx.putImageData(imgData, 0, 0);
+
  tempCropData = cc.toDataURL("image/png");
  document.getElementById("popupImg").src = tempCropData;
  document.getElementById("popQNo").value = items.length + 1;
  document.getElementById("popText").value = "Loading OCR...";
  showModal("cropPopup", true);
- status("✔ Crop captured. Configure details in popup.");
+ status("✔ Crop enhanced & captured. Configure in popup.");
 
- // Run background OCR on cropped image
  try {
    if(window.Tesseract){
      var ocrRes = await Tesseract.recognize(tempCropData, 'eng+hin');
@@ -267,6 +287,15 @@ document.getElementById("popKeepImage").onclick = function(){
  document.getElementById("popKeepImage").className = "btn keepOn";
  document.getElementById("popKeepText").className = "btn keepOff";
 };
+document.getElementById("runOcrBtn").onclick = async function(){
+ document.getElementById("popText").value = "Re-running OCR...";
+ try {
+   var ocrRes = await Tesseract.recognize(tempCropData, 'eng+hin');
+   document.getElementById("popText").value = ocrRes?.data?.text?.trim() || "";
+ } catch(err){
+   document.getElementById("popText").value = "OCR failed.";
+ }
+};
 
 document.getElementById("confirmCropBtn").onclick = function(){
  var keepText = document.getElementById("popKeepText").classList.contains("keepOn");
@@ -280,7 +309,7 @@ document.getElementById("confirmCropBtn").onclick = function(){
    keepImage: keepImage,
    libraryType: document.getElementById("popLibrary").value,
    folder: document.getElementById("popFolder").value.trim(),
-   subfolder: "",
+   subfolder: document.getElementById("popSubfolder").value.trim(),
    topic: document.getElementById("popTopic").value.trim() || "Physics",
    sourcePage: currPage
  });
@@ -293,7 +322,6 @@ document.getElementById("confirmCropBtn").onclick = function(){
 function updateQueueUI(){
  document.getElementById("queueCount").textContent = items.length;
  document.getElementById("saveAll").disabled = items.length === 0;
- document.getElementById("viewQueueBtn.disabled") = items.length === 0;
  document.getElementById("viewQueueBtn").disabled = items.length === 0;
 
  var c = document.getElementById("queueListContainer");
@@ -331,11 +359,12 @@ function executeSave(){
   
   for(var i=0;i<items.length;i++){
    var x=items[i];
+   var optsArr = x.qText ? x.qText.split("\n").filter(function(l){return l.trim().length>0}) : [];
    await fs.addDoc(fs.collection(db,"questions"),{
     ownerEmail:email, creatorEmail:email, qNo:String(x.qNo||(i+1)),
     qText:x.keepText?x.qText:"", options:[], keepOptions:false,
     question:x.keepImage?x.questionImage:"",
-    libraryType:x.libraryType||"Personal Library", folder:x.folder||"", subfolder:"", topic:x.topic||"Physics",
+    libraryType:x.libraryType||"Personal Library", folder:x.folder||"", subfolder:x.subfolder||"", topic:x.topic||"Physics",
     sourcePage:x.sourcePage, createdAt:new Date().toISOString()
    });
   }
@@ -352,7 +381,7 @@ function executeSave(){
 saveBtn.onclick = executeSave;
 document.getElementById("saveAllFromQueue").onclick = executeSave;
 
-status("✔ Cropper loaded. Choose PDF to begin.");
+status("✔ Cropper & Slicer loaded. Choose PDF to begin.");
 })();
 </script>
 </body>
