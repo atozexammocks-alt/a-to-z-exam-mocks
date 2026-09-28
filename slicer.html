@@ -184,26 +184,23 @@
     .tool-btn:hover { border-color: #38bdf8; }
     .page-jump-input { width: 50px; padding: 3px; background: #060911; border: 1px solid #334155; border-radius: 4px; color: white; text-align: center; font-size: 11px; font-weight: 700; }
 
-    #viewport, #pdf-canvas, #pdf-single-page-wrap { 
-      cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewport="0 0 32 32" style="fill:red;stroke:red;"><line x1="16" y1="0" x2="16" y2="32" stroke="red" stroke-width="3"/><line x1="0" y1="16" x2="32" y2="16" stroke="red" stroke-width="3"/></svg>') 16 16, crosshair !important;
-    }
-
     #viewport { 
       flex: 1; overflow: auto; position: relative; background: #060911; display: flex; align-items: flex-start; justify-content: center; padding: 20px; 
     }
     
     #pdf-single-page-wrap { position: relative; background: #ffffff; box-shadow: 0 15px 40px rgba(0,0,0,0.6); display: block; margin: auto; }
-    #pdf-canvas { display: block; width: 100%; height: auto; }
+    #pdf-canvas { display: block; width: 100%; height: auto; cursor: crosshair !important; }
     
     #crop-box { 
       position: absolute; 
-      border: 3px solid #ff0000 !important; 
-      background: rgba(255, 0, 0, 0.2) !important; 
+      border: 2px solid #ef4444 !important; 
+      background: rgba(239, 68, 68, 0.15) !important; 
       display: none; 
-      z-index: 999999; 
+      z-index: 50; 
+      pointer-events: auto;
     }
     .crop-handle {
-      position: absolute; width: 10px; height: 10px; background: #ff0000; border: 1px solid #ffffff; z-index: 1000000;
+      position: absolute; width: 10px; height: 10px; background: #ef4444; border: 1px solid #ffffff; z-index: 51;
     }
     .handle-nw { top: -5px; left: -5px; cursor: nwse-resize; }
     .handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
@@ -786,12 +783,12 @@ button, input, select, textarea, label { touch-action: manipulation; }
     let pdfDoc = null, pageNum = 1, pageScale = 1.5;
     let originalPdfBytes = null, totalPdfPages = 0, currentChunkStart = 1;
     let isCropping = false, isResizing = false, activeHandle = null;
-    let cropStartX = 0, cropStartY = 0, activeCanvas = null, activeCanvasRect = null;
+    let cropStartX = 0, cropStartY = 0;
     let questionParts = [], solutionParts = [], activeTarget = 'question';
 
-    const viewport = document.getElementById('viewport');
     const pdfCanvas = document.getElementById('pdf-canvas');
     const cropBox = document.getElementById('crop-box');
+    const pageWrap = document.getElementById('pdf-single-page-wrap');
 
     document.getElementById('file-input').onchange = async (e) => {
       const f = e.target.files[0];
@@ -854,7 +851,6 @@ button, input, select, textarea, label { touch-action: manipulation; }
       pdfCanvas.height = viewportObj.height; 
       pdfCanvas.width = viewportObj.width;
 
-      const pageWrap = document.getElementById('pdf-single-page-wrap');
       pageWrap.style.width = `${viewportObj.width}px`;
       pageWrap.style.height = `${viewportObj.height}px`;
 
@@ -863,7 +859,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
 
       document.getElementById('page-num-input').value = currentChunkStart + pageNum - 1;
       document.getElementById('zoom-val').textContent = `${Math.round(pageScale * 100)}%`;
-      viewport.scrollTop = 0; 
+      document.getElementById('viewport').scrollTop = 0; 
     };
 
     window.jumpToSpecificPage = async function(pNum) {
@@ -901,7 +897,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
     document.getElementById('zoom-in').onclick = async () => { if (pdfDoc && pageScale < 3.0) { pageScale += 0.25; await window.renderCurrentPage(); } };
     document.getElementById('zoom-out').onclick = async () => { if (pdfDoc && pageScale > 0.75) { pageScale -= 0.25; await window.renderCurrentPage(); } };
 
-    // --- Crop Box Event Handlers with Resize & Persistence Support ---
+    // --- Precise Cropping & Resize Logic ---
     document.querySelectorAll('.crop-handle').forEach(h => {
       h.onpointerdown = (e) => {
         e.stopPropagation();
@@ -911,43 +907,44 @@ button, input, select, textarea, label { touch-action: manipulation; }
       };
     });
 
-    viewport.onpointerdown = (e) => {
+    pdfCanvas.onpointerdown = (e) => {
       if (isResizing) return;
       if (e.target.classList.contains('crop-handle')) return;
       if (e.pointerType === 'touch') e.preventDefault();
-      try { viewport.setPointerCapture(e.pointerId); } catch (_) {}
+      try { pdfCanvas.setPointerCapture(e.pointerId); } catch (_) {}
       
-      const canvasEl = pdfCanvas;
-      if (canvasEl) {
-        activeCanvas = canvasEl;
-        activeCanvasRect = activeCanvas.getBoundingClientRect();
-        const wrapRect = document.getElementById('pdf-single-page-wrap').getBoundingClientRect();
-        
-        isCropping = true; 
-        cropStartX = e.clientX - activeCanvasRect.left; 
-        cropStartY = e.clientY - activeCanvasRect.top;
-        
-        cropBox.style.left = `${cropStartX}px`; 
-        cropBox.style.top = `${cropStartY}px`; 
-        cropBox.style.width = '0px'; 
-        cropBox.style.height = '0px'; 
-        cropBox.style.display = 'block';
-      }
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const wrapRect = pageWrap.getBoundingClientRect();
+      
+      isCropping = true; 
+      cropStartX = e.clientX - canvasRect.left; 
+      cropStartY = e.clientY - canvasRect.top;
+      
+      const relLeft = canvasRect.left - wrapRect.left + cropStartX;
+      const relTop = canvasRect.top - wrapRect.top + cropStartY;
+
+      cropBox.style.left = `${relLeft}px`; 
+      cropBox.style.top = `${relTop}px`; 
+      cropBox.style.width = '0px'; 
+      cropBox.style.height = '0px'; 
+      cropBox.style.display = 'block';
     };
 
     window.onpointermove = (e) => {
       if (e.pointerType === 'touch') e.preventDefault();
-      if (!activeCanvas) return;
-      const activeCanvasRect = activeCanvas.getBoundingClientRect();
+      const canvasRect = pdfCanvas.getBoundingClientRect();
+      const wrapRect = pageWrap.getBoundingClientRect();
+      const offsetLeft = canvasRect.left - wrapRect.left;
+      const offsetTop = canvasRect.top - wrapRect.top;
 
       if (isResizing && activeHandle) {
-        let l = parseFloat(cropBox.style.left) || 0;
-        let t = parseFloat(cropBox.style.top) || 0;
+        let l = parseFloat(cropBox.style.left) - offsetLeft || 0;
+        let t = parseFloat(cropBox.style.top) - offsetTop || 0;
         let w = parseFloat(cropBox.style.width) || 0;
         let h = parseFloat(cropBox.style.height) || 0;
         
-        const curX = Math.max(0, Math.min(e.clientX - activeCanvasRect.left, activeCanvasRect.width));
-        const curY = Math.max(0, Math.min(e.clientY - activeCanvasRect.top, activeCanvasRect.height));
+        const curX = Math.max(0, Math.min(e.clientX - canvasRect.left, canvasRect.width));
+        const curY = Math.max(0, Math.min(e.clientY - canvasRect.top, canvasRect.height));
 
         if (activeHandle === 'nw') {
           let right = l + w, bottom = t + h;
@@ -971,22 +968,22 @@ button, input, select, textarea, label { touch-action: manipulation; }
           w = right - left; h = bottom - top;
         }
 
-        cropBox.style.left = `${l}px`;
-        cropBox.style.top = `${t}px`;
+        cropBox.style.left = `${offsetLeft + l}px`;
+        cropBox.style.top = `${offsetTop + t}px`;
         cropBox.style.width = `${w}px`;
         cropBox.style.height = `${h}px`;
         return;
       }
 
-      if (isCropping && activeCanvasRect) {
-        const curX = Math.max(0, Math.min(e.clientX - activeCanvasRect.left, activeCanvasRect.width));
-        const curY = Math.max(0, Math.min(e.clientY - activeCanvasRect.top, activeCanvasRect.height));
+      if (isCropping) {
+        const curX = Math.max(0, Math.min(e.clientX - canvasRect.left, canvasRect.width));
+        const curY = Math.max(0, Math.min(e.clientY - canvasRect.top, canvasRect.height));
         
         const startX = cropStartX;
         const startY = cropStartY;
 
-        cropBox.style.left = `${Math.min(startX, curX)}px`; 
-        cropBox.style.top = `${Math.min(startY, curY)}px`;
+        cropBox.style.left = `${offsetLeft + Math.min(startX, curX)}px`; 
+        cropBox.style.top = `${offsetTop + Math.min(startY, curY)}px`;
         cropBox.style.width = `${Math.abs(curX - startX)}px`; 
         cropBox.style.height = `${Math.abs(curY - startY)}px`;
       }
@@ -1000,14 +997,16 @@ button, input, select, textarea, label { touch-action: manipulation; }
       if (isCropping) {
         isCropping = false; 
         const boxW = parseFloat(cropBox.style.width), boxH = parseFloat(cropBox.style.height);
-        if (boxW > 10 && boxH > 10 && activeCanvas) {
-          const scaleX = activeCanvas.width / activeCanvasRect.width;
-          const scaleY = activeCanvas.height / activeCanvasRect.height;
+        if (boxW > 10 && boxH > 10) {
+          const canvasRect = pdfCanvas.getBoundingClientRect();
+          const wrapRect = pageWrap.getBoundingClientRect();
+          const scaleX = pdfCanvas.width / canvasRect.width;
+          const scaleY = pdfCanvas.height / canvasRect.height;
           
-          const cropLeft = parseFloat(cropBox.style.left) * scaleX;
-          const cropTop = parseFloat(cropBox.style.top) * scaleY;
+          const cropLeft = (parseFloat(cropBox.style.left) - (canvasRect.left - wrapRect.left)) * scaleX;
+          const cropTop = (parseFloat(cropBox.style.top) - (canvasRect.top - wrapRect.top)) * scaleY;
           
-          // HD Rendering Enhancement with Super-Sampling
+          // Ultra-HD Rendering Enhancement
           let tC = document.createElement('canvas'); 
           tC.width = boxW * scaleX * 2; 
           tC.height = boxH * scaleY * 2;
@@ -1016,7 +1015,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
           tCtx.imageSmoothingEnabled = true;
           tCtx.imageSmoothingQuality = 'high';
 
-          tCtx.drawImage(activeCanvas, cropLeft, cropTop, boxW * scaleX, boxH * scaleY, 0, 0, tC.width, tC.height);
+          tCtx.drawImage(pdfCanvas, cropLeft, cropTop, boxW * scaleX, boxH * scaleY, 0, 0, tC.width, tC.height);
           const cutUrl = tC.toDataURL('image/png', 1.0);
           
           if (ocrOnlyMode) {
@@ -1253,7 +1252,6 @@ button, input, select, textarea, label { touch-action: manipulation; }
           const qBtnTarget = document.getElementById('btn-target-question');
           if (qBtnTarget) qBtnTarget.classList.add('active');
           
-          // Clear crop box persistence after successful save
           document.getElementById('crop-box').style.display = 'none';
 
           saveCloudBtn.style.background = '#10b981';
