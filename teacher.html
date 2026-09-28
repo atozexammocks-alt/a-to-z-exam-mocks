@@ -18,7 +18,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
@@ -48,40 +48,6 @@
         }
       }
     };
-
-    // Group Library Add Teacher Modal Logic
-    window.openGroupLibraryModal = function() {
-      const modal = document.getElementById('group-library-modal');
-      if (modal) modal.style.display = 'flex';
-    };
-
-    window.closeGroupLibraryModal = function() {
-      const modal = document.getElementById('group-library-modal');
-      if (modal) modal.style.display = 'none';
-    };
-
-    window.inviteTeacherToGroup = async function() {
-      const emailInput = document.getElementById('invite-teacher-email');
-      const email = (emailInput ? emailInput.value : '').trim().toLowerCase();
-      if (!email || !email.includes('@')) {
-        alert('कृपया वैध ईमेल आईडी दर्ज करें!');
-        return;
-      }
-      try {
-        const teacherEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-        await setDoc(doc(window.db, "group_library_invites", `${teacherEmail}_${email.replace(/[^a-zA-Z0-9]/g, '_')}`), {
-          ownerEmail: teacherEmail,
-          invitedEmail: email,
-          status: 'active',
-          createdAt: new Date().toISOString()
-        });
-        alert(`✔ शिक्षक '${email}' को सफलतापूर्वक ग्रुप लाइब्रेरी में जोड़ दिया गया है!`);
-        if (emailInput) emailInput.value = '';
-        window.closeGroupLibraryModal();
-      } catch (err) {
-        alert('शिक्षक को जोड़ने में विफल: ' + err.message);
-      }
-    };
   </script>
 
   <style>
@@ -94,14 +60,6 @@
     .nav-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px; }
     .nav-btn:hover { border-color: #38bdf8; color: white; }
     
-    /* Sub-navbar directly below main navbar */
-    .sub-navbar { background: #090d16; border-bottom: 1px solid #1e293b; padding: 8px 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
-    .lib-tab-btn { background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-    .lib-tab-btn:hover { border-color: #38bdf8; background: #1e293b; color: white; }
-    .lib-tab-btn.central { border-color: #0284c7; color: #38bdf8; }
-    .lib-tab-btn.private { border-color: #10b981; color: #34d399; }
-    .lib-tab-btn.group { border-color: #7c3aed; color: #a78bfa; }
-
     /* Google style profile dropdown */
     .profile-container { position: relative; display: inline-block; }
     .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; }
@@ -111,10 +69,7 @@
     .dropdown-item { padding: 10px 16px; font-size: 12px; color: #fecaca; background: #7f1d1d; border: none; cursor: pointer; text-align: left; font-weight: 700; width: 100%; display: flex; align-items: center; gap: 8px; }
     .dropdown-item:hover { background: #991b1b; }
 
-    #group-library-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 99999; }
-    .modal-card { background: #0b1120; border: 1px solid #334155; border-radius: 12px; width: 450px; padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
-
-    #screen-dashboard { padding: 30px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; height: calc(100vh - 100px); background: #060911; }
+    #screen-dashboard { padding: 30px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; height: calc(100vh - 56px); background: #060911; }
     .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1200px; width: 100%; }
     .dash-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 16px; padding: 24px; text-decoration: none; display: flex; flex-direction: column; gap: 10px; transition: all 0.2s ease; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
     .dash-card:hover { border-color: #38bdf8; transform: translateY(-3px); background: #0f172a; }
@@ -171,35 +126,13 @@
     }
   </script>
 
-  <!-- Group Library Share / Add Teacher Modal -->
-  <div id="group-library-modal">
-    <div class="modal-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px;">
-        <h3 style="color:#38bdf8; font-size:15px; font-weight:bold;"><i class="fa-solid fa-users-gear"></i> Group Library - Add Teacher</h3>
-        <button onclick="window.closeGroupLibraryModal()" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:16px;">✕</button>
-      </div>
-      <p style="font-size:12px; color:#94a3b8; line-height:1.4;">
-        अपने सहयोगियों या शिक्षकों को उनकी ईमेल आईडी के माध्यम से अपनी ग्रुप लाइब्रेरी से लिंक करें ताकि वे साझा संसाधनों का उपयोग कर सकें।
-      </p>
-      <div>
-        <label style="font-size:11px; color:#cbd5e1; font-weight:bold; display:block; margin-bottom:4px;">Teacher Email ID:</label>
-        <input type="email" id="invite-teacher-email" placeholder="teacher@example.com" style="width:100%; padding:8px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:white; font-size:12px;">
-      </div>
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
-        <button onclick="window.closeGroupLibraryModal()" class="nav-btn" style="background:#334155;">Cancel</button>
-        <button onclick="window.inviteTeacherToGroup()" class="nav-btn" style="background:#0284c7; color:white;">Share & Add</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Clean Original Navbar (No Central or Group library buttons here) -->
   <div id="navbar">
     <a href="teacher.html" class="nav-brand">
       🏠 <span>A to Z Exam Mocks</span>
     </a>
     <div class="nav-tabs">
       <a class="nav-btn" href="teacher.html"><i class="fa-solid fa-house"></i> Dashboard</a>
-      <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
+      <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;"><i class="fa-solid fa-crown"></i> Super Admin Panel</a>
       
       <!-- Google style profile menu -->
       <div class="profile-container">
@@ -213,15 +146,8 @@
           </button>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Sub-Navbar directly below Main Navbar providing Central, Private, and Group Library options -->
-  <div class="sub-navbar">
-    <span style="font-size: 11px; font-weight: bold; color: #94a3b8;"><i class="fa-solid fa-folder-tree"></i> Quick Library Access:</span>
-    <a href="library.html" class="lib-tab-btn central"><i class="fa-solid fa-landmark"></i> Central Library</a>
-    <a href="library.html?view=private" class="lib-tab-btn private"><i class="fa-solid fa-user-shield"></i> Private Library</a>
-    <button onclick="window.openGroupLibraryModal()" class="lib-tab-btn group"><i class="fa-solid fa-users"></i> Group Library (Manage)</button>
+    </div>
   </div>
 
   <div id="screen-dashboard">
