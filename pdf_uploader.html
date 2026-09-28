@@ -26,11 +26,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:56px;background:#0b1
 .cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
 /* POPUP MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:2000;padding:10px}
-.modal{width:min(720px,96vw);max-height:92vh;background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.modal{width:min(750px,96vw);max-height:92vh;background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
 .modalhead{padding:12px 16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}
 .modalbody{padding:16px;overflow-y:auto;flex:1}
 .modalfoot{padding:12px 16px;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:8px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{margin-top:8px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.field{margin-top:8px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
 input,select,textarea{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}
 textarea{min-height:90px;resize:vertical}
 .queue-bar{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
@@ -98,37 +99,38 @@ textarea{min-height:90px;resize:vertical}
 <div style="font-size:11px;color:#94a3b8;margin-top:8px">Enter specific page limits like <b>1-50</b> to process only those pages.</div>
 </div></div>
 
-<!-- POPUP MODAL FOR CROPPED QUESTION DETAILS -->
+<!-- POPUP MODAL FOR CROPPED QUESTION DETAILS WITH FULL SLICER ACCESS -->
 <div class="overlay" id="cropPopup"><div class="modal">
 <div class="modalhead">
-  <b style="color:#38bdf8">📝 Configure Cropped Question & Slicer Options</b>
+  <b style="color:#38bdf8">📝 Complete Slicer & Question Editor</b>
   <button id="closeModal" class="btn" style="background:#7f1d1d;color:#fecaca">✕ Cancel</button>
 </div>
 <div class="modalbody">
   <div style="text-align:center;background:#fff;border-radius:6px;padding:8px;margin-bottom:10px;">
     <img id="popupImg" style="max-width:100%;max-height:160px;display:block;margin:auto;" alt="Crop Preview">
   </div>
-  <div class="grid2">
+
+  <div class="grid4">
     <div class="field"><label>Question No.</label><input id="popQNo" value="1"></div>
     <div class="field"><label>Library Type</label><select id="popLibrary"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div>
+    <div class="field"><label>Folder</label><input id="popFolder" placeholder="Folder"></div>
+    <div class="field"><label>Subfolder</label><input id="popSubfolder" placeholder="Subfolder"></div>
   </div>
-  <div class="grid2">
-    <div class="field"><label>Folder</label><input id="popFolder" placeholder="Folder name"></div>
-    <div class="field"><label>Subfolder</label><input id="popSubfolder" placeholder="Subfolder name"></div>
-  </div>
+
   <div class="grid2">
     <div class="field"><label>Topic / Chapter</label><input id="popTopic" placeholder="Topic name" value="Physics"></div>
-    <div class="field"><label>Display Mode</label>
+    <div class="field"><label>Display Mode Options</label>
       <div style="display:flex;gap:6px;margin-top:4px;">
         <button id="popKeepText" class="btn keepOff" type="button" style="flex:1">📝 Text</button>
         <button id="popKeepImage" class="btn keepOn" type="button" style="flex:1">🖼 Image</button>
       </div>
     </div>
   </div>
+
   <div class="field">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
-      <label style="margin:0">OCR Extracted Text (Editable)</label>
-      <button id="runOcrBtn" class="btn" style="font-size:10px;padding:3px 6px;">🔄 Re-run OCR</button>
+      <label style="margin:0">OCR Extracted Text (English & Hindi Supported)</label>
+      <button id="runOcrBtn" class="btn" style="font-size:10px;padding:3px 6px;">🔄 Re-run OCR (Eng+Hin)</button>
     </div>
     <textarea id="popText" placeholder="Extracted text will appear here..."></textarea>
   </div>
@@ -289,6 +291,7 @@ zoomOutBtn.onclick=async function(){if(renderScale>0.8){renderScale-=0.3;await r
 async function runOcrOnImage(dataUrl){
  try {
    if(window.Tesseract){
+     // Explicitly configured for both English and Hindi OCR extraction
      var ocrRes = await Tesseract.recognize(dataUrl, 'eng+hin');
      return ocrRes?.data?.text?.trim() || "";
    }
@@ -325,7 +328,7 @@ captureBtn.onclick=async function(){
  tempCropData = cc.toDataURL("image/png");
  document.getElementById("popupImg").src = tempCropData;
  document.getElementById("popQNo").value = items.length + 1;
- document.getElementById("popText").value = "Extracting OCR text...";
+ document.getElementById("popText").value = "Extracting OCR text (Eng + Hin)...";
  showModal("cropPopup", true);
  status("✔ Crop enhanced & captured.");
 
@@ -343,7 +346,7 @@ document.getElementById("popKeepImage").onclick = function(){
  document.getElementById("popKeepText").className = "btn keepOff";
 };
 document.getElementById("runOcrBtn").onclick = async function(){
- document.getElementById("popText").value = "Re-running OCR...";
+ document.getElementById("popText").value = "Re-running OCR (Eng + Hin)...";
  var text = await runOcrOnImage(tempCropData);
  document.getElementById("popText").value = text;
 };
