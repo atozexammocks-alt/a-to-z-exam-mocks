@@ -35,9 +35,8 @@
     let cloudVault = [], selectedIds = [];
     let activeBuilderMain = 'ALL', activeBuilderSub = 'ALL';
     let adminPlatformSharePercent = 10;
-
-    let paperBlueprint = { totalMarks: 100, defaultLayout: '2col', style: 'Custom Board Pattern', sections: [] };
-    let paperQuestionOverrides = {};
+    let cachedFilteredList = [];
+    let currentPrintType = 'qp';
 
     const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
     const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
@@ -92,7 +91,6 @@
     };
 
     window.initBuilderStudio = async function() {
-      // Inject library switcher tabs directly into navbar center space
       const tabsCont = document.getElementById('navbar-inline-tabs');
       if (tabsCont && !tabsCont.innerHTML) {
         tabsCont.innerHTML = `
