@@ -291,7 +291,6 @@
       if (optC) document.getElementById('fallback-optc').value = optC;
       if (optD) document.getElementById('fallback-optd').value = optD;
 
-      baseImg.crossOrigin = "anonymous";
       baseImg.onload = () => {
         canvas.width = baseImg.naturalWidth;
         canvas.height = baseImg.naturalHeight;
@@ -300,6 +299,13 @@
         redrawCanvas();
         showToast("✔ Image Loaded into Studio");
       };
+      baseImg.onerror = (err) => {
+        console.error("Editor image load failed:", err);
+        showToast("❌ Image could not be loaded");
+        alert("Editor image load failed. The stored question image is invalid or inaccessible.");
+      };
+      // IMPORTANT: actually assign the stored Builder image to the Image element.
+      baseImg.src = imgData;
     });
 
     window.toggleEditorOptionsMode = function() {
