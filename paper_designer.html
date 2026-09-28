@@ -53,6 +53,7 @@ html,body{height:100%;min-height:0}
  <div class="flex items-center space-x-3">
   <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600"><i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i>Refresh / Load Selected</button>
   <button onclick="openPrintSettings()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"><i class="fa-solid fa-sliders"></i><span>Paper / Branding</span></button>
+  
   <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"><i class="fa-solid fa-print"></i><span>Print / Export Paper</span></button>
  </div>
 </header>
@@ -75,7 +76,7 @@ html,body{height:100%;min-height:0}
   <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">Inspect your questions and images, tick to include, and assign them to specific sections.</p></div>
   <div class="flex gap-2">
    <button onclick="openLibraryModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-book-open mr-1"></i> Insert from Library</button>
-   <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-print mr-1"></i> Print / Export</button>
+   
   </div>
  </div>
  <div class="flex-1 min-h-0 overflow-y-auto p-5">
@@ -151,6 +152,28 @@ html,body{height:100%;min-height:0}
  </div>
 </div>
 
+<script id="az-paperdesigner-firebase">
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const AZ_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQFbbF7Q_KMX0",
+  authDomain: "physicsvault-80a10.firebaseapp.com",
+  projectId: "physicsvault-80a10",
+  storageBucket: "physicsvault-80a10.firebasestorage.app",
+  messagingSenderId: "1043166507399",
+  appId: "1:1043166507399:web:634efdac6f109273d42322"
+};
+try {
+  const azApp = initializeApp(AZ_FIREBASE_CONFIG, "PaperDesignerApp");
+  window.azPaperDesignerDb = getFirestore(azApp);
+  window.azPaperDesignerGetDocs = getDocs;
+  window.azPaperDesignerCollection = collection;
+} catch(e) {
+  console.warn("Paper Designer Firebase init:", e);
+}
+</script>
 <script>
 const STATE_KEY='paperDesignerState';
 const SELECTED_ID_KEY='AZ_BUILDER_SELECTED_IDS';
@@ -181,41 +204,40 @@ function openDesignerDB(){
 }
 
 function isLikelyImageValue(v){
- if(!v) return false;
- if(typeof v==='object') return !!(v.src||v.url||v.data||v.base64);
+ if(!v)return false;
+ if(typeof v==='object')return !!(v.src||v.url||v.data||v.base64||v.image);
  const s=String(v).trim();
  return /^(data:image\\/|https?:\\/\\/|blob:)/i.test(s) || /\\.(png|jpe?g|gif|webp|svg)(\\?.*)?$/i.test(s);
 }
 function imageValue(v){
- if(!v) return '';
- if(typeof v==='object') return String(v.src||v.url||v.data||v.base64||'');
+ if(!v)return'';
+ if(typeof v==='object')return String(v.src||v.url||v.data||v.base64||v.image||'');
  return String(v);
 }
 function resolveQuestionImage(q,o,qId){
  const candidates=[
-  o.image, o.questionImage, o.imageData, o.croppedImage,
-  q?.image, q?.img, q?.questionImage, q?.imageData, q?.croppedImage,
-  q?.question
+  o?.image,o?.questionImage,o?.imageData,o?.croppedImage,o?.img,o?.question,
+  q?.image,q?.img,q?.questionImage,q?.imageData,q?.croppedImage,q?.question,
+  q?.questionImageData,q?.imageUrl,q?.imageURL,q?.diagram
  ];
- for(const v of candidates){
-  if(isLikelyImageValue(v)) return imageValue(v);
- }
- if(qId===localStorage.getItem('AZ_PAPER_EDITOR_QID')){
+ for(const v of candidates)if(isLikelyImageValue(v))return imageValue(v);
+ const tempId=localStorage.getItem('AZ_PAPER_EDITOR_QID');
+ if(qId===tempId){
   const v=localStorage.getItem('Temp_Editor_Image')||'';
-  if(v) return v;
+  if(v)return v;
  }
  return '';
 }
-function normalizeQuestion(q, fallbackId){
- const qId = q?.id || q?.qid || q?.questionId || fallbackId;
- const o = overrides[qId] || overrides[fallbackId] || {};
- const text = o.qText ?? o.text ?? q?.qText ?? q?.text ?? q?.questionText ?? '';
- let image = resolveQuestionImage(q,o,qId);
- if(o.keepImage === false) image = '';
- const options = o.optText ?? o.options ?? q?.optText ?? q?.options ?? q?.choices ?? '';
- const marks = Number(o.marks ?? q?.marks ?? 1) || 1;
- const type = o.paperType || q?.type || q?.questionType || inferType(q);
- return {id:qId,type,text,options,image,marks,key:o.key ?? q?.key ?? ''};
+function normalizeQuestion(q,fallbackId){
+ const qId=q?.id||q?.qid||q?.questionId||fallbackId;
+ const o=overrides[qId]||overrides[fallbackId]||{};
+ const text=o.qText??o.text??q?.qText??q?.text??q?.questionText??'';
+ let image=resolveQuestionImage(q,o,qId);
+ if(o.keepImage===false)image='';
+ const options=o.optText??o.options??q?.optText??q?.options??q?.choices??'';
+ const marks=Number(o.marks??q?.marks??1)||1;
+ const type=o.paperType??q?.type??q?.questionType??inferType(q);
+ return{id:qId,type,text,options,image,marks,key:o.key??q?.key??''};
 }
 
 function inferType(q){
@@ -229,59 +251,55 @@ function inferType(q){
 async function loadFromBuilder(){
  const ids=safeJSON(SELECTED_ID_KEY,[]);
  overrides=safeJSON(OVERRIDE_KEY,{})||{};
- 
+ questionCache=new Map();
+
+ // Primary source: the same Firestore "questions" collection used by Test Builder.
+ try{
+  if(window.azPaperDesignerDb && window.azPaperDesignerGetDocs && window.azPaperDesignerCollection){
+   const snap=await window.azPaperDesignerGetDocs(window.azPaperDesignerCollection(window.azPaperDesignerDb,'questions'));
+   snap.docs.forEach(d=>{
+    const q={id:d.id,...d.data()};
+    questionCache.set(String(d.id),q);
+    if(q.qid!==undefined) questionCache.set(String(q.qid),q);
+   });
+  }
+ }catch(e){console.warn('Firestore question load failed:',e)}
+
+ // Secondary source: local IndexedDB, including questions cached by older Designer versions.
  const db=await openDesignerDB();
  if(db){
   await new Promise(resolve=>{
    try{
-    const tx=db.transaction(DB_STORE,'readonly'),store=tx.objectStore(DB_STORE),req=store.getAll();
-    req.onsuccess=()=>{(req.result||[]).forEach(q=>{
-     if(q){
-      if(q.id!==undefined) questionCache.set(String(q.id), q);
-      if(q.qid!==undefined) questionCache.set(String(q.qid), q);
-      if(q.questionId!==undefined) questionCache.set(String(q.questionId), q);
-     }
-    });};
-    tx.oncomplete=()=>{db.close();resolve()};
-    tx.onerror=()=>{try{db.close()}catch(_e){}resolve()};
-   }catch(e){try{db.close()}catch(_e){}resolve()}
+    const tx=db.transaction(DB_STORE,'readonly'),store=tx.objectStore(DB_STORE),r=store.getAll();
+    r.onsuccess=()=>{
+     (r.result||[]).forEach(q=>{
+      if(q?.id!==undefined && !questionCache.has(String(q.id))) questionCache.set(String(q.id),q);
+      if(q?.qid!==undefined && !questionCache.has(String(q.qid))) questionCache.set(String(q.qid),q);
+     });
+     resolve();
+    };
+    r.onerror=()=>resolve();
+   }catch(e){resolve()}
   });
  }
 
- // Fallback check across all potential local storage keys where builder stores questions
- ['selectedBuilderQuestions','selectedQuestions','builderQuestions','cachedQuestions','AZ_BUILDER_QUESTIONS'].forEach(k=>{
-  const arr=safeJSON(k,[]);
-  if(Array.isArray(arr)){
-   arr.forEach(q=>{
-    if(q){
-     if(q.id!==undefined) questionCache.set(String(q.id), q);
-     if(q.qid!==undefined) questionCache.set(String(q.qid), q);
-    }
-   });
-  }
- });
+ let effectiveIds=Array.isArray(ids)?ids.map(String).filter(Boolean):[];
+ // Do NOT replace the Builder selection with every cached question.
+ allQuestions=effectiveIds.map(id=>{
+  const qObj=questionCache.get(id) || [...questionCache.values()].find(x=>String(x.id)===id || String(x.qid)===id);
+  return qObj ? normalizeQuestion(qObj,id) : null;
+ }).filter(q=>q && q.id);
 
- let effectiveIds = [];
- if(Array.isArray(ids) && ids.length > 0){
-  effectiveIds = ids;
- } else if(questionCache.size > 0){
-  effectiveIds = [...questionCache.keys()];
- }
-
- allQuestions = effectiveIds.map(id => {
-  const sId = String(id);
-  const qObj = questionCache.get(sId) || questionCache.get(id) || [...questionCache.values()].find(x => String(x.id) === sId || String(x.qid) === sId);
-  return normalizeQuestion(qObj, id);
- }).filter(q => q && q.id);
-
+ // Keep all selected IDs visible even if a source has a missing record; this gives a clear diagnostic.
  const blueprint=safeJSON(BLUEPRINT_KEY,null);
- // IMPORTANT: Builder questions arrive unassigned. The teacher creates every paper section manually.
- testPaper={title:blueprint?.title||localStorage.getItem('AZ_BUILDER_PAPER_TITLE')||'Question Paper',sections:[]};
+ testPaper={
+  title:blueprint?.title||localStorage.getItem('AZ_BUILDER_PAPER_TITLE')||'Question Paper',
+  sections:[]
+ };
  activeSectionId=null;
  saveState();
- return allQuestions.length > 0;
+ return allQuestions.length>0;
 }
-
 function loadLegacy(){
  overrides=safeJSON(OVERRIDE_KEY,{})||{};
  const arr=[];
@@ -354,6 +372,7 @@ function renderCanvas(){
   // High fidelity image rendering for cropped questions
   const img = q.image ? '<div class="mt-3 bg-white p-2 rounded-lg text-center"><img class="q-image" src="'+esc(q.image)+'" alt="Cropped Question Diagram" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span class=\\\'text-xs text-rose-400 italic\\\'>[Image failed to render]</span>\'"></div>' : '<div class="mt-2 text-xs text-amber-400/80 italic">⚠️ No image data found for this question ID. Click Edit to attach or verify.</div>';
   const options = q.options ? '<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">'+breaks(q.options)+'</div>' : '';
+  const noContent = !q.text && !q.image && !q.options ? '<div class="mt-3 text-xs text-amber-400 italic">No question text/image/options found in the source record.</div>' : '';
   
   card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+' (ID: '+esc(q.id)+')</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit / Crop</button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic text-slate-400">Cropped image-based question</span>')+'</div>'+img+options+noContent+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
   c.appendChild(card);
@@ -450,7 +469,12 @@ function saveNewSection(){
  saveState();closeSectionModal();renderSidebar();renderCanvas();
 }
 function renameSec(id,n){const s=testPaper.sections.find(x=>x.id===id);if(s&&n.trim()){s.name=n.trim();saveState();renderSidebar();renderCanvas()}}
-function deleteSec(id){if(testPaper.sections.length<=1)return alert('At least one section is required.');if(!confirm('Delete this section and its questions?'))return;testPaper.sections=testPaper.sections.filter(s=>s.id!==id);activeSectionId=testPaper.sections[0].id;saveState();renderSidebar();renderCanvas()}
+function deleteSec(id){
+ if(!confirm('Delete this section? Its questions will return to the unassigned pool.'))return;
+ testPaper.sections=testPaper.sections.filter(s=>s.id!==id);
+ activeSectionId=testPaper.sections[0]?.id||null;
+ saveState();renderSidebar();renderCanvas();
+}
 
 function setType(type){
  const known=['MCQ','ASSERTION','SHORT','LONG'].includes(type);document.getElementById('qType').value=known?type:'CUSTOM';document.getElementById('customQTypeInput').value=known?'':type;document.getElementById('customQTypeInput').classList.toggle('hidden',known)
@@ -518,9 +542,12 @@ function renderLibraryModal(){
  }).join('') || '<div class="text-center text-slate-500 py-10">No library questions found.</div>';
 }
 function insertLibraryQuestion(id){
- const q=questionCache.get(id);if(!q)return;
+ id=String(id);
+ const q=questionCache.get(id)||[...questionCache.values()].find(x=>String(x.id)===id||String(x.qid)===id);
+ if(!q)return alert('Question record not found.');
  const target=document.getElementById('lib_'+id)?.value||activeSectionId;
- if(!allQuestions.some(x=>x.id===id)){allQuestions.push(normalizeQuestion(q,id))}
+ if(!target)return alert('Create and select a section first.');
+ if(!allQuestions.some(x=>String(x.id)===id))allQuestions.push(normalizeQuestion(q,id));
  assignQuestion(id,target);renderLibraryModal();
 }
 
