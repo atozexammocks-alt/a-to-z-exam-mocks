@@ -28,7 +28,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:56px;background:#0b1
 .cropHandle.nw{left:-9px;top:-9px;cursor:nwse-resize}.cropHandle.ne{right:-9px;top:-9px;cursor:nesw-resize}
 .cropHandle.sw{left:-9px;bottom:-9px;cursor:nesw-resize}.cropHandle.se{right:-9px;bottom:-9px;cursor:nwse-resize}
 
-/* STUDENT PREVIEW PANEL - HD QUALITY & SMOOTH SCROLL */
+/* STUDENT PREVIEW PANEL */
 .preview-box{background:#fff;color:#111;border-radius:8px;padding:14px;height:calc(100vh - 260px);overflow-y:auto;-webkit-overflow-scrolling:touch;line-height:1.5}
 .preview-question-card{background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px;margin-bottom:12px}
 .preview-question-card img{width:100%!important;max-width:100%!important;height:auto!important;display:block;margin:8px auto;border-radius:4px;border:1px solid #e2e8f0;image-rendering:-webkit-optimize-contrast}
@@ -39,7 +39,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:56px;background:#0b1
 /* BADGES FOR LEVEL & FLAGS */
 .badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:800;margin-right:4px}
 .badge-type{background:#0284c7;color:#fff}
-.badge-level{background:#047857;color:#fff}
 .flag-red{background:#dc2626;color:#fff}
 .flag-green{background:#16a34a;color:#fff}
 .flag-blue{background:#2563eb;color:#fff}
@@ -47,7 +46,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:56px;background:#0b1
 
 /* POPUP MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:2000;padding:10px}
-.modal{width:min(900px,96vw);max-height:92vh;background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.modal{width:min(920px,96vw);max-height:94vh;background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
 .modalhead{padding:12px 16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}
 .modalbody{padding:16px;overflow-y:auto;flex:1}
 .modalfoot{padding:12px 16px;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:8px}
@@ -92,7 +91,7 @@ textarea{min-height:60px;resize:vertical}
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <h3 style="margin:0">📄 PDF Page Viewer</h3>
-      <div style="font-size:12px;color:#38bdf8">Smooth Touchpad Scroll Enabled</div>
+      <div style="font-size:12px;color:#38bdf8">Stable Touch & Mouse Dragging</div>
     </div>
     <div class="pdfview" id="pdfView">
       <canvas id="pdfCanvas"></canvas>
@@ -132,17 +131,26 @@ textarea{min-height:60px;resize:vertical}
 <div style="font-size:11px;color:#94a3b8;margin-top:8px">Enter specific page limits like <b>1-50</b> to process only those pages.</div>
 </div></div>
 
-<!-- POPUP MODAL -->
+<!-- POPUP MODAL WITH SUB-SLICER & DYNAMIC ASSIGNMENT -->
 <div class="overlay" id="cropPopup"><div class="modal">
 <div class="modalhead">
-  <b style="color:#38bdf8">📝 Slicer Configurator: Levels & Colored Flags</b>
+  <b style="color:#38bdf8">📝 Professional Slicer: Sub-Crop & Options Matrix</b>
   <button id="closeModal" class="btn" style="background:#7f1d1d;color:#fecaca">✕ Cancel</button>
 </div>
 <div class="modalbody">
-  <div style="display:flex;gap:10px;align-items:center;background:#07101f;padding:8px;border-radius:6px;margin-bottom:10px;">
-    <img id="popupImg" style="max-height:80px;max-width:110px;border-radius:4px;background:#fff;" alt="Crop Preview">
-    <div style="font-size:12px;color:#94a3b8">
-      <b>HD Quality Slicer:</b> Assign cropped selection dynamically. OCR can be toggled ON/OFF.
+  <div style="background:#07101f;padding:10px;border-radius:6px;margin-bottom:10px;text-align:center;">
+    <div style="font-size:12px;color:#38bdf8;margin-bottom:6px;font-weight:800;">👇 Main Cropped Image (Drag on this image to sub-crop Options A, B, C, D if needed)</div>
+    <div style="position:relative;display:inline-block;overflow:hidden;border:1px solid #334155;border-radius:4px;background:#fff;max-width:100%;">
+      <img id="popupSubImg" style="max-height:180px;display:block;margin:auto;cursor:crosshair;" alt="Main Crop">
+      <!-- Sub-crop selection box over popup image -->
+      <div id="subCropBox" style="position:absolute;border:2px dashed #f59e0b;background:#f59e0b44;display:none;pointer-events:none;"></div>
+    </div>
+    <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px;">
+      <button id="setAsQImgBtn" class="btn primary" style="font-size:11px;padding:5px 10px;" type="button">📌 Set as Question Image</button>
+      <button id="subCropOptA" class="btn" style="font-size:11px;padding:5px 10px;" type="button">🅰 Set as Option A</button>
+      <button id="subCropOptB" class="btn" style="font-size:11px;padding:5px 10px;" type="button">🅱 Set as Option B</button>
+      <button id="subCropOptC" class="btn" style="font-size:11px;padding:5px 10px;" type="button">🅲 Set as Option C</button>
+      <button id="subCropOptD" class="btn" style="font-size:11px;padding:5px 10px;" type="button">🅳 Set as Option D</button>
     </div>
   </div>
 
@@ -156,21 +164,10 @@ textarea{min-height:60px;resize:vertical}
   <div class="grid3">
     <div class="field"><label>Topic / Chapter</label><input id="popTopic" placeholder="Topic" value="Physics"></div>
     <div class="field"><label>Question Type</label><select id="popQType"><option>MCQ (Multiple Choice)</option><option>Very Short Answer</option><option>Short Answer</option><option>Long Answer</option><option>One Liner / Fill in blanks</option><option>Numerical</option></select></div>
-    <div class="field"><label>Difficulty & Flag</label><select id="popLevel"><option>Easy (Green)</option><option>Medium (Yellow)</option><option>Hard (Blue)</option><option>Expert / JEE (Red)</option></select></div>
+    <div class="field"><label>Difficulty & Colored Flag</label><select id="popLevel"><option>Easy (Green)</option><option>Medium (Yellow)</option><option>Hard (Blue)</option><option>Expert / JEE (Red)</option></select></div>
   </div>
 
-  <div class="field" style="background:#0f172a;padding:8px;border-radius:6px;border:1px solid #334155;">
-    <label style="color:#38bdf8;margin-bottom:6px;">🎯 Assign Cropped Selection Dynamically to:</label>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <button id="assignQImg" class="btn primary" type="button">📌 Set as Question Image</button>
-      <button id="assignOptA" class="btn" type="button">🅰 Set as Option A</button>
-      <button id="assignOptB" class="btn" type="button">🅱 Set as Option B</button>
-      <button id="assignOptC" class="btn" type="button">🅲 Set as Option C</button>
-      <button id="assignOptD" class="btn" type="button">🅳 Set as Option D</button>
-    </div>
-  </div>
-
-  <div class="field">
+  <div class="field" id="ocrSection">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
       <label style="margin:0">Question Text (OCR)</label>
       <div style="display:flex;gap:6px;align-items:center;">
@@ -182,26 +179,26 @@ textarea{min-height:60px;resize:vertical}
   </div>
 
   <!-- 2x2 MATRIX FOR OPTIONS (A, B, C, D) -->
-  <label style="color:#38bdf8;font-weight:800;font-size:12px;display:block;margin-top:10px;margin-bottom:4px;">Options 2x2 Matrix (Text & Image Slicer)</label>
+  <label style="color:#38bdf8;font-weight:800;font-size:12px;display:block;margin-top:10px;margin-bottom:4px;">Options 2x2 Matrix (Assigned Sub-Crops & Text)</label>
   <div class="grid2">
     <div style="background:#0f172a;padding:8px;border:1px solid #334155;border-radius:6px;">
       <label>Option A</label>
-      <input id="popOptAText" placeholder="Option A text" style="margin-bottom:6px;">
+      <input id="popOptAText" placeholder="Option A text" style="margin-bottom:4px;">
       <div style="font-size:11px;color:#38bdf8" id="statusOptA">Image: Not assigned</div>
     </div>
     <div style="background:#0f172a;padding:8px;border:1px solid #334155;border-radius:6px;">
       <label>Option B</label>
-      <input id="popOptBText" placeholder="Option B text" style="margin-bottom:6px;">
+      <input id="popOptBText" placeholder="Option B text" style="margin-bottom:4px;">
       <div style="font-size:11px;color:#38bdf8" id="statusOptB">Image: Not assigned</div>
     </div>
     <div style="background:#0f172a;padding:8px;border:1px solid #334155;border-radius:6px;">
       <label>Option C</label>
-      <input id="popOptCText" placeholder="Option C text" style="margin-bottom:6px;">
+      <input id="popOptCText" placeholder="Option C text" style="margin-bottom:4px;">
       <div style="font-size:11px;color:#38bdf8" id="statusOptC">Image: Not assigned</div>
     </div>
     <div style="background:#0f172a;padding:8px;border:1px solid #334155;border-radius:6px;">
       <label>Option D</label>
-      <input id="popOptDText" placeholder="Option D text" style="margin-bottom:6px;">
+      <input id="popOptDText" placeholder="Option D text" style="margin-bottom:4px;">
       <div style="font-size:11px;color:#38bdf8" id="statusOptD">Image: Not assigned</div>
     </div>
   </div>
@@ -239,6 +236,9 @@ var activeDraft = {
   qImg: "", optAImg: "", optBImg: "", optCImg: "", optDImg: "",
   optAText: "", optBText: "", optCText: "", optDText: ""
 };
+
+// Sub-crop tracking variables inside popup
+var subStart=null, subRect={x:10, y:10, w:100, h:30}, isSubCropping=false;
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
@@ -322,9 +322,11 @@ function updateCropBoxUI(){
  b.style.height=(cropRect.h*sy)+"px";
 }
 
+// Stable Pointer Event Handler preventing random jumping on double click
 (function(){
  var b=document.getElementById("cropBox");
  b.onpointerdown=function(e){
+  if(e.button !== 0 && e.pointerType === "mouse") return; // Only primary click
   var canvas=document.getElementById("pdfCanvas"), cr=canvas.getBoundingClientRect();
   var sx=canvas.width/cr.width, sy=canvas.height/cr.height;
   var target=e.target;
@@ -335,8 +337,9 @@ function updateCropBoxUI(){
   }
   cropStart={x:e.clientX, y:e.clientY, sx:sx, sy:sy, canvasW:canvas.width, canvasH:canvas.height};
   cropInit={x:cropRect.x, y:cropRect.y, w:cropRect.w, h:cropRect.h};
-  b.setPointerCapture(e.pointerId);
+  try { b.setPointerCapture(e.pointerId); } catch(_){}
   e.stopPropagation();
+  e.preventDefault();
  };
  b.onpointermove=function(e){
   if(!cropAction)return;
@@ -386,7 +389,7 @@ captureBtn.onclick = async function(){
  status("✂ Strictly cropping image from page " + currPage + "…");
 
  var p = await pdf.getPage(currPage);
- var viewport = p.getViewport({ scale: 2.0 }); // High-res rendering for HD quality
+ var viewport = p.getViewport({ scale: 2.0 });
  var canvas = document.createElement("canvas");
  canvas.width = viewport.width;
  canvas.height = viewport.height;
@@ -402,7 +405,7 @@ captureBtn.onclick = async function(){
  var rh = Math.max(20, Math.round(cropRect.h * scaleY));
 
  if (rx + rw > viewport.width) rw = viewport.width - rx;
- if (ry + rh > viewport.height) rh = viewport.height - ry;
+ if (ry + rh > viewport.height) ry = Math.max(0, viewport.height - rh);
 
  var cc = document.createElement("canvas");
  cc.width = rw;
@@ -413,13 +416,18 @@ captureBtn.onclick = async function(){
  ctx.drawImage(canvas, rx, ry, rw, rh, 0, 0, rw, rh);
 
  tempCropData = cc.toDataURL("image/png");
- document.getElementById("popupImg").src = tempCropData;
+ var popupImgEl = document.getElementById("popupImg");
+ popupImgEl.src = tempCropData;
+ document.getElementById("popQNo.value") = items.length + 1;
  document.getElementById("popQNo").value = items.length + 1;
  document.getElementById("popText").value = "";
  showModal("cropPopup", true);
  status("✔ Strict pixel-perfect crop captured.");
 
  var ocrEnabled = document.getElementById("ocrToggle").checked;
+ var ocrSec = document.getElementById("ocrSection");
+ ocrSec.style.display = ocrEnabled ? "block" : "none";
+
  if(ocrEnabled){
    document.getElementById("popText").value = "Extracting OCR text (Eng + Hin)...";
    var text = await runOcrOnImage(tempCropData);
@@ -428,34 +436,96 @@ captureBtn.onclick = async function(){
 };
 
 document.getElementById("ocrToggle").onchange = async function(){
+ var ocrSec = document.getElementById("ocrSection");
+ ocrSec.style.display = this.checked ? "block" : "none";
  if(this.checked && tempCropData){
    document.getElementById("popText").value = "Extracting OCR text...";
    var text = await runOcrOnImage(tempCropData);
    document.getElementById("popText").value = text;
- } else if(!this.checked) {
+ } else {
    document.getElementById("popText").value = "";
  }
 };
 
-document.getElementById("assignQImg").onclick = function(){
- activeDraft.qImg = tempCropData;
- alert("✔ Cropped image set as Question Image!");
+// Sub-crop interaction inside popup image viewer
+var popupImgEl = document.getElementById("popupImg");
+var subBox = document.getElementById("subCropBox");
+
+popupImgEl.onpointerdown = function(e){
+  var rect = popupImgEl.getBoundingClientRect();
+  subStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  subRect = { x: subStart.x, y: subStart.y, w: 10, h: 10 };
+  isSubCropping = true;
+  subBox.style.display = "block";
+  updateSubBoxUI();
+  try { popupImgEl.setPointerCapture(e.pointerId); } catch(_){}
+  e.preventDefault();
 };
-document.getElementById("assignOptA").onclick = function(){
- activeDraft.optAImg = tempCropData;
+
+popupImgEl.onpointermove = function(e){
+  if(!isSubCropping) return;
+  var rect = popupImgEl.getBoundingClientRect();
+  var currX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+  var currY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+
+  subRect.x = Math.min(subStart.x, currX);
+  subRect.y = Math.min(subStart.y, currY);
+  subRect.w = Math.abs(currX - subStart.x);
+  subRect.h = Math.abs(currY - subStart.y);
+  updateSubBoxUI();
+};
+
+popupImgEl.onpointerup = function(e){
+  isSubCropping = false;
+  try { popupImgEl.releasePointerCapture(e.pointerId); } catch(_){}
+};
+
+function updateSubBoxUI(){
+  subBox.style.left = subRect.x + "px";
+  subBox.style.top = subRect.y + "px";
+  subBox.style.width = Math.max(10, subRect.w) + "px";
+  subBox.style.height = Math.max(10, subRect.h) + "px";
+}
+
+function getSubCroppedDataURL(){
+  if(subRect.w < 5 || subRect.h < 5) return tempCropData; // Fallback to full crop if no sub-box drawn
+  var im = new Image(); im.src = tempCropData;
+  var canvas = document.createElement("canvas");
+  var scaleX = popupImgEl.naturalWidth / popupImgEl.clientWidth;
+  var scaleY = popupImgEl.naturalHeight / popupImgEl.clientHeight;
+
+  canvas.width = Math.round(subRect.w * scaleX);
+  canvas.height = Math.round(subRect.h * scaleY);
+  var ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(im, subRect.x * scaleX, subRect.y * scaleY, subRect.w * scaleX, subRect.h * scaleY, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/png");
+}
+
+document.getElementById("setAsQImgBtn").onclick = function(){
+ activeDraft.qImg = getSubCroppedDataURL();
+ alert("✔ Sub-cropped selection set as Question Image!");
+};
+document.getElementById("subCropOptA").onclick = function(){
+ activeDraft.optAImg = getSubCroppedDataURL();
  document.getElementById("statusOptA").textContent = "Image: Assigned ✔";
+ alert("✔ Sub-cropped selection set as Option A!");
 };
-document.getElementById("assignOptB").onclick = function(){
- activeDraft.optBImg = tempCropData;
+document.getElementById("subCropOptB").onclick = function(){
+ activeDraft.optBImg = getSubCroppedDataURL();
  document.getElementById("statusOptB").textContent = "Image: Assigned ✔";
+ alert("✔ Sub-cropped selection set as Option B!");
 };
-document.getElementById("assignOptC").onclick = function(){
- activeDraft.optCImg = tempCropData;
+document.getElementById("subCropOptC").onclick = function(){
+ activeDraft.optCImg = getSubCroppedDataURL();
  document.getElementById("statusOptC").textContent = "Image: Assigned ✔";
+ alert("✔ Sub-cropped selection set as Option C!");
 };
-document.getElementById("assignOptD").onclick = function(){
- activeDraft.optDImg = tempCropData;
+document.getElementById("subCropOptD").onclick = function(){
+ activeDraft.optDImg = getSubCroppedDataURL();
  document.getElementById("statusOptD").textContent = "Image: Assigned ✔";
+ alert("✔ Sub-cropped selection set as Option D!");
 };
 
 document.getElementById("closeModal").onclick = function(){ showModal("cropPopup", false); };
@@ -464,7 +534,7 @@ document.getElementById("confirmCropBtn").onclick = function(){
  var newItem = {
    qNo: document.getElementById("popQNo").value.trim() || String(items.length + 1),
    qText: document.getElementById("popText").value.trim(),
-   qImg: activeDraft.qImg,
+   qImg: activeDraft.qImg || tempCropData, // Default to main crop if qImg not explicitly sub-cropped
    optAImg: activeDraft.optAImg, optBImg: activeDraft.optBImg, optCImg: activeDraft.optCImg, optDImg: activeDraft.optDImg,
    optAText: document.getElementById("popOptAText").value.trim(),
    optBText: document.getElementById("popOptBText").value.trim(),
@@ -489,6 +559,7 @@ document.getElementById("confirmCropBtn").onclick = function(){
  document.getElementById("popOptBText").value = "";
  document.getElementById("popOptCText").value = "";
  document.getElementById("popOptDText").value = "";
+ subBox.style.display = "none";
 
  showModal("cropPopup", false);
  updateQueueUI();
@@ -573,6 +644,7 @@ document.getElementById("closeQueueModal").onclick = function(){ showModal("queu
 function executeSave(){
  if(!items.length)return;
  var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
+ var libraryTypeEl = document.getElementById("popLibrary").value; // respects selected library (Personal, Central, Group)
  if(!email){alert("Teacher login not found in localStorage.");return}
  status("☁ Saving "+items.length+" question(s) to Firebase…");
  saveBtn.disabled=true; document.getElementById("saveAllFromQueue").disabled=true;
@@ -592,7 +664,7 @@ function executeSave(){
     qText:x.qText||"", question:x.qImg||"",
     optAImg:x.optAImg||"", optBImg:x.optBImg||"", optCImg:x.optCImg||"", optDImg:x.optDImg||"",
     options:optsArr, keepOptions:optsArr.length>0,
-    libraryType:x.libraryType||"Personal Library", folder:x.folder||"", subfolder:x.subfolder||"", 
+    libraryType:x.libraryType||libraryTypeEl, folder:x.folder||"", subfolder:x.subfolder||"", 
     topic:x.topic||"Physics", qType:x.qType||"MCQ", level:x.level||"Medium",
     sourcePage:x.sourcePage, createdAt:new Date().toISOString()
    });
