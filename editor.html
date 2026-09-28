@@ -928,7 +928,11 @@
       document.getElementById('student-view-modal').classList.add('show');
     };
 
-    window.closeStudentView = function(){document.getElementById('student-view-modal')?.classList.remove('show');};\n\n    window.closeWindow = function() {
+    window.closeStudentView = function(){
+      document.getElementById('student-view-modal')?.classList.remove('show');
+    };
+
+    window.closeWindow = function() {
       if (confirm("Discard changes and return?")) {
         window.goBackToSlicer();
       }
