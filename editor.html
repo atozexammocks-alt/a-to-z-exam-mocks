@@ -58,7 +58,15 @@
     input:checked + .toggle-slider { background-color: #10b981; }
     input:checked + .toggle-slider:before { transform: translateX(16px); }
 
-    #student-view-modal{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:18px;z-index:200000;}\n    #student-view-modal.show{display:flex;}\n    #student-view-card{width:min(900px,96vw);max-height:94vh;overflow:auto;background:#fff;color:#111;border-radius:12px;box-shadow:0 20px 70px rgba(0,0,0,.7);}\n    #student-view-toolbar{position:sticky;top:0;background:#0b1120;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;z-index:2;}\n    #student-view-content{padding:28px;font-family:Arial,sans-serif;}\n    .student-option{display:flex;gap:10px;margin:9px 0;padding:8px 10px;border:1px solid #e5e7eb;border-radius:6px;}\n    .student-option img{max-width:100%;max-height:180px;object-fit:contain;}\n\n    .text-overlay-box {
+    #student-view-modal{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:18px;z-index:200000;}
+    #student-view-modal.show{display:flex;}
+    #student-view-card{width:min(900px,96vw);max-height:94vh;overflow:auto;background:#fff;color:#111;border-radius:12px;box-shadow:0 20px 70px rgba(0,0,0,.7);}
+    #student-view-toolbar{position:sticky;top:0;background:#0b1120;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;z-index:2;}
+    #student-view-content{padding:28px;font-family:Arial,sans-serif;}
+    .student-option{display:flex;gap:10px;margin:9px 0;padding:8px 10px;border:1px solid #e5e7eb;border-radius:6px;}
+    .student-option img{max-width:100%;max-height:180px;object-fit:contain;}
+
+    .text-overlay-box {
       position: absolute; background: #ffffff; border: 2px dashed #38bdf8; color: #000;
       padding: 6px; border-radius: 4px; resize: both; overflow: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
       z-index: 500; min-width: 220px; min-height: 40px; line-height: normal;
@@ -68,12 +76,20 @@
 </head>
 <body>
 
-  <div id="toast-msg">✔ Action Successful!</div>\n\n  <div id="student-view-modal" onclick="if(event.target===this)window.closeStudentView()">\n    <div id="student-view-card">\n      <div id="student-view-toolbar"><b>👁️ Student View — Final Question</b><button class="tool-btn" onclick="window.closeStudentView()">✕ Close</button></div>\n      <div id="student-view-content"></div>\n    </div>\n  </div>
+  <div id="toast-msg">✔ Action Successful!</div>
+
+  <div id="student-view-modal" onclick="if(event.target===this)window.closeStudentView()">
+    <div id="student-view-card">
+      <div id="student-view-toolbar"><b>👁️ Student View — Final Question</b><button class="tool-btn" onclick="window.closeStudentView()">✕ Close</button></div>
+      <div id="student-view-content"></div>
+    </div>
+  </div>
 
   <div id="editor-header">
     <div class="header-title">🖥️ Fullscreen Editor Studio — Layout & Options Manager</div>
     <div style="display:flex; gap:8px;">
-      <button class="tool-btn" style="background:#334155;" onclick="window.goBackToSlicer()">⬅️ Back / Return</button>\n      <button class="tool-btn" style="background:#2563eb;border-color:#38bdf8;" onclick="window.openStudentView()">👁️ Student View</button>
+      <button class="tool-btn" style="background:#334155;" onclick="window.goBackToSlicer()">⬅️ Back / Return</button>
+      <button class="tool-btn" style="background:#2563eb;border-color:#38bdf8;"/> onclick="window.openStudentView()">👁️ Student View</button>
       <button class="tool-btn" style="background:#7f1d1d;" onclick="window.closeWindow()">✕ Discard & Return</button>
       <button class="tool-btn" style="background:#10b981; border-color:#059669;" onclick="window.saveAndSyncToParent()">💾 Save & Return</button>
     </div>
@@ -320,9 +336,14 @@
     };
 
     window.addEventListener('DOMContentLoaded', () => {
-      const imgData = localStorage.getItem('Temp_Editor_Image');
+      const imgData =
+        localStorage.getItem('Temp_Editor_Image') ||
+        localStorage.getItem('Temp_Editor_Synced_Image') ||
+        localStorage.getItem('AZ_PAPER_EDITOR_RESULT_IMAGE') ||
+        '';
+
       if (!imgData) {
-        alert("No image found! Please crop an image first from Slicer Studio.");
+        alert("No question image found for Editor Studio.");
         window.close();
         return;
       }
@@ -860,7 +881,54 @@
       }, 800);
     };
 
-    window.openStudentView = function() {\n      const q = document.getElementById('fallback-qtext')?.value.trim() || '';\n      const opts = ['A','B','C','D'].map(letter => ({\n        letter,\n        text: document.getElementById('fallback-opt'+letter.toLowerCase())?.value.trim() || '',\n        image: editorCropImages[letter] || ''\n      })).filter(x => x.text || x.image);\n      const questionImage = editorCropImages.question || '';\n      const finalImage = canvas?.toDataURL ? canvas.toDataURL('image/png') : '';\n      let html = '';\n      if(q) html += '<div style="font-size:18px;font-weight:700;line-height:1.55;margin-bottom:18px;">'+q.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>')+'</div>';\n      if(questionImage) html += '<div style="text-align:center;margin:14px 0;"><img src="'+questionImage+'" style="max-width:100%;max-height:420px;object-fit:contain;"></div>';\n      else if(finalImage) html += '<div style="text-align:center;margin:14px 0;"><img src="'+finalImage+'" style="max-width:100%;max-height:520px;object-fit:contain;"></div>';\n      if(opts.length){ html += '<div style="margin-top:18px;">'; opts.forEach(o=>{html += '<div class="student-option"><b>('+o.letter+')</b><div style="flex:1;">'+(o.image?'<img src="'+o.image+'">':'')+(o.text?'<div style="margin-top:4px;line-height:1.5;">'+o.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'<br>')+'</div>':'')+'</div></div>';}); html += '</div>'; }\n      if(!html) html='<div style="text-align:center;color:#666;padding:50px 10px;">No question text, image or options available yet.</div>';\n      document.getElementById('student-view-content').innerHTML=html;\n      document.getElementById('student-view-modal').classList.add('show');\n    };\n    window.closeStudentView = function(){document.getElementById('student-view-modal')?.classList.remove('show');};\n\n    window.closeWindow = function() {
+    window.openStudentView = function() {
+      const q = document.getElementById('fallback-qtext')?.value.trim() || '';
+      const opts = ['A','B','C','D'].map(letter => ({
+        letter,
+        text: document.getElementById('fallback-opt' + letter.toLowerCase())?.value.trim() || '',
+        image: editorCropImages[letter] || ''
+      })).filter(x => x.text || x.image);
+
+      const questionImage = editorCropImages.question || '';
+      const finalImage = canvas?.toDataURL ? canvas.toDataURL('image/png') : '';
+      let html = '';
+
+      const esc = value => String(value || '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/\r?\n/g,'<br>');
+
+      if (q) {
+        html += '<div style="font-size:18px;font-weight:700;line-height:1.55;margin-bottom:18px;">' + esc(q) + '</div>';
+      }
+
+      if (questionImage) {
+        html += '<div style="text-align:center;margin:14px 0;"><img src="' + questionImage + '" style="max-width:100%;max-height:520px;object-fit:contain;"></div>';
+      } else if (finalImage) {
+        html += '<div style="text-align:center;margin:14px 0;"><img src="' + finalImage + '" style="max-width:100%;max-height:520px;object-fit:contain;"></div>';
+      }
+
+      if (opts.length) {
+        html += '<div style="margin-top:18px;">';
+        opts.forEach(o => {
+          html += '<div class="student-option"><b>(' + o.letter + ')</b><div style="flex:1;">'
+            + (o.image ? '<img src="' + o.image + '" style="max-width:100%;max-height:180px;object-fit:contain;">' : '')
+            + (o.text ? '<div style="margin-top:4px;line-height:1.5;">' + esc(o.text) + '</div>' : '')
+            + '</div></div>';
+        });
+        html += '</div>';
+      }
+
+      if (!html) {
+        html = '<div style="text-align:center;color:#666;padding:50px 10px;">No question text, image or options available yet.</div>';
+      }
+
+      document.getElementById('student-view-content').innerHTML = html;
+      document.getElementById('student-view-modal').classList.add('show');
+    };
+
+    window.closeStudentView = function(){document.getElementById('student-view-modal')?.classList.remove('show');};\n\n    window.closeWindow = function() {
       if (confirm("Discard changes and return?")) {
         window.goBackToSlicer();
       }
