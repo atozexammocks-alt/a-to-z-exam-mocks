@@ -26,6 +26,33 @@ html,body{height:100%;min-height:0}
 .az-brand{font-size:16px;font-weight:900;color:#38bdf8;text-decoration:none;display:flex;align-items:center;gap:8px}.az-nav-tabs{display:flex;gap:8px;align-items:center;position:relative}.az-nav-btn{background:#0f172a;border:1px solid #334155;color:#94a3b8;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;text-decoration:none;display:flex;align-items:center;gap:6px}.az-nav-btn:hover{border-color:#38bdf8;color:#fff}.az-admin{background:#2563eb;color:#fff;border-color:#38bdf8}.az-profile-container{position:relative;display:inline-block}.az-user-pill{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);color:#38bdf8;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer}.az-profile-dropdown{position:absolute;right:0;top:40px;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);width:220px;display:none;flex-direction:column;z-index:10001;overflow:hidden}.az-profile-dropdown.show{display:flex}.az-dropdown-header{padding:12px 16px;border-bottom:1px solid #1e293b;font-size:12px;color:#38bdf8;font-weight:700;word-break:break-all}.az-dropdown-item{padding:10px 16px;font-size:12px;color:#fecaca;background:#7f1d1d;border:0;cursor:pointer;text-align:left;font-weight:700;width:100%}.az-dropdown-item:hover{background:#991b1b}
 @media(max-width:800px){.az-top-nav{padding:0 10px}.az-brand span{display:none}.az-nav-tabs{gap:4px}.az-nav-btn{padding:6px 8px}.az-nav-btn:nth-child(2),.az-nav-btn:nth-child(3){font-size:0}.az-nav-btn:nth-child(2)::first-letter,.az-nav-btn:nth-child(3)::first-letter{font-size:14px}}
 </style>
+
+<style id="az-professional-print-css">
+#printPreviewContent{position:relative;background:#fff;color:#000;overflow:hidden}
+.az-paper-page{position:relative;min-height:100%;background:#fff}
+.az-paper-watermark{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) rotate(-32deg);font-size:46px;font-weight:900;letter-spacing:3px;color:rgba(15,23,42,.055);white-space:nowrap;pointer-events:none;z-index:0}
+.az-paper-bottom-mark{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:10px;font-weight:800;letter-spacing:2px;color:rgba(15,23,42,.20);pointer-events:none}
+.az-paper-content{position:relative;z-index:1}
+.az-paper-header{border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
+.az-paper-logo{max-height:70px;max-width:150px;object-fit:contain;display:block}
+.az-paper-institute{font-size:20px;font-weight:900;text-transform:uppercase;line-height:1.2}
+.az-paper-exam{font-size:19px;font-weight:900;text-transform:uppercase;line-height:1.25;margin-top:3px}
+.az-paper-subject{font-size:14px;font-weight:800;margin-top:4px}
+.az-paper-meta{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #111;border-bottom:1px solid #111;padding:6px 2px;margin-top:8px;font-size:12px;font-weight:900}
+.az-paper-meta span{font-weight:900}
+.az-paper-instructions{font-size:11px;font-weight:700;margin-top:8px}
+.az-paper-section{margin:16px 0 18px}
+.az-paper-section-title{font-size:14px;font-weight:900;text-align:center;border-top:1.5px solid #111;border-bottom:1.5px solid #111;padding:5px 4px;margin-bottom:10px;text-transform:uppercase}
+.az-paper-question{font-size:13px;margin-bottom:12px;page-break-inside:avoid}
+.az-paper-question-text{font-weight:700;line-height:1.55}
+.az-paper-options{font-weight:600;line-height:1.5;margin-top:3px}
+.az-paper-question-image{display:block;max-width:100%;height:auto;margin:7px auto;page-break-inside:avoid}
+@media print{
+ .az-paper-watermark{color:rgba(15,23,42,.045)!important}
+ .az-paper-bottom-mark{color:rgba(15,23,42,.18)!important}
+ #printPreviewContent{padding-bottom:28px!important}
+}
+</style>
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
 <div id="navbar" class="az-top-nav no-print">
@@ -508,21 +535,56 @@ function savePrintSettingsAndPreview(){
 }
 
 function previewPrintLayout(){
- const c=document.getElementById('printPreviewContent');const ps=getPrintSettings();
- let h='<div class="text-center border-b-2 border-black pb-4 mb-5">'+(ps.logo?'<img src="'+esc(ps.logo)+'" style="max-height:75px;max-width:180px;margin:0 auto 8px;object-fit:contain" onerror="this.style.display=\'none\'">':'')+(ps.institute?'<div class="text-xl font-bold uppercase">'+esc(ps.institute)+'</div>':'')+'<h1 class="text-xl font-bold uppercase mt-1">'+esc(ps.examName||testPaper.title)+'</h1>'+(ps.subject||ps.className?'<p class="text-sm mt-1">'+esc([ps.subject,ps.className].filter(Boolean).join(' • '))+'</p>':'')+'<p class="text-xs mt-1">Max Marks: '+computeTotalMarks()+' | Total Questions: '+computeTotalQuestions()+(ps.duration?' | Duration: '+esc(ps.duration):'')+(ps.date?' | Date: '+esc(ps.date):'')+'</p>'+(ps.instructions?'<div class="text-xs text-left mt-3"><b>Instructions:</b> '+breaks(ps.instructions)+'</div>':'')+'</div>';
- let n=0;
- testPaper.sections.forEach(s=>{
-  if(!s.questions.length)return;
-  h+='<div class="mb-6"><h3 class="font-bold bg-slate-200 px-2 py-1 mb-3 text-sm">'+esc(s.name)+' <span class="font-normal italic">— '+esc(s.type)+'</span></h3>';
-  s.questions.forEach(q=>{
-   n++;
-   h+='<div class="mb-5 text-sm" style="page-break-inside:avoid"><div><b>Q.'+n+'</b></div>'+(q.text?'<div class="font-bold mt-1">'+breaks(q.text)+'</div>':'')+(q.image?'<img class="print-q-image" src="'+esc(q.image)+'" alt="Question Image">':'')+(q.options?'<div class="mt-1">'+breaks(q.options)+'</div>':'')+'</div>';
-  });
-  h+='</div>';
- });
- c.innerHTML=h||'<p class="text-center text-slate-500">No questions to print.</p>';showModal('printModal')
-}
+  const c=document.getElementById('printPreviewContent');
+  const ps=getPrintSettings();
+  const logo=ps.logo||'icon.png';
+  const institute=ps.institute||'A to Z Exam Mocks';
+  const exam=ps.examName||testPaper.title||'Question Paper';
+  const subject=ps.subject||'';
+  const className=ps.className||'';
+  const duration=ps.duration||'';
+  const date=ps.date?new Date(ps.date+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'2-digit',year:'numeric'}):'';
+  const marks=computeTotalMarks(),count=computeTotalQuestions();
 
+  let h='<div class="az-paper-page">';
+  h+='<div class="az-paper-watermark">'+esc(institute)+'</div>';
+  h+='<div class="az-paper-content">';
+  h+='<div class="az-paper-header">';
+  h+='<div style="display:flex;align-items:center;gap:14px;justify-content:center;">';
+  h+='<img class="az-paper-logo" src="'+esc(logo)+'" alt="Institute Logo" onerror="this.onerror=null;this.src=\'icon.png\';">';
+  h+='<div style="text-align:center;flex:1;">';
+  h+='<div class="az-paper-institute">'+esc(institute)+'</div>';
+  h+='<div class="az-paper-exam">'+esc(exam)+'</div>';
+  if(subject||className) h+='<div class="az-paper-subject">'+esc([subject,className].filter(Boolean).join(' • '))+'</div>';
+  h+='</div></div>';
+  h+='<div class="az-paper-meta">';
+  h+='<span>DATE: '+esc(date||'____________')+'</span>';
+  h+='<span>TIME: '+esc(duration||'____________')+'</span>';
+  h+='<span>MAX MARKS: '+marks+'</span>';
+  h+='<span>NO. OF QUESTIONS: '+count+'</span>';
+  h+='</div>';
+  if(ps.instructions) h+='<div class="az-paper-instructions"><b>Instructions:</b> '+breaks(ps.instructions)+'</div>';
+  h+='</div>';
+
+  let n=0;
+  testPaper.sections.forEach(s=>{
+    if(!s.questions.length)return;
+    h+='<div class="az-paper-section">';
+    h+='<div class="az-paper-section-title">'+esc(s.name)+' &nbsp; — &nbsp; '+esc(s.type)+' &nbsp; ('+s.questions.length+' Questions × '+Number(s.marksPerQ||0)+' Marks)</div>';
+    s.questions.forEach(q=>{
+      n++;
+      h+='<div class="az-paper-question"><div class="az-paper-question-text"><b>Q.'+n+'.</b> '+(q.text?breaks(q.text):'')+'</div>';
+      if(q.image) h+='<img class="az-paper-question-image" src="'+esc(q.image)+'" alt="Question Image">';
+      if(q.options) h+='<div class="az-paper-options">'+breaks(q.options)+'</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+  h+='<div class="az-paper-bottom-mark">A TO Z EXAM MOCKS • '+esc(exam)+'</div>';
+  h+='</div></div>';
+  c.innerHTML=h||'<p class="text-center text-slate-500">No questions to print.</p>';
+  showModal('printModal');
+}
 function openStudentView(){
   previewPrintLayout();
   const toolbar=document.getElementById('printModalToolbar');
