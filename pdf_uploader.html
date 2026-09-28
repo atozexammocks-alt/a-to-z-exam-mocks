@@ -3,10 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>A to Z Exam Mocks — Gemini AI PDF Uploader</title>
+<title>A to Z Exam Mocks — PDF Uploader (Semi-Auto & AI)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -19,7 +17,7 @@ nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 .status{font-weight:900;color:#10b981}.activity{width:100%;color:#94a3b8;font-size:12px}.progress{height:8px;background:#0f172a;border:1px solid #334155;border-radius:20px;overflow:hidden;flex:1;min-width:120px}.progress i{display:block;height:100%;width:0;background:#38bdf8}
 .workspace{display:grid;grid-template-columns:1.25fr 1fr;gap:10px;margin-top:10px}.panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.panel h3{margin:0 0 5px}.muted{color:#94a3b8;font-size:11px}.scroll{max-height:calc(100vh - 155px);overflow:auto}.card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin:8px 0}.active{border-color:#38bdf8}
 .grid2{display:grid;grid-template-columns:110px 1fr;gap:7px}.field{margin-top:7px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
-input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}textarea{min-height:90px;resize:vertical}.opt{display:grid;grid-template-columns:22px 1fr;gap:4px;margin:3px 0}.optionGrid{display:grid;grid-template-columns:1fr 1fr;gap:5px 8px}.qMeta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}textarea{min-height:90px;resize:vertical}.opt{display:grid;grid-template-columns:22px 1fr;gap:4px;margin:3px 0}.qMeta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.preview{background:#fff;color:#111;border-radius:7px;padding:16px;line-height:1.55;min-height:180px}.preview img{max-width:100%;max-height:350px;display:block;margin:12px auto}.previewOpt{padding:5px 0;border-bottom:1px solid #ddd}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;z-index:50;padding:10px}
 .modal{width:min(1180px,97vw);height:min(90vh,850px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}
@@ -43,10 +41,9 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <a class="brand" href="teacher.html">🏠 A to Z Exam Mocks</a>
 <div class="nav">
 <a href="teacher.html">🏠 Dashboard</a>
-<a href="admin.html">👑 Super Admin</a>
 <a href="library.html">📁 Central Library</a>
 <a href="library_access.html">🤝 Group Library</a>
-<a href="pdf_uploader.html" class="btn primary" style="background:#2563eb!important;">🤖 AI Uploader</a>
+<a href="pdf_uploader.html" class="btn primary" style="background:#2563eb!important;">📄 PDF Uploader — Semi-Auto</a>
 </div>
 </nav>
 
@@ -117,7 +114,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 var fileEl=document.getElementById("file"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
 var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
 var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropRect={x:50,y:50,w:400,h:150},renderScale=1.4;
-var cropAction=null, cropStart=null, cropInit=null, nativePdfDoc=null;
+var cropAction=null, cropStart=null, cropInit=null;
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}}
 function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
@@ -133,9 +130,8 @@ fileEl.addEventListener("change",async function(){
  progress(0,1);
  try{
    var pdfBytes=await f.arrayBuffer();
-   pdf=await pdfjsLib.getDocument({data:pdfBytes,useWorkerFetch:true}).promise;
+   pdf=await pdfjsLib.getDocument({data:pdfBytes}).promise;
    totalPages=pdf.numPages;
-   if(window.PDFLib?.PDFDocument){try{nativePdfDoc=await PDFLib.PDFDocument.load(pdfBytes);}catch(_){}}
    document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
    document.getElementById("pageRange").value="1-"+Math.min(3,totalPages);
    show("pageOverlay",true);
@@ -204,7 +200,6 @@ async function extract(){
    var imageDataUrl=await renderPageImage(p);
    var got=[];
    
-   // Call Vercel Backend API (/api/gemini-extract)[cite: 2]
    try{
      got=await extractWithBackend({mode:'extract', pageText:'', imageDataUrl:imageDataUrl, folders:'General / General'});
    }catch(aiErr){
@@ -271,7 +266,7 @@ function render(){
    return h+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Crop / Edit Image</button></div></div>';
  }).join(""):'<div class="card"><div class="preview">No question selected.</div></div>';
 
- pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}};
+ pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}});
  pv.querySelectorAll("[data-pcrop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.pcrop),items[Number(b.dataset.pcrop)].sourcePage)}});
 }
 
@@ -386,7 +381,6 @@ document.getElementById("saveCrop").onclick=async function(){
 };
 
 confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All questions confirmed.")});
-saveBtn.saveBtn=document.getElementById("saveAll");
 saveBtn.addEventListener("click",async function(){
  var good=items.filter(function(x){return x.confirmed});
  if(!good.length){alert("Confirm at least one question first.");return}
