@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>A to Z Exam Mocks — PDF Uploader (Semi-Auto & AI)</title>
+<title>A to Z Exam Mocks — PDF Uploader</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -51,7 +52,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <div class="toolbar">
 <label class="choose" for="file">📄 Choose PDF</label>
 <input id="file" type="file" accept="application/pdf,.pdf">
-<button id="extract" class="btn green" disabled>⚡ AI Extract Questions</button>
+<button id="extract" class="btn green" disabled>⚡ Auto Extract Questions</button>
 <button id="confirmAll" class="btn" disabled>☑ Confirm All</button>
 <button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
 <span id="status" class="status">PDF not selected</span>
@@ -61,7 +62,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 </div>
 
 <div class="workspace">
-<section class="panel"><h3>📝 Question Editor</h3><div class="muted">AI extracted questions appear here.</div><div class="scroll" id="editor"><div class="card">Choose a PDF to begin.</div></div></section>
+<section class="panel"><h3>📝 Question Editor</h3><div class="muted">Extracted questions appear here.</div><div class="scroll" id="editor"><div class="card">Choose a PDF to begin.</div></div></section>
 <section class="panel"><h3>👨‍🎓 Student Preview</h3><div class="muted">Student-facing live preview.</div><div class="scroll" id="preview"><div class="card"><div class="preview">No question selected.</div></div></div></section>
 </div>
 </main>
@@ -118,11 +119,9 @@ var cropAction=null, cropStart=null, cropInit=null;
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}}
 function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
-function logStep(s){var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}activityEl.textContent="Activity: "+s;statusEl.textContent=s}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
 function show(id,on){document.getElementById(id).style.display=on?"flex":"none"}
 function imageLoad(src){return new Promise(function(ok,no){var im=new Image();im.onload=function(){ok(im)};im.onerror=no;im.src=src})}
-window.addEventListener("error",function(e){status("❌ Error: "+(e.message||"error"));console.error(e)});
 
 fileEl.addEventListener("change",async function(){
  var f=fileEl.files&&fileEl.files[0]; if(!f)return;
@@ -133,7 +132,7 @@ fileEl.addEventListener("change",async function(){
    pdf=await pdfjsLib.getDocument({data:pdfBytes}).promise;
    totalPages=pdf.numPages;
    document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
-   document.getElementById("pageRange").value="1-"+Math.min(3,totalPages);
+   document.getElementById("pageRange").value="1-"+Math.min(totalPages,5);
    show("pageOverlay",true);
    status("✔ PDF opened. Enter page range and press Start.");
  }catch(err){
@@ -163,27 +162,8 @@ document.getElementById("startPages").addEventListener("click",function(){
  targetPages=parsePageRange(rawRange, totalPages);
  show("pageOverlay",false);
  extractBtn.disabled=false;confirmBtn.disabled=false;saveBtn.disabled=true;
- status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click AI Extract Questions.");
+ status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Auto Extract Questions.");
 });
-
-async function renderPageImage(p){
- var v=p.getViewport({scale:1.25}),c=document.createElement("canvas");
- c.width=v.width; c.height=v.height;
- await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
- return c.toDataURL("image/jpeg", .8);
-}
-
-async function extractWithBackend(body){
- var r=await fetch('/api/gemini-extract', {
-   method:'POST',
-   headers:{'Content-Type':'application/json'},
-   body:JSON.stringify(body)
- });
- var raw=await r.text();
- var d={}; try{d=JSON.parse(raw)}catch(_){d={error:raw.slice(0,500)}}
- if(!r.ok) throw new Error(d.error || d.message || 'Server error ' + r.status);
- return d.items || d.questions || [];
-}
 
 async function extract(){
  if(!pdf||!targetPages.length)return;
@@ -195,33 +175,89 @@ async function extract(){
  try{
   for(var idx=0; idx<targetPages.length; idx++){
    var n=targetPages[idx];
-   status("🤖 AI extracting page "+n+" ("+(idx+1)+"/"+targetPages.length+")…");
-   var p=await pdf.getPage(n);
-   var imageDataUrl=await renderPageImage(p);
-   var got=[];
+   status("🔍 Extracting page "+n+" ("+(idx+1)+"/"+targetPages.length+")…");
+   var page=await pdf.getPage(n);
+   var textContent=await page.getTextContent();
+   var textItems=textContent.items.map(function(item){return item.str;});
+   var fullText=textItems.join(" ");
+
+   // Fallback to Tesseract OCR if text layer is empty (Scanned PDF)
+   if(!fullText.trim() && window.Tesseract){
+     status("🔎 Running OCR for scanned page "+n+"…");
+     var viewport=page.getViewport({scale:1.5});
+     var canvas=document.createElement('canvas');
+     canvas.width=viewport.width; canvas.height=viewport.height;
+     await page.render({canvasContext:canvas.getContext('2d'),viewport:viewport}).promise;
+     var ocr=await Tesseract.recognize(canvas.toDataURL('image/png'), 'eng+hin');
+     fullText=ocr?.data?.text || "";
+   }
+
+   // Smart Question Splitting by matching Question numbers like Q1, 1., Q.1 etc.
+   var qRegex = /(?:^|\n)\s*(?:Q\.?|Question)?\s*(\d{1,2})\s*[\.\-\)]\s+/gi;
+   var matches = [...fullText.matchAll(qRegex)];
    
-   try{
-     got=await extractWithBackend({mode:'extract', pageText:'', imageDataUrl:imageDataUrl, folders:'General / General'});
-   }catch(aiErr){
-     console.warn("AI backend failed for page "+n, aiErr);
-   }
+   if(matches.length > 0){
+     for(var m=0; m<matches.length; m++){
+       var currentMatch = matches[m];
+       var qNo = currentMatch[1];
+       var startIndex = currentMatch.index;
+       var endIndex = (m + 1 < matches.length) ? matches[m + 1].index : fullText.length;
+       var qChunk = fullText.slice(startIndex, endIndex).trim();
 
-   if(!got.length){
-     got=[{qNo:n, qText:"Page "+n+" — AI extraction fallback. Use crop tool.", optA:"Option A", optB:"Option B", optC:"Option C", optD:"Option D", key:"", topic:"General", targetPath:"General / General"}];
-   }
+       // Extract options A, B, C, D if present
+       var optA="", optB="", optC="", optD="";
+       var aMatch = qChunk.match(/\(A\)\s*([^]+?)(?=\(B\)|$)/i);
+       var bMatch = qChunk.match(/\(B\)\s*([^]+?)(?=\(C\)|$)/i);
+       var cMatch = qChunk.match(/\(C\)\s*([^]+?)(?=\(D\)|$)/i);
+       var dMatch = qChunk.match(/\(D\)\s*([^]+?)(?=\$)/i);
 
-   got.forEach(function(q){
-     q.sourcePage=n; q.confirmed=false; q.keepText=true; q.keepImage=false;
-     q.libraryType="Personal Library"; q.folder=""; q.subfolder=""; q.topic=q.topic||"General";
-     items.push(q);
-   });
+       if(aMatch) optA=aMatch[1].trim();
+       if(bMatch) optB=bMatch[1].trim();
+       if(cMatch) optC=cMatch[1].trim();
+       if(dMatch) optD=dMatch[1].trim();
+
+       items.push({
+         qNo: qNo,
+         qText: qChunk,
+         optA: optA,
+         optB: optB,
+         optC: optC,
+         optD: optD,
+         sourcePage: n,
+         confirmed: false,
+         keepText: true,
+         keepImage: false,
+         libraryType: "Personal Library",
+         folder: "",
+         subfolder: "",
+         topic: "General"
+       });
+     }
+   } else {
+     // Fallback if regex doesn't match directly
+     items.push({
+       qNo: String(items.length + 1),
+       qText: fullText || "Page " + n + " content",
+       optA: "", optB: "", optC: "", optD: "",
+       sourcePage: n,
+       confirmed: false,
+       keepText: true,
+       keepImage: false,
+       libraryType: "Personal Library",
+       folder: "",
+       subfolder: "",
+       topic: "General"
+     });
+   }
 
    progress(idx+1, targetPages.length);
    render();
   }
+
   extractBtn.disabled=false; confirmBtn.disabled=items.length===0; saveBtn.disabled=true;
-  status("✔ AI Extraction complete: "+items.length+" question(s) ready.");
+  status("✔ Extraction complete: "+items.length+" question(s) found.");
   if(items.length) select(0);
+
  }catch(e){
    console.error(e); extractBtn.disabled=false; status("❌ Extraction failed: "+e.message); alert("Error: "+e.message);
  }
@@ -266,7 +302,7 @@ function render(){
    return h+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Crop / Edit Image</button></div></div>';
  }).join(""):'<div class="card"><div class="preview">No question selected.</div></div>';
 
- pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}});
+ pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}};
  pv.querySelectorAll("[data-pcrop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.pcrop),items[Number(b.dataset.pcrop)].sourcePage)}});
 }
 
@@ -357,8 +393,8 @@ function updateCropBoxUI(){
 document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];await renderCropPage()}};
 document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];await renderCropPage()}};
 document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false)};
-document.getElementById("cropKeepText").onclick=function(){if(selected>=0){setKeep(selected,"text");document.getElementById("cropKeepText").className="btn miniBtn keepOn";document.getElementById("cropKeepImage").className="btn miniBtn keepOff";}};
-document.getElementById("cropKeepImage").onclick=function(){if(selected>=0){setKeep(selected,"image");document.getElementById("cropKeepImage").className="btn miniBtn keepOn";document.getElementById("cropKeepText").className="btn miniBtn keepOff";}};
+document.getElementById("cropKeepText").onclick=function(){if(selected>=0){setKeep(selected,"text");document.getElementById("cropKeepText").className="btn miniBtn keepOn";document.getElementById("cropKeepImage","btn miniBtn keepOff");}};
+document.getElementById("cropKeepImage").onclick=function(){if(selected>=0){setKeep(selected,"image");document.getElementById("cropKeepImage").className="btn miniBtn keepOn";document.getElementById("cropKeepText","btn miniBtn keepOff");}};
 
 document.getElementById("saveCrop").onclick=async function(){
  if(selected<0||!cropRect){alert("Crop box not ready.");return}
@@ -409,7 +445,7 @@ saveBtn.addEventListener("click",async function(){
  saveBtn.disabled=false;
 });
 
-status("✔ AI Uploader loaded. Click Choose PDF.");
+status("✔ Uploader loaded. Click Choose PDF.");
 })();
 </script>
 </body>
