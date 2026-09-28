@@ -23,7 +23,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:56px;background:#0b1
 .panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}
 .pdfview{position:relative;background:#020617;text-align:center;padding:10px;touch-action:none;height:calc(100vh - 240px);overflow:auto;border:1px solid #334155;border-radius:8px}
 .pdfview canvas{background:#fff;max-width:none;transform-origin:top center}
-.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf844;display:block;touch-action:none;cursor:move;z-index:10}
+.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;touch-action:none;cursor:move;z-index:10}
 .cropHandle{position:absolute;width:18px;height:18px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:11}
 .cropHandle.nw{left:-9px;top:-9px;cursor:nwse-resize}.cropHandle.ne{right:-9px;top:-9px;cursor:nesw-resize}
 .cropHandle.sw{left:-9px;bottom:-9px;cursor:nesw-resize}.cropHandle.se{right:-9px;bottom:-9px;cursor:nwse-resize}
@@ -87,7 +87,7 @@ textarea{min-height:60px;resize:vertical}
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
       <h3 style="margin:0">📄 PDF Page Viewer</h3>
-      <div style="font-size:12px;color:#38bdf8">Mobile-friendly touch dragging enabled</div>
+      <div style="font-size:12px;color:#38bdf8">Strict Pixel-Perfect Cropping</div>
     </div>
     <div class="pdfview" id="pdfView">
       <canvas id="pdfCanvas"></canvas>
@@ -137,7 +137,7 @@ textarea{min-height:60px;resize:vertical}
   <div style="display:flex;gap:10px;align-items:center;background:#07101f;padding:8px;border-radius:6px;margin-bottom:10px;">
     <img id="popupImg" style="max-height:80px;max-width:110px;border-radius:4px;background:#fff;" alt="Crop Preview">
     <div style="font-size:12px;color:#94a3b8">
-      <b>High Quality Slicer:</b> Assign cropped selection dynamically. OCR can be toggled ON/OFF.
+      <b>Pixel-Perfect Slicer:</b> Assign cropped selection dynamically. OCR can be toggled ON/OFF.
     </div>
   </div>
 
@@ -202,7 +202,7 @@ textarea{min-height:60px;resize:vertical}
   </div>
 </div>
 <div class="modalfoot">
-  <button id="confirmCropBtn" class="btn green" style="width:100%;padding:10px;">✔ Add to Queue & Update Live Feed</button>
+  <button id="confirmCropBtn" class="btn green" style="width:100%;padding:10px;">✔ Add to Queue & Lock Question</button>
 </div>
 </div></div>
 
@@ -375,26 +375,41 @@ async function runOcrOnImage(dataUrl){
  return "";
 }
 
-captureBtn.onclick=async function(){
- if(!pdf||!allowedPages.length)return;
+captureBtn.onclick = async function(){
+ if(!pdf || !allowedPages.length) return;
  var currPage = allowedPages[pageIdxInList];
- status("✂ Strictly cropping image from page "+currPage+"…");
- 
- var p=await pdf.getPage(currPage), v=p.getViewport({scale:2.2}), c=document.createElement("canvas");
- c.width=v.width; c.height=v.height;
- await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
- 
- var canvasUI = document.getElementById("pdfCanvas");
- var sx=v.width/canvasUI.width, sy=v.height/canvasUI.height;
- var im=await imageLoad(c.toDataURL("image/png")), cc=document.createElement("canvas");
- 
- var rx=Math.max(0,Math.round(cropRect.x*sx)), ry=Math.max(0,Math.round(cropRect.y*sy));
- var rw=Math.max(20,Math.round(cropRect.w*sx)), rh=Math.max(20,Math.round(cropRect.h*sy));
- 
- cc.width=rw; cc.height=rh; 
- var ctx=cc.getContext("2d");
- ctx.drawImage(im, rx, ry, rw, rh, 0, 0, rw, rh);
+ status("✂ Strictly cropping image from page " + currPage + "…");
 
+ // Render page at exact scale 1.0 to match original PDF coordinate space precisely
+ var p = await pdf.getPage(currPage);
+ var viewport = p.getViewport({ scale: 1.0 });
+ var canvas = document.createElement("canvas");
+ canvas.width = viewport.width;
+ canvas.height = viewport.height;
+ await p.render({ canvasContext: canvas.getContext("2d"), viewport: viewport }).promise;
+
+ // Get UI canvas display size and actual rendered PDF size ratio
+ var uiCanvas = document.getElementById("pdfCanvas");
+ var scaleX = viewport.width / uiCanvas.width;
+ var scaleY = viewport.height / uiCanvas.height;
+
+ // Strict coordinate mapping
+ var rx = Math.max(0, Math.round(cropRect.x * scaleX));
+ var ry = Math.max(0, Math.round(cropRect.y * scaleY));
+ var rw = Math.max(20, Math.round(cropRect.w * scaleX));
+ var rh = Math.max(20, Math.round(cropRect.h * scaleY));
+
+ // Ensure bounds do not exceed PDF canvas
+ if (rx + rw > viewport.width) rw = viewport.width - rx;
+ if (ry + rh > viewport.height) rh = viewport.height - ry;
+
+ var cc = document.createElement("canvas");
+ cc.width = rw;
+ cc.height = rh;
+ var ctx = cc.getContext("2d");
+ ctx.drawImage(canvas, rx, ry, rw, rh, 0, 0, rw, rh);
+
+ // Premium Image Enhancement
  var imgData = ctx.getImageData(0, 0, rw, rh);
  var data = imgData.data;
  for (var i = 0; i < data.length; i += 4) {
@@ -410,7 +425,7 @@ captureBtn.onclick=async function(){
  document.getElementById("popQNo").value = items.length + 1;
  document.getElementById("popText").value = "";
  showModal("cropPopup", true);
- status("✔ Strict crop captured successfully.");
+ status("✔ Strict pixel-perfect crop captured.");
 
  var ocrEnabled = document.getElementById("ocrToggle").checked;
  if(ocrEnabled){
