@@ -205,7 +205,7 @@ function isLikelyImageValue(v){
  if(!v)return false;
  if(typeof v==='object')return !!(v.src||v.url||v.data||v.base64||v.image);
  const s=String(v).trim();
- return /^(data:image\\/|https?:\\/\\/|blob:)/i.test(s) || /\\.(png|jpe?g|gif|webp|svg)(\\?.*)?$/i.test(s);
+ return /^(data:image\/|https?:\/\/|blob:)/i.test(s) || /\.(png|jpe?g|gif|webp|svg)(\\?.*)?$/i.test(s);
 }
 function imageValue(v){
  if(!v)return'';
