@@ -23,17 +23,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:56px;background:#0b1
 .panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}
 .pdfview{position:relative;background:#020617;text-align:center;padding:10px;touch-action:none;height:calc(100vh - 240px);overflow:auto;border:1px solid #334155;border-radius:8px}
 .pdfview canvas{background:#fff;max-width:none;transform-origin:top center}
-.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;touch-action:none;cursor:move;z-index:10}
+.cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf844;display:block;touch-action:none;cursor:move;z-index:10}
 .cropHandle{position:absolute;width:18px;height:18px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:11}
 .cropHandle.nw{left:-9px;top:-9px;cursor:nwse-resize}.cropHandle.ne{right:-9px;top:-9px;cursor:nesw-resize}
 .cropHandle.sw{left:-9px;bottom:-9px;cursor:nesw-resize}.cropHandle.se{right:-9px;bottom:-9px;cursor:nwse-resize}
 
-/* STUDENT PREVIEW PANEL - MULTI-QUESTION SCROLLABLE FEED */
+/* STUDENT PREVIEW PANEL - MULTI-QUESTION SCROLLABLE FEED (FULL WIDTH IMAGES) */
 .preview-box{background:#fff;color:#111;border-radius:8px;padding:14px;height:calc(100vh - 260px);overflow-y:auto;line-height:1.5}
 .preview-question-card{background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px;margin-bottom:12px}
-.preview-question-card img{max-width:100%;max-height:180px;display:block;margin:6px auto;border-radius:4px}
+.preview-question-card img{width:100%!important;max-width:100%!important;height:auto!important;display:block;margin:8px auto;border-radius:4px;border:1px solid #e2e8f0}
 .preview-opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
 .preview-opt{padding:6px 8px;background:#fff;border:1px solid #cbd5e1;border-radius:6px;display:flex;gap:6px;align-items:center}
+.preview-opt img{width:100%!important;max-width:100%!important;height:auto!important}
 
 /* BADGES FOR LEVEL & TYPE */
 .badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:800;margin-right:4px}
@@ -380,7 +381,6 @@ captureBtn.onclick = async function(){
  var currPage = allowedPages[pageIdxInList];
  status("✂ Strictly cropping image from page " + currPage + "…");
 
- // Render page at exact scale 1.0 to match original PDF coordinate space precisely
  var p = await pdf.getPage(currPage);
  var viewport = p.getViewport({ scale: 1.0 });
  var canvas = document.createElement("canvas");
@@ -388,18 +388,15 @@ captureBtn.onclick = async function(){
  canvas.height = viewport.height;
  await p.render({ canvasContext: canvas.getContext("2d"), viewport: viewport }).promise;
 
- // Get UI canvas display size and actual rendered PDF size ratio
  var uiCanvas = document.getElementById("pdfCanvas");
  var scaleX = viewport.width / uiCanvas.width;
  var scaleY = viewport.height / uiCanvas.height;
 
- // Strict coordinate mapping
  var rx = Math.max(0, Math.round(cropRect.x * scaleX));
  var ry = Math.max(0, Math.round(cropRect.y * scaleY));
  var rw = Math.max(20, Math.round(cropRect.w * scaleX));
  var rh = Math.max(20, Math.round(cropRect.h * scaleY));
 
- // Ensure bounds do not exceed PDF canvas
  if (rx + rw > viewport.width) rw = viewport.width - rx;
  if (ry + rh > viewport.height) rh = viewport.height - ry;
 
@@ -409,7 +406,6 @@ captureBtn.onclick = async function(){
  var ctx = cc.getContext("2d");
  ctx.drawImage(canvas, rx, ry, rw, rh, 0, 0, rw, rh);
 
- // Premium Image Enhancement
  var imgData = ctx.getImageData(0, 0, rw, rh);
  var data = imgData.data;
  for (var i = 0; i < data.length; i += 4) {
@@ -536,7 +532,7 @@ function renderFullStudentPreviewFeed(){
      opts.forEach(function(o){
        if(o.img || o.txt){
          html += '<div class="preview-opt"><b>(' + o.k + ')</b> ';
-         if(o.img) html += '<img src="' + o.img + '" style="max-height:30px;display:inline-block;margin:0 4px;">';
+         if(o.img) html += '<img src="' + o.img + '" style="max-height:40px;width:100%;object-fit:contain;display:inline-block;margin:0 4px;">';
          if(o.txt) html += '<span>' + esc(o.txt) + '</span>';
          html += '</div>';
        }
@@ -602,9 +598,11 @@ function executeSave(){
   }
   status("✔ Saved "+items.length+" question(s) successfully!");
   alert("✔ Successfully saved all questions to Firebase Library!");
-  items=[]; updateQueueUI(); renderFullStudentPreviewFeed(); showModal("queuePopup", false);
+  items=[]; updateQueueUI(); renderFullStudentPreviewFeed(); showModal("queuePopup",false);
  }).catch(function(e){
-  console.error(e); status("❌ Save failed: "+e.message); alert("Save failed: "+e.message);
+  container.error(e);
+ }).catch(function(e){
+  status("❌ Save failed: "+e.message); alert("Save failed: "+e.message);
  }).finally(function(){
   saveBtn.disabled=false; document.getElementById("saveAllFromQueue").disabled=false;
  });
@@ -617,4 +615,4 @@ status("✔ Professional Slicer loaded. Choose PDF to begin.");
 })();
 </script>
 </body>
-</html>
+endif
