@@ -51,6 +51,7 @@ html,body{height:100%;min-height:0}
   <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A to Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here with full image visualization</p></div></div>
  </div>
  <div class="flex items-center space-x-3">
+  <button onclick="openLibraryModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-book-open mr-1"></i>Insert from Library</button>
   <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600"><i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i>Refresh / Load Selected</button>
   <button onclick="openPrintSettings()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"><i class="fa-solid fa-sliders"></i><span>Paper / Branding</span></button>
   
@@ -74,10 +75,7 @@ html,body{height:100%;min-height:0}
 <main class="flex-1 min-w-0 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
  <div class="bg-slate-800/80 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
   <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">Inspect your questions and images, tick to include, and assign them to specific sections.</p></div>
-  <div class="flex gap-2">
-   <button onclick="openLibraryModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-book-open mr-1"></i> Insert from Library</button>
-   
-  </div>
+  <div class="flex gap-2"></div>
  </div>
  <div class="flex-1 min-h-0 overflow-y-auto p-5">
   <div class="max-w-6xl mx-auto">
@@ -158,7 +156,7 @@ html,body{height:100%;min-height:0}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const AZ_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQFbbF7Q_KMX0",
+  apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
   authDomain: "physicsvault-80a10.firebaseapp.com",
   projectId: "physicsvault-80a10",
   storageBucket: "physicsvault-80a10.firebasestorage.app",
@@ -212,13 +210,16 @@ function isLikelyImageValue(v){
 function imageValue(v){
  if(!v)return'';
  if(typeof v==='object')return String(v.src||v.url||v.data||v.base64||v.image||'');
- return String(v);
+ const s=String(v).trim();
+ const m=s.match(/<img[^>]+src=["']([^"']+)["']/i);
+ return m?m[1]:s;
 }
 function resolveQuestionImage(q,o,qId){
  const candidates=[
   o?.image,o?.questionImage,o?.imageData,o?.croppedImage,o?.img,o?.question,
   q?.image,q?.img,q?.questionImage,q?.imageData,q?.croppedImage,q?.question,
-  q?.questionImageData,q?.imageUrl,q?.imageURL,q?.diagram
+  q?.questionImageData,q?.imageUrl,q?.imageURL,q?.diagram,q?.questionImageUrl,q?.questionImageURL,
+  q?.imageSrc,q?.src,q?.base64Image,q?.croppedImageData,q?.editorImage,q?.questionHtml,o?.questionHtml
  ];
  for(const v of candidates)if(isLikelyImageValue(v))return imageValue(v);
  const tempId=localStorage.getItem('AZ_PAPER_EDITOR_QID');
@@ -314,6 +315,11 @@ function loadLegacy(){
 
 function saveState(){try{localStorage.setItem(STATE_KEY,JSON.stringify(testPaper))}catch(e){}}
 
+window.addEventListener('error',e=>{
+ const msg=document.getElementById('questionsCanvasContainer');
+ if(msg && !allQuestions.length) msg.innerHTML='<div class="text-center py-16 text-rose-400"><b>Paper Designer error:</b> '+esc(e.message||'JavaScript error')+'</div>';
+ console.error('Paper Designer runtime error:',e.error||e.message);
+});
 window.addEventListener('DOMContentLoaded',async()=>{
  const paperEditId=localStorage.getItem('AZ_PAPER_EDITOR_QID');
  const paperEditDone=localStorage.getItem('AZ_PAPER_EDITOR_DONE')==='1';
