@@ -66,8 +66,8 @@ html,body{height:100%;min-height:0}
    <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50"><span class="block text-xs text-slate-400">Total Marks</span><span id="totalMarksCount" class="text-lg font-bold text-emerald-400">0</span></div>
   </div>
  </div>
- <div class="p-4 border-b border-slate-700 flex items-center justify-between"><span class="text-sm font-bold"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Sections</span><button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs"><i class="fa-solid fa-plus"></i> Add Section</button></div>
- <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-900/40"></div>
+ <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><span class="text-sm font-bold"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Paper Sections</span><p class="text-[10px] text-slate-500 mt-1">Create sections yourself</p></div><button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs"><i class="fa-solid fa-plus"></i> Add Section</button></div>
+ <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-900/40"><div class="text-center text-slate-500 text-xs py-12 px-3">No sections yet.<br><span class="text-slate-600">Click <b class="text-indigo-400">Add Section</b> to create your paper pattern.</span></div></div>
 </aside>
 
 <main class="flex-1 min-w-0 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
@@ -81,7 +81,7 @@ html,body{height:100%;min-height:0}
  <div class="flex-1 min-h-0 overflow-y-auto p-5">
   <div class="max-w-6xl mx-auto">
    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3 text-xs">
-    <span class="font-bold text-slate-200">How to assign:</span><span class="text-slate-400">Tick <b class="text-emerald-400">Include</b> and choose a section from the dropdown so it appears on your final paper.</span>
+    <span class="font-bold text-slate-200">How to assign:</span><span class="text-slate-400">First create your sections on the left. Then tick a question and select the matching section. Images and text are shown exactly as available in the Builder.</span>
    </div>
    <div id="questionsCanvasContainer" class="space-y-3"></div>
   </div>
@@ -95,9 +95,9 @@ html,body{height:100%;min-height:0}
   <div class="p-4 border-b border-slate-700 flex justify-between"><h3 class="font-bold text-indigo-300">Add New Section</h3><button onclick="closeSectionModal()"><i class="fa-solid fa-xmark"></i></button></div>
   <div class="p-5 space-y-4">
    <input id="secNameInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Section B">
-   <select id="secTypeInput" onchange="handleSecTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"><option value="MCQ">Multiple Choice Questions (MCQ)</option><option value="ASSERTION">Assertion & Reason</option><option value="SHORT">Short Answer Type</option><option value="LONG">Long Answer / Descriptive</option><option value="CUSTOM">Custom / Other</option></select>
+   <label class="block text-xs text-slate-400">Question Type<select id="secTypeInput" onchange="handleSecTypeChange()" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"><option value="MCQ">MCQ — Multiple Choice</option><option value="ASSERTION">Assertion & Reason</option><option value="NUMERICAL">Numerical</option><option value="CASE_STUDY">Case Study / Passage</option><option value="SHORT">Short Answer</option><option value="LONG">Long Answer / Descriptive</option><option value="VERY_SHORT">Very Short Answer</option><option value="TRUE_FALSE">True / False</option><option value="FILL_BLANK">Fill in the Blanks</option><option value="MATCH">Match the Following</option><option value="CUSTOM">Custom / Other</option></select></label>
    <input id="customSecTypeInput" class="hidden w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Custom section type">
-   <input id="secMarksInput" type="number" min="0" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Default marks">
+   <label class="block text-xs text-slate-400">Marks per Question<input id="secMarksInput" type="number" min="0" step="0.5" value="1" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. 1, 2, 4"></label>
   </div>
   <div class="p-4 border-t border-slate-700 flex justify-end gap-3"><button onclick="closeSectionModal()" class="bg-slate-700 px-4 py-2 rounded-lg">Cancel</button><button onclick="saveNewSection()" class="bg-indigo-600 px-5 py-2 rounded-lg">Save Section</button></div>
  </div>
@@ -180,32 +180,42 @@ function openDesignerDB(){
  });
 }
 
+function isLikelyImageValue(v){
+ if(!v) return false;
+ if(typeof v==='object') return !!(v.src||v.url||v.data||v.base64);
+ const s=String(v).trim();
+ return /^(data:image\\/|https?:\\/\\/|blob:)/i.test(s) || /\\.(png|jpe?g|gif|webp|svg)(\\?.*)?$/i.test(s);
+}
+function imageValue(v){
+ if(!v) return '';
+ if(typeof v==='object') return String(v.src||v.url||v.data||v.base64||'');
+ return String(v);
+}
+function resolveQuestionImage(q,o,qId){
+ const candidates=[
+  o.image, o.questionImage, o.imageData, o.croppedImage,
+  q?.image, q?.img, q?.questionImage, q?.imageData, q?.croppedImage,
+  q?.question
+ ];
+ for(const v of candidates){
+  if(isLikelyImageValue(v)) return imageValue(v);
+ }
+ if(qId===localStorage.getItem('AZ_PAPER_EDITOR_QID')){
+  const v=localStorage.getItem('Temp_Editor_Image')||'';
+  if(v) return v;
+ }
+ return '';
+}
 function normalizeQuestion(q, fallbackId){
  const qId = q?.id || q?.qid || q?.questionId || fallbackId;
  const o = overrides[qId] || overrides[fallbackId] || {};
- 
  const text = o.qText ?? o.text ?? q?.qText ?? q?.text ?? q?.questionText ?? '';
-
- // Aggressive multi-source image resolution for cropped diagrams
- let image = o.image !== undefined ? o.image : (q?.image !== undefined ? q?.image : (q?.img !== undefined ? q?.img : (q?.question !== undefined ? q?.question : '')));
- if(!image && qId === localStorage.getItem('AZ_PAPER_EDITOR_QID')){
-  image = localStorage.getItem('Temp_Editor_Image') || '';
- }
+ let image = resolveQuestionImage(q,o,qId);
  if(o.keepImage === false) image = '';
-
  const options = o.optText ?? o.options ?? q?.optText ?? q?.options ?? q?.choices ?? '';
  const marks = Number(o.marks ?? q?.marks ?? 1) || 1;
  const type = o.paperType || q?.type || q?.questionType || inferType(q);
-
- return {
-  id: qId,
-  type: type,
-  text: text,
-  options: options,
-  image: image,
-  marks: marks,
-  key: o.key ?? q?.key ?? ''
- };
+ return {id:qId,type,text,options,image,marks,key:o.key ?? q?.key ?? ''};
 }
 
 function inferType(q){
@@ -265,29 +275,9 @@ async function loadFromBuilder(){
  }).filter(q => q && q.id);
 
  const blueprint=safeJSON(BLUEPRINT_KEY,null);
- const bpSections=Array.isArray(blueprint?.sections)?blueprint.sections:[];
- const sections=bpSections.length?bpSections.map((s,si)=>({id:String(s.id||String.fromCharCode(65+si)),name:s.title||('Section '+String.fromCharCode(65+si)),type:s.type||'MCQ',marksPerQ:Number(s.marks)||1,questions:[]})):[{id:'A',name:'Section A',type:'MCQ',marksPerQ:1,questions:[]}];
- 
- const byId=new Map(allQuestions.map(q=>[String(q.id),q]));
- const assigned=new Set();
- 
- bpSections.forEach((s,si)=>{
-  const target=sections[si]||sections[0];
-  (Array.isArray(s.questions)?s.questions:[]).forEach(id=>{
-   const q=byId.get(String(id));
-   if(q&&!assigned.has(String(q.id))){target.questions.push(q);assigned.add(String(q.id))}
-  });
- });
-
- // Fallback: If no questions assigned via blueprint, assign all to Section A so they are visible
- if(assigned.size === 0 && allQuestions.length > 0){
-  allQuestions.forEach(q => {
-   if(!sections[0].questions.some(x=>x.id===q.id)) sections[0].questions.push(q);
-  });
- }
-
- testPaper={title:blueprint?.title||localStorage.getItem('AZ_BUILDER_PAPER_TITLE')||'Question Paper',sections};
- activeSectionId=sections[0].id;
+ // IMPORTANT: Builder questions arrive unassigned. The teacher creates every paper section manually.
+ testPaper={title:blueprint?.title||localStorage.getItem('AZ_BUILDER_PAPER_TITLE')||'Question Paper',sections:[]};
+ activeSectionId=null;
  saveState();
  return allQuestions.length > 0;
 }
@@ -300,8 +290,8 @@ function loadLegacy(){
  }
  const old=safeJSON(STATE_KEY,null);
  if(old?.sections?.length && !arr.length){testPaper=old;activeSectionId=testPaper.sections[0].id;return}
- testPaper={title:old?.title||'Question Paper',sections:[{id:uid('sec'),name:'Section A',type:'MCQ',marksPerQ:1,questions:arr}]};
- activeSectionId=testPaper.sections[0].id;saveState();
+ testPaper={title:old?.title||'Question Paper',sections:[]};
+ activeSectionId=null;saveState();
 }
 
 function saveState(){try{localStorage.setItem(STATE_KEY,JSON.stringify(testPaper))}catch(e){}}
@@ -356,27 +346,52 @@ function renderCanvas(){
   card.ondragstart=e=>{e.dataTransfer.setData('text/plain',q.id)};
   card.className='bg-slate-900 border '+(included?'border-emerald-700/60':'border-slate-700')+' rounded-xl p-4 shadow-sm';
   let opts='<option value="">Choose section…</option>';
-  testPaper.sections.forEach(s=>opts+='<option value="'+esc(s.id)+'" '+(sec?.id===s.id?'selected':'')+'>'+esc(s.name)+'</option>');
+  testPaper.sections.forEach(s=>{
+   const disabled=!sectionTypeMatches(q,s);
+   opts+='<option value="'+esc(s.id)+'" '+(sec?.id===s.id?'selected':'')+' '+(disabled?'disabled':'')+'>'+esc(s.name)+' — '+esc(s.type)+'</option>';
+  });
   
   // High fidelity image rendering for cropped questions
   const img = q.image ? '<div class="mt-3 bg-white p-2 rounded-lg text-center"><img class="q-image" src="'+esc(q.image)+'" alt="Cropped Question Diagram" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span class=\\\'text-xs text-rose-400 italic\\\'>[Image failed to render]</span>\'"></div>' : '<div class="mt-2 text-xs text-amber-400/80 italic">⚠️ No image data found for this question ID. Click Edit to attach or verify.</div>';
   const options = q.options ? '<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">'+breaks(q.options)+'</div>' : '';
   
-  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+' (ID: '+esc(q.id)+')</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit / Crop</button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic text-slate-400">Cropped image-based question</span>')+'</div>'+img+options+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
+  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+' (ID: '+esc(q.id)+')</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit / Crop</button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic text-slate-400">Cropped image-based question</span>')+'</div>'+img+options+noContent+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
   c.appendChild(card);
  });
  updateTotals();
 }
 
 function toggleQuestionInclude(id,on){
- if(on){const s=testPaper.sections.find(x=>x.id===activeSectionId)||testPaper.sections[0];if(s)assignQuestion(id,s.id)}
- else removeQuestionFromAll(id);
+ if(!on){removeQuestionFromAll(id);return}
+ if(!testPaper.sections.length){
+  alert('Create a section first. Click “Add Section” on the left.');
+  renderCanvas(); return;
+ }
+ const s=testPaper.sections.find(x=>x.id===activeSectionId);
+ if(!s){alert('Select a section on the left first.');return}
+ assignQuestion(id,s.id);
+}
+function sectionTypeMatches(q,s){
+ const qt=String(q.type||'MCQ').toUpperCase();
+ const st=String(s.type||'MCQ').toUpperCase();
+ if(st==='CUSTOM' || st==='ANY') return true;
+ if(st===qt) return true;
+ if(st==='CASE_STUDY' && (qt.includes('CASE')||qt.includes('PASSAGE'))) return true;
+ if(st==='NUMERICAL' && (qt.includes('NUM')||qt.includes('INTEGER')||qt.includes('NAT'))) return true;
+ if(st==='SHORT' && (qt.includes('SHORT')||qt.includes('VSA')||qt.includes('VERY'))) return true;
+ if(st==='LONG' && qt.includes('LONG')) return true;
+ return false;
 }
 function assignQuestion(id,sectionId){
  const q=allQuestions.find(x=>x.id===id);if(!q)return;
- removeQuestionFromAll(id,false);
  const s=testPaper.sections.find(x=>x.id===sectionId);
- if(s)s.questions.push(q);
+ if(!s)return;
+ if(!sectionTypeMatches(q,s)){
+  alert('This question is '+(q.type||'MCQ')+' but the selected section is '+s.type+'. Create/select a matching section type.');
+  return;
+ }
+ removeQuestionFromAll(id,false);
+ s.questions.push(q);
  saveState();renderSidebar();renderCanvas();
 }
 function removeQuestionFromAll(id,rerender=true){
@@ -401,11 +416,39 @@ function openEditorForPaper(id){
 }
 
 function handleSectionDrop(e,sectionId){e.preventDefault();const id=e.dataTransfer.getData('text/plain');if(id)assignQuestion(id,sectionId)}
-function updateTotals(){let q=0,m=0;testPaper.sections.forEach(s=>{q+=s.questions.length;s.questions.forEach(x=>m+=Number(s.marksPerQ||x.marks||0))});document.getElementById('totalQuestionsCount').textContent=q;document.getElementById('totalMarksCount').textContent=m}
+function updateTotals(){
+ let q=0,m=0;
+ testPaper.sections.forEach(s=>{q+=s.questions.length;s.questions.forEach(x=>m+=Number(s.marksPerQ??x.marks??0))});
+ document.getElementById('totalQuestionsCount').textContent=q;
+ document.getElementById('totalMarksCount').textContent=m;
+}
 
-function addNewSection(){document.getElementById('secNameInput').value='Section '+String.fromCharCode(65+testPaper.sections.length);document.getElementById('secMarksInput').value=1;document.getElementById('secTypeInput').value='MCQ';document.getElementById('customSecTypeInput').classList.add('hidden');showModal('sectionModal')}
-function handleSecTypeChange(){document.getElementById('customSecTypeInput').classList.toggle('hidden',document.getElementById('secTypeInput').value!=='CUSTOM')}
-function saveNewSection(){let name=document.getElementById('secNameInput').value.trim(),type=document.getElementById('secTypeInput').value;if(!name)return alert('Enter section name');if(type==='CUSTOM')type=document.getElementById('customSecTypeInput').value.trim()||'Custom';const s={id:uid('sec'),name,type,marksPerQ:Number(document.getElementById('secMarksInput').value)||1,questions:[]};testPaper.sections.push(s);activeSectionId=s.id;saveState();closeSectionModal();renderSidebar();renderCanvas()}
+function addNewSection(){
+ const letter=String.fromCharCode(65+testPaper.sections.length);
+ document.getElementById('secNameInput').value='Section '+letter;
+ document.getElementById('secMarksInput').value=1;
+ document.getElementById('secTypeInput').value='MCQ';
+ document.getElementById('customSecTypeInput').value='';
+ document.getElementById('customSecTypeInput').classList.add('hidden');
+ showModal('sectionModal');
+ setTimeout(()=>document.getElementById('secNameInput')?.focus(),50);
+}
+function handleSecTypeChange(){
+ const custom=document.getElementById('secTypeInput').value==='CUSTOM';
+ document.getElementById('customSecTypeInput').classList.toggle('hidden',!custom);
+}
+function saveNewSection(){
+ let name=document.getElementById('secNameInput').value.trim();
+ let type=document.getElementById('secTypeInput').value;
+ if(!name)return alert('Enter section name');
+ if(type==='CUSTOM')type=document.getElementById('customSecTypeInput').value.trim()||'Custom';
+ const marks=Number(document.getElementById('secMarksInput').value);
+ if(!Number.isFinite(marks)||marks<0)return alert('Enter valid marks per question');
+ const s={id:uid('sec'),name,type,marksPerQ:marks,questions:[]};
+ testPaper.sections.push(s);
+ activeSectionId=s.id;
+ saveState();closeSectionModal();renderSidebar();renderCanvas();
+}
 function renameSec(id,n){const s=testPaper.sections.find(x=>x.id===id);if(s&&n.trim()){s.name=n.trim();saveState();renderSidebar();renderCanvas()}}
 function deleteSec(id){if(testPaper.sections.length<=1)return alert('At least one section is required.');if(!confirm('Delete this section and its questions?'))return;testPaper.sections=testPaper.sections.filter(s=>s.id!==id);activeSectionId=testPaper.sections[0].id;saveState();renderSidebar();renderCanvas()}
 
