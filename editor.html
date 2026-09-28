@@ -109,7 +109,10 @@
     <div id="editor-sidebar">
       <div class="sidebar-section">
         <div class="section-title">🛠️ Drawing & Masking Tools</div>
-        <button class="tool-btn" id="mode-whitener" style="background:#1e293b;" onclick="window.setMode('whitener')">⬜ Draw Whitener Box (Whiteout)</button>
+        <div style="display:flex;gap:6px;margin-bottom:2px;">
+          <button class="tool-btn" id="mode-whitener" style="background:#1e293b;flex:1;" onclick="window.setMode('whitener')">⬜ White Out</button>
+          <button class="tool-btn" id="mode-crop-image" style="background:#1e293b;flex:1;" onclick="window.startImageCrop()">✂️ Crop Image</button>
+        </div>
         
         <label style="font-size:10px; color:#94a3b8; font-weight:bold; margin-top:2px;">Select Whitener Fill Color:</label>
         <div class="color-palette">
@@ -318,6 +321,13 @@
       window.setMode('crop');
     };
 
+    window.startImageCrop = function() {
+      cropTarget = null;
+      ocrTarget = null;
+      document.querySelectorAll('.editor-crop-btn,.mini-crop').forEach(b=>b.classList.remove('active'));
+      window.setMode('crop');
+    };
+
     function putOCRText(target, text) {
       const id = target === 'question' ? 'fallback-qtext' : 'fallback-opt' + target.toLowerCase();
       const el = document.getElementById(id);
@@ -411,7 +421,7 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       if (imageEnhancement) {
         ctx.save();
-        ctx.filter = 'contrast(1.10) brightness(1.02) saturate(0.90)';
+        ctx.filter = 'contrast(1.14) brightness(1.03) saturate(0.92)';
         ctx.drawImage(baseImg, 0, 0);
         ctx.restore();
       } else {
@@ -438,7 +448,9 @@
 
       document.getElementById('mode-whitener').style.background = (currentMode === 'whitener') ? '#059669' : '#1e293b';
       document.getElementById('mode-ocr').style.background = (currentMode === 'ocr') ? '#0284c7' : '#1e293b';
-      if (currentMode === 'crop') showToast('✂️ Crop Mode ON: drag a region to save as an image.');
+      const cropBtn = document.getElementById('mode-crop-image');
+      if (cropBtn) cropBtn.style.background = (currentMode === 'crop' && !cropTarget) ? '#059669' : '#1e293b';
+      if (currentMode === 'crop') showToast(cropTarget ? '✂️ Field Crop ON: drag a region to save it for the selected field.' : '✂️ Image Crop ON: drag a region to crop the image itself.');
 
       if (currentMode === 'whitener') {
         showToast("⬜ Whitener Mode ON: Drag to apply whiteout.");
@@ -522,17 +534,32 @@
           redrawCanvas();
           showToast("⬜ Solid Whitener Applied!");
         } else if (executedMode === 'crop') {
-          const target = cropTarget || 'question';
           const cropCanvas = document.createElement('canvas');
           cropCanvas.width = Math.max(1, Math.round(w));
           cropCanvas.height = Math.max(1, Math.round(h));
           cropCanvas.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, cropCanvas.width, cropCanvas.height);
-          editorCropImages[target] = cropCanvas.toDataURL('image/png');
-          const status = target === 'question' ? 'Question Statement' : 'Option ' + target;
-          const el = document.getElementById(target === 'question' ? 'question-image-status' : 'fallback-opt' + target.toLowerCase());
-          if (el && target !== 'question') el.placeholder = '✂️ Image crop saved — text optional';
-          if (target === 'question') document.getElementById('question-image-status').textContent = '✂️ Question image crop ready';
-          showToast('✔ ' + status + ' image crop saved!');
+          const croppedUrl = cropCanvas.toDataURL('image/png');
+
+          if (cropTarget) {
+            const target = cropTarget;
+            editorCropImages[target] = croppedUrl;
+            const status = target === 'question' ? 'Question Statement' : 'Option ' + target;
+            const el = document.getElementById(target === 'question' ? 'question-image-status' : 'fallback-opt' + target.toLowerCase());
+            if (el && target !== 'question') el.placeholder = '✂️ Image crop saved — text optional';
+            if (target === 'question') document.getElementById('question-image-status').textContent = '✂️ Question image crop ready';
+            showToast('✔ ' + status + ' image crop saved!');
+          } else {
+            baseImg.onload = () => {
+              canvas.width = baseImg.naturalWidth;
+              canvas.height = baseImg.naturalHeight;
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
+              redrawCanvas();
+              showToast('✔ Image cropped and quality preserved.');
+            };
+            baseImg.src = croppedUrl;
+          }
+          cropTarget = null;
           window.setMode('select');
         } else if (executedMode === 'ocr') {
           showToast("⏳ Scanning text via OCR...");
