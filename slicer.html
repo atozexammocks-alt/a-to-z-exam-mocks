@@ -29,34 +29,54 @@
     window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
     window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc;
 
-    let mainFolders = ["Classical Mechanics", "Quantum Mechanics", "Mathematical Physics", "Electronics", "EMT", "Solid State Mechanics", "Thermo & Statical", "Atomic", "Nuclear", "PYP"];
-    let subFolders = {
-      "Classical Mechanics": ["General", "Lagrangian", "Hamiltonian"],
-      "Quantum Mechanics": ["General", "Operators", "Wave Function"],
-      "Mathematical Physics": ["General", "Vector Analysis", "Matrices"],
-      "Electronics": ["General", "Transistors", "Diodes"],
-      "EMT": ["General"], "Solid State Mechanics": ["General"], "Thermo & Statical": ["General"], "Atomic": ["General"], "Nuclear": ["General"], "PYP": ["General"]
-    };
+    let libraryTree = [];
+    let folderPdfs = {};
+    let mainFolders = [];
+    let subFolders = {};
+
+    const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+    const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
+
+    function rebuildFlatFoldersFromTree() {
+      mainFolders = libraryTree.map(n => String(n.name || '').trim()).filter(Boolean);
+      subFolders = {};
+      const collect = (nodes, root, rel = []) => {
+        (nodes || []).forEach(n => {
+          const name = String(n.name || '').trim();
+          if (!name) return;
+          const next = rel.concat(name);
+          subFolders[root] = subFolders[root] || [];
+          subFolders[root].push(next.join(' / '));
+          collect(n.children || [], root, next);
+        });
+      };
+      libraryTree.forEach(root => collect(root.children || [], String(root.name || '').trim(), []));
+    }
 
     async function loadLibraryState() {
       try {
-        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
-        const snap = await window.getDoc(ref);
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.mainFolders) mainFolders = data.mainFolders;
-          if (data.subFolders) subFolders = data.subFolders;
-        }
-      } catch (e) {}
-    }
+        const privateSnap = await window.getDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())));
+        const privateData = privateSnap.exists() ? privateSnap.data() : {};
 
-    async function saveLibraryStateToFirebase() {
-      try {
-        const ref = window.doc(window.db, "folder_configs", "shared_registry_v4");
-        await window.setDoc(ref, { mainFolders, subFolders }, { merge: true });
-      } catch (e) {
-        console.error("Error saving folders:", e);
-      }
+        libraryTree = Array.isArray(privateData.libraryTree) ? privateData.libraryTree : [];
+        folderPdfs = (privateData.folderPdfs && typeof privateData.folderPdfs === "object") ? { ...privateData.folderPdfs } : {};
+
+        if (!libraryTree.length && Array.isArray(privateData.mainFolders)) {
+          libraryTree = privateData.mainFolders.map(name => ({
+            id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+            name: String(name).trim(),
+            type: "folder",
+            children: (Array.isArray(privateData.subFolders?.[name]) ? privateData.subFolders[name] : []).map(s => ({
+              id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+              name: String(s).trim(),
+              type: "folder",
+              children: []
+            }))
+          }));
+        }
+
+        rebuildFlatFoldersFromTree();
+      } catch (e) { console.error("Slicer library registry load failed:", e); }
     }
 
     window.populateSlicerSubDropdown = function(mainName) {
@@ -76,6 +96,8 @@
       if (mainFolders.length > 0) {
         mainSel.value = mainFolders[0];
         window.populateSlicerSubDropdown(mainFolders[0]);
+      } else {
+        subSel.innerHTML = '';
       }
     };
 
@@ -84,54 +106,54 @@
       if (mainSel) window.populateSlicerSubDropdown(mainSel.value);
     };
 
-    window.addNewMainFolderPrompt = async function() {
-      const folderName = prompt("Enter new Main Folder name:");
-      if (!folderName || !folderName.trim()) return;
-      const cleanName = folderName.trim();
+    function findTreeNodeByName(name) {
+      return libraryTree.find(n => String(n.name || '').trim().toLowerCase() === String(name).trim().toLowerCase());
+    }
 
-      if (mainFolders.includes(cleanName)) {
-        return alert("This main folder already exists!");
+    window.addNewFolderDynamic = async function() {
+      const type = prompt("क्या जोड़ना चाहते हैं? टाइप करें:\n1 -> Main Folder\n2 -> Sub Folder");
+      if (type === "1") {
+        const newMain = (prompt("नया Main Folder नाम डालें:") || "").trim();
+        if (newMain && !findTreeNodeByName(newMain)) {
+          libraryTree.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newMain, type: "folder", children: [] });
+          rebuildFlatFoldersFromTree();
+          window.initSlicerStudio();
+          const saved = await window.saveFolderRegistryToCloud();
+          if (saved) alert("✔ Main Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
+        }
+      } else if (type === "2") {
+        const currentMain = document.getElementById('vault-main-cat').value;
+        if (!currentMain) return alert("Please select a main folder first!");
+        const newSub = (prompt(`"${currentMain}" के लिए नया Sub Folder नाम डालें:`) || "").trim();
+        const parent = findTreeNodeByName(currentMain);
+        if (newSub && parent) {
+          parent.children = Array.isArray(parent.children) ? parent.children : [];
+          if (!parent.children.some(n => String(n.name || '').trim().toLowerCase() === newSub.toLowerCase())) {
+            parent.children.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newSub, type: "folder", children: [] });
+            rebuildFlatFoldersFromTree();
+            window.populateSlicerSubDropdown(currentMain);
+            const saved = await window.saveFolderRegistryToCloud();
+            if (saved) alert("✔ Sub Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
+          }
+        }
       }
-
-      mainFolders.push(cleanName);
-      if (!subFolders[cleanName]) {
-        subFolders[cleanName] = ["General"];
-      }
-
-      await saveLibraryStateToFirebase();
-      window.initSlicerStudio();
-      document.getElementById('vault-main-cat').value = cleanName;
-      window.populateSlicerSubDropdown(cleanName);
-      if (typeof showToast === 'function') showToast(`📁 Main Folder '${cleanName}' Added!`);
     };
 
-    window.addNewSubFolderPrompt = async function() {
-      const mainSel = document.getElementById('vault-main-cat');
-      const currentMain = mainSel ? mainSel.value : '';
-      if (!currentMain) return alert("Please select a main folder first!");
-
-      const subName = prompt(`Enter new Sub Folder name under '${currentMain}':`);
-      if (!subName || !subName.trim()) return;
-      const cleanSub = subName.trim();
-
-      if (!subFolders[currentMain]) {
-        subFolders[currentMain] = [];
-      }
-
-      if (subFolders[currentMain].includes(cleanSub)) {
-        return alert("This sub folder already exists under this main folder!");
-      }
-
-      subFolders[currentMain].push(cleanSub);
-
-      await saveLibraryStateToFirebase();
-      window.populateSlicerSubDropdown(currentMain);
-      document.getElementById('vault-sub-cat').value = `${currentMain} / ${cleanSub}`;
-      if (typeof showToast === 'function') showToast(`📂 Sub Folder '${cleanSub}' Added!`);
+    window.saveFolderRegistryToCloud = async function() {
+      try {
+        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
+          ownerEmail: teacherEmailKey(),
+          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
+          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
+          updatedAt: new Date().toISOString()
+        });
+        return true;
+      } catch(e) { console.error(e); return false; }
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
-      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email') || 'atozexammocks@gmail.com';
+      const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+      if (!savedEmail) { window.location.href = 'teacher.html'; return; }
       window.currentTeacherEmail = savedEmail;
       const userTag = document.getElementById('current-user-tag');
       if (userTag) userTag.textContent = savedEmail;
@@ -232,7 +254,6 @@
     <iframe id="studio-iframe" src=""></iframe>
   </div>
 
-  <!-- Dynamic Student Preview Overlay Modal -->
   <div id="prev-q-overlay">
     <div class="prev-q-card">
       <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px;">
@@ -282,17 +303,10 @@
 
     <div id="slicer-right">
       <div class="meta-box">
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
-          <label style="display:flex; justify-content:space-between; align-items:center;">
-            <span>Main Folder:</span>
-            <button class="tool-btn" style="background:#0284c7; padding:1px 5px; font-size:9px;" onclick="window.addNewMainFolderPrompt()" title="Add New Main Folder">+ Add</button>
-          </label>
-          <label style="display:flex; justify-content:space-between; align-items:center;">
-            <span>Sub Folder:</span>
-            <button class="tool-btn" style="background:#0284c7; padding:1px 5px; font-size:9px;" onclick="window.addNewSubFolderPrompt()" title="Add New Sub Folder">+ Add</button>
-          </label>
-        </div>
-
+        <label style="display:flex; justify-content:space-between; align-items:center;">
+          <span>Book & Section:</span>
+          <button class="tool-btn" style="padding:2px 6px; font-size:9px; background:#0284c7;" onclick="window.addNewFolderDynamic()">➕ Add Folder</button>
+        </label>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
           <select id="vault-main-cat" onchange="window.onSlicerMainFolderChange()"></select>
           <select id="vault-sub-cat"></select>
@@ -386,6 +400,128 @@
 
     let activeFlags = { red: false, blue: false, green: false, yellow: false };
     let ocrOnlyMode = false;
+    let libraryTree = [];
+    let folderPdfs = {};
+    let mainFolders = [];
+    let subFolders = {};
+
+    const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+    const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
+
+    function rebuildFlatFoldersFromTree() {
+      mainFolders = libraryTree.map(n => String(n.name || '').trim()).filter(Boolean);
+      subFolders = {};
+      const collect = (nodes, root, rel = []) => {
+        (nodes || []).forEach(n => {
+          const name = String(n.name || '').trim();
+          if (!name) return;
+          const next = rel.concat(name);
+          subFolders[root] = subFolders[root] || [];
+          subFolders[root].push(next.join(' / '));
+          collect(n.children || [], root, next);
+        });
+      };
+      libraryTree.forEach(root => collect(root.children || [], String(root.name || '').trim(), []));
+    }
+
+    async function loadLibraryState() {
+      try {
+        const privateSnap = await window.getDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())));
+        const privateData = privateSnap.exists() ? privateSnap.data() : {};
+
+        libraryTree = Array.isArray(privateData.libraryTree) ? privateData.libraryTree : [];
+        folderPdfs = (privateData.folderPdfs && typeof privateData.folderPdfs === "object") ? { ...privateData.folderPdfs } : {};
+
+        if (!libraryTree.length && Array.isArray(privateData.mainFolders)) {
+          libraryTree = privateData.mainFolders.map(name => ({
+            id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+            name: String(name).trim(),
+            type: "folder",
+            children: (Array.isArray(privateData.subFolders?.[name]) ? privateData.subFolders[name] : []).map(s => ({
+              id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
+              name: String(s).trim(),
+              type: "folder",
+              children: []
+            }))
+          }));
+        }
+
+        rebuildFlatFoldersFromTree();
+      } catch (e) { console.error("Slicer library registry load failed:", e); }
+    }
+
+    window.populateSlicerSubDropdown = function(mainName) {
+      const subSel = document.getElementById('vault-sub-cat');
+      if (!subSel) return;
+      subSel.innerHTML = '';
+      (subFolders[mainName] || []).forEach(s => {
+        subSel.innerHTML += `<option value="${mainName} / ${s}">${s}</option>`;
+      });
+    };
+
+    window.initSlicerStudio = function() {
+      const mainSel = document.getElementById('vault-main-cat');
+      if (!mainSel) return;
+      mainSel.innerHTML = '';
+      mainFolders.forEach(m => { mainSel.innerHTML += `<option value="${m}">${m}</option>`; });
+      if (mainFolders.length > 0) {
+        mainSel.value = mainFolders[0];
+        window.populateSlicerSubDropdown(mainFolders[0]);
+      } else {
+        const subSel = document.getElementById('vault-sub-cat');
+        if (subSel) subSel.innerHTML = '';
+      }
+    };
+
+    window.onSlicerMainFolderChange = function() {
+      const mainSel = document.getElementById('vault-main-cat');
+      if (mainSel) window.populateSlicerSubDropdown(mainSel.value);
+    };
+
+    function findTreeNodeByName(name) {
+      return libraryTree.find(n => String(n.name || '').trim().toLowerCase() === String(name).trim().toLowerCase());
+    }
+
+    window.addNewFolderDynamic = async function() {
+      const type = prompt("क्या जोड़ना चाहते हैं? टाइप करें:\n1 -> Main Folder\n2 -> Sub Folder");
+      if (type === "1") {
+        const newMain = (prompt("नया Main Folder नाम डालें:") || "").trim();
+        if (newMain && !findTreeNodeByName(newMain)) {
+          libraryTree.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newMain, type: "folder", children: [] });
+          rebuildFlatFoldersFromTree();
+          window.initSlicerStudio();
+          const saved = await window.saveFolderRegistryToCloud();
+          if (saved) showToast("✔ Main Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
+        }
+      } else if (type === "2") {
+        const currentMain = document.getElementById('vault-main-cat').value;
+        if (!currentMain) return alert("Please select a main folder first!");
+        const newSub = (prompt(`"${currentMain}" के लिए नया Sub Folder नाम डालें:`) || "").trim();
+        const parent = findTreeNodeByName(currentMain);
+        if (newSub && parent) {
+          parent.children = Array.isArray(parent.children) ? parent.children : [];
+          if (!parent.children.some(n => String(n.name || '').trim().toLowerCase() === newSub.toLowerCase())) {
+            parent.children.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newSub, type: "folder", children: [] });
+            rebuildFlatFoldersFromTree();
+            window.populateSlicerSubDropdown(currentMain);
+            const saved = await window.saveFolderRegistryToCloud();
+            if (saved) showToast("✔ Sub Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
+          }
+        }
+      }
+    };
+
+    window.saveFolderRegistryToCloud = async function() {
+      try {
+        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
+          ownerEmail: teacherEmailKey(),
+          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
+          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
+          updatedAt: new Date().toISOString()
+        });
+        return true;
+      } catch(e) { console.error(e); return false; }
+    };
 
     window.toggleOcrOnlyMode = function() {
       ocrOnlyMode = !ocrOnlyMode;
@@ -606,7 +742,6 @@
           const cropLeft = (parseFloat(cropBox.style.left) - (activeCanvas.getBoundingClientRect().left - document.getElementById('pdf-single-page-wrap').getBoundingClientRect().left)) * scaleX;
           const cropTop = (parseFloat(cropBox.style.top) - (activeCanvas.getBoundingClientRect().top - document.getElementById('pdf-single-page-wrap').getBoundingClientRect().top)) * scaleY;
           
-          // 🔥 High-Definition Super-Sampling Enhancement (2x render scale for absolute clarity)
           let tC = document.createElement('canvas'); 
           tC.width = boxW * scaleX * 2; 
           tC.height = boxH * scaleY * 2;
@@ -734,7 +869,6 @@
       showToast("✔ Changes Synced Back Successfully!");
     };
 
-    // 🔥 Dynamic Live Student Preview Generator
     window.openStudentPreviewModal = async function() {
       const body = document.getElementById('prev-q-body');
       if (!body) return;
@@ -834,6 +968,7 @@
           }
 
           const newQ = {
+            ownerEmail: teacherEmailKey(),
             qNo, subject: chosenSub, topic: 'General',
             qType: qType,
             qText: qTextEl ? qTextEl.value.trim() : '',
@@ -885,6 +1020,16 @@
         }
       };
     }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
+      if (!savedEmail) { window.location.href = 'teacher.html'; return; }
+      window.currentTeacherEmail = savedEmail;
+      const userTag = document.getElementById('current-user-tag');
+      if (userTag) userTag.textContent = savedEmail;
+      await loadLibraryState();
+      window.initSlicerStudio();
+    });
   </script>
 </body>
 </html>
