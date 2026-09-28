@@ -302,9 +302,29 @@
             <button class="tool-btn" style="background:#7f1d1d;" onclick="paperBlueprint.sections.splice(${idx},1); renderBlueprintSections();">🗑️ Delete</button>
           </div>
           <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;">
-            <div><label style="font-size:10px; color:#94a3b8;">Type</label><select onchange="paperBlueprint.sections[${idx}].type = this.value" style="width:100%; padding:4px; background:#060911; color:#fff; border:1px solid #334155; border-radius:4px;"><option value="MCQ" ${sec.type==='MCQ'?'selected':''}>MCQ</option><option value="SHORT" ${sec.type==='SHORT'?'selected':''}>Short Answer</option><option value="LONG" ${sec.type==='LONG'?'selected':''}>Long Answer</option></select></div>
-            <div><label style="font-size:10px; color:#94a3b8;">Count</label><input type="number" value="${sec.count}" onchange="paperBlueprint.sections[${idx}].count = parseInt(this.value)||1" style="width:100%; padding:4px; background:#060911; color:#fff; border:1px solid #334155; border-radius:4px;"></div>
-            <div><label style="font-size:10px; color:#94a3b8;">Marks per Q</label><input type="number" value="${sec.marks}" onchange="paperBlueprint.sections[${idx}].marks = parseFloat(this.value)||1" style="width:100%; padding:4px; background:#060911; color:#fff; border:1px solid #334155; border-radius:4px;"></div>
+            <div>
+              <label style="font-size:10px; color:#94a3b8;">Type</label>
+              <select onchange="paperBlueprint.sections[${idx}].type = this.value" style="width:100%; padding:4px; background:#060911; color:#fff; border:1px solid #334155; border-radius:4px;">
+                <option value="MCQ" ${sec.type==='MCQ'?'selected':''}>MCQ</option>
+                <option value="NUMERICAL" ${sec.type==='NUMERICAL'?'selected':''}>Numerical</option>
+                <option value="ASSERTION" ${sec.type==='ASSERTION'?'selected':''}>Assertion-Reason</option>
+                <option value="CASE" ${sec.type==='CASE'?'selected':''}>Case Study / Passage</option>
+                <option value="VSA" ${sec.type==='VSA'?'selected':''}>Very Short Answer</option>
+                <option value="SHORT" ${sec.type==='SHORT'?'selected':''}>Short Answer</option>
+                <option value="LONG" ${sec.type==='LONG'?'selected':''}>Long Answer</option>
+                <option value="FILL" ${sec.type==='FILL'?'selected':''}>Fill in the Blanks</option>
+                <option value="TF" ${sec.type==='TF'?'selected':''}>True / False</option>
+                <option value="DIAGRAM" ${sec.type==='DIAGRAM'?'selected':''}>Diagram / Graph</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:10px; color:#94a3b8;">Count</label>
+              <input type="number" value="${sec.count}" onchange="paperBlueprint.sections[${idx}].count = parseInt(this.value)||1" style="width:100%; padding:4px; background:#060911; color:#fff; border:1px solid #334155; border-radius:4px;">
+            </div>
+            <div>
+              <label style="font-size:10px; color:#94a3b8;">Marks per Q</label>
+              <input type="number" value="${sec.marks}" onchange="paperBlueprint.sections[${idx}].marks = parseFloat(this.value)||1" style="width:100%; padding:4px; background:#060911; color:#fff; border:1px solid #334155; border-radius:4px;">
+            </div>
           </div>
         </div>
       `).join('');
@@ -468,7 +488,7 @@
     <a href="teacher.html" class="nav-brand">
       🏠 <span>A to Z Exam Mocks</span>
     </a>
-    <!-- Navbar Inline Library Tabs (Placed cleanly between Brand and Profile) -->
+    <!-- Navbar Inline Library Tabs -->
     <div id="navbar-inline-tabs"></div>
 
     <div class="nav-tabs">
@@ -508,7 +528,7 @@
         <div id="question-card-grid"></div>
       </div>
 
-      <!-- Right Publish & Controls Sidebar (Restored with Blueprint & Print settings) -->
+      <!-- Right Publish & Controls Sidebar -->
       <div id="assembler-sidebar">
         <h3 style="color:#38bdf8; font-size:15px; display:flex; justify-content:space-between; align-items:center;">
           <span>Publish Mock Test</span>
