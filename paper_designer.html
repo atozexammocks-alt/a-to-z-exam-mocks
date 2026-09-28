@@ -34,7 +34,8 @@ html,body{height:100%;min-height:0}
 .az-paper-bottom-mark{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:10px;font-weight:800;letter-spacing:2px;color:rgba(15,23,42,.20);pointer-events:none}
 .az-paper-content{position:relative;z-index:1}
 .az-paper-header{border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
-.az-paper-logo{max-height:70px;max-width:150px;object-fit:contain;display:block}
+.az-paper-brand-logo{width:42px;height:42px;object-fit:contain;display:block}
+.az-paper-logo{width:78px;height:78px;max-height:78px;max-width:150px;object-fit:contain;display:block;flex:0 0 auto}
 .az-paper-institute{font-size:20px;font-weight:900;text-transform:uppercase;line-height:1.2}
 .az-paper-exam{font-size:19px;font-weight:900;text-transform:uppercase;line-height:1.25;margin-top:3px}
 .az-paper-subject{font-size:14px;font-weight:800;margin-top:4px}
@@ -56,7 +57,7 @@ html,body{height:100%;min-height:0}
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
 <div id="navbar" class="az-top-nav no-print">
-  <a href="teacher.html" class="az-brand">🏠 <span>A to Z Exam Mocks</span></a>
+  <a href="teacher.html" class="az-brand"><img class="az-paper-brand-logo" src="./icon.png" alt="A2Z Exam Mocks Logo" onerror="this.style.display='none'"> <span>A to Z Exam Mocks</span></a>
   <div class="az-nav-tabs">
     <a class="az-nav-btn" href="teacher.html">🏠 Dashboard</a>
     <a href="admin.html" id="super-admin-nav-btn" class="az-nav-btn az-admin" style="display:none;">👑 Super Admin Panel</a>
@@ -537,7 +538,7 @@ function savePrintSettingsAndPreview(){
 function previewPrintLayout(){
   const c=document.getElementById('printPreviewContent');
   const ps=getPrintSettings();
-  const logo=ps.logo||'icon.png';
+  const logo=ps.logo||'./icon.png';
   const institute=ps.institute||'A to Z Exam Mocks';
   const exam=ps.examName||testPaper.title||'Question Paper';
   const subject=ps.subject||'';
