@@ -49,6 +49,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <label class="choose" for="file">📄 Choose PDF</label>
 <input id="file" type="file" accept="application/pdf,.pdf">
 <button id="extract" class="btn green" disabled>⚡ Load Pages & Questions</button>
+<button id="addCard" class="btn" disabled>➕ Add Question Card</button>
 <button id="confirmAll" class="btn" disabled>☑ Confirm All</button>
 <button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
 <span id="status" class="status">PDF not selected</span>
@@ -57,7 +58,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 </div>
 
 <div class="workspace">
-<section class="panel"><h3>📝 Question Editor</h3><div class="muted">Add or edit questions and crop from PDF pages.</div><div class="scroll" id="editor"><div class="card">Choose a PDF to begin.</div></div></section>
+<section class="panel"><h3>📝 Question Editor</h3><div class="muted">Add, edit or crop questions from PDF pages.</div><div class="scroll" id="editor"><div class="card">Choose a PDF to begin.</div></div></section>
 <section class="panel"><h3>👨‍🎓 Student Preview</h3><div class="muted">Student-facing live preview.</div><div class="scroll" id="preview"><div class="card"><div class="preview">No question selected.</div></div></div></section>
 </div>
 </main>
@@ -107,7 +108,7 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 (function(){
 "use strict";
 var fileEl=document.getElementById("file"), statusEl=document.getElementById("status"), activityEl=document.getElementById("activity");
-var extractBtn=document.getElementById("extract"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
+var extractBtn=document.getElementById("extract"), addCardBtn=document.getElementById("addCard"), confirmBtn=document.getElementById("confirmAll"), saveBtn=document.getElementById("saveAll");
 var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropRect={x:50,y:50,w:400,h:150},renderScale=1.4;
 var cropAction=null, cropStart=null, cropInit=null;
 
@@ -151,19 +152,18 @@ function parsePageRange(str, max){
 }
 
 document.getElementById("startPages").addEventListener("click",function(){
- if(!pdf)return;
  var rawRange=document.getElementById("pageRange").value.trim();
  targetPages=parsePageRange(rawRange, totalPages);
  show("pageOverlay",false);
- extractBtn.disabled=false;confirmBtn.disabled=false;saveBtn.disabled=true;
- status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Load Pages.");
+ extractBtn.disabled=false; addCardBtn.disabled=false; confirmBtn.disabled=false; saveBtn.disabled=true;
+ status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Load Pages or Add Question Card.");
 });
 
 async function extract(){
  if(!pdf||!targetPages.length)return;
  items=[]; selected=-1;
  document.getElementById("editor").innerHTML=""; document.getElementById("preview").innerHTML="";
- extractBtn.disabled=true; confirmBtn.disabled=true; saveBtn.disabled=true;
+ extractBtn.disabled=true; addCardBtn.disabled=true; confirmBtn.disabled=true; saveBtn.disabled=true;
  progress(0, targetPages.length);
 
  try{
@@ -174,11 +174,11 @@ async function extract(){
    var textContent=await page.getTextContent();
    var fullText=textContent.items.map(function(item){return item.str;}).join(" ");
 
-   // Create default cards for the page so teacher can easily crop or edit
+   // Create initial cards (e.g. 1 card per page or blank template)
    items.push({
      qNo: String(items.length + 1),
-     qText: fullText ? "Page " + n + " text: " + fullText.slice(0, 150) + "..." : "Page " + n + " (Use crop tool to select question)",
-     optA: "Option A", optB: "Option B", optC: "Option C", optD: "Option D",
+     qText: fullText ? "Page " + n + " content excerpt..." : "Page " + n + " question",
+     optA: "", optB: "", optC: "", optD: "",
      sourcePage: n,
      confirmed: false,
      keepText: true,
@@ -193,16 +193,35 @@ async function extract(){
    render();
   }
 
-  extractBtn.disabled=false; confirmBtn.disabled=items.length===0; saveBtn.disabled=true;
-  status("✔ Loaded "+items.length+" page container(s). Crop or edit questions below.");
+  extractBtn.disabled=false; addCardBtn.disabled=false; confirmBtn.disabled=items.length===0; saveBtn.disabled=true;
+  status("✔ Loaded "+items.length+" item(s). Use 'Add Question Card' to add more or crop from PDF.");
   if(items.length) select(0);
 
  }catch(e){
-   console.error(e); extractBtn.disabled=false; status("❌ Load failed: "+e.message); alert("Error: "+e.message);
+   console.error(e); extractBtn.disabled=false; addCardBtn.disabled=false; status("❌ Load failed: "+e.message); alert("Error: "+e.message);
  }
 }
 
 extractBtn.addEventListener("click", extract);
+
+addCardBtn.addEventListener("click", function(){
+ items.push({
+   qNo: String(items.length + 1),
+   qText: "New question text...",
+   optA: "", optB: "", optC: "", optD: "",
+   sourcePage: targetPages[0] || 1,
+   confirmed: false,
+   keepText: true,
+   keepImage: false,
+   libraryType: "Personal Library",
+   folder: "",
+   subfolder: "",
+   topic: "Physics"
+ });
+ render();
+ select(items.length - 1);
+ status("✔ Added new question card manually.");
+});
 
 function setKeep(i,mode){
  var x=items[i]; if(!x)return;
@@ -213,13 +232,14 @@ function setKeep(i,mode){
 function render(){
  var ed=document.getElementById("editor"),pv=document.getElementById("preview");
  ed.innerHTML=items.length?items.map(function(x,i){
-   return '<div class="card '+(i===selected?"active":"")+'"><b>Question Item '+(i+1)+' • PDF page '+x.sourcePage+'</b>'+
+   return '<div class="card '+(i===selected?"active":"")+'"><b>Question '+(i+1)+' (Q.No: '+esc(x.qNo)+') • Page '+x.sourcePage+'</b>'+
    '<div class="grid2"><div class="field"><label>Question No.</label><input id="qn'+i+'" value="'+esc(x.qNo||i+1)+'"></div><div class="field"><label>Question Text</label><textarea id="qt'+i+'">'+esc(x.qText)+'</textarea></div></div>'+
    '<div class="field"><label>Options</label>'+['A','B','C','D'].map(function(k){return '<div class="opt"><b>'+k+'.</b><input id="op'+i+'_'+k+'" value="'+esc(x['opt'+k]||"")+'"></div>'}).join("")+'</div>'+
    '<div class="qMeta"><div class="field"><label>Library</label><select id="lt'+i+'"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div><div class="field"><label>Topic</label><input id="tp'+i+'" value="'+esc(x.topic||"")+'"></div><div class="field"><label>Folder</label><input id="fd'+i+'" value="'+esc(x.folder||"")+'"></div><div class="field"><label>Subfolder</label><input id="sf'+i+'" value="'+esc(x.subfolder||"")+'"></div></div>'+
    '<div class="actions"><button class="btn" data-apply="'+i+'">✔ Apply</button><button class="btn" data-crop="'+i+'">✂ Crop from PDF</button>'+
    '<button class="btn miniBtn '+(x.keepText?"keepOn":"keepOff")+'" data-tkeep="'+i+'">📝 Keep Text</button>'+
    '<button class="btn miniBtn '+(x.keepImage?"keepOn":"keepOff")+'" data-ikeep="'+i+'">🖼 Keep Image</button>'+
+   '<button class="btn" style="background:#7f1d1d;border-color:#991b1b;color:#fecaca;" data-del="'+i+'">🗑 Delete</button>'+
    '<label><input type="checkbox" data-confirm="'+i+'" '+(x.confirmed?"checked":"")+'> Confirm</label></div></div>';
  }).join(""):'<div class="card">No questions loaded.</div>';
 
@@ -227,6 +247,7 @@ function render(){
  ed.querySelectorAll("[data-crop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.crop),items[Number(b.dataset.crop)].sourcePage)}});
  ed.querySelectorAll("[data-tkeep]").forEach(function(b){b.onclick=function(){setKeep(Number(b.dataset.tkeep),"text")}});
  ed.querySelectorAll("[data-ikeep]").forEach(function(b){b.onclick=function(){setKeep(Number(b.dataset.ikeep),"image")}});
+ ed.querySelectorAll("[data-del]").forEach(function(b){b.onclick=function(){items.splice(Number(b.dataset.del),1);render();status("✔ Question deleted.");}});
  ed.querySelectorAll("[data-confirm]").forEach(function(b){b.onchange=function(){items[Number(b.dataset.confirm)].confirmed=b.checked;saveBtn.disabled=!items.some(function(x){return x.confirmed})}});
 
  pv.innerHTML=items.length?items.map(function(x,i){
@@ -251,7 +272,7 @@ function apply(i){
  x.qNo=document.getElementById("qn"+i).value; x.qText=document.getElementById("qt"+i).value;
  ['A','B','C','D'].forEach(function(k){ x['opt'+k]=document.getElementById("op"+i+"_"+k).value.trim(); });
  x.libraryType=document.getElementById("lt"+i).value; x.folder=document.getElementById("fd"+i).value.trim(); x.subfolder=document.getElementById("sf"+i).value.trim(); x.topic=document.getElementById("tp"+i).value.trim();
- selected=i; render(); status("✔ Item "+x.qNo+" updated.");
+ selected=i; render(); status("✔ Question "+x.qNo+" updated.");
 }
 
 async function openCrop(i,page){
@@ -352,13 +373,13 @@ document.getElementById("saveCrop").onclick=async function(){
  x.folder=document.getElementById("cropFolder").value.trim();
  x.subfolder=document.getElementById("cropSubfolder").value.trim();
  x.topic=document.getElementById("cropTopic").value.trim();
- show("cropOverlay",false); render(); status("✔ Crop saved for Item "+(x.qNo||selected+1));
+ show("cropOverlay",false); render(); status("✔ Crop saved for Question "+(x.qNo||selected+1));
 };
 
-confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All items confirmed.")});
+confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All questions confirmed.")});
 saveBtn.addEventListener("click",async function(){
  var good=items.filter(function(x){return x.confirmed});
- if(!good.length){alert("Confirm at least one item first.");return}
+ if(!good.length){alert("Confirm at least one question first.");return}
  var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
  if(!email){alert("Teacher login not found.");return}
  status("☁ Saving "+good.length+" question(s)…"); saveBtn.disabled=true;
@@ -379,7 +400,7 @@ saveBtn.addEventListener("click",async function(){
     sourcePage:x.sourcePage, createdAt:new Date().toISOString()
    });
   }
-  status("✔ Saved "+good.length+" question(s) to Central Library."); alert("✔ Saved successfully!");
+  status("✔ Saved "+good.length+" question(s) to Library."); alert("✔ Saved successfully!");
  }catch(e){console.error(e);status("❌ Save failed: "+e.message);alert("Save failed: "+e.message)}
  saveBtn.disabled=false;
 });
