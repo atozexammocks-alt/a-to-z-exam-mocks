@@ -48,7 +48,7 @@ html,body{height:100%;min-height:0}
 <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10 no-print">
  <div class="flex items-center space-x-4">
   <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600 flex items-center space-x-2"><i class="fa-solid fa-arrow-left text-indigo-400"></i><span>Back to Builder</span></button>
-  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A to Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here automatically</p></div></div>
+  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A to Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here automatically with full ID & images</p></div></div>
  </div>
  <div class="flex items-center space-x-3">
   <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600"><i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i>Refresh / Load Selected</button>
@@ -72,7 +72,7 @@ html,body{height:100%;min-height:0}
 
 <main class="flex-1 min-w-0 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
  <div class="bg-slate-800/80 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
-  <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">All Builder-selected questions stay here. Only questions added to a section will print.</p></div>
+  <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">All Builder-selected questions stay here with IDs and Images. Only questions added to a section will print.</p></div>
   <div class="flex gap-2">
    <button onclick="openLibraryModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-book-open mr-1"></i> Insert Question from Library</button>
    <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-print mr-1"></i> Print / Export</button>
@@ -180,33 +180,32 @@ function openDesignerDB(){
  });
 }
 
-async function readCachedQuestions(ids){
- const db=await openDesignerDB(); if(!db)return [];
- return new Promise(resolve=>{
-  try{
-   const tx=db.transaction(DB_STORE,'readonly'),store=tx.objectStore(DB_STORE),out=[];
-   ids.forEach(id=>{const r=store.get(id);r.onsuccess=()=>{if(r.result)out.push(r.result)}});
-   tx.oncomplete=()=>{db.close();resolve(out)};tx.onerror=()=>{db.close();resolve(out)};
-  }catch(e){try{db.close()}catch(_e){}resolve([])}
- });
-}
-
-function normalizeQuestion(q,id){
- const qId=q?.id||id;
- const o=overrides[qId]||{};
+function normalizeQuestion(q, fallbackId){
+ const qId = q?.id || q?.qid || q?.questionId || fallbackId;
+ const o = overrides[qId] || overrides[fallbackId] || {};
  
- // Robustly resolve image properties from different possible structures
- let rawImg = o.image !== undefined ? o.image : (q?.image !== undefined ? q?.image : (q?.question !== undefined ? q?.question : ''));
- if(o.keepImage===false) rawImg = '';
+ // Extract text with fallbacks
+ const text = o.qText ?? o.text ?? q?.qText ?? q?.text ?? q?.questionText ?? '';
+
+ // Extract image (checking all possible property names for cropped images/diagrams)
+ let image = o.image !== undefined ? o.image : (q?.image !== undefined ? q?.image : (q?.img !== undefined ? q?.img : (q?.question !== undefined ? q?.question : '')));
+ if(o.keepImage === false) image = '';
+
+ // Extract options
+ const options = o.optText ?? o.options ?? q?.optText ?? q?.options ?? q?.choices ?? '';
+
+ // Extract marks and type
+ const marks = Number(o.marks ?? q?.marks ?? 1) || 1;
+ const type = o.paperType || q?.type || q?.questionType || inferType(q);
 
  return {
-  id:qId,
-  type:o.paperType||q?.type||inferType(q),
-  text:o.qText??o.text??q?.qText??q?.text??'',
-  options:o.optText??o.options??q?.optText??q?.options??'',
-  image:rawImg,
-  marks:Number(o.marks??q?.marks??1)||1,
-  key:o.key??q?.key??''
+  id: qId,
+  type: type,
+  text: text,
+  options: options,
+  image: image,
+  marks: marks,
+  key: o.key ?? q?.key ?? ''
  };
 }
 
@@ -227,46 +226,70 @@ async function loadFromBuilder(){
   await new Promise(resolve=>{
    try{
     const tx=db.transaction(DB_STORE,'readonly'),store=tx.objectStore(DB_STORE),req=store.getAll();
-    req.onsuccess=()=>{(req.result||[]).forEach(q=>questionCache.set(q.id,q));};
+    req.onsuccess=()=>{(req.result||[]).forEach(q=>{
+     if(q){
+      if(q.id!==undefined) questionCache.set(String(q.id), q);
+      if(q.qid!==undefined) questionCache.set(String(q.qid), q);
+      if(q.questionId!==undefined) questionCache.set(String(q.questionId), q);
+     }
+    });};
     tx.oncomplete=()=>{db.close();resolve()};
     tx.onerror=()=>{try{db.close()}catch(_e){}resolve()};
    }catch(e){try{db.close()}catch(_e){}resolve()}
   });
  }
 
- if(!Array.isArray(ids)||!ids.length){
-  if(questionCache.size>0){
-   // Fallback to all cached questions if IDs list is empty
-   const allCachedIds=[...questionCache.keys()];
-   allQuestions=allCachedIds.map(id=>normalizeQuestion(questionCache.get(id),id));
-  } else {
-   return false;
+ // Also check legacy localStorage question arrays if cache is missing IDs
+ ['selectedBuilderQuestions','selectedQuestions','builderQuestions','cachedQuestions','AZ_BUILDER_QUESTIONS'].forEach(k=>{
+  const arr=safeJSON(k,[]);
+  if(Array.isArray(arr)){
+   arr.forEach(q=>{
+    if(q){
+     if(q.id!==undefined) questionCache.set(String(q.id), q);
+     if(q.qid!==undefined) questionCache.set(String(q.qid), q);
+    }
+   });
   }
- } else {
-  const records=await readCachedQuestions(ids);
-  records.forEach(q=>questionCache.set(q.id,q));
-  allQuestions=ids.map(id=>normalizeQuestion(questionCache.get(id)||questionCache.get(String(id)),id)).filter(q=>q.id);
+ });
+
+ let effectiveIds = [];
+ if(Array.isArray(ids) && ids.length > 0){
+  effectiveIds = ids;
+ } else if(questionCache.size > 0){
+  effectiveIds = [...questionCache.keys()];
  }
+
+ // Map each ID with flexible lookup in questionCache
+ allQuestions = effectiveIds.map(id => {
+  const sId = String(id);
+  const qObj = questionCache.get(sId) || questionCache.get(id) || [...questionCache.values()].find(x => String(x.id) === sId || String(x.qid) === sId);
+  return normalizeQuestion(qObj, id);
+ }).filter(q => q && q.id);
 
  const blueprint=safeJSON(BLUEPRINT_KEY,null);
  const bpSections=Array.isArray(blueprint?.sections)?blueprint.sections:[];
  const sections=bpSections.length?bpSections.map((s,si)=>({id:String(s.id||String.fromCharCode(65+si)),name:s.title||('Section '+String.fromCharCode(65+si)),type:s.type||'MCQ',marksPerQ:Number(s.marks)||1,questions:[]})):[{id:'A',name:'Section A',type:'MCQ',marksPerQ:1,questions:[]}];
  
- const byId=new Map(allQuestions.map(q=>[q.id,q]));
+ const byId=new Map(allQuestions.map(q=>[String(q.id),q]));
  const assigned=new Set();
  
  bpSections.forEach((s,si)=>{
   const target=sections[si]||sections[0];
   (Array.isArray(s.questions)?s.questions:[]).forEach(id=>{
-   const q=byId.get(id);
-   if(q&&!assigned.has(id)){target.questions.push(q);assigned.add(id)}
+   const q=byId.get(String(id));
+   if(q&&!assigned.has(String(q.id))){target.questions.push(q);assigned.add(String(q.id))}
   });
  });
+
+ // Fallback: If no questions assigned via blueprint, put all questions into Section A
+ if(assigned.size === 0 && allQuestions.length > 0){
+  allQuestions.forEach(q => sections[0].questions.push(q));
+ }
 
  testPaper={title:blueprint?.title||localStorage.getItem('AZ_BUILDER_PAPER_TITLE')||'Question Paper',sections};
  activeSectionId=sections[0].id;
  saveState();
- return true;
+ return allQuestions.length > 0;
 }
 
 function loadLegacy(){
@@ -323,7 +346,7 @@ function sectionForQuestion(id){return testPaper.sections.find(s=>s.questions.so
 
 function renderCanvas(){
  const c=document.getElementById('questionsCanvasContainer');
- if(!allQuestions.length){c.innerHTML='<div class="text-center py-20 text-slate-500">No Builder-selected questions found.</div>';return}
+ if(!allQuestions.length){c.innerHTML='<div class="text-center py-20 text-slate-500">No Builder-selected questions found. Please select questions in the Builder first.</div>';return}
  c.innerHTML='';
  allQuestions.forEach((q,i)=>{
   const sec=sectionForQuestion(q.id);
@@ -335,11 +358,11 @@ function renderCanvas(){
   let opts='<option value="">Choose section…</option>';
   testPaper.sections.forEach(s=>opts+='<option value="'+esc(s.id)+'" '+(sec?.id===s.id?'selected':'')+'>'+esc(s.name)+'</option>');
   
-  // Display image reliably with robust error boundary handling
-  const img=q.image ? '<div class="mt-3 bg-white p-2 rounded-lg text-center"><img class="q-image mx-auto" src="'+esc(q.image)+'" alt="Question Diagram" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span class=\\\'text-xs text-rose-400 italic\\\'>[Image failed to load]</span>\'"></div>' : '';
-  const options=q.options?'<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">'+breaks(q.options)+'</div>':'';
+  // Robust image rendering for cropped questions
+  const img = q.image ? '<div class="mt-3 bg-white p-2 rounded-lg text-center"><img class="q-image mx-auto" src="'+esc(q.image)+'" alt="Question Image" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span class=\\\'text-xs text-rose-400 italic\\\'>[Image failed to render]</span>\'"></div>' : '';
+  const options = q.options ? '<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">'+breaks(q.options)+'</div>' : '';
   
-  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+'</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit</button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic text-slate-400">Image-based question</span>')+'</div>'+img+options+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
+  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+' (ID: '+esc(q.id)+')</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit</button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic text-slate-400">Cropped image-based question</span>')+'</div>'+img+options+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
   c.appendChild(card);
  });
  updateTotals();
@@ -448,7 +471,7 @@ function renderLibraryModal(){
  list.innerHTML=pool.slice(0,300).map(q=>{
   const already=!!sectionForQuestion(q.id);
   let opts='<option value="">Choose section…</option>';testPaper.sections.forEach(s=>opts+='<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>');
-  return '<div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-start"><div class="flex-1"><div class="text-sm">'+(q.text?breaks(q.text):'<span class="text-slate-500 italic">Image-based question</span>')+'</div><div class="text-[10px] text-slate-500 mt-1">'+esc(q.type)+' • '+q.marks+' marks'+(already?' • Already included':'')+'</div></div><select id="lib_'+esc(q.id)+'" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">'+opts+'</select><button onclick="insertLibraryQuestion(\''+esc(q.id)+'\')" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-semibold">Insert</button></div>'
+  return '<div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-start"><div class="flex-1"><div class="text-sm">'+(q.text?breaks(q.text):'<span class="text-slate-500 italic">Cropped image question</span>')+'</div><div class="text-[10px] text-slate-500 mt-1">ID: '+esc(q.id)+' • '+esc(q.type)+' • '+q.marks+' marks'+(already?' • Already included':'')+'</div></div><select id="lib_'+esc(q.id)+'" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">'+opts+'</select><button onclick="insertLibraryQuestion(\''+esc(q.id)+'\')" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-semibold">Insert</button></div>'
  }).join('') || '<div class="text-center text-slate-500 py-10">No library questions found.</div>';
 }
 function insertLibraryQuestion(id){
