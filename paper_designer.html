@@ -399,27 +399,16 @@ function toggleQuestionInclude(id,on){
  assignQuestion(id,s.id);
 }
 function sectionTypeMatches(q,s){
- const qt=String(q.type||'MCQ').toUpperCase();
- const st=String(s.type||'MCQ').toUpperCase();
- if(st==='CUSTOM' || st==='ANY') return true;
- if(st===qt) return true;
- if(st==='CASE_STUDY' && (qt.includes('CASE')||qt.includes('PASSAGE'))) return true;
- if(st==='NUMERICAL' && (qt.includes('NUM')||qt.includes('INTEGER')||qt.includes('NAT'))) return true;
- if(st==='SHORT' && (qt.includes('SHORT')||qt.includes('VSA')||qt.includes('VERY'))) return true;
- if(st==='LONG' && qt.includes('LONG')) return true;
- return false;
+  // Section type is a paper-format label, not a hard compatibility lock.
+  // Any Library/Builder question can be placed in any section.
+  return true;
 }
 function assignQuestion(id,sectionId){
- const q=allQuestions.find(x=>x.id===id);if(!q)return;
- const s=testPaper.sections.find(x=>x.id===sectionId);
- if(!s)return;
- if(!sectionTypeMatches(q,s)){
-  alert('This question is '+(q.type||'MCQ')+' but the selected section is '+s.type+'. Create/select a matching section type.');
-  return;
- }
- removeQuestionFromAll(id,false);
- s.questions.push(q);
- saveState();renderSidebar();renderCanvas();
+  const q=allQuestions.find(x=>x.id===id);if(!q)return;
+  const s=testPaper.sections.find(x=>x.id===sectionId);if(!s)return;
+  removeQuestionFromAll(id,false);
+  s.questions.push(q);
+  saveState();renderSidebar();renderCanvas();
 }
 function removeQuestionFromAll(id,rerender=true){
  testPaper.sections.forEach(s=>s.questions=s.questions.filter(q=>q.id!==id));
