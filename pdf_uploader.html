@@ -237,7 +237,6 @@ var activeDraft = {
   optAText: "", optBText: "", optCText: "", optDText: ""
 };
 
-// Sub-crop tracking variables inside popup
 var subStart=null, subRect={x:10, y:10, w:100, h:30}, isSubCropping=false;
 
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;}
@@ -322,11 +321,10 @@ function updateCropBoxUI(){
  b.style.height=(cropRect.h*sy)+"px";
 }
 
-// Stable Pointer Event Handler preventing random jumping on double click
 (function(){
  var b=document.getElementById("cropBox");
  b.onpointerdown=function(e){
-  if(e.button !== 0 && e.pointerType === "mouse") return; // Only primary click
+  if(e.button !== 0 && e.pointerType === "mouse") return;
   var canvas=document.getElementById("pdfCanvas"), cr=canvas.getBoundingClientRect();
   var sx=canvas.width/cr.width, sy=canvas.height/cr.height;
   var target=e.target;
@@ -416,9 +414,7 @@ captureBtn.onclick = async function(){
  ctx.drawImage(canvas, rx, ry, rw, rh, 0, 0, rw, rh);
 
  tempCropData = cc.toDataURL("image/png");
- var popupImgEl = document.getElementById("popupImg");
- popupImgEl.src = tempCropData;
- document.getElementById("popQNo.value") = items.length + 1;
+ document.getElementById("popupSubImg").src = tempCropData;
  document.getElementById("popQNo").value = items.length + 1;
  document.getElementById("popText").value = "";
  showModal("cropPopup", true);
@@ -447,24 +443,23 @@ document.getElementById("ocrToggle").onchange = async function(){
  }
 };
 
-// Sub-crop interaction inside popup image viewer
-var popupImgEl = document.getElementById("popupImg");
+var popupSubImgEl = document.getElementById("popupSubImg");
 var subBox = document.getElementById("subCropBox");
 
-popupImgEl.onpointerdown = function(e){
-  var rect = popupImgEl.getBoundingClientRect();
+popupSubImgEl.onpointerdown = function(e){
+  var rect = popupSubImgEl.getBoundingClientRect();
   subStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
   subRect = { x: subStart.x, y: subStart.y, w: 10, h: 10 };
   isSubCropping = true;
   subBox.style.display = "block";
   updateSubBoxUI();
-  try { popupImgEl.setPointerCapture(e.pointerId); } catch(_){}
+  try { popupSubImgEl.setPointerCapture(e.pointerId); } catch(_){}
   e.preventDefault();
 };
 
-popupImgEl.onpointermove = function(e){
+popupSubImgEl.onpointermove = function(e){
   if(!isSubCropping) return;
-  var rect = popupImgEl.getBoundingClientRect();
+  var rect = popupSubImgEl.getBoundingClientRect();
   var currX = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
   var currY = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
 
@@ -475,9 +470,9 @@ popupImgEl.onpointermove = function(e){
   updateSubBoxUI();
 };
 
-popupImgEl.onpointerup = function(e){
+popupSubImgEl.onpointerup = function(e){
   isSubCropping = false;
-  try { popupImgEl.releasePointerCapture(e.pointerId); } catch(_){}
+  try { popupSubImgEl.releasePointerCapture(e.pointerId); } catch(_){}
 };
 
 function updateSubBoxUI(){
@@ -488,11 +483,11 @@ function updateSubBoxUI(){
 }
 
 function getSubCroppedDataURL(){
-  if(subRect.w < 5 || subRect.h < 5) return tempCropData; // Fallback to full crop if no sub-box drawn
+  if(subRect.w < 5 || subRect.h < 5) return tempCropData;
   var im = new Image(); im.src = tempCropData;
   var canvas = document.createElement("canvas");
-  var scaleX = popupImgEl.naturalWidth / popupImgEl.clientWidth;
-  var scaleY = popupImgEl.naturalHeight / popupImgEl.clientHeight;
+  var scaleX = popupSubImgEl.naturalWidth / popupSubImgEl.clientWidth;
+  var scaleY = popupSubImgEl.naturalHeight / popupSubImgEl.clientHeight;
 
   canvas.width = Math.round(subRect.w * scaleX);
   canvas.height = Math.round(subRect.h * scaleY);
@@ -534,7 +529,7 @@ document.getElementById("confirmCropBtn").onclick = function(){
  var newItem = {
    qNo: document.getElementById("popQNo").value.trim() || String(items.length + 1),
    qText: document.getElementById("popText").value.trim(),
-   qImg: activeDraft.qImg || tempCropData, // Default to main crop if qImg not explicitly sub-cropped
+   qImg: activeDraft.qImg || tempCropData,
    optAImg: activeDraft.optAImg, optBImg: activeDraft.optBImg, optCImg: activeDraft.optCImg, optDImg: activeDraft.optDImg,
    optAText: document.getElementById("popOptAText").value.trim(),
    optBText: document.getElementById("popOptBText").value.trim(),
@@ -644,7 +639,7 @@ document.getElementById("closeQueueModal").onclick = function(){ showModal("queu
 function executeSave(){
  if(!items.length)return;
  var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
- var libraryTypeEl = document.getElementById("popLibrary").value; // respects selected library (Personal, Central, Group)
+ var libraryTypeEl = document.getElementById("popLibrary").value;
  if(!email){alert("Teacher login not found in localStorage.");return}
  status("☁ Saving "+items.length+" question(s) to Firebase…");
  saveBtn.disabled=true; document.getElementById("saveAllFromQueue").disabled=true;
