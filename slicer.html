@@ -224,8 +224,8 @@
 
     .compact-meta-row { display: flex; gap: 4px; align-items: flex-end; margin-top: 2px; }
     .compact-meta-row .qno-wrap { width: 45px; flex-shrink: 0; }
-    .compact-meta-row .ans-wrap { width: 125px; flex-shrink: 0; }
-    .compact-meta-row .flag-wrap { flex: 1; }
+    .compact-meta-row .ans-wrap { width: 110px; flex-shrink: 0; }
+    .compact-meta-row .type-wrap { flex: 1; }
     .compact-meta-row label { font-size: 8px; margin-bottom: 1px; display: block; color: #94a3b8; font-weight: 700; }
 
     .flag-group { display: flex; gap: 2px; }
@@ -351,8 +351,8 @@ button, input, select, textarea, label { touch-action: manipulation; }
   .meta-box textarea { line-height:1.4; }
   .compact-meta-row { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
   .compact-meta-row .qno-wrap, .compact-meta-row .ans-wrap,
-  .compact-meta-row .flag-wrap { width:auto; flex-basis:auto; }
-  .compact-meta-row .flag-wrap { grid-column:1 / -1; }
+  .compact-meta-row .type-wrap { width:auto; flex-basis:auto; }
+  .compact-meta-row .type-wrap { grid-column:1 / -1; }
   .flag-btn { min-height:40px; font-size:11px; }
   .ocr-action-bar { grid-template-columns:repeat(2,1fr); gap:6px; }
   .ocr-send-btn, .target-btn, .qtext-crop-btn {
@@ -366,10 +366,6 @@ button, input, select, textarea, label { touch-action: manipulation; }
   .preview-card { min-width:0; }
   .preview-thumb-box { max-height:90px; min-height:55px; }
   .preview-thumb-box img { max-height:84px; }
-  #btn-save-cloud {
-    position:sticky; bottom:8px; z-index:80;
-    min-height:48px; box-shadow:0 8px 24px rgba(0,0,0,.45);
-  }
   .prev-q-card { width:calc(100vw - 20px); max-height:94vh; padding:14px; }
   .student-view-box { padding:12px; }
 }
@@ -385,7 +381,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
   .mobile-target { min-height:42px; padding:9px 12px; }
   .meta-box { padding:9px; border-radius:9px; }
   .compact-meta-row { grid-template-columns:1fr; }
-  .compact-meta-row .flag-wrap { grid-column:auto; }
+  .compact-meta-row .type-wrap { grid-column:auto; }
   .slot-group { grid-template-columns:1fr; }
   #slicer-right { padding-left:7px; padding-right:7px; }
 }
@@ -500,15 +496,27 @@ button, input, select, textarea, label { touch-action: manipulation; }
               <img id="short-ans-img-preview" class="answer-img-preview" style="display:none;" title="Click to clear" onclick="window.clearShortAnsImage()">
             </div>
           </div>
-          <div class="flag-wrap">
-            <label>Flags</label>
-            <div class="flag-group">
-              <button class="flag-btn" id="flag-red" onclick="window.toggleFlag('red')">🔴</button>
-              <button class="flag-btn" id="flag-blue" onclick="window.toggleFlag('blue')">🔵</button>
-              <button class="flag-btn" id="flag-green" onclick="window.toggleFlag('green')">🟢</button>
-              <button class="flag-btn" id="flag-yellow" onclick="window.toggleFlag('yellow')">🟡</button>
-            </div>
+          <div class="type-wrap">
+            <label>Question Type</label>
+            <select id="vault-q-type">
+              <option value="mcq">MCQ (Single Correct)</option>
+              <option value="mcq_multi">MCQ (Multiple Correct)</option>
+              <option value="very_short">Very Short Answer</option>
+              <option value="short">Short Answer Type</option>
+              <option value="long">Long Answer Type</option>
+              <option value="numerical">Numerical / Integer</option>
+              <option value="assertion">Assertion & Reason</option>
+              <option value="passage">Passage / Comprehension</option>
+            </select>
           </div>
+        </div>
+
+        <label style="margin-top:4px;">Flags</label>
+        <div class="flag-group">
+          <button class="flag-btn" id="flag-red" onclick="window.toggleFlag('red')">🔴 Red</button>
+          <button class="flag-btn" id="flag-blue" onclick="window.toggleFlag('blue')">🔵 Blue</button>
+          <button class="flag-btn" id="flag-green" onclick="window.toggleFlag('green')">🟢 Green</button>
+          <button class="flag-btn" id="flag-yellow" onclick="window.toggleFlag('yellow')">🟡 Yellow</button>
         </div>
 
         <label style="margin-top:2px; display:flex; justify-content:space-between; align-items:center;">
@@ -521,18 +529,21 @@ button, input, select, textarea, label { touch-action: manipulation; }
           <button onclick="window.clearQTextImage()" style="background:#b91c1c; border:none; color:white; border-radius:3px; font-size:8px; padding:2px 6px; margin-left:4px; cursor:pointer; font-weight:700;">✕</button>
         </div>
         
-        <label style="color:#38bdf8; margin-top:2px; display:flex; justify-content:space-between;">
-          <span>Free OCR Scratchpad:</span>
-          <button onclick="document.getElementById('vault-free-ocr').value=''" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">Clear OCR</button>
-        </label>
-        <textarea id="vault-free-ocr" rows="2" placeholder="Crop text here first, then send to Q.Text or Options..."></textarea>
-        
-        <div class="ocr-action-bar">
-          <button class="ocr-send-btn" onclick="window.sendOcrTo('qtext')">➡️ Q.Text</button>
-          <button class="ocr-send-btn" onclick="window.sendOcrTo('opta')">➡️ Opt A</button>
-          <button class="ocr-send-btn" onclick="window.sendOcrTo('optb')">➡️ Opt B</button>
-          <button class="ocr-send-btn" onclick="window.sendOcrTo('optc')">➡️ Opt C</button>
-          <button class="ocr-send-btn" onclick="window.sendOcrTo('optd')">➡️ Opt D</button>
+        <!-- OCR Conditional Group -->
+        <div id="ocr-conditional-box" style="display:none; flex-direction:column; gap:4px; margin-top:2px;">
+          <label style="color:#38bdf8; display:flex; justify-content:space-between;">
+            <span>Free OCR Scratchpad:</span>
+            <button onclick="document.getElementById('vault-free-ocr').value=''" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">Clear OCR</button>
+          </label>
+          <textarea id="vault-free-ocr" rows="2" placeholder="Crop text here first, then send to Q.Text or Options..."></textarea>
+          
+          <div class="ocr-action-bar">
+            <button class="ocr-send-btn" onclick="window.sendOcrTo('qtext')">➡️ Q.Text</button>
+            <button class="ocr-send-btn" onclick="window.sendOcrTo('opta')">➡️ Opt A</button>
+            <button class="ocr-send-btn" onclick="window.sendOcrTo('optb')">➡️ Opt B</button>
+            <button class="ocr-send-btn" onclick="window.sendOcrTo('optc')">➡️ Opt C</button>
+            <button class="ocr-send-btn" onclick="window.sendOcrTo('optd')">➡️ Opt D</button>
+          </div>
         </div>
 
         <label style="margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
@@ -601,7 +612,11 @@ button, input, select, textarea, label { touch-action: manipulation; }
         </div>
       </div>
 
-      <button class="tool-btn" id="btn-save-cloud" style="background:#10b981; padding:8px; font-size:12px; font-weight:800; justify-content:center; margin-top:auto;">☁️ Save Question to Cloud</button>
+      <!-- Action Footer Buttons Split -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:auto;">
+        <button class="tool-btn" id="btn-student-preview" onclick="window.openLastSavedQuestionPreview()" style="background:#0284c7; padding:9px; font-size:11px; font-weight:800; justify-content:center;">👁️ Student Preview</button>
+        <button class="tool-btn" id="btn-save-cloud" style="background:#10b981; padding:9px; font-size:11px; font-weight:800; justify-content:center;">☁️ Save to Cloud</button>
+      </div>
     </div>
   </div>
 
@@ -626,14 +641,17 @@ button, input, select, textarea, label { touch-action: manipulation; }
     window.toggleOcrOnlyMode = function() {
       ocrOnlyMode = !ocrOnlyMode;
       const btn = document.getElementById('ocr-only-btn');
+      const ocrBox = document.getElementById('ocr-conditional-box');
       if (btn) {
         if (ocrOnlyMode) {
           btn.style.background = '#d97706'; btn.style.borderColor = '#f59e0b';
           btn.textContent = "✨ OCR Only Mode: ON";
+          if (ocrBox) ocrBox.style.display = 'flex';
           showToast("✨ OCR Only Mode Enabled (Text Extraction Only)");
         } else {
           btn.style.background = '#065f46'; btn.style.borderColor = '#10b981';
           btn.textContent = "✨ OCR Only Mode: OFF";
+          if (ocrBox) ocrBox.style.display = 'none';
           showToast("✂️ Standard HD Crop Mode Enabled");
         }
       }
@@ -1026,6 +1044,49 @@ button, input, select, textarea, label { touch-action: manipulation; }
       clearAllCropButtonsActive();
     });
 
+    window.openLastSavedQuestionPreview = async function() {
+      const body = document.getElementById('prev-q-body');
+      if (!body) return;
+
+      const storedObj = localStorage.getItem('ExamVault_Hard_Last_Saved_Question');
+      if (!storedObj) {
+        body.innerHTML = `<p style="color:#64748b;">No saved question found in persistent hard storage.</p>`;
+      } else {
+        const obj = JSON.parse(storedObj);
+        let optDisplay = '';
+        if (obj.optText) {
+          optDisplay = `<div style="font-weight:bold; color:#0f172a; font-size:13px; margin-top:16px; border-top:1px solid #e2e8f0; padding-top:10px;">Options:</div><div style="font-size:13px; color:#334155; margin-top:6px;">${obj.optText}</div>`;
+        }
+        if (obj.optionImages) {
+          for (let [k, v] of Object.entries(obj.optionImages)) {
+            if (v) optDisplay += `<div style="margin-top:4px;"><b>(${k})</b> <img src="${v}" style="max-height:40px; vertical-align:middle;"></div>`;
+          }
+        }
+        if (obj.shortAnsImg) {
+          optDisplay += `<div style="margin-top:8px;"><b>Answer Image:</b><br><img src="${obj.shortAnsImg}" style="max-height:60px; border-radius:4px;"></div>`;
+        }
+        body.innerHTML = `
+          <div style="color:#10b981; font-weight:bold; margin-bottom:8px;">✔ Last Saved Question | Q.No: ${obj.qNo} | Type: ${obj.qType || 'MCQ'} | Ans: ${obj.key || obj.shortAns || '-'}</div>
+          <div class="student-view-box">
+            ${obj.qText ? `<div style="font-size:14px; font-weight:bold; color:#0f172a; margin-bottom:12px;">${obj.qText}</div>` : ''}
+            ${obj.qTextImage ? `<img src="${obj.qTextImage}" style="max-width:100%; margin-bottom:12px; border-radius:4px;">` : ''}
+            ${obj.question ? `<img src="${obj.question}" class="student-question-img">` : ''}
+            ${optDisplay}
+          </div>
+        `;
+      }
+      const overlay = document.getElementById('prev-q-overlay');
+      if (overlay) overlay.style.display = 'flex';
+    };
+
+    window.deleteLastSavedQuestion = function() {
+      if (confirm("Are you sure you want to delete the last saved question from hard storage?")) {
+        localStorage.removeItem('ExamVault_Hard_Last_Saved_Question');
+        document.getElementById('prev-q-body').innerHTML = `<p style="color:#ef4444;">Last saved question deleted from hard storage.</p>`;
+        showToast("🗑️ Deleted from Hard Storage!");
+      }
+    };
+
     const saveCloudBtn = document.getElementById('btn-save-cloud');
     if (saveCloudBtn) {
       saveCloudBtn.onclick = async () => {
@@ -1034,16 +1095,13 @@ button, input, select, textarea, label { touch-action: manipulation; }
 
         try {
           saveCloudBtn.style.background = '#2563eb';
-          saveCloudBtn.innerHTML = "⚡ Saving Instantly to Cloud...";
+          saveCloudBtn.innerHTML = "⚡ Saving...";
 
           const syncedImg = localStorage.getItem('Temp_Editor_Synced_Image');
           const finalQImg = syncedImg || (questionParts.length ? await stitchImages(questionParts) : '');
           const finalSolImg = solutionParts.length ? await stitchImages(solutionParts) : '';
           
           const qTextEl = document.getElementById('vault-q-text');
-          const fallbackQText = localStorage.getItem('Temp_Fallback_QText');
-          if (fallbackQText) qTextEl.value = fallbackQText;
-
           const hasText = qTextEl && qTextEl.value.trim().length > 0;
           const hasQTextImage = qTextImage && qTextImage.length > 0;
           
@@ -1057,9 +1115,11 @@ button, input, select, textarea, label { touch-action: manipulation; }
           
           const subCat = document.getElementById('vault-sub-cat');
           const qNoInput = document.getElementById('vault-qno');
+          const qTypeSelect = document.getElementById('vault-q-type');
 
           const chosenSub = subCat ? subCat.value : 'General';
           const qNo = qNoInput ? (parseInt(qNoInput.value) || 1) : 1;
+          const qType = qTypeSelect ? qTypeSelect.value : 'mcq';
           
           const optA = document.getElementById('opt-a').value.trim();
           const optB = document.getElementById('opt-b').value.trim();
@@ -1082,6 +1142,7 @@ button, input, select, textarea, label { touch-action: manipulation; }
           const newQ = {
             ownerEmail: (localStorage.getItem("ExamVault_Teacher_Email") || "").trim().toLowerCase(),
             qNo, subject: chosenSub, topic: 'General',
+            qType: qType,
             qText: qTextEl ? qTextEl.value.trim() : '',
             qTextImage: qTextImage || '',
             optText: optTextFormatted,
@@ -1100,13 +1161,6 @@ button, input, select, textarea, label { touch-action: manipulation; }
           await window.addDoc(window.collection(window.db, "questions"), newQ);
           
           localStorage.setItem('ExamVault_Hard_Last_Saved_Question', JSON.stringify(newQ));
-
-          localStorage.removeItem('Temp_Editor_Synced_Image');
-          localStorage.removeItem('Temp_Fallback_QText');
-          localStorage.removeItem('Temp_Fallback_OptA');
-          localStorage.removeItem('Temp_Fallback_OptB');
-          localStorage.removeItem('Temp_Fallback_OptC');
-          localStorage.removeItem('Temp_Fallback_OptD');
 
           questionParts = []; solutionParts = []; window.renderLivePreviews();
           if (qTextEl) qTextEl.value = '';
@@ -1138,16 +1192,16 @@ button, input, select, textarea, label { touch-action: manipulation; }
           if (qBtnTarget) qBtnTarget.classList.add('active');
           
           saveCloudBtn.style.background = '#10b981';
-          saveCloudBtn.innerHTML = "✔ Saved Instantly!";
+          saveCloudBtn.innerHTML = "✔ Saved!";
           setTimeout(() => {
             saveCloudBtn.innerHTML = originalText;
           }, 2000);
 
-          showToast(`✔ Q${qNo} Saved & Target Shifted to Question!`);
+          showToast(`✔ Q${qNo} Saved Successfully!`);
         } catch (err) {
           alert("Failed to save question: " + err.message);
           saveCloudBtn.style.background = '#b91c1c';
-          saveCloudBtn.innerHTML = "❌ Failed - Try Again";
+          saveCloudBtn.innerHTML = "❌ Failed";
           setTimeout(() => {
             saveCloudBtn.style.background = '#10b981';
             saveCloudBtn.innerHTML = originalText;
