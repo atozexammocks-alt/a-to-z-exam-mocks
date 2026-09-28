@@ -8,33 +8,32 @@
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-nav{position:sticky;top:0;z-index:100;height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:10px}
+*{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:10px}
 .brand{font-weight:900;color:#38bdf8;text-decoration:none;white-space:nowrap}.nav{display:flex;gap:6px;flex-wrap:wrap}.nav a,.btn{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:8px 11px;border-radius:6px;text-decoration:none;font-weight:800;font-size:12px;cursor:pointer}
 .btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn.keepOn{background:#16a34a!important;color:#fff!important;border-color:#4ade80!important}.btn.keepOff{opacity:.55}.btn:disabled{opacity:.45;cursor:not-allowed}
-.page{padding:12px}
-.toolbar{position:sticky;top:56px;z-index:90;background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(0,0,0,0.5)}
+.page{padding-top:120px;padding-left:12px;padding-right:12px;padding-bottom:20px}
+.toolbar{position:fixed;top:56px;left:0;right:0;z-index:900;background:#0b1120;border-bottom:1px solid #1e293b;padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;box-shadow:0 4px 12px rgba(0,0,0,0.6)}
 #file{display:none}
 .choose{background:#0284c7;border:1px solid #38bdf8;color:#fff;padding:9px 13px;border-radius:6px;font-weight:900;cursor:pointer;display:inline-block}
 .status{font-weight:900;color:#10b981}.activity{width:100%;color:#94a3b8;font-size:12px}
-.main-container{margin-top:10px}
-.panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px}
-.pdfview{position:relative;overflow:auto;background:#020617;text-align:center;padding:10px;touch-action:none;min-height:70vh;border:1px solid #334155;border-radius:8px}
+.panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;margin-bottom:10px}
+.pdfview{position:relative;background:#020617;text-align:center;padding:10px;touch-action:none;height:calc(100vh - 220px);overflow:auto;border:1px solid #334155;border-radius:8px}
 .pdfview canvas{background:#fff;max-width:none;transform-origin:top center}
 .cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;pointer-events:auto;cursor:move;z-index:10}
 .cropHandle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:11}
 .cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}
 .cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
 /* POPUP MODAL */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:150;padding:10px}
-.modal{width:min(700px,96vw);max-height:92vh;background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:2000;padding:10px}
+.modal{width:min(720px,96vw);max-height:92vh;background:#0b1120;border:1px solid #334155;border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
 .modalhead{padding:12px 16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}
 .modalbody{padding:16px;overflow-y:auto;flex:1}
 .modalfoot{padding:12px 16px;border-top:1px solid #334155;display:flex;justify-content:flex-end;gap:8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field{margin-top:8px}.field label{display:block;color:#94a3b8;font-size:11px;font-weight:800;margin-bottom:3px}
 input,select,textarea{width:100%;background:#07101f;color:#fff;border:1px solid #334155;border-radius:5px;padding:8px;font-size:13px}
-textarea{min-height:80px;resize:vertical}
-.queue-bar{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+textarea{min-height:90px;resize:vertical}
+.queue-bar{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .prompt{width:min(420px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}
 .row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
 </style>
@@ -50,7 +49,6 @@ textarea{min-height:80px;resize:vertical}
 </div>
 </nav>
 
-<main class="page">
 <div class="toolbar">
 <label class="choose" for="file">📄 Choose PDF</label>
 <input id="file" type="file" accept="application/pdf,.pdf">
@@ -65,10 +63,12 @@ textarea{min-height:80px;resize:vertical}
 <div id="activity" class="activity">Activity: waiting for PDF…</div>
 </div>
 
-<div class="main-container">
-<section class="panel">
-  <h3>📄 PDF Page Viewer (Sticky Header & Toolbar)</h3>
-  <div class="muted">Drag box to cover a question. Top bar stays fixed while scrolling!</div>
+<main class="page">
+<div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+    <h3 style="margin:0">📄 PDF Page Viewer (Sticky Toolbar Locked)</h3>
+    <div style="font-size:12px;color:#38bdf8">Drag box over question</div>
+  </div>
   <div class="pdfview" id="pdfView">
     <canvas id="pdfCanvas"></canvas>
     <div id="cropBox" class="cropbox" style="display:none">
@@ -76,15 +76,14 @@ textarea{min-height:80px;resize:vertical}
       <div class="cropHandle sw"></div><div class="cropHandle se"></div>
     </div>
   </div>
-</section>
+</div>
 
 <div class="queue-bar">
-  <div><b>Cropped Queue:</b> <span id="queueCount">0</span> question(s) ready to save.</div>
+  <div><b>Cropped Queue:</b> <span id="queueCount">0</span> question(s) ready.</div>
   <div style="display:flex;gap:8px;">
     <button id="viewQueueBtn" class="btn" style="background:#334155" disabled>👁 View Queue</button>
     <button id="saveAll" class="btn primary" disabled>☁ Save All to Cloud Library</button>
   </div>
-</div>
 </div>
 </main>
 
@@ -96,18 +95,18 @@ textarea{min-height:80px;resize:vertical}
   <input id="pageRangeInput" type="text" placeholder="e.g. 1-15 or 20-50" value="1-20">
   <button id="startPageRange" class="btn primary">Start</button>
 </div>
-<div class="muted" style="margin-top:8px">Tip: Enter specific page limits like <b>50-100</b> to process only those pages.</div>
+<div style="font-size:11px;color:#94a3b8;margin-top:8px">Enter specific page limits like <b>1-50</b> to process only those pages.</div>
 </div></div>
 
 <!-- POPUP MODAL FOR CROPPED QUESTION DETAILS -->
 <div class="overlay" id="cropPopup"><div class="modal">
 <div class="modalhead">
-  <b style="color:#38bdf8">📝 Configure Cropped Question (Enhanced B&W)</b>
+  <b style="color:#38bdf8">📝 Configure Cropped Question & Slicer Options</b>
   <button id="closeModal" class="btn" style="background:#7f1d1d;color:#fecaca">✕ Cancel</button>
 </div>
 <div class="modalbody">
   <div style="text-align:center;background:#fff;border-radius:6px;padding:8px;margin-bottom:10px;">
-    <img id="popupImg" style="max-width:100%;max-height:200px;display:block;margin:auto;" alt="Crop Preview">
+    <img id="popupImg" style="max-width:100%;max-height:160px;display:block;margin:auto;" alt="Crop Preview">
   </div>
   <div class="grid2">
     <div class="field"><label>Question No.</label><input id="popQNo" value="1"></div>
@@ -145,9 +144,7 @@ textarea{min-height:80px;resize:vertical}
   <b style="color:#38bdf8">📋 Cropped Questions Queue</b>
   <button id="closeQueueModal" class="btn" style="background:#7f1d1d;color:#fecaca">✕ Close</button>
 </div>
-<div class="modalbody" id="queueListContainer" style="display:flex;flex-direction:column;gap:8px;">
-  <!-- Queue items rendered here -->
-</div>
+<div class="modalbody" id="queueListContainer" style="display:flex;flex-direction:column;gap:8px;"></div>
 <div class="modalfoot">
   <button id="saveAllFromQueue" class="btn primary" style="width:100%;padding:10px;">☁ Save All to Cloud Library</button>
 </div>
@@ -168,7 +165,11 @@ var tempCropData=null;
 function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
 function imageLoad(src){return new Promise(function(ok,no){var im=new Image();im.onload=function(){ok(im)};im.onerror=no;im.src=src})}
-function showModal(id,on){document.getElementById(id).style.display=on?"flex":"none"}
+
+function showModal(id,on){
+ document.getElementById(id).style.display=on?"flex":"none";
+ document.body.style.overflow=on?"hidden":"auto";
+}
 
 fileEl.addEventListener("change",async function(){
  var f=fileEl.files&&fileEl.files[0]; if(!f)return;
@@ -237,7 +238,6 @@ function updateCropBoxUI(){
  b.style.height=(cropRect.h*sy)+"px";
 }
 
-// Smooth pointer event handling for mobile and desktop dragging/resizing
 (function(){
  var b=document.getElementById("cropBox");
  b.onpointerdown=function(e){
@@ -286,6 +286,16 @@ nextBtn.onclick=async function(){if(pageIdxInList<allowedPages.length-1){pageIdx
 zoomInBtn.onclick=async function(){if(renderScale<2.5){renderScale+=0.3;await renderPage()}};
 zoomOutBtn.onclick=async function(){if(renderScale>0.8){renderScale-=0.3;await renderPage()}};
 
+async function runOcrOnImage(dataUrl){
+ try {
+   if(window.Tesseract){
+     var ocrRes = await Tesseract.recognize(dataUrl, 'eng+hin');
+     return ocrRes?.data?.text?.trim() || "";
+   }
+ } catch(err){}
+ return "";
+}
+
 captureBtn.onclick=async function(){
  if(!pdf||!allowedPages.length)return;
  var currPage = allowedPages[pageIdxInList];
@@ -315,20 +325,12 @@ captureBtn.onclick=async function(){
  tempCropData = cc.toDataURL("image/png");
  document.getElementById("popupImg").src = tempCropData;
  document.getElementById("popQNo").value = items.length + 1;
- document.getElementById("popText").value = "Loading OCR...";
+ document.getElementById("popText").value = "Extracting OCR text...";
  showModal("cropPopup", true);
- status("✔ Crop enhanced & captured. Configure in popup.");
+ status("✔ Crop enhanced & captured.");
 
- try {
-   if(window.Tesseract){
-     var ocrRes = await Tesseract.recognize(tempCropData, 'eng+hin');
-     document.getElementById("popText").value = ocrRes?.data?.text?.trim() || "";
-   } else {
-     document.getElementById("popText").value = "";
-   }
- } catch(err){
-   document.getElementById("popText").value = "";
- }
+ var text = await runOcrOnImage(tempCropData);
+ document.getElementById("popText").value = text;
 };
 
 document.getElementById("closeModal").onclick = function(){ showModal("cropPopup", false); };
@@ -342,12 +344,8 @@ document.getElementById("popKeepImage").onclick = function(){
 };
 document.getElementById("runOcrBtn").onclick = async function(){
  document.getElementById("popText").value = "Re-running OCR...";
- try {
-   var ocrRes = await Tesseract.recognize(tempCropData, 'eng+hin');
-   document.getElementById("popText").value = ocrRes?.data?.text?.trim() || "";
- } catch(err){
-   document.getElementById("popText").value = "OCR failed.";
- }
+ var text = await runOcrOnImage(tempCropData);
+ document.getElementById("popText").value = text;
 };
 
 document.getElementById("confirmCropBtn").onclick = function(){
@@ -382,7 +380,7 @@ function updateQueueUI(){
    return '<div style="background:#0f172a;border:1px solid #334155;border-radius:8px;padding:8px;display:flex;justify-content:space-between;align-items:center;">'+
    '<div><b>Q '+esc(x.qNo)+'</b> (Page '+x.sourcePage+') • <i>'+esc(x.libraryType)+' / '+esc(x.folder||"General")+'</i></div>'+
    '<button class="btn" style="background:#7f1d1d;color:#fecaca" data-del="'+i+'">🗑 Delete</button></div>';
- }).join("") : '<div class="muted">Queue is empty.</div>';
+ }).join("") : '<div style="color:#94a3b8">Queue is empty.</div>';
 
  c.querySelectorAll("[data-del]").forEach(function(b){
    b.onclick = function(){
