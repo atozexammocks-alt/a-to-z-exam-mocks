@@ -46,7 +46,7 @@ html,body{height:100%;min-height:0}
 <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10 no-print">
  <div class="flex items-center space-x-4">
   <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600 flex items-center space-x-2"><i class="fa-solid fa-arrow-left text-indigo-400"></i><span>Back to Builder</span></button>
-  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A-to-Z Paper Designer</h1><p class="text-xs text-slate-400">Builder से चुने गए प्रश्न यहाँ स्वतः उपलब्ध हैं</p></div></div>
+  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A-to-Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here automatically</p></div></div>
  </div>
  <div class="flex items-center space-x-3">
   <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600"><i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i>Refresh</button>
@@ -75,7 +75,7 @@ html,body{height:100%;min-height:0}
 <!-- Main Area: Question Pool -->
 <main class="flex-1 min-w-0 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
  <div class="bg-slate-800/80 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
-  <div><h2 class="text-base font-bold">Selected Question Pool</h2><p class="text-xs text-slate-400">इन प्रश्नों को अपने बनाए गए सेक्शन में असाइन करें ताकि वे प्रिंट में आ सकें।</p></div>
+  <div><h2 class="text-base font-bold">Selected Question Pool</h2><p class="text-xs text-slate-400">Assign these questions to your created sections to include them in the printed paper.</p></div>
  </div>
  <div class="flex-1 min-h-0 overflow-y-auto p-5">
   <div class="max-w-6xl mx-auto">
@@ -97,12 +97,12 @@ html,body{height:100%;min-height:0}
    <div>
     <label class="text-xs text-slate-400 block mb-1">Question Type in Section</label>
     <select id="secTypeInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
-     <option value="MCQ">MCQ (बहुविकल्पीय)</option>
-     <option value="NUMERICAL">Numerical (आंकिक प्रश्न)</option>
-     <option value="ASSERTION">Assertion-Reason (कथन-कारण)</option>
-     <option value="CASE">Case Study / Passage (केस स्टडी)</option>
-     <option value="SHORT">Short Answer (लघु उत्तरीय)</option>
-     <option value="LONG">Long Answer (दीर्घ उत्तरीय)</option>
+     <option value="MCQ">MCQ</option>
+     <option value="NUMERICAL">Numerical</option>
+     <option value="ASSERTION">Assertion-Reason</option>
+     <option value="CASE">Case Study / Passage</option>
+     <option value="SHORT">Short Answer</option>
+     <option value="LONG">Long Answer</option>
      <option value="VSA">Very Short Answer</option>
      <option value="FILL">Fill in the Blanks</option>
      <option value="TF">True / False</option>
@@ -121,7 +121,7 @@ html,body{height:100%;min-height:0}
 <!-- Print Settings Modal -->
 <div id="printSettingsModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 no-print">
  <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl">
-  <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><h3 class="font-bold text-indigo-300">Paper / Institute Branding Setup</h3><p class="text-xs text-slate-400">प्रिंटआउट के लिए इंस्टिट्यूट और परीक्षा की जानकारी</p></div><button onclick="closePrintSettings()"><i class="fa-solid fa-xmark"></i></button></div>
+  <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><h3 class="font-bold text-indigo-300">Paper / Institute Branding Setup</h3><p class="text-xs text-slate-400">Details used for the printed paper</p></div><button onclick="closePrintSettings()"><i class="fa-solid fa-xmark"></i></button></div>
   <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
    <label class="text-xs text-slate-400">Institute Name<input id="paperInstitute" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Future Scholar"></label>
    <label class="text-xs text-slate-400">Exam / Test Name<input id="paperExamName" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Physics Mock Test"></label>
@@ -198,7 +198,7 @@ async function loadFromBuilder(){
  }
 
  allQuestions = ids.map(id => {
-  const q = questionCache.get(id);
+  const q = questionCache.get(id) || safeJSON('AZ_CACHE_Q_' + id, null);
   return {
    id: id,
    type: q?.type || 'MCQ',
@@ -209,11 +209,9 @@ async function loadFromBuilder(){
   };
  }).filter(q => q.id);
 
- // Load existing designer state if available, or start fresh with empty sections
  const saved = safeJSON(STATE_KEY, null);
  if (saved && Array.isArray(saved.sections)) {
   testPaper = saved;
-  // Re-link questions
   testPaper.sections.forEach(sec => {
    sec.questions = sec.questions.map(sq => allQuestions.find(aq => aq.id === sq.id)).filter(Boolean);
   });
@@ -230,8 +228,8 @@ async function loadFromBuilder(){
 
 window.addEventListener('DOMContentLoaded', async () => {
  const ok = await loadFromBuilder();
- if (!ok) {
-  document.getElementById('questionsCanvasContainer').innerHTML = '<div class="text-center py-20 text-slate-500">कोई भी प्रश्न नहीं चुना गया है। कृपया पहले Test Builder से प्रश्न चुनें।</div>';
+ if (!ok || !allQuestions.length) {
+  document.getElementById('questionsCanvasContainer').innerHTML = '<div class="text-center py-20 text-slate-500">No questions selected. Please select questions from Test Builder first[cite: 9].</div>';
  }
  renderSidebar();
  renderCanvas();
@@ -250,7 +248,7 @@ function renderSidebar(){
  list.innerHTML = '';
  
  if(!testPaper.sections.length) {
-  list.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">अभी कोई सेक्शन नहीं बनाया गया है।<br><b>"Add Section"</b> पर क्लिक करें।</div>';
+  list.innerHTML = '<div class="text-xs text-slate-500 text-center py-4">No sections created yet.<br>Click <b>"Add Section"</b> above.</div>';
   updateTotals();
   return;
  }
@@ -291,7 +289,7 @@ function renderCanvas(){
   const card = document.createElement('div');
   card.className = 'bg-slate-900 border ' + (sec ? 'border-emerald-700/60' : 'border-slate-700') + ' rounded-xl p-4 shadow-sm';
   
-  let opts = '<option value="">-- किसी सेक्शन में नहीं --</option>';
+  let opts = '<option value="">-- Not Assigned --</option>';
   testPaper.sections.forEach(s => {
    opts += `<option value="${esc(s.id)}" ${sec?.id === s.id ? 'selected' : ''}>${esc(s.name)} (${esc(s.type)})</option>`;
   });
@@ -363,7 +361,7 @@ function saveNewSection(){
  const type = document.getElementById('secTypeInput').value;
  const marksPerQ = Number(document.getElementById('secMarksInput').value) || 1;
  
- if(!name) return alert('कृपया सेक्शन का नाम दर्ज करें!');
+ if(!name) return alert('Please enter section name!');
  
  const newSec = {
   id: uid('sec'),
@@ -382,7 +380,7 @@ function saveNewSection(){
 }
 
 function deleteSec(id){
- if(!confirm('क्या आप वाकई इस सेक्शन को डिलीट करना चाहते हैं?')) return;
+ if(!confirm('Are you sure you want to delete this section?')) return;
  testPaper.sections = testPaper.sections.filter(s => s.id !== id);
  if(testPaper.sections.length) activeSectionId = testPaper.sections[0].id;
  else activeSectionId = null;
@@ -447,7 +445,7 @@ function previewPrintLayout(){
   h += `</div>`;
  });
 
- c.innerHTML = h || '<p class="text-center text-slate-500 py-10">प्रिंट करने के लिए कोई भी प्रश्न सेक्शन में शामिल नहीं है।</p>';
+ c.innerHTML = h || '<p class="text-center text-slate-500 py-10">No questions assigned to sections for printing.</p>';
  showModal('printModal');
 }
 
