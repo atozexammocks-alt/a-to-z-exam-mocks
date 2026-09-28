@@ -337,7 +337,7 @@
 
     window.saveBlueprint = function() {
       showToast("✔ Paper Blueprint Applied Successfully!");
-      closeBlueprint();
+      document.getElementById('blueprint-modal-overlay').style.display = 'none';
     };
 
     window.onload = async () => {
