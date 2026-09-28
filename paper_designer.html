@@ -18,7 +18,7 @@ html,body{height:100%;min-height:0}
  .no-print{display:none!important}
  @page{margin:1.5cm}
 }
-.q-image{max-width:100%;max-height:420px;object-fit:contain;background:#fff;border-radius:6px}
+.q-image{max-width:100%;max-height:450px;object-fit:contain;background:#fff;border-radius:6px;display:block;margin:0 auto}
 .print-q-image{display:block;max-width:100%;height:auto;margin:8px 0;page-break-inside:avoid}
 </style>
 <style id="az-unified-nav-css">
@@ -48,7 +48,7 @@ html,body{height:100%;min-height:0}
 <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10 no-print">
  <div class="flex items-center space-x-4">
   <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600 flex items-center space-x-2"><i class="fa-solid fa-arrow-left text-indigo-400"></i><span>Back to Builder</span></button>
-  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A to Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here automatically with full ID & images</p></div></div>
+  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A to Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here with full image visualization</p></div></div>
  </div>
  <div class="flex items-center space-x-3">
   <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600"><i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i>Refresh / Load Selected</button>
@@ -72,16 +72,16 @@ html,body{height:100%;min-height:0}
 
 <main class="flex-1 min-w-0 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
  <div class="bg-slate-800/80 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
-  <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">All Builder-selected questions stay here with IDs and Images. Only questions added to a section will print.</p></div>
+  <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">Inspect your questions and images, tick to include, and assign them to specific sections.</p></div>
   <div class="flex gap-2">
-   <button onclick="openLibraryModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-book-open mr-1"></i> Insert Question from Library</button>
+   <button onclick="openLibraryModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-book-open mr-1"></i> Insert from Library</button>
    <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-print mr-1"></i> Print / Export</button>
   </div>
  </div>
  <div class="flex-1 min-h-0 overflow-y-auto p-5">
   <div class="max-w-6xl mx-auto">
    <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3 text-xs">
-    <span class="font-bold text-slate-200">How to assign:</span><span class="text-slate-400">Tick <b class="text-emerald-400">Include</b>, choose a section, or drag a question onto a section in the left panel. Unticked/unassigned questions are NOT printed.</span>
+    <span class="font-bold text-slate-200">How to assign:</span><span class="text-slate-400">Tick <b class="text-emerald-400">Include</b> and choose a section from the dropdown so it appears on your final paper.</span>
    </div>
    <div id="questionsCanvasContainer" class="space-y-3"></div>
   </div>
@@ -130,7 +130,7 @@ html,body{height:100%;min-height:0}
  <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl">
   <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><h3 class="font-bold text-indigo-300">Paper / Institute Branding Setup</h3><p class="text-xs text-slate-400">These details are used only on this paper's printout.</p></div><button onclick="closePrintSettings()"><i class="fa-solid fa-xmark"></i></button></div>
   <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
-   <label class="text-xs text-slate-400">School / Institute / Company Name<input id="paperInstitute" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. A to Z Exam Mocks"></label>
+   <label class="text-xs text-slate-400">School / Institute Name<input id="paperInstitute" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. A to Z Exam Mocks"></label>
    <label class="text-xs text-slate-400">Test / Exam Name<input id="paperExamName" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Physics Mock Test"></label>
    <label class="text-xs text-slate-400">Subject<input id="paperSubject" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Physics"></label>
    <label class="text-xs text-slate-400">Class / Course<input id="paperClass" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Class 12 / JEE"></label>
@@ -184,17 +184,16 @@ function normalizeQuestion(q, fallbackId){
  const qId = q?.id || q?.qid || q?.questionId || fallbackId;
  const o = overrides[qId] || overrides[fallbackId] || {};
  
- // Extract text with fallbacks
  const text = o.qText ?? o.text ?? q?.qText ?? q?.text ?? q?.questionText ?? '';
 
- // Extract image (checking all possible property names for cropped images/diagrams)
+ // Aggressive multi-source image resolution for cropped diagrams
  let image = o.image !== undefined ? o.image : (q?.image !== undefined ? q?.image : (q?.img !== undefined ? q?.img : (q?.question !== undefined ? q?.question : '')));
+ if(!image && qId === localStorage.getItem('AZ_PAPER_EDITOR_QID')){
+  image = localStorage.getItem('Temp_Editor_Image') || '';
+ }
  if(o.keepImage === false) image = '';
 
- // Extract options
  const options = o.optText ?? o.options ?? q?.optText ?? q?.options ?? q?.choices ?? '';
-
- // Extract marks and type
  const marks = Number(o.marks ?? q?.marks ?? 1) || 1;
  const type = o.paperType || q?.type || q?.questionType || inferType(q);
 
@@ -239,7 +238,7 @@ async function loadFromBuilder(){
   });
  }
 
- // Also check legacy localStorage question arrays if cache is missing IDs
+ // Fallback check across all potential local storage keys where builder stores questions
  ['selectedBuilderQuestions','selectedQuestions','builderQuestions','cachedQuestions','AZ_BUILDER_QUESTIONS'].forEach(k=>{
   const arr=safeJSON(k,[]);
   if(Array.isArray(arr)){
@@ -259,7 +258,6 @@ async function loadFromBuilder(){
   effectiveIds = [...questionCache.keys()];
  }
 
- // Map each ID with flexible lookup in questionCache
  allQuestions = effectiveIds.map(id => {
   const sId = String(id);
   const qObj = questionCache.get(sId) || questionCache.get(id) || [...questionCache.values()].find(x => String(x.id) === sId || String(x.qid) === sId);
@@ -281,9 +279,11 @@ async function loadFromBuilder(){
   });
  });
 
- // Fallback: If no questions assigned via blueprint, put all questions into Section A
+ // Fallback: If no questions assigned via blueprint, assign all to Section A so they are visible
  if(assigned.size === 0 && allQuestions.length > 0){
-  allQuestions.forEach(q => sections[0].questions.push(q));
+  allQuestions.forEach(q => {
+   if(!sections[0].questions.some(x=>x.id===q.id)) sections[0].questions.push(q);
+  });
  }
 
  testPaper={title:blueprint?.title||localStorage.getItem('AZ_BUILDER_PAPER_TITLE')||'Question Paper',sections};
@@ -358,11 +358,11 @@ function renderCanvas(){
   let opts='<option value="">Choose section…</option>';
   testPaper.sections.forEach(s=>opts+='<option value="'+esc(s.id)+'" '+(sec?.id===s.id?'selected':'')+'>'+esc(s.name)+'</option>');
   
-  // Robust image rendering for cropped questions
-  const img = q.image ? '<div class="mt-3 bg-white p-2 rounded-lg text-center"><img class="q-image mx-auto" src="'+esc(q.image)+'" alt="Question Image" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span class=\\\'text-xs text-rose-400 italic\\\'>[Image failed to render]</span>\'"></div>' : '';
+  // High fidelity image rendering for cropped questions
+  const img = q.image ? '<div class="mt-3 bg-white p-2 rounded-lg text-center"><img class="q-image" src="'+esc(q.image)+'" alt="Cropped Question Diagram" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span class=\\\'text-xs text-rose-400 italic\\\'>[Image failed to render]</span>\'"></div>' : '<div class="mt-2 text-xs text-amber-400/80 italic">⚠️ No image data found for this question ID. Click Edit to attach or verify.</div>';
   const options = q.options ? '<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">'+breaks(q.options)+'</div>' : '';
   
-  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+' (ID: '+esc(q.id)+')</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit</button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic text-slate-400">Cropped image-based question</span>')+'</div>'+img+options+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
+  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+' (ID: '+esc(q.id)+')</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit / Crop</button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic text-slate-400">Cropped image-based question</span>')+'</div>'+img+options+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
   c.appendChild(card);
  });
  updateTotals();
