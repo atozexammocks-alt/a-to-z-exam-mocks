@@ -5,13 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — PDF Uploader</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 14px;gap:10px}
 .brand{font-weight:900;color:#38bdf8;text-decoration:none;white-space:nowrap}.nav{display:flex;gap:6px;flex-wrap:wrap}.nav a,.btn{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:8px 11px;border-radius:6px;text-decoration:none;font-weight:800;font-size:12px;cursor:pointer}
-.btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn.keepOn{background:#16a34a!important;color:#fff!important;border-color:#4ade80!important;box-shadow:0 0 0 2px #4ade8044}.btn.keepOff{opacity:.55}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:#0284c7;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn.keepOn{background:#16a34a!important;color:#fff!important;border-color:#4ade80!important}.btn.keepOff{opacity:.55}.btn:disabled{opacity:.45;cursor:not-allowed}
 .page{padding:12px}.toolbar{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #file{display:none}
 .choose{background:#0284c7;border:1px solid #38bdf8;color:#fff;padding:9px 13px;border-radius:6px;font-weight:900;cursor:pointer;display:inline-block}
@@ -29,12 +28,9 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 .pdfview canvas{background:#fff;max-width:none}
 .cropbox{position:absolute;border:2px dashed #38bdf8;background:#38bdf833;display:block;pointer-events:auto;cursor:move}
 .cropHandle{position:absolute;width:14px;height:14px;background:#38bdf8;border:2px solid #fff;border-radius:50%;z-index:10}
-.cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}
-.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}
-.cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}
-.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
+.cropHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}.cropHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}
+.cropHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}.cropHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
 .prompt{width:min(450px,95vw);background:#0b1120;border:1px solid #334155;border-radius:10px;padding:18px}.row{display:flex;gap:8px;margin-top:12px}.row input{flex:1}
-@media(max-width:850px){.workspace{grid-template-columns:1fr}.nav a:nth-child(n+3){display:none}.scroll{max-height:none}.qMeta{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -52,29 +48,27 @@ input,textarea,select{width:100%;background:#07101f;color:#fff;border:1px solid 
 <div class="toolbar">
 <label class="choose" for="file">📄 Choose PDF</label>
 <input id="file" type="file" accept="application/pdf,.pdf">
-<button id="extract" class="btn green" disabled>⚡ Auto Extract Questions</button>
+<button id="extract" class="btn green" disabled>⚡ Load Pages & Questions</button>
 <button id="confirmAll" class="btn" disabled>☑ Confirm All</button>
 <button id="saveAll" class="btn primary" disabled>☁ Save Confirmed</button>
 <span id="status" class="status">PDF not selected</span>
 <div class="progress"><i id="bar"></i></div>
 <div id="activity" class="activity">Activity: waiting for PDF…</div>
-<div id="processList" class="activity" style="max-height:120px;overflow:auto;background:#07101f;border:1px solid #334155;border-radius:6px;padding:7px;margin-top:6px;white-space:pre-wrap">Process log: waiting…</div>
 </div>
 
 <div class="workspace">
-<section class="panel"><h3>📝 Question Editor</h3><div class="muted">Extracted questions appear here.</div><div class="scroll" id="editor"><div class="card">Choose a PDF to begin.</div></div></section>
+<section class="panel"><h3>📝 Question Editor</h3><div class="muted">Add or edit questions and crop from PDF pages.</div><div class="scroll" id="editor"><div class="card">Choose a PDF to begin.</div></div></section>
 <section class="panel"><h3>👨‍🎓 Student Preview</h3><div class="muted">Student-facing live preview.</div><div class="scroll" id="preview"><div class="card"><div class="preview">No question selected.</div></div></div></section>
 </div>
 </main>
 
 <div class="overlay" id="pageOverlay"><div class="prompt">
-<h3>📄 Enter Page Range to Process</h3>
+<h3>📄 Enter Page Range to Load</h3>
 <div id="pageInfo" class="muted"></div>
 <div class="row">
   <input id="pageRange" type="text" placeholder="e.g. 1-5 or 1,3,6" value="1-2">
   <button id="startPages" class="btn primary">Start</button>
 </div>
-<div class="muted" style="margin-top:8px">Example: type <b>1-5</b> for pages 1 to 5.</div>
 </div></div>
 
 <!-- CROP OVERLAY MODAL -->
@@ -117,7 +111,7 @@ var extractBtn=document.getElementById("extract"), confirmBtn=document.getElemen
 var pdf=null,totalPages=0,targetPages=[],items=[],selected=-1,currentPdfPage=1,cropRect={x:50,y:50,w:400,h:150},renderScale=1.4;
 var cropAction=null, cropStart=null, cropInit=null;
 
-function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;var p=document.getElementById("processList");if(p){p.textContent+="\n"+new Date().toLocaleTimeString()+"  "+s;p.scrollTop=p.scrollHeight}}
+function status(s){statusEl.textContent=s;activityEl.textContent="Activity: "+s;}
 function progress(n,t){document.getElementById("bar").style.width=(t?Math.round(n*100/t):0)+"%"}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(m){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]})}
 function show(id,on){document.getElementById(id).style.display=on?"flex":"none"}
@@ -132,7 +126,7 @@ fileEl.addEventListener("change",async function(){
    pdf=await pdfjsLib.getDocument({data:pdfBytes}).promise;
    totalPages=pdf.numPages;
    document.getElementById("pageInfo").textContent=f.name+" • Total Pages: "+totalPages;
-   document.getElementById("pageRange").value="1-"+Math.min(totalPages,5);
+   document.getElementById("pageRange").value="1-"+totalPages;
    show("pageOverlay",true);
    status("✔ PDF opened. Enter page range and press Start.");
  }catch(err){
@@ -162,7 +156,7 @@ document.getElementById("startPages").addEventListener("click",function(){
  targetPages=parsePageRange(rawRange, totalPages);
  show("pageOverlay",false);
  extractBtn.disabled=false;confirmBtn.disabled=false;saveBtn.disabled=true;
- status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Auto Extract Questions.");
+ status("✔ Ready: Pages ["+targetPages.join(", ")+"]. Click Load Pages.");
 });
 
 async function extract(){
@@ -175,91 +169,36 @@ async function extract(){
  try{
   for(var idx=0; idx<targetPages.length; idx++){
    var n=targetPages[idx];
-   status("🔍 Extracting page "+n+" ("+(idx+1)+"/"+targetPages.length+")…");
+   status("📄 Loading page "+n+" ("+(idx+1)+"/"+targetPages.length+")…");
    var page=await pdf.getPage(n);
    var textContent=await page.getTextContent();
-   var textItems=textContent.items.map(function(item){return item.str;});
-   var fullText=textItems.join(" ");
+   var fullText=textContent.items.map(function(item){return item.str;}).join(" ");
 
-   // Fallback to Tesseract OCR if text layer is empty (Scanned PDF)
-   if(!fullText.trim() && window.Tesseract){
-     status("🔎 Running OCR for scanned page "+n+"…");
-     var viewport=page.getViewport({scale:1.5});
-     var canvas=document.createElement('canvas');
-     canvas.width=viewport.width; canvas.height=viewport.height;
-     await page.render({canvasContext:canvas.getContext('2d'),viewport:viewport}).promise;
-     var ocr=await Tesseract.recognize(canvas.toDataURL('image/png'), 'eng+hin');
-     fullText=ocr?.data?.text || "";
-   }
-
-   // Smart Question Splitting by matching Question numbers like Q1, 1., Q.1 etc.
-   var qRegex = /(?:^|\n)\s*(?:Q\.?|Question)?\s*(\d{1,2})\s*[\.\-\)]\s+/gi;
-   var matches = [...fullText.matchAll(qRegex)];
-   
-   if(matches.length > 0){
-     for(var m=0; m<matches.length; m++){
-       var currentMatch = matches[m];
-       var qNo = currentMatch[1];
-       var startIndex = currentMatch.index;
-       var endIndex = (m + 1 < matches.length) ? matches[m + 1].index : fullText.length;
-       var qChunk = fullText.slice(startIndex, endIndex).trim();
-
-       // Extract options A, B, C, D if present
-       var optA="", optB="", optC="", optD="";
-       var aMatch = qChunk.match(/\(A\)\s*([^]+?)(?=\(B\)|$)/i);
-       var bMatch = qChunk.match(/\(B\)\s*([^]+?)(?=\(C\)|$)/i);
-       var cMatch = qChunk.match(/\(C\)\s*([^]+?)(?=\(D\)|$)/i);
-       var dMatch = qChunk.match(/\(D\)\s*([^]+?)(?=\$)/i);
-
-       if(aMatch) optA=aMatch[1].trim();
-       if(bMatch) optB=bMatch[1].trim();
-       if(cMatch) optC=cMatch[1].trim();
-       if(dMatch) optD=dMatch[1].trim();
-
-       items.push({
-         qNo: qNo,
-         qText: qChunk,
-         optA: optA,
-         optB: optB,
-         optC: optC,
-         optD: optD,
-         sourcePage: n,
-         confirmed: false,
-         keepText: true,
-         keepImage: false,
-         libraryType: "Personal Library",
-         folder: "",
-         subfolder: "",
-         topic: "General"
-       });
-     }
-   } else {
-     // Fallback if regex doesn't match directly
-     items.push({
-       qNo: String(items.length + 1),
-       qText: fullText || "Page " + n + " content",
-       optA: "", optB: "", optC: "", optD: "",
-       sourcePage: n,
-       confirmed: false,
-       keepText: true,
-       keepImage: false,
-       libraryType: "Personal Library",
-       folder: "",
-       subfolder: "",
-       topic: "General"
-     });
-   }
+   // Create default cards for the page so teacher can easily crop or edit
+   items.push({
+     qNo: String(items.length + 1),
+     qText: fullText ? "Page " + n + " text: " + fullText.slice(0, 150) + "..." : "Page " + n + " (Use crop tool to select question)",
+     optA: "Option A", optB: "Option B", optC: "Option C", optD: "Option D",
+     sourcePage: n,
+     confirmed: false,
+     keepText: true,
+     keepImage: false,
+     libraryType: "Personal Library",
+     folder: "",
+     subfolder: "",
+     topic: "Physics"
+   });
 
    progress(idx+1, targetPages.length);
    render();
   }
 
   extractBtn.disabled=false; confirmBtn.disabled=items.length===0; saveBtn.disabled=true;
-  status("✔ Extraction complete: "+items.length+" question(s) found.");
+  status("✔ Loaded "+items.length+" page container(s). Crop or edit questions below.");
   if(items.length) select(0);
 
  }catch(e){
-   console.error(e); extractBtn.disabled=false; status("❌ Extraction failed: "+e.message); alert("Error: "+e.message);
+   console.error(e); extractBtn.disabled=false; status("❌ Load failed: "+e.message); alert("Error: "+e.message);
  }
 }
 
@@ -274,7 +213,7 @@ function setKeep(i,mode){
 function render(){
  var ed=document.getElementById("editor"),pv=document.getElementById("preview");
  ed.innerHTML=items.length?items.map(function(x,i){
-   return '<div class="card '+(i===selected?"active":"")+'"><b>Q '+esc(x.qNo||i+1)+' • PDF page '+x.sourcePage+'</b>'+
+   return '<div class="card '+(i===selected?"active":"")+'"><b>Question Item '+(i+1)+' • PDF page '+x.sourcePage+'</b>'+
    '<div class="grid2"><div class="field"><label>Question No.</label><input id="qn'+i+'" value="'+esc(x.qNo||i+1)+'"></div><div class="field"><label>Question Text</label><textarea id="qt'+i+'">'+esc(x.qText)+'</textarea></div></div>'+
    '<div class="field"><label>Options</label>'+['A','B','C','D'].map(function(k){return '<div class="opt"><b>'+k+'.</b><input id="op'+i+'_'+k+'" value="'+esc(x['opt'+k]||"")+'"></div>'}).join("")+'</div>'+
    '<div class="qMeta"><div class="field"><label>Library</label><select id="lt'+i+'"><option>Personal Library</option><option>Central Library</option><option>Group Library</option></select></div><div class="field"><label>Topic</label><input id="tp'+i+'" value="'+esc(x.topic||"")+'"></div><div class="field"><label>Folder</label><input id="fd'+i+'" value="'+esc(x.folder||"")+'"></div><div class="field"><label>Subfolder</label><input id="sf'+i+'" value="'+esc(x.subfolder||"")+'"></div></div>'+
@@ -282,7 +221,7 @@ function render(){
    '<button class="btn miniBtn '+(x.keepText?"keepOn":"keepOff")+'" data-tkeep="'+i+'">📝 Keep Text</button>'+
    '<button class="btn miniBtn '+(x.keepImage?"keepOn":"keepOff")+'" data-ikeep="'+i+'">🖼 Keep Image</button>'+
    '<label><input type="checkbox" data-confirm="'+i+'" '+(x.confirmed?"checked":"")+'> Confirm</label></div></div>';
- }).join(""):'<div class="card">No questions found.</div>';
+ }).join(""):'<div class="card">No questions loaded.</div>';
 
  ed.querySelectorAll("[data-apply]").forEach(function(b){b.onclick=function(){apply(Number(b.dataset.apply))}});
  ed.querySelectorAll("[data-crop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.crop),items[Number(b.dataset.crop)].sourcePage)}});
@@ -302,7 +241,7 @@ function render(){
    return h+'</div><div class="actions"><button class="btn primary" data-pcrop="'+i+'">🖼 Crop / Edit Image</button></div></div>';
  }).join(""):'<div class="card"><div class="preview">No question selected.</div></div>';
 
- pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}};
+ pv.querySelectorAll("[data-select]").forEach(function(b){b.onclick=function(){select(Number(b.dataset.select))}});
  pv.querySelectorAll("[data-pcrop]").forEach(function(b){b.onclick=function(){openCrop(Number(b.dataset.pcrop),items[Number(b.dataset.pcrop)].sourcePage)}});
 }
 
@@ -312,7 +251,7 @@ function apply(i){
  x.qNo=document.getElementById("qn"+i).value; x.qText=document.getElementById("qt"+i).value;
  ['A','B','C','D'].forEach(function(k){ x['opt'+k]=document.getElementById("op"+i+"_"+k).value.trim(); });
  x.libraryType=document.getElementById("lt"+i).value; x.folder=document.getElementById("fd"+i).value.trim(); x.subfolder=document.getElementById("sf"+i).value.trim(); x.topic=document.getElementById("tp"+i).value.trim();
- selected=i; render(); status("✔ Q "+x.qNo+" updated.");
+ selected=i; render(); status("✔ Item "+x.qNo+" updated.");
 }
 
 async function openCrop(i,page){
@@ -393,8 +332,8 @@ function updateCropBoxUI(){
 document.getElementById("cropPrev").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>0){currentPdfPage=targetPages[idx-1];await renderCropPage()}};
 document.getElementById("cropNext").onclick=async function(){var idx=targetPages.indexOf(currentPdfPage);if(idx>=0&&idx<targetPages.length-1){currentPdfPage=targetPages[idx+1];await renderCropPage()}};
 document.getElementById("closeCrop").onclick=function(){show("cropOverlay",false)};
-document.getElementById("cropKeepText").onclick=function(){if(selected>=0){setKeep(selected,"text");document.getElementById("cropKeepText").className="btn miniBtn keepOn";document.getElementById("cropKeepImage","btn miniBtn keepOff");}};
-document.getElementById("cropKeepImage").onclick=function(){if(selected>=0){setKeep(selected,"image");document.getElementById("cropKeepImage").className="btn miniBtn keepOn";document.getElementById("cropKeepText","btn miniBtn keepOff");}};
+document.getElementById("cropKeepText").onclick=function(){if(selected>=0){setKeep(selected,"text");document.getElementById("cropKeepText").className="btn miniBtn keepOn";document.getElementById("cropKeepImage").className="btn miniBtn keepOff";}};
+document.getElementById("cropKeepImage").onclick=function(){if(selected>=0){setKeep(selected,"image");document.getElementById("cropKeepImage").className="btn miniBtn keepOn";document.getElementById("cropKeepText").className="btn miniBtn keepOff";}};
 
 document.getElementById("saveCrop").onclick=async function(){
  if(selected<0||!cropRect){alert("Crop box not ready.");return}
@@ -413,13 +352,13 @@ document.getElementById("saveCrop").onclick=async function(){
  x.folder=document.getElementById("cropFolder").value.trim();
  x.subfolder=document.getElementById("cropSubfolder").value.trim();
  x.topic=document.getElementById("cropTopic").value.trim();
- show("cropOverlay",false); render(); status("✔ Crop saved for Q "+(x.qNo||selected+1));
+ show("cropOverlay",false); render(); status("✔ Crop saved for Item "+(x.qNo||selected+1));
 };
 
-confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All questions confirmed.")});
+confirmBtn.addEventListener("click",function(){items.forEach(function(x){x.confirmed=true});saveBtn.disabled=!items.length;render();status("✔ All items confirmed.")});
 saveBtn.addEventListener("click",async function(){
  var good=items.filter(function(x){return x.confirmed});
- if(!good.length){alert("Confirm at least one question first.");return}
+ if(!good.length){alert("Confirm at least one item first.");return}
  var email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
  if(!email){alert("Teacher login not found.");return}
  status("☁ Saving "+good.length+" question(s)…"); saveBtn.disabled=true;
@@ -440,12 +379,12 @@ saveBtn.addEventListener("click",async function(){
     sourcePage:x.sourcePage, createdAt:new Date().toISOString()
    });
   }
-  status("✔ Saved "+good.length+" question(s) to Library."); alert("✔ Saved successfully!");
+  status("✔ Saved "+good.length+" question(s) to Central Library."); alert("✔ Saved successfully!");
  }catch(e){console.error(e);status("❌ Save failed: "+e.message);alert("Save failed: "+e.message)}
  saveBtn.disabled=false;
 });
 
-status("✔ Uploader loaded. Click Choose PDF.");
+status("✔ Uploader loaded. Choose PDF to begin.");
 })();
 </script>
 </body>
