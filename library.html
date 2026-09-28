@@ -72,6 +72,13 @@
     .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px; }
     .folder-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
     .folder-actions .tool-btn { font-size: 10px; padding: 4px 8px; }
+
+    .pdf-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    .pdf-table th { background: #0f172a; color: #94a3b8; padding: 10px 12px; border-bottom: 1px solid #334155; font-size: 11px; text-transform: uppercase; }
+    .pdf-table td { padding: 10px 12px; border-bottom: 1px solid #1e293b; color: #f8fafc; }
+    .pdf-input { width: 100%; padding: 7px 10px; background: #060911; border: 1px solid #334155; border-radius: 6px; color: white; font-size: 12px; }
+
+    #library-access-modal { position: fixed; inset: 0; background: rgba(0,0,0,.88); display: none; align-items: center; justify-content: center; z-index: 95000; padding: 18px; }
   </style>
 
 <style>
@@ -93,6 +100,19 @@
   </script>
 
   <div id="toast-msg">✔ Action Successful!</div>
+
+  <!-- GROUP LIBRARY INVITE / ACCESS MODAL -->
+  <div id="library-access-modal">
+    <div style="background:#0b1120; border:2px solid #38bdf8; border-radius:16px; width:min(500px,100%); padding:20px; color:#fff;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:10px;">
+        <h3 style="color:#38bdf8; font-size:16px;">🤝 Group Library - Invite Teacher</h3>
+        <button class="tool-btn" style="background:#7f1d1d;" onclick="closeLibraryAccessModal()">✕</button>
+      </div>
+      <p style="font-size:12px; color:#94a3b8; margin:10px 0;">Share access to this group library by entering the teacher's email address below:</p>
+      <input id="invite-teacher-email" class="pdf-input" placeholder="teacher@gmail.com" style="margin-bottom:10px;">
+      <button class="tool-btn" style="background:#2563eb; width:100%; padding:10px;" onclick="sendGroupInvite()">📨 Send Invitation</button>
+    </div>
+  </div>
 
   <!-- AUTH OVERLAY -->
   <div id="auth-overlay" style="position:fixed; inset:0; background:#060911; display:flex; align-items:center; justify-content:center; z-index:99999;">
@@ -130,9 +150,10 @@
     <button class="lib-mode-tab active" id="mode-tab-private" onclick="switchLibraryMode('private')">🔒 Private / My Library</button>
     <button class="lib-mode-tab" id="mode-tab-central" onclick="switchLibraryMode('central')">📁 Central Library</button>
     <button class="lib-mode-tab" id="mode-tab-group" onclick="switchLibraryMode('group')">🤝 Group Library</button>
+    <button id="group-invite-btn" class="tool-btn" style="background:#7c3aed; margin-left:auto; display:none;" onclick="openLibraryAccessModal()">👥 Invite Teacher</button>
   </div>
 
-  <!-- LIBRARY VIEW SCREEN WITH FOLDER CREATION ENABLED FOR ALL MODES -->
+  <!-- LIBRARY VIEW SCREEN -->
   <div class="view-screen" id="screen-library">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:#0b1120; border:1px solid #1e293b; padding:10px 16px; border-radius:10px; gap:10px;">
       <div style="display:flex; align-items:center; gap:10px; flex:1;">
@@ -142,8 +163,29 @@
       <button id="create-folder-btn" class="tool-btn" style="background:#2563eb; white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
     </div>
 
-    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:10px; overflow:hidden; flex:1;">
+    <!-- MAIN FOLDER GRID / FOLDER CONTENT CONTAINER -->
+    <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:12px; overflow-y:auto; flex:1;">
       <div class="folder-grid" id="folder-cards-container"></div>
+
+      <!-- PDF LINKS SECTION INSIDE FOLDERS -->
+      <div id="pdf-links-section" style="display:none; background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:16px; margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h4 style="color:#38bdf8; font-size:14px;">📄 PDF Links & Files in this Folder</h4>
+          <button class="tool-btn" style="background:#10b981;" onclick="addNewPdfRow()">+ Add PDF Link</button>
+        </div>
+        <table class="pdf-table">
+          <thead>
+            <tr>
+              <th>Document Title</th>
+              <th>PDF / Google Drive URL</th>
+              <th style="width:140px; text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="pdf-table-body">
+            <tr><td colspan="3" style="text-align:center; color:#64748b;">No PDF links added yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -162,6 +204,8 @@
     let privateLibraryTree = [];
     let centralLibraryTree = [];
     let groupLibraryTree = [];
+    
+    let folderPdfs = {}; // Stores PDF links per folder path
     let currentFolderPath = "";
 
     window.switchLibraryMode = async function(mode) {
@@ -171,10 +215,9 @@
       document.querySelectorAll('.lib-mode-tab').forEach(t => t.classList.remove('active'));
       document.getElementById(`mode-tab-${mode}`)?.classList.add('active');
 
-      // सभी मोड्स (Private, Central, Group) में अब फोल्डर क्रिएट करने का ऑप्शन उपलब्ध है
-      const createBtn = document.getElementById('create-folder-btn');
-      if (createBtn) {
-        createBtn.style.display = 'inline-block';
+      const inviteBtn = document.getElementById('group-invite-btn');
+      if (inviteBtn) {
+        inviteBtn.style.display = (mode === 'group') ? 'inline-block' : 'none';
       }
 
       await loadLibraryStateForCurrentMode();
@@ -187,24 +230,35 @@
         const email = teacherEmailKey();
         if (!email) return;
 
+        let docRefPath = "";
+        let docId = "";
+
         if (activeLibraryMode === 'private') {
-          const ref = window.doc(window.db, "folder_configs_private", teacherDocId(email));
-          const snap = await window.getDoc(ref);
-          const data = snap.exists() ? snap.data() : {};
+          docRefPath = "folder_configs_private";
+          docId = teacherDocId(email);
+        } else if (activeLibraryMode === 'central') {
+          docRefPath = "folder_configs_central";
+          docId = "global_central_tree";
+        } else if (activeLibraryMode === 'group') {
+          docRefPath = "folder_configs_group";
+          docId = teacherDocId(email) + "_group";
+        }
+
+        const ref = window.doc(window.db, docRefPath, docId);
+        const snap = await window.getDoc(ref);
+        const data = snap.exists() ? snap.data() : {};
+
+        if (activeLibraryMode === 'private') {
           privateLibraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
         } else if (activeLibraryMode === 'central') {
-          const ref = window.doc(window.db, "folder_configs_central", "global_central_tree");
-          const snap = await window.getDoc(ref);
-          const data = snap.exists() ? snap.data() : {};
           centralLibraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
         } else if (activeLibraryMode === 'group') {
-          const ref = window.doc(window.db, "folder_configs_group", teacherDocId(email) + "_group");
-          const snap = await window.getDoc(ref);
-          const data = snap.exists() ? snap.data() : {};
           groupLibraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
         }
+
+        folderPdfs = (data.folderPdfs && typeof data.folderPdfs === "object") ? {...data.folderPdfs} : {};
       } catch (e) {
-        console.error("Failed to load library state for mode:", activeLibraryMode, e);
+        console.error("Failed to load library state:", e);
       }
     }
 
@@ -215,24 +269,30 @@
         if (!email) return false;
         if (window.teacherAuthReady) await window.teacherAuthReady;
 
+        let docRefPath = "";
+        let docId = "";
+        let treeData = [];
+
         if (activeLibraryMode === 'private') {
-          await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(email)), {
-            ownerEmail: email,
-            libraryTree: privateLibraryTree,
-            updatedAt: new Date().toISOString()
-          });
+          docRefPath = "folder_configs_private";
+          docId = teacherDocId(email);
+          treeData = privateLibraryTree;
         } else if (activeLibraryMode === 'central') {
-          await window.setDoc(window.doc(window.db, "folder_configs_central", "global_central_tree"), {
-            libraryTree: centralLibraryTree,
-            updatedAt: new Date().toISOString()
-          });
+          docRefPath = "folder_configs_central";
+          docId = "global_central_tree";
+          treeData = centralLibraryTree;
         } else if (activeLibraryMode === 'group') {
-          await window.setDoc(window.doc(window.db, "folder_configs_group", teacherDocId(email) + "_group"), {
-            ownerEmail: email,
-            libraryTree: groupLibraryTree,
-            updatedAt: new Date().toISOString()
-          });
+          docRefPath = "folder_configs_group";
+          docId = teacherDocId(email) + "_group";
+          treeData = groupLibraryTree;
         }
+
+        await window.setDoc(window.doc(window.db, docRefPath, docId), {
+          ownerEmail: email,
+          libraryTree: treeData,
+          folderPdfs: folderPdfs,
+          updatedAt: new Date().toISOString()
+        });
         return true;
       } catch (e) {
         console.error("Failed to save library state:", e);
@@ -354,11 +414,20 @@
 
     function renderLibraryBrowser() {
       const cards = document.getElementById('folder-cards-container');
+      const pdfSection = document.getElementById('pdf-links-section');
       if(!cards) return;
 
       renderBreadcrumb();
       const children = getChildrenForPath(currentFolderPath);
       cards.innerHTML = '';
+
+      // यदि हम किसी फोल्डर के अंदर हैं, तो वहाँ PDF Links जोड़ने/देखने का सेक्शन दिखाएं
+      if (currentFolderPath) {
+        if(pdfSection) pdfSection.style.display = 'block';
+        renderPdfTableForCurrentFolder();
+      } else {
+        if(pdfSection) pdfSection.style.display = 'none';
+      }
 
       if(children.length){
         children.forEach(node => {
@@ -376,10 +445,74 @@
       } else {
         const empty = document.createElement('div'); 
         empty.style = 'padding:30px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:10px;grid-column:1/-1;';
-        empty.innerHTML = '📂 This folder is empty.<br><span style="font-size:11px;">Click "Create Folder" above to add folders.</span>';
+        empty.innerHTML = '📂 No subfolders here.<br><span style="font-size:11px;">Click "Create Folder" above to add subfolders.</span>';
         cards.appendChild(empty);
       }
     }
+
+    // PDF Link Management functions inside Folders
+    window.addNewPdfRow = async function() {
+      if(!currentFolderPath) return alert("Open a folder first to add PDF links.");
+      if(!folderPdfs[currentFolderPath]) folderPdfs[currentFolderPath] = [];
+      folderPdfs[currentFolderPath].push({ title: "New PDF Document", url: "" });
+      await saveLibraryStateForCurrentMode();
+      renderPdfTableForCurrentFolder();
+      showToast("📄 PDF row added!");
+    };
+
+    function renderPdfTableForCurrentFolder() {
+      const tbody = document.getElementById('pdf-table-body');
+      if(!tbody) return;
+      const list = folderPdfs[currentFolderPath] || [];
+
+      if(list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b;">No PDF links added in this folder yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map((item, idx) => `
+        <tr>
+          <td><input class="pdf-input" value="${escapeHtml(item.title||'')}" onchange="updatePdfItem(${idx}, 'title', this.value)"></td>
+          <td><input class="pdf-input" value="${escapeHtml(item.url||'')}" placeholder="https://drive.google.com/..." onchange="updatePdfItem(${idx}, 'url', this.value)"></td>
+          <td style="text-align:center; display:flex; gap:6px; justify-content:center;">
+            <button class="tool-btn" style="background:#2563eb;" onclick="window.open('${escapeHtml(item.url||'')}','_blank')">🔗 Open</button>
+            <button class="tool-btn" style="background:#7f1d1d;" onclick="deletePdfItem(${idx})">🗑</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    window.updatePdfItem = async function(idx, field, val) {
+      if(folderPdfs[currentFolderPath]?.[idx]) {
+        folderPdfs[currentFolderPath][idx][field] = String(val||'').trim();
+        await saveLibraryStateForCurrentMode();
+      }
+    };
+
+    window.deletePdfItem = async function(idx) {
+      if(folderPdfs[currentFolderPath]) {
+        folderPdfs[currentFolderPath].splice(idx, 1);
+        await saveLibraryStateForCurrentMode();
+        renderPdfTableForCurrentFolder();
+        showToast("🗑️ PDF link removed.");
+      }
+    };
+
+    window.openLibraryAccessModal = function() {
+      document.getElementById('library-access-modal').style.display = 'flex';
+    };
+
+    window.closeLibraryAccessModal = function() {
+      document.getElementById('library-access-modal').style.display = 'none';
+    };
+
+    window.sendGroupInvite = function() {
+      const email = document.getElementById('invite-teacher-email').value.trim();
+      if(!email) return alert("Please enter a valid teacher email.");
+      showToast("📨 Invitation sent to " + email);
+      document.getElementById('invite-teacher-email').value = "";
+      closeLibraryAccessModal();
+    };
 
     function escapeHtml(s) {
       return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
