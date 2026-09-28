@@ -228,6 +228,22 @@
     </div>
   </div>
 
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
+      authDomain: "physicsvault-80a10.firebaseapp.com",
+      projectId: "physicsvault-80a10",
+      storageBucket: "physicsvault-80a10.firebasestorage.app",
+      messagingSenderId: "1043166507399",
+      appId: "1:1043166507399:web:634efdac6f109273d42322"
+    };
+    const editorApp = initializeApp(firebaseConfig);
+    window.editorDb = getFirestore(editorApp);
+    window.editorDoc = doc;
+    window.editorUpdateDoc = updateDoc;
+  </script>
   <script>
     function showToast(text) {
       const el = document.getElementById('toast-msg');
@@ -572,6 +588,47 @@
     };
 
     window.goBackToSlicer = function() {
+      if (new URLSearchParams(window.location.search).get('builderEdit') === '1') {
+        const qid = localStorage.getItem('AZ_BUILDER_EDIT_ID');
+        if (!qid || !window.editorDb) {
+          alert('Edit session expired. Please reopen the question from Test Builder.');
+          return;
+        }
+        try {
+          const finalUrlForBuilder = finalUrl;
+          const qTextForBuilder = document.getElementById('fallback-qtext').value.trim();
+          const keepOptions = document.getElementById('editor-keep-options-toggle').checked;
+          const opts = keepOptions ? [
+            document.getElementById('fallback-opta').value.trim(),
+            document.getElementById('fallback-optb').value.trim(),
+            document.getElementById('fallback-optc').value.trim(),
+            document.getElementById('fallback-optd').value.trim()
+          ] : [];
+          const optTextForBuilder = opts.length ? `(A) ${opts[0]} | (B) ${opts[1]} | (C) ${opts[2]} | (D) ${opts[3]}` : '';
+          await window.editorUpdateDoc(window.editorDoc(window.editorDb, 'questions', qid), {
+            question: finalUrlForBuilder,
+            qText: qTextForBuilder,
+            optText: optTextForBuilder,
+            updatedAt: new Date().toISOString()
+          });
+          localStorage.removeItem('AZ_BUILDER_EDIT_ID');
+          localStorage.removeItem('AZ_BUILDER_EDIT_RETURN');
+          localStorage.removeItem('Temp_Editor_Image');
+          localStorage.removeItem('Temp_Editor_Synced_Image');
+          localStorage.removeItem('Temp_QText');
+          localStorage.removeItem('Temp_Opt_A');
+          localStorage.removeItem('Temp_Opt_B');
+          localStorage.removeItem('Temp_Opt_C');
+          localStorage.removeItem('Temp_Opt_D');
+          showToast("✔ Question Updated in Library. Returning to Test Builder...");
+          setTimeout(()=>{ window.location.href='builder.html'; },800);
+        } catch(err) {
+          console.error(err);
+          alert('Question update failed: ' + err.message);
+        }
+        return;
+      }
+
       if (new URLSearchParams(window.location.search).get('paperMode') === '1') {
         window.location.href = 'paper_designer.html';
         return;
