@@ -117,14 +117,15 @@ html,body{height:100%;min-height:0}
  </div>
 </div>
 
-<div id="libraryModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 no-print">
- <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-5xl max-h-[88vh] flex flex-col shadow-2xl">
-  <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><h3 class="font-bold text-emerald-300">Question Library</h3><p class="text-xs text-slate-400">Insert any cached question directly into this paper.</p></div><button onclick="closeLibraryModal()"><i class="fa-solid fa-xmark text-xl"></i></button></div>
-  <div class="p-3 border-b border-slate-700"><input id="librarySearch" oninput="renderLibraryModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Search question text..."></div>
-  <div id="libraryList" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+<div id="libraryModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-3 no-print">
+ <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-7xl h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+  <div class="p-3 border-b border-slate-700 flex items-center justify-between shrink-0">
+   <div><h3 class="font-bold text-emerald-300">Insert Questions from Library</h3><p class="text-xs text-slate-400">Choose Private, Central or Group Library, open a folder, then insert a question.</p></div>
+   <button onclick="closeLibraryModal()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <iframe id="libraryPickerFrame" src="library.html?picker=1" class="flex-1 w-full border-0 bg-slate-950" title="Library Question Picker"></iframe>
  </div>
 </div>
-
 <div id="printSettingsModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 no-print">
  <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl">
   <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><h3 class="font-bold text-indigo-300">Paper / Institute Branding Setup</h3><p class="text-xs text-slate-400">These details are used only on this paper's printout.</p></div><button onclick="closePrintSettings()"><i class="fa-solid fa-xmark"></i></button></div>
@@ -535,28 +536,29 @@ function previewPrintLayout(){
 function computeTotalMarks(){return testPaper.sections.reduce((a,s)=>a+s.questions.reduce((b,q)=>b+Number(q.marks||0),0),0)}
 function computeTotalQuestions(){return testPaper.sections.reduce((a,s)=>a+s.questions.length,0)}
 
-async function openLibraryModal(){showModal('libraryModal');renderLibraryModal()}
+async function openLibraryModal(){
+ showModal('libraryModal');
+ const frame=document.getElementById('libraryPickerFrame');
+ if(frame){
+  if(!frame.src || !frame.src.includes('picker=1')) frame.src='library.html?picker=1';
+  frame.contentWindow?.postMessage({type:'AZ_PAPER_PICKER_INIT'},'*');
+ }
+}
 function closeLibraryModal(){hideModal('libraryModal')}
-function renderLibraryModal(){
- const term=(document.getElementById('librarySearch')?.value||'').toLowerCase();
- const list=document.getElementById('libraryList'); if(!list)return;
- const pool=[...questionCache.values()].map(q=>normalizeQuestion(q,q.id)).filter(q=>!term||String(q.text).toLowerCase().includes(term));
- list.innerHTML=pool.slice(0,300).map(q=>{
-  const already=!!sectionForQuestion(q.id);
-  let opts='<option value="">Choose section…</option>';testPaper.sections.forEach(s=>opts+='<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>');
-  return '<div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex gap-3 items-start"><div class="flex-1"><div class="text-sm">'+(q.text?breaks(q.text):'<span class="text-slate-500 italic">Cropped image question</span>')+'</div><div class="text-[10px] text-slate-500 mt-1">ID: '+esc(q.id)+' • '+esc(q.type)+' • '+q.marks+' marks'+(already?' • Already included':'')+'</div></div><select id="lib_'+esc(q.id)+'" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs">'+opts+'</select><button onclick="insertLibraryQuestion(\''+esc(q.id)+'\')" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded text-xs font-semibold">Insert</button></div>'
- }).join('') || '<div class="text-center text-slate-500 py-10">No library questions found.</div>';
-}
-function insertLibraryQuestion(id){
- id=String(id);
- const q=questionCache.get(id)||[...questionCache.values()].find(x=>String(x.id)===id||String(x.qid)===id);
- if(!q)return alert('Question record not found.');
- const target=document.getElementById('lib_'+id)?.value||activeSectionId;
- if(!target)return alert('Create and select a section first.');
- if(!allQuestions.some(x=>String(x.id)===id))allQuestions.push(normalizeQuestion(q,id));
- assignQuestion(id,target);renderLibraryModal();
-}
-
+window.addEventListener('message',e=>{
+ const d=e.data||{};
+ if(d.type!=='AZ_LIBRARY_QUESTION_SELECTED'||!d.question)return;
+ const q=d.question;
+ const id=String(q.id||q.qid||q.questionId||'');
+ if(!id)return;
+ const normalized=normalizeQuestion(q,id);
+ const existing=allQuestions.find(x=>String(x.id)===id);
+ if(existing) Object.assign(existing,normalized); else allQuestions.push(normalized);
+ questionCache.set(id,q);
+ const target=activeSectionId;
+ if(target && testPaper.sections.some(s=>s.id===target)) assignQuestion(id,target);
+ else { saveState(); renderSidebar(); renderCanvas(); alert('Question added to the pool. Create/select a section and assign it when ready.'); }
+});
 function showModal(id){const e=document.getElementById(id);e.classList.remove('hidden');e.classList.add('flex')}
 function hideModal(id){const e=document.getElementById(id);e.classList.add('hidden');e.classList.remove('flex')}
 function closeSectionModal(){hideModal('sectionModal')}
