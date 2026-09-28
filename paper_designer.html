@@ -18,7 +18,7 @@ html,body{height:100%;min-height:0}
  .no-print{display:none!important}
  @page{margin:1.5cm}
 }
-.q-image{max-width:100%;max-height:350px;object-fit:contain;background:#fff;border-radius:6px}
+.q-image{max-width:100%;max-height:350px;object-fit:contain;background:#fff;border-radius:6px;display:block;margin:6px auto}
 .print-q-image{display:block;max-width:100%;height:auto;margin:5px 0}
 </style>
 <style id="az-unified-nav-css">
@@ -46,7 +46,7 @@ html,body{height:100%;min-height:0}
 <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10 no-print">
  <div class="flex items-center space-x-4">
   <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600 flex items-center space-x-2"><i class="fa-solid fa-arrow-left text-indigo-400"></i><span>Back to Builder</span></button>
-  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A-to-Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here automatically</p></div></div>
+  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A-to-Z Paper Designer</h1><p class="text-xs text-slate-400">Builder selected questions appear here visually</p></div></div>
  </div>
  <div class="flex items-center space-x-3">
   <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600"><i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i>Refresh</button>
@@ -75,7 +75,7 @@ html,body{height:100%;min-height:0}
 <!-- Main Area: Question Pool -->
 <main class="flex-1 min-w-0 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
  <div class="bg-slate-800/80 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
-  <div><h2 class="text-base font-bold">Selected Question Pool</h2><p class="text-xs text-slate-400">Assign these questions to your created sections to include them in the printed paper.</p></div>
+  <div><h2 class="text-base font-bold">Selected Question Pool</h2><p class="text-xs text-slate-400">View each question's text and image, then assign them to your created sections below.</p></div>
  </div>
  <div class="flex-1 min-h-0 overflow-y-auto p-5">
   <div class="max-w-6xl mx-auto">
@@ -202,9 +202,9 @@ async function loadFromBuilder(){
   return {
    id: id,
    type: q?.type || 'MCQ',
-   text: q?.qText || q?.text || '',
+   text: q?.qText || q?.text || q?.questionText || '',
    options: q?.optText || q?.options || '',
-   image: q?.question || q?.image || '',
+   image: q?.question || q?.image || q?.img || '',
    marks: Number(q?.marks || 1)
   };
  }).filter(q => q.id);
@@ -229,7 +229,7 @@ async function loadFromBuilder(){
 window.addEventListener('DOMContentLoaded', async () => {
  const ok = await loadFromBuilder();
  if (!ok || !allQuestions.length) {
-  document.getElementById('questionsCanvasContainer').innerHTML = '<div class="text-center py-20 text-slate-500">No questions selected. Please select questions from Test Builder first[cite: 9].</div>';
+  document.getElementById('questionsCanvasContainer').innerHTML = '<div class="text-center py-20 text-slate-500">No questions selected. Please select questions from Test Builder first.</div>';
  }
  renderSidebar();
  renderCanvas();
@@ -294,7 +294,7 @@ function renderCanvas(){
    opts += `<option value="${esc(s.id)}" ${sec?.id === s.id ? 'selected' : ''}>${esc(s.name)} (${esc(s.type)})</option>`;
   });
 
-  const img = q.image ? `<div class="mt-2 bg-white rounded-lg p-2"><img class="q-image mx-auto" src="${esc(q.image)}" onerror="this.parentElement.style.display='none'"></div>` : '';
+  const imgHtml = q.image ? `<div class="mt-3 bg-white rounded-lg p-2 text-center"><img class="q-image mx-auto" src="${esc(q.image)}" alt="Question Image" onerror="this.parentElement.style.display='none'"></div>` : '';
   const optionsHtml = q.options ? `<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">${breaks(q.options)}</div>` : '';
 
   card.innerHTML = `
@@ -308,7 +308,7 @@ function renderCanvas(){
       <span class="text-xs text-emerald-400 font-bold">${q.marks} Marks</span>
      </div>
      <div class="mt-2 text-sm text-slate-100 whitespace-pre-line">${q.text ? breaks(q.text) : ''}</div>
-     ${img}
+     ${imgHtml}
      ${optionsHtml}
      <div class="mt-3 flex items-center justify-between gap-2 flex-wrap bg-slate-950/60 p-2 rounded-lg border border-slate-800">
       <span class="text-xs ${sec ? 'text-emerald-400 font-semibold' : 'text-amber-400'}">${sec ? 'Assigned to: ' + esc(sec.name) : '⚠️ Not assigned to any section'}</span>
