@@ -178,7 +178,7 @@ window.addFolderForCurrentLibrary=async function(kind){
           options.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">' + n.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</option>').join('') + '<option value="__A2Z_ADD_SUBFOLDER__">＋ Add Folder here…</option>';
         if (selectedName && options.includes(selectedName)) select.value = selectedName;
 
-        select.onchange = function() {
+        select.onchange = async function() {
           const chosen = this.value;
           if (chosen === '__A2Z_ADD_SUBFOLDER__') {
             const parentPath = String(slicerSelectedFolderPath || '').split(' / ').filter(Boolean).slice(0, level).join(' / ');
