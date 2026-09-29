@@ -188,8 +188,19 @@ window.addFolderForCurrentLibrary=async function(kind){
           options.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">' + n.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</option>').join('') + '<option value="__A2Z_ADD_SUBFOLDER__">＋ Add Folder here…</option>';
         if (selectedName && options.includes(selectedName)) select.value = selectedName;
 
+        select.dataset.folderLevel = String(level);
         select.onchange = async function() {
-          const chosen = this.value;
+          const chosen = String(this.value || '').trim();
+
+          // Always rebuild the path from the CURRENT dropdown values.
+          // Do not read the old global path here: that was causing sibling
+          // folders to become "sticky" after a mobile tap.
+          const currentSelects = Array.from(wrap.querySelectorAll('select.folder-level-select'));
+          const currentParts = currentSelects
+            .slice(0, level + 1)
+            .map(s => String(s.value || '').trim())
+            .filter(v => v && v !== '__A2Z_ADD_SUBFOLDER__');
+
           if (chosen === '__A2Z_ADD_SUBFOLDER__') {
             // Build the parent strictly from the dropdowns that are actually selected
             // before this dropdown. This keeps Add Folder at the SAME level (parallel sibling)
@@ -238,9 +249,11 @@ window.addFolderForCurrentLibrary=async function(kind){
             rebuildFlatFoldersFromTree(); renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
             await window.saveFolderRegistryToCloud(); return;
           }
-          const parts = String(slicerSelectedFolderPath || '').split(' / ').filter(Boolean).slice(0, level);
-          if (chosen) parts.push(chosen);
-          slicerSelectedFolderPath = parts.join(' / ');
+          // Sibling switching: the selected value itself wins, while all
+          // parent levels come directly from the live controls.
+          const parentParts = currentParts.slice(0, level);
+          const nextPath = chosen ? parentParts.concat(chosen).join(' / ') : parentParts.join(' / ');
+          slicerSelectedFolderPath = nextPath;
           renderSlicerFolderPathSelectors();
           updateSlicerFolderPathLabel();
         };
