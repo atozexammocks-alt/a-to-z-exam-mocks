@@ -172,15 +172,15 @@
 
   <!-- LIBRARY VIEW SCREEN -->
   <div class="view-screen" id="screen-library">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:#0b1120; border:1px solid #1e293b; padding:10px 16px; border-radius:10px; gap:10px;">
+    <div id="old-library-address-row" style="display:none;">
       <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
         <button id="back-nav-btn" class="tool-btn" style="background:#334155; display:none;" onclick="goBackFolder()">⬅ Back</button>
         <div class="breadcrumb-bar" id="library-main-title">📚 Private Library</div>
       </div>
       <div id="folder-view-actions" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end;">
-        <button id="view-pdf-btn" class="tool-btn" style="display:none;background:#2563eb;" onclick="viewCurrentFolderPdf()">🔗 View PDF</button>
-        <button id="view-image-btn" class="tool-btn" style="display:none;background:#059669;" onclick="viewCurrentFolderImages()">🖼️ Question Images</button>
-        <button id="create-folder-btn" class="tool-btn" style="background:#2563eb; white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
+        <button id="view-pdf-btn" class="tool-btn library-top-action" style="display:none;background:#2563eb;" onclick="viewCurrentFolderPdf()">🔗 PDF</button>
+        <button id="view-image-btn" class="tool-btn library-top-action" style="display:none;background:#059669;" onclick="viewCurrentFolderImages()">🖼️ Images</button>
+        <button id="create-folder-btn" class="tool-btn library-top-action" style="background:#2563eb;white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
       </div>
     </div>
 
