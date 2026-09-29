@@ -227,32 +227,23 @@ async function addFolderForCurrentLibrary(kind){
     }
 
     window.addNewFolderDynamic = async function() {
-      const type = prompt("क्या जोड़ना चाहते हैं? टाइप करें:\n1 -> Main Folder\n2 -> Sub Folder");
+      const type = prompt("1 = Main Folder\n2 = Sub Folder");
+      const name = (prompt(type === "2" ? "Sub Folder name:" : "Main Folder name:") || "").trim();
+      if (!name) return;
       if (type === "1") {
-        const newMain = (prompt("नया Main Folder नाम डालें:") || "").trim();
-        if (newMain && !findTreeNodeByName(newMain)) {
-          libraryTree.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newMain, type: "folder", children: [] });
-          rebuildFlatFoldersFromTree();
-          window.initSlicerStudio();
-          const saved = await window.saveFolderRegistryToCloud();
-          if (saved) alert("✔ Main Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
-        }
-      } else if (type === "2") {
-        const currentMain = document.getElementById('vault-main-cat').value;
-        if (!currentMain) return alert("Please select a main folder first!");
-        const newSub = (prompt(`"${currentMain}" के लिए नया Sub Folder नाम डालें:`) || "").trim();
-        const parent = findTreeNodeByName(currentMain);
-        if (newSub && parent) {
-          parent.children = Array.isArray(parent.children) ? parent.children : [];
-          if (!parent.children.some(n => String(n.name || '').trim().toLowerCase() === newSub.toLowerCase())) {
-            parent.children.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newSub, type: "folder", children: [] });
-            rebuildFlatFoldersFromTree();
-            window.populateSlicerSubDropdown(currentMain);
-            const saved = await window.saveFolderRegistryToCloud();
-            if (saved) alert("✔ Sub Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
-          }
-        }
+        if (libraryTree.some(n => String(n.name||"").trim().toLowerCase() === name.toLowerCase())) return alert("Folder already exists.");
+        libraryTree.push({id:"f_"+Date.now(),name,type:"folder",children:[]});
+        slicerSelectedFolderPath=name;
+      } else {
+        const parent=findNodeByPath(slicerSelectedFolderPath);
+        if(!parent) return alert("Select the parent folder first.");
+        parent.children=Array.isArray(parent.children)?parent.children:[];
+        if(parent.children.some(n=>String(n.name||"").trim().toLowerCase()===name.toLowerCase())) return alert("Sub Folder already exists.");
+        parent.children.push({id:"f_"+Date.now(),name,type:"folder",children:[]});
+        slicerSelectedFolderPath=slicerSelectedFolderPath+" / "+name;
       }
+      rebuildFlatFoldersFromTree(); renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
+      await window.saveFolderRegistryToCloud();
     };
 
     window.saveFolderRegistryToCloud = async function() {
@@ -326,14 +317,7 @@ async function addFolderForCurrentLibrary(kind){
     .meta-box { background: #060911; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
     .meta-box label { color: #94a3b8; font-weight: 700; font-size: 10px; display: flex; justify-content: space-between; align-items: center; }
     .meta-box select, .meta-box input, .meta-box textarea { width: 100%; padding: 4px 6px; font-size: 11px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: white; }
-    .slicer-library-selector{margin:0 0 6px;padding:7px;border:1px solid #1e293b;border-radius:8px;background:#08111f}.library-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:5px}.library-tab{min-height:34px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#cbd5e1;font-weight:800;font-size:9px;cursor:pointer;touch-action:manipulation}.library-tab.active{background:#10b981!important;color:#001b12!important;border-color:#10b981!important}.slicer-folder-actions{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}.folder-action-btn{min-height:32px;padding:5px 8px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#cbd5e1;font-weight:800;font-size:9px;cursor:pointer;touch-action:manipulation}@media(max-width:700px){.library-tabs{grid-template-columns:1fr}.folder-action-btn{flex:1;min-width:90px}}
-    .slicer-folder-path-selectors { display:flex; flex-direction:row; align-items:stretch; gap:4px; margin-top:4px; width:100%; max-width:100%; overflow:hidden; padding-bottom:2px; }
-    .folder-level { flex:1 1 0; min-width:0; width:0; display:flex; flex-direction:column; gap:3px; align-items:stretch; padding:4px; border:1px solid #1e293b; border-radius:5px; background:#080d1a; }
-    .folder-level + .folder-level { border-left:2px solid #334155; }
-    .folder-level-label { color:#94a3b8; font-size:9px; font-weight:800; white-space:nowrap; }
-    .folder-level-select { min-width:0; width:100%; max-width:100%; font-size:11px; }
-    .slicer-selected-folder-path { margin-top:4px; padding:5px 7px; border:1px solid #1e293b; border-radius:5px; background:#060911; color:#10b981; font-size:10px; font-weight:800; word-break:break-word; }
-    .answer-control { width:100%; padding:4px 6px; font-size:11px; background:#0f172a; border:1px solid #334155; border-radius:4px; color:white; }
+    .slicer-library-selector{margin:0 0 4px;padding:5px;border:1px solid #1e293b;border-radius:6px;background:#08111f}.library-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}.library-tab{min-height:30px;border:1px solid #334155;border-radius:5px;background:#0f172a;color:#cbd5e1;font-weight:800;font-size:9px;cursor:pointer}.library-tab.active{background:#10b981!important;color:#001b12!important;border-color:#10b981!important}.slicer-folder-actions{display:none}.folder-action-btn{display:none}.slicer-folder-path-selectors{display:flex;flex-direction:column;gap:4px;margin-top:4px;width:100%}.folder-level{display:flex;flex-direction:column;gap:2px;padding:4px;border:1px solid #1e293b;border-radius:5px;background:#080d1a}.folder-level-label{color:#94a3b8;font-size:9px;font-weight:800}.folder-level-select{width:100%;font-size:11px}.slicer-selected-folder-path{margin-top:4px;padding:4px 6px;border:1px solid #1e293b;border-radius:5px;background:#060911;color:#10b981;font-size:10px;font-weight:800;word-break:break-word}.guided-folder-actions{display:flex;gap:4px;margin-top:4px}.guided-folder-actions .tool-btn{flex:1;justify-content:center;font-size:9px;padding:4px 6px}@media(max-width:700px){.library-tabs{grid-template-columns:1fr}}    .answer-control { width:100%; padding:4px 6px; font-size:11px; background:#0f172a; border:1px solid #334155; border-radius:4px; color:white; }
     .multi-answer-control { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
     .multi-answer-control label { display:flex; align-items:center; gap:3px; padding:3px 4px; border:1px solid #334155; border-radius:4px; background:#0f172a; color:#cbd5e1; font-size:10px; }
     .multi-answer-control input { width:auto; }
@@ -346,7 +330,7 @@ async function addFolderForCurrentLibrary(kind){
     .opt-row span { font-weight: 800; color: #38bdf8; font-size: 10px; }
     .opt-row input { border: none !important; background: #060911 !important; padding: 4px !important; font-size: 11px !important; color: white !important; }
 
-    .ocr-action-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 2px; }
+    .ocr-action-bar { display:none;grid-template-columns:repeat(5,1fr); gap: 3px; margin-top: 2px; }
     .ocr-send-btn { background: #0284c7; border: 1px solid #38bdf8; color: white; padding: 4px 2px; border-radius: 3px; font-size: 9px; font-weight: 700; cursor: pointer; text-align: center; }
     .ocr-send-btn:hover { background: #0369a1; }
 
