@@ -82,6 +82,12 @@
     .picker-question { background:#0b1120; border:1px solid #334155; border-radius:10px; padding:12px; display:flex; gap:12px; align-items:flex-start; }
     .picker-question img { max-width:180px; max-height:120px; object-fit:contain; background:#fff; border-radius:6px; }
     .picker-insert { background:#10b981; color:#fff; border:0; border-radius:7px; padding:7px 12px; cursor:pointer; font-weight:800; font-size:11px; white-space:nowrap; }
+    .library-question-card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:11px 12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .library-q-main{min-width:0;flex:1}.library-q-title{font-size:12px;font-weight:900;color:#38bdf8;margin-bottom:4px}
+    .library-q-text{font-size:12px;color:#f8fafc;line-height:1.45;white-space:pre-wrap;max-height:58px;overflow:hidden}
+    .library-q-meta{font-size:10px;color:#64748b;margin-top:5px}.library-q-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .library-mini-btn{font-size:10px;padding:5px 8px;white-space:nowrap}.compact-pdf-table th,.compact-pdf-table td{padding:7px 8px}
+    @media(max-width:800px){.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}}
   </style>
 
 <style>
@@ -114,6 +120,14 @@
       <p style="font-size:12px; color:#94a3b8; margin:10px 0;">Share access to this group library by entering the teacher's email address below:</p>
       <input id="invite-teacher-email" class="pdf-input" placeholder="teacher@gmail.com" style="margin-bottom:10px;">
       <button class="tool-btn" style="background:#2563eb; width:100%; padding:10px;" onclick="sendGroupInvite()">📨 Send Invitation</button>
+    </div>
+  </div>
+
+  <!-- QUESTION IMAGE PREVIEW -->
+  <div id="question-image-modal" style="position:fixed; inset:0; background:rgba(0,0,0,.9); display:none; align-items:center; justify-content:center; z-index:120000; padding:18px;" onclick="if(event.target===this)closeQuestionImage()">
+    <div style="width:min(1000px,100%); max-height:92vh; background:#0b1120; border:2px solid #38bdf8; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><strong style="color:#38bdf8;font-size:14px;">🖼️ Question Image</strong><button class="tool-btn" style="background:#7f1d1d;" onclick="closeQuestionImage()">✕ Close</button></div>
+      <div style="background:#fff;border-radius:8px;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:8px;"><img id="question-image-preview" alt="Question Image" style="max-width:100%;max-height:78vh;object-fit:contain;"></div>
     </div>
   </div>
 
@@ -178,7 +192,15 @@
       </div>
 
       <!-- PDF LINKS SECTION INSIDE FOLDERS -->
-      <div id="pdf-links-section" style="display:none; background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:16px; margin-top:10px;">
+      <div id="library-questions-section" style="display:none; background:#090d16; border:1px solid #1e293b; border-radius:12px; padding:14px; margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">
+          <h4 style="color:#10b981; font-size:14px;">📝 Questions in this Folder</h4>
+          <input id="library-question-search" class="pdf-input" style="max-width:280px;" placeholder="Search uploaded questions..." oninput="renderLibraryQuestions()">
+        </div>
+        <div id="library-questions-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+      <div id="pdf-links-section" style="display:none; background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:12px; margin-top:10px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
           <h4 style="color:#38bdf8; font-size:14px;">📄 PDF Links & Files in this Folder</h4>
           <button class="tool-btn" style="background:#10b981;" onclick="addNewPdfRow()">+ Add PDF Link</button>
@@ -187,7 +209,7 @@
           <thead>
             <tr>
               <th>Document Title</th>
-              <th>PDF / Google Drive URL</th>
+              <th>PDF Link</th>
               <th style="width:140px; text-align:center;">Actions</th>
             </tr>
           </thead>
@@ -219,6 +241,7 @@
     let currentFolderPath = "";
     let pickerMode = new URLSearchParams(location.search).get('picker') === '1';
     let pickerQuestions = [];
+    let libraryQuestions = [];
 
     window.switchLibraryMode = async function(mode) {
       activeLibraryMode = mode;
@@ -434,11 +457,22 @@
       return '';
     }
     async function loadPickerQuestions(){
-      if(!pickerMode || !window.db) return;
+      if(!window.db) return;
       try{
         const snap=await window.getDocs(window.collection(window.db,"questions"));
-        pickerQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
-      }catch(e){ pickerQuestions=[]; console.error("Picker question load failed:",e); }
+        const all=snap.docs.map(d=>({id:d.id,...d.data()}));
+        pickerQuestions=all;
+        const email=teacherEmailKey();
+        libraryQuestions=all.filter(q=>{
+          const owner=String(q.ownerEmail||q.creatorEmail||'').trim().toLowerCase();
+          const path=String(q.subject||q.folderPath||q.path||'').trim();
+          if(!path) return false;
+          if(activeLibraryMode==='private') return owner===email;
+          if(activeLibraryMode==='central') return q.central===true || q.isCentral===true || q.libraryMode==='central' || q.targetLibrary==='central';
+          if(activeLibraryMode==='group') return q.group===true || q.libraryMode==='group' || q.targetLibrary==='group';
+          return false;
+        });
+      }catch(e){ pickerQuestions=[]; libraryQuestions=[]; console.error("Library question load failed:",e); }
     }
     function renderPickerQuestions(){
       const box=document.getElementById('picker-questions-section');
@@ -502,7 +536,65 @@
         cards.appendChild(empty);
       }
       renderPickerQuestions();
+      renderLibraryQuestions();
     }
+
+    function renderLibraryQuestions(){
+      const box=document.getElementById('library-questions-section');
+      const list=document.getElementById('library-questions-list');
+      if(!box || !list) return;
+      if(!currentFolderPath){ box.style.display='none'; list.innerHTML=''; return; }
+      box.style.display='block';
+      const term=(document.getElementById('library-question-search')?.value||'').toLowerCase().trim();
+      const rows=libraryQuestions.filter(q=>{
+        const path=String(q.subject||q.folderPath||q.path||'').trim();
+        const text=String(q.qText||q.text||q.questionText||q.question||'').toLowerCase();
+        return path===currentFolderPath && (!term || text.includes(term));
+      });
+      window._libraryRenderedQuestions=rows;
+      if(!rows.length){
+        list.innerHTML='<div style="padding:22px;text-align:center;color:#64748b;">No uploaded questions found in this folder.</div>';
+        return;
+      }
+      list.innerHTML=rows.map((q,i)=>{
+        const img=questionImage(q);
+        const pdfs=folderPdfs[currentFolderPath]||[];
+        const pdfBtns=pdfs.filter(p=>String(p.url||'').trim()).map((p,pi)=>
+          '<button class="tool-btn library-mini-btn" style="background:#2563eb;" onclick="openPdfLink('+i+','+pi+')">🔗 View PDF</button>'
+        ).join('');
+        return '<div class="library-question-card">'+
+          '<div class="library-q-main"><div class="library-q-title">Q'+escapeHtml(q.qNo??(i+1))+' · '+escapeHtml(q.qType||q.type||'MCQ')+'</div>'+
+          '<div class="library-q-text">'+escapeHtml(q.qText||q.text||q.questionText||'Image-based question')+'</div>'+
+          '<div class="library-q-meta">'+escapeHtml(q.marks??1)+' marks · '+escapeHtml(q.ownerEmail||q.creatorEmail||'')+'</div></div>'+
+          '<div class="library-q-actions">'+
+          (img?'<button class="tool-btn library-mini-btn" style="background:#059669;" onclick="openQuestionImage('+i+')">🖼️ Question Image</button>':'')+
+          (pdfBtns||'<span style="font-size:10px;color:#64748b;">No PDF link</span>')+
+          '</div></div>';
+      }).join('');
+    }
+
+    window.openQuestionImage=function(index){
+      const q=(window._libraryRenderedQuestions||[])[index];
+      const img=q&&questionImage(q);
+      if(!img) return alert('No question image is saved for this question.');
+      const overlay=document.getElementById('question-image-modal');
+      const image=document.getElementById('question-image-preview');
+      if(!overlay||!image)return;
+      image.src=img;
+      overlay.style.display='flex';
+    };
+    window.closeQuestionImage=function(){
+      const overlay=document.getElementById('question-image-modal');
+      if(overlay) overlay.style.display='none';
+      const image=document.getElementById('question-image-preview');
+      if(image) image.src='';
+    };
+    window.openPdfLink=function(questionIndex,pdfIndex){
+      const list=folderPdfs[currentFolderPath]||[];
+      const item=list[pdfIndex];
+      if(item&&item.url) window.open(item.url,'_blank','noopener,noreferrer');
+      else alert('PDF link is not available.');
+    };
 
     // PDF Link Management functions inside Folders
     window.addNewPdfRow = async function() {
@@ -599,6 +691,7 @@
         if (overlay) overlay.style.display = 'none';
       }
       await loadLibraryStateForCurrentMode();
+      await loadPickerQuestions();
       renderLibraryBrowser();
       if(pickerMode){
         const create=document.getElementById('create-folder-btn'); if(create) create.style.display='none';
