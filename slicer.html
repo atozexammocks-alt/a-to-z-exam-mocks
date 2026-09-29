@@ -292,6 +292,9 @@
     .multi-answer-control label { display:flex; align-items:center; gap:3px; padding:3px 4px; border:1px solid #334155; border-radius:4px; background:#0f172a; color:#cbd5e1; font-size:10px; }
     .multi-answer-control input { width:auto; }
     
+    .inline-slicer-btn { background:none; border:none; color:#10b981; cursor:pointer; padding:0 2px; font-size:11px; line-height:1; vertical-align:middle; }
+    .inline-slicer-btn:hover { color:#34d399; transform:scale(1.08); }
+
     .opt-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .opt-row { display: flex; flex-direction: column; gap: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 4px; }
     .opt-row span { font-weight: 800; color: #38bdf8; font-size: 10px; }
@@ -420,7 +423,7 @@
           </div>
         </div>
 
-        <label style="margin-top:2px;"><span>Question Text Note:</span></label>
+        <label style="margin-top:2px; display:flex; align-items:center; justify-content:space-between;"><span>Question Text Note:</span><button type="button" class="inline-slicer-btn" title="Slice into Question Text" onclick="window.setCropTarget('qtext')">✂️</button></label>
         <textarea id="vault-q-text" rows="2" placeholder="Question statement text..."></textarea>
         
         <label style="color:#38bdf8; margin-top:2px; display:flex; justify-content:space-between;">
@@ -442,22 +445,15 @@
           <button onclick="window.clearMainOptions()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:9px; font-weight:bold;">🗑️ Clear Options</button>
         </label>
         <div class="opt-grid-2x2">
-          <div class="opt-row"><span>(A)</span><input type="text" id="opt-a" placeholder="Option A"></div>
-          <div class="opt-row"><span>(B)</span><input type="text" id="opt-b" placeholder="Option B"></div>
-          <div class="opt-row"><span>(C)</span><input type="text" id="opt-c" placeholder="Option C"></div>
-          <div class="opt-row"><span>(D)</span><input type="text" id="opt-d" placeholder="Option D"></div>
+          <div class="opt-row"><span>(A) <button type="button" class="inline-slicer-btn" title="Slice into Option A" onclick="window.setCropTarget('opta')">✂️</button></span><input type="text" id="opt-a" placeholder="Option A"></div>
+          <div class="opt-row"><span>(B) <button type="button" class="inline-slicer-btn" title="Slice into Option B" onclick="window.setCropTarget('optb')">✂️</button></span><input type="text" id="opt-b" placeholder="Option B"></div>
+          <div class="opt-row"><span>(C) <button type="button" class="inline-slicer-btn" title="Slice into Option C" onclick="window.setCropTarget('optc')">✂️</button></span><input type="text" id="opt-c" placeholder="Option C"></div>
+          <div class="opt-row"><span>(D) <button type="button" class="inline-slicer-btn" title="Slice into Option D" onclick="window.setCropTarget('optd')">✂️</button></span><input type="text" id="opt-d" placeholder="Option D"></div>
         </div>
       </div>
 
-      <div class="slot-group" style="grid-template-columns:repeat(4,1fr);">
-        <button class="target-btn active" data-target="question">✂️ Q Image</button>
-        <button class="target-btn" data-target="qtext">📝 Q Text</button>
-        <button class="target-btn" data-target="opta">A Crop</button>
-        <button class="target-btn" data-target="optb">B Crop</button>
-        <button class="target-btn" data-target="optc">C Crop</button>
-        <button class="target-btn" data-target="optd">D Crop</button>
-        <button class="target-btn" data-target="solution">💡 Solution</button>
-        <button class="target-btn" type="button" onclick="window.clearCropTarget()">Clear Target</button>
+      <div class="crop-target-status" style="display:flex;align-items:center;justify-content:flex-end;margin-top:3px;">
+        <span id="crop-target-label" style="font-size:9px;color:#64748b;">✂️ Crop target: Question</span>
       </div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
@@ -1097,13 +1093,14 @@
       if (sBox) sBox.innerHTML = solutionParts.length ? `<img src="${await stitchImages(solutionParts)}">` : `<span style="font-size:9px; color:#64748b;">Empty</span>`;
     };
 
-    window.clearCropTarget = function() {
-      document.querySelectorAll('.target-btn').forEach(btn => btn.classList.remove('active'));
-      const first = document.querySelector('.target-btn[data-target="question"]');
-      if (first) first.classList.add('active');
-      activeTarget = 'question';
-      showToast("✂️ Crop target reset to Question Image.");
+    window.setCropTarget = function(target) {
+      activeTarget = target;
+      const names = { question:'Question', qtext:'Question Text', opta:'Option A', optb:'Option B', optc:'Option C', optd:'Option D', solution:'Solution' };
+      const label = document.getElementById('crop-target-label');
+      if (label) label.textContent = '✂️ Crop target: ' + (names[target] || 'Question');
+      showToast('✂️ Crop target: ' + (names[target] || 'Question'));
     };
+    window.clearCropTarget = function() { window.setCropTarget('question'); };
 
 window.clearTarget = function(t) { 
       if (t === 'question') {
