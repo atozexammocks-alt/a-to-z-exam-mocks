@@ -204,8 +204,23 @@ window.addFolderForCurrentLibrary=async function(kind){
             if (!parentPath) { alert('Please select the parent folder first.'); renderSlicerFolderPathSelectors(); return; }
             const name = (prompt('Add Folder inside: ' + parentPath + '\nEnter folder name:') || '').trim();
             if (!name) { renderSlicerFolderPathSelectors(); return; }
-            const parent = findNodeByPath(parentPath);
-            if (!parent) { alert('Selected folder was not found.'); renderSlicerFolderPathSelectors(); return; }
+            // Resolve the parent directly from the currently selected dropdown nodes.
+            // Do not depend on the text path resolver here; after repeated nested additions
+            // the path string can be stale while the tree itself is correct.
+            let parentNodes = libraryTree;
+            let parent = null;
+            for (const part of parentParts) {
+              parent = (Array.isArray(parentNodes) ? parentNodes : []).find(
+                n => String(n.name || '').trim().toLowerCase() === String(part || '').trim().toLowerCase()
+              );
+              if (!parent) break;
+              parentNodes = Array.isArray(parent.children) ? parent.children : [];
+            }
+            if (!parent) {
+              alert('Selected parent folder was not found. Please select the parent again.');
+              renderSlicerFolderPathSelectors();
+              return;
+            }
             parent.children = Array.isArray(parent.children) ? parent.children : [];
             if (parent.children.some(n => String(n.name || '').trim().toLowerCase() === name.toLowerCase())) { alert('Folder already exists here.'); renderSlicerFolderPathSelectors(); return; }
             parent.children.push({id:'f_'+Date.now(),name,type:'folder',children:[]});
