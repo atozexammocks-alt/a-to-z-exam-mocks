@@ -181,8 +181,27 @@ window.addFolderForCurrentLibrary=async function(kind){
         select.onchange = async function() {
           const chosen = this.value;
           if (chosen === '__A2Z_ADD_SUBFOLDER__') {
-            const parentPath = String(slicerSelectedFolderPath || '').split(' / ').filter(Boolean).slice(0, level).join(' / ');
-            if (!parentPath) { alert('Please select a Main Folder first.'); renderSlicerFolderPathSelectors(); return; }
+            // Build the parent strictly from the dropdowns that are actually selected
+            // before this dropdown. This keeps Add Folder at the SAME level (parallel sibling)
+            // instead of accidentally nesting it inside the currently selected folder.
+            let parentParts = [];
+            if (level > 0) {
+              const previousSelects = Array.from(wrap.querySelectorAll('select.folder-level-select')).slice(0, level);
+              parentParts = previousSelects.map(s => String(s.value || '').trim()).filter(Boolean);
+            }
+            const parentPath = parentParts.join(' / ');
+            if (level === 0) {
+              const name = (prompt('Add Main Folder\\nEnter folder name:') || '').trim();
+              if (!name) { renderSlicerFolderPathSelectors(); return; }
+              if (libraryTree.some(n => String(n.name || '').trim().toLowerCase() === name.toLowerCase())) {
+                alert('Folder already exists here.'); renderSlicerFolderPathSelectors(); return;
+              }
+              libraryTree.push({id:'f_'+Date.now(),name,type:'folder',children:[]});
+              slicerSelectedFolderPath = name;
+              rebuildFlatFoldersFromTree(); renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
+              await window.saveFolderRegistryToCloud(); return;
+            }
+            if (!parentPath) { alert('Please select the parent folder first.'); renderSlicerFolderPathSelectors(); return; }
             const name = (prompt('Add Folder inside: ' + parentPath + '\nEnter folder name:') || '').trim();
             if (!name) { renderSlicerFolderPathSelectors(); return; }
             const parent = findNodeByPath(parentPath);
