@@ -1388,5 +1388,180 @@ window.clearTarget = function(t) {
       window.initSlicerStudio();
     });
   </script>
+
+<!-- A2Z Sequential Setup Flow -->
+<style>
+  #a2z-seq-overlay{position:absolute;inset:0;background:rgba(3,7,18,.97);z-index:50000;display:flex;align-items:flex-start;justify-content:center;padding:12px;overflow:auto}
+  #a2z-seq-card{width:min(100%,430px);margin:auto;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.65);padding:14px}
+  #a2z-seq-card h3{font-size:15px;color:#f8fafc;margin-bottom:4px}
+  #a2z-seq-card .seq-sub{font-size:10px;color:#94a3b8;margin-bottom:12px}
+  .seq-step{display:none}.seq-step.active{display:block}
+  .seq-progress{display:flex;gap:5px;margin-bottom:12px}.seq-dot{flex:1;height:4px;border-radius:8px;background:#1e293b}.seq-dot.active{background:#10b981}
+  .seq-library-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+  .seq-lib{min-height:42px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;border-radius:7px;font-size:10px;font-weight:800;cursor:pointer}
+  .seq-lib.active{background:#10b981;color:#001b12;border-color:#10b981}
+  .seq-folder-list{display:flex;flex-direction:column;gap:5px;max-height:330px;overflow:auto}
+  .seq-folder{width:100%;text-align:left;padding:8px 9px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:7px;cursor:pointer;font-size:10px;font-weight:700}
+  .seq-folder:hover{border-color:#10b981}.seq-folder.selected{border-color:#10b981;background:#064e3b;color:#d1fae5}
+  .seq-folder-path{margin-top:7px;padding:7px;border:1px solid #1e293b;background:#060911;border-radius:6px;color:#10b981;font-size:10px;font-weight:800;word-break:break-word}
+  .seq-actions{display:flex;gap:6px;margin-top:10px}.seq-btn{flex:1;padding:8px;border-radius:7px;border:1px solid #334155;background:#1e293b;color:white;font-size:10px;font-weight:800;cursor:pointer}.seq-btn.primary{background:#10b981;color:#001b12;border-color:#10b981}.seq-btn:disabled{opacity:.4;cursor:not-allowed}
+  .seq-empty{padding:15px;text-align:center;border:1px dashed #334155;border-radius:7px;color:#64748b;font-size:10px}
+  .seq-add{margin-top:7px;width:100%;padding:7px;border:1px dashed #10b981;background:#081a18;color:#6ee7b7;border-radius:7px;font-size:10px;font-weight:800;cursor:pointer}
+  .seq-fields{display:grid;grid-template-columns:1fr 1fr;gap:7px}.seq-field{display:flex;flex-direction:column;gap:3px}.seq-field label{font-size:9px;color:#94a3b8;font-weight:800}.seq-field input,.seq-field select{width:100%;padding:7px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:white;font-size:11px}
+  .seq-note{margin-top:9px;padding:7px;border-radius:6px;background:#08111f;border:1px solid #1e293b;color:#94a3b8;font-size:9px;line-height:1.4}
+  @media(max-width:700px){.seq-library-grid{grid-template-columns:1fr}.seq-folder-list{max-height:260px}}
+</style>
+<script>
+(function(){
+  let seqStep=1, seqLibrary='private', seqFolder='';
+  const hostId='a2z-seq-overlay';
+
+  function esc(v){return String(v||'').replace(/[&<>"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));}
+
+  function flattenFolders(nodes,path=''){
+    const out=[];
+    (nodes||[]).forEach(n=>{
+      const name=String(n.name||'').trim(); if(!name)return;
+      const p=path?path+' / '+name:name;
+      out.push({name,path:p,depth:path?path.split(' / ').length:0});
+      if(Array.isArray(n.children)&&n.children.length) out.push(...flattenFolders(n.children,p));
+    });
+    return out;
+  }
+
+  async function refreshLibrary(){
+    if(typeof window.loadSlicerLibraryMode==='function') await window.loadSlicerLibraryMode(seqLibrary);
+    seqFolder='';
+    render();
+  }
+
+  async function addFolder(){
+    const parent=seqFolder;
+    const label=parent?'Sub Folder name:':'Main Folder name:';
+    const name=(prompt(label)||'').trim();
+    if(!name)return;
+    const id='f_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+    if(parent){
+      const node=window.findNodeByPathForSeq ? window.findNodeByPathForSeq(parent) : null;
+      if(!node){alert('Please select a valid parent folder.');return;}
+      node.children=Array.isArray(node.children)?node.children:[];
+      if(node.children.some(n=>String(n.name||'').trim().toLowerCase()===name.toLowerCase())){alert('Folder already exists.');return;}
+      node.children.push({id,name,type:'folder',children:[]});
+      seqFolder=parent+' / '+name;
+    }else{
+      if((window.__a2zLibraryTree||[]).some(n=>String(n.name||'').trim().toLowerCase()===name.toLowerCase())){alert('Folder already exists.');return;}
+      window.__a2zLibraryTree=window.__a2zLibraryTree||[];
+      window.__a2zLibraryTree.push({id,name,type:'folder',children:[]});
+      seqFolder=name;
+    }
+    if(typeof window.saveFolderRegistryToCloud==='function') await window.saveFolderRegistryToCloud();
+    render();
+  }
+
+  function chooseFolder(path){seqFolder=path;render();}
+
+  function setStep(n){seqStep=n;render();}
+
+  function render(){
+    const o=document.getElementById(hostId); if(!o)return;
+    const tree=window.__a2zLibraryTree||[];
+    const folders=flattenFolders(tree);
+    const hasFolders=folders.length>0;
+    const dots=[1,2,3].map(n=>'<span class="seq-dot '+(n<=seqStep?'active':'')+'"></span>').join('');
+    let body='';
+
+    if(seqStep===1){
+      body='<div class="seq-step active"><h3>Choose Library</h3><div class="seq-sub">पहले तय करें question कहाँ save होगा.</div>'+
+        '<div class="seq-library-grid">'+
+        [['private','🔒 Private Library'],['central','📁 Central Library'],['group','🤝 Group Library']].map(x=>'<button class="seq-lib '+(seqLibrary===x[0]?'active':'')+'" data-lib="'+x[0]+'">'+x[1]+'</button>').join('')+
+        '</div><div class="seq-actions"><button class="seq-btn primary" id="seq-lib-next">Continue →</button></div></div>';
+    }else if(seqStep===2){
+      body='<div class="seq-step active"><h3>Choose Folder</h3><div class="seq-sub">'+esc(seqLibrary==='central'?'Central Library':seqLibrary==='group'?'Group Library':'Private Library')+' — main folder → subfolder → exact location.</div>'+
+        '<div class="seq-folder-list">'+(hasFolders?folders.map(f=>'<button class="seq-folder '+(seqFolder===f.path?'selected':'')+'" data-folder="'+esc(f.path)+'">'+(f.depth?'↳ ':'📁 ')+esc(f.name)+'<div style="font-size:8px;color:#64748b;margin-top:2px">'+esc(f.path)+'</div></button>').join(''):'<div class="seq-empty">No folders found in this library yet.</div>')+'</div>'+
+        '<button class="seq-add" id="seq-add-folder">＋ Add '+(seqFolder?'Sub Folder':'Main Folder')+'</button>'+
+        '<div class="seq-folder-path">'+(seqFolder?'📍 Location: '+esc(seqFolder):'📍 Location: Not selected')+'</div>'+
+        '<div class="seq-actions"><button class="seq-btn" id="seq-back">← Back</button><button class="seq-btn primary" id="seq-folder-next" '+(seqFolder?'':'disabled')+'>Continue →</button></div></div>';
+    }else{
+      body='<div class="seq-step active"><h3>Question Details</h3><div class="seq-sub">अब question number और type चुनें. बाकी controls उसके बाद खुलेंगे.</div>'+
+        '<div class="seq-fields"><div class="seq-field"><label>Question No.</label><input id="seq-qno" type="number" min="1" value="'+esc(document.getElementById('vault-qno')?.value||'1')+'"></div>'+
+        '<div class="seq-field"><label>Question Type</label><select id="seq-qtype">'+
+        '<option value="mcq">MCQ (Single)</option><option value="mcq_multi">MCQ (Multi)</option><option value="very_short">Very Short</option><option value="short">Short Answer</option><option value="long">Long Answer</option><option value="numerical">Numerical</option><option value="fill_blank">Fill in the Blank</option><option value="assertion">Assertion</option><option value="passage">Passage</option></select></div></div>'+
+        '<div class="seq-note">📍 '+esc(seqFolder)+'<br>Library: '+esc(seqLibrary==='central'?'Central':seqLibrary==='group'?'Group':'Private')+'</div>'+
+        '<div class="seq-actions"><button class="seq-btn" id="seq-back">← Back</button><button class="seq-btn primary" id="seq-start">Start Question →</button></div></div>';
+    }
+
+    o.innerHTML='<div id="a2z-seq-card"><div class="seq-progress">'+dots+'</div>'+body+'</div>';
+
+    o.querySelectorAll('[data-lib]').forEach(b=>b.onclick=async()=>{seqLibrary=b.dataset.lib;await refreshLibrary();});
+    o.querySelectorAll('[data-folder]').forEach(b=>b.onclick=()=>chooseFolder(b.dataset.folder));
+    o.querySelector('#seq-lib-next')?.addEventListener('click',()=>setStep(2));
+    o.querySelector('#seq-back')?.addEventListener('click',()=>setStep(seqStep-1));
+    o.querySelector('#seq-folder-next')?.addEventListener('click',()=>setStep(3));
+    o.querySelector('#seq-add-folder')?.addEventListener('click',addFolder);
+    o.querySelector('#seq-start')?.addEventListener('click',()=>{
+      const qn=o.querySelector('#seq-qno')?.value||'1', qt=o.querySelector('#seq-qtype')?.value||'mcq';
+      const qne=document.getElementById('vault-qno'), qte=document.getElementById('vault-q-type');
+      if(qne)qne.value=qn;if(qte){qte.value=qt;qte.dispatchEvent(new Event('change',{bubbles:true}));}
+      const selectedLabel=document.getElementById('slicer-selected-folder-path');if(selectedLabel)selectedLabel.textContent='Saving to: '+seqFolder;
+      document.getElementById(hostId).style.display='none';
+      const right=document.getElementById('slicer-right'); if(right)right.dataset.setupComplete='true';
+      right?.querySelectorAll('.meta-box,.crop-target-status,.preview-card,.slicer-save-actions').forEach(el=>el.style.display='');
+    });
+  }
+
+  function install(){
+    const right=document.getElementById('slicer-right'); if(!right)return;
+    let old=right.querySelector('#a2z-seq-overlay'); if(old)old.remove();
+    const oldChildren=[...right.children];
+    oldChildren.forEach(el=>{if(el.id!=='a2z-seq-overlay')el.dataset.seqOriginalDisplay=el.style.display;});
+    const host=document.createElement('div');host.id=hostId;right.style.position='relative';right.appendChild(host);
+    right.querySelectorAll(':scope > *:not(#a2z-seq-overlay)').forEach(el=>el.style.display='none');
+
+    window.findNodeByPathForSeq=function(path){
+      const parts=String(path||'').split(' / ').filter(Boolean);let nodes=window.__a2zLibraryTree||[],node=null;
+      for(const part of parts){node=(nodes||[]).find(n=>String(n.name||'').trim().toLowerCase()===part.trim().toLowerCase());if(!node)return null;nodes=Array.isArray(node.children)?node.children:[];}
+      return node;
+    };
+
+    const originalLoad=window.loadSlicerLibraryMode;
+    window.loadSlicerLibraryMode=async function(mode){
+      const result=await originalLoad(mode);
+      window.__a2zLibraryTree=Array.isArray(window.__a2zGetLibraryTree?.())?window.__a2zGetLibraryTree():[];
+      return result;
+    };
+
+    window.__a2zGetLibraryTree=function(){return window.__a2zLibraryTree||[];};
+
+    // Keep the global tree reference synchronized after each library load.
+    const syncTimer=setInterval(()=>{
+      if(typeof libraryTree!=='undefined'){} 
+      const selector=document.getElementById('slicer-library-selector');
+      const current=selector?.querySelector('.library-tab.active')?.dataset.library;
+      if(current && current===seqLibrary){
+        // read folder DOM as fallback; actual tree is synced by patched loader below
+      }
+    },500);
+    setTimeout(()=>clearInterval(syncTimer),3000);
+
+    // Rebind using a safe wrapper that captures the module's library tree through rendered folder selectors.
+    const originalRender=window.renderSlicerFolderPathSelectors;
+    window.renderSlicerFolderPathSelectors=function(){
+      const result=originalRender.apply(this,arguments);
+      const wrap=document.getElementById('slicer-folder-path-selectors');
+      const paths=[...wrap?.querySelectorAll('.folder-level-select')||[]].map(s=>s.value).filter(Boolean);
+      if(paths.length && !window.__a2zLibraryTree?.length) window.__a2zLibraryTree=paths.map(name=>({name,children:[]}));
+      return result;
+    };
+
+    // Start with the current private tree represented by the existing folder selector.
+    const initialPaths=[...document.querySelectorAll('#slicer-folder-path-selectors .folder-level-select')].map(s=>s.value).filter(Boolean);
+    window.__a2zLibraryTree=initialPaths.map(name=>({name,children:[]}));
+    render();
+  }
+
+  window.addEventListener('DOMContentLoaded',()=>setTimeout(install,250));
+})();
+</script>
+
 </body>
 </html>
