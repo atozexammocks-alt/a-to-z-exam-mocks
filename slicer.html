@@ -1458,15 +1458,9 @@ window.clearTarget = function(t) {
       };
     }
 
-    window.addEventListener('DOMContentLoaded', async () => {
-      const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-      if (!savedEmail) { window.location.href = 'teacher.html'; return; }
-      window.currentTeacherEmail = savedEmail;
-      const userTag = document.getElementById('current-user-tag');
-      if (userTag) userTag.textContent = savedEmail;
-      await loadLibraryState();
-      window.initSlicerStudio();
-    });
+    // Initialization is handled by the single DOMContentLoaded listener in the Firebase module above.
+    // Keeping a second loader here caused concurrent Firestore reads to overwrite libraryTree
+    // while a nested folder was being created, producing "Selected parent folder was not found".
   </script>
 
 
