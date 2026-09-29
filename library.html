@@ -86,8 +86,8 @@
     .library-q-main{min-width:0;flex:1}.library-q-title{font-size:12px;font-weight:900;color:#38bdf8;margin-bottom:4px}
     .library-q-text{font-size:13px;color:#f8fafc;line-height:1.55;white-space:pre-wrap;overflow:visible}
     .library-q-options{margin-top:8px;font-size:12px;color:#cbd5e1;line-height:1.55}.library-q-meta{font-size:10px;color:#64748b;margin-top:7px}.library-q-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-    .library-mini-btn{font-size:10px;padding:6px 9px;white-space:nowrap}.library-top-action{flex-shrink:0}
-    @media(max-width:800px){.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}.folder-actions{display:none}}
+    .library-mini-btn{font-size:10px;padding:6px 9px;white-space:nowrap}.library-top-action{flex-shrink:0}.library-address{font-size:11px;font-weight:800;color:#38bdf8;min-width:150px;max-width:32vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.library-view-label{font-size:10px;font-weight:800;color:#64748b}.library-top-action{flex-shrink:0}
+    @media(max-width:800px){.library-address{min-width:110px;max-width:28vw}.library-view-label{display:none}.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}.folder-actions{display:none}}
   </style>
 
 <style>
@@ -166,12 +166,17 @@
   </div>
 
   <!-- INDEPENDENT LIBRARY MODE SWITCHER -->
-  <div class="library-mode-bar">
-    <span style="font-size: 11px; font-weight: bold; color: #94a3b8;"><i class="fa-solid fa-layer-group"></i> Library Views:</span>
-    <button class="lib-mode-tab active" id="mode-tab-private" onclick="switchLibraryMode('private')">🔒 Private / My Library</button>
-    <button class="lib-mode-tab" id="mode-tab-central" onclick="switchLibraryMode('central')">📁 Central Library</button>
-    <button class="lib-mode-tab" id="mode-tab-group" onclick="switchLibraryMode('group')">🤝 Group Library</button>
-    <button id="group-invite-btn" class="tool-btn" style="background:#7c3aed; margin-left:auto; display:none;" onclick="openLibraryAccessModal()">👥 Invite Teacher</button>
+  <div class="library-mode-bar" id="library-control-bar">
+    <button id="back-nav-btn" class="tool-btn library-top-action" style="background:#334155;display:none;" onclick="goBackFolder()">⬅ Back</button>
+    <div class="library-address" id="library-main-title">📚 Private Library</div>
+    <span class="library-view-label">Library Views:</span>
+    <button class="lib-mode-tab active" id="mode-tab-private" onclick="switchLibraryMode('private')">🔒 Private</button>
+    <button class="lib-mode-tab" id="mode-tab-central" onclick="switchLibraryMode('central')">📁 Central</button>
+    <button class="lib-mode-tab" id="mode-tab-group" onclick="switchLibraryMode('group')">🤝 Group</button>
+    <button id="view-pdf-btn" class="tool-btn library-top-action" style="display:none;background:#2563eb;" onclick="viewCurrentFolderPdf()">🔗 PDF</button>
+    <button id="view-image-btn" class="tool-btn library-top-action" style="display:none;background:#059669;" onclick="viewCurrentFolderImages()">🖼️ Images</button>
+    <button id="create-folder-btn" class="tool-btn library-top-action" style="background:#2563eb;white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
+    <button id="group-invite-btn" class="tool-btn library-top-action" style="background:#7c3aed;display:none;" onclick="openLibraryAccessModal()">👥 Invite</button>
   </div>
 
   <!-- LIBRARY VIEW SCREEN -->
@@ -620,6 +625,7 @@
           '<div class="library-q-main">'+
           '<div class="library-q-title">Q'+escapeHtml(q.qNo??q.questionNo??(i+1))+' · '+escapeHtml(type)+' · '+escapeHtml(marks)+' marks</div>'+
           '<div class="library-q-text">'+escapeHtml(text||'Question text not found in saved record.')+'</div>'+
+          (img?'<div style="margin-top:10px;background:#fff;border-radius:8px;padding:6px;text-align:center;"><img src="'+escapeHtml(img)+'" alt="Question image" style="max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain;display:block;margin:auto;"></div>':'')+
           (opts.length?'<div class="library-q-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+escapeHtml(o)+'</div>').join('')+'</div>':'')+
           '<div class="library-q-meta">'+escapeHtml(q.ownerEmail||q.creatorEmail||'')+'</div>'+
           '</div>'+
