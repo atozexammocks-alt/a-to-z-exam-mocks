@@ -589,7 +589,18 @@ window.addFolderForCurrentLibrary=async function(kind){
     let slicerSelectedFolderPath = '';
 
     function getSlicerFolderPathFromSelectors() {
-      return slicerSelectedFolderPath || '';
+      const box = document.getElementById('slicer-folder-path-selectors');
+      if (box) {
+        const values = Array.from(box.querySelectorAll('select.folder-level-select'))
+          .map(s => String(s.value || '').trim())
+          .filter(Boolean);
+        if (values.length) {
+          const livePath = values.join(' / ');
+          slicerSelectedFolderPath = livePath;
+          return livePath;
+        }
+      }
+      return String(slicerSelectedFolderPath || '').trim();
     }
 
     function getChildrenForPath(path) {
