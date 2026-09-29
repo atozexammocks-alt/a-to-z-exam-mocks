@@ -274,6 +274,8 @@ window.addFolderForCurrentLibrary=async function(kind){
       updateSlicerFolderPathLabel();
     }
 
+    window.renderSlicerFolderPathSelectors = renderSlicerFolderPathSelectors;
+
     window.initSlicerStudio = async function() { wireSlicerLibraryTabs(); wireSlicerFolderButtons(); await loadSlicerLibraryMode(slicerLibraryMode);
       slicerSelectedFolderPath = '';
       renderSlicerFolderPathSelectors();
@@ -590,219 +592,8 @@ window.addFolderForCurrentLibrary=async function(kind){
 
     let activeFlags = { red: false, blue: false, green: false, yellow: false };
     let ocrOnlyMode = false;
-    let libraryTree = [];
-    let folderPdfs = {};
-    let mainFolders = [];
-    let subFolders = {};
-
+    // Folder/library state and folder operations are owned by the Firebase module above.
     const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-    const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
-
-    function rebuildFlatFoldersFromTree() {
-      mainFolders = libraryTree.map(n => String(n.name || '').trim()).filter(Boolean);
-      subFolders = {};
-      const collect = (nodes, root, rel = []) => {
-        (nodes || []).forEach(n => {
-          const name = String(n.name || '').trim();
-          if (!name) return;
-          const next = rel.concat(name);
-          subFolders[root] = subFolders[root] || [];
-          subFolders[root].push(next.join(' / '));
-          collect(n.children || [], root, next);
-        });
-      };
-      libraryTree.forEach(root => collect(root.children || [], String(root.name || '').trim(), []));
-    }
-
-    async function loadLibraryState() {
-      try {
-        const privateSnap = await window.getDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())));
-        const privateData = privateSnap.exists() ? privateSnap.data() : {};
-
-        libraryTree = Array.isArray(privateData.libraryTree) ? privateData.libraryTree : [];
-        folderPdfs = (privateData.folderPdfs && typeof privateData.folderPdfs === "object") ? { ...privateData.folderPdfs } : {};
-
-        if (!libraryTree.length && Array.isArray(privateData.mainFolders)) {
-          libraryTree = privateData.mainFolders.map(name => ({
-            id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
-            name: String(name).trim(),
-            type: "folder",
-            children: (Array.isArray(privateData.subFolders?.[name]) ? privateData.subFolders[name] : []).map(s => ({
-              id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9),
-              name: String(s).trim(),
-              type: "folder",
-              children: []
-            }))
-          }));
-        }
-
-        rebuildFlatFoldersFromTree();
-      } catch (e) { console.error("Slicer library registry load failed:", e); }
-    }
-
-    function findNodeByPath(path) {
-      const parts = String(path || '').split(' / ').map(s => s.trim()).filter(Boolean);
-      if (!parts.length) return null;
-      let nodes = libraryTree;
-      let node = null;
-      for (const part of parts) {
-        node = (nodes || []).find(n => String(n.name || '').trim().toLowerCase() === part.toLowerCase());
-        if (!node) return null;
-        nodes = Array.isArray(node.children) ? node.children : [];
-      }
-      return node;
-    }
-
-    let slicerSelectedFolderPath = '';
-
-    function getSlicerFolderPathFromSelectors() {
-      const box = document.getElementById('slicer-folder-path-selectors');
-      if (box) {
-        const values = Array.from(box.querySelectorAll('select.folder-level-select'))
-          .map(s => String(s.value || '').trim())
-          .filter(Boolean);
-        if (values.length) {
-          const livePath = values.join(' / ');
-          slicerSelectedFolderPath = livePath;
-          return livePath;
-        }
-      }
-      return String(slicerSelectedFolderPath || '').trim();
-    }
-
-    function getChildrenForPath(path) {
-      if (!path) return libraryTree;
-      const node = findNodeByPath(path);
-      return node && Array.isArray(node.children) ? node.children : [];
-    }
-
-    window.renderSlicerFolderPathSelectors = function() {
-      const box = document.getElementById('slicer-folder-path-selectors');
-      if (!box) return;
-      box.innerHTML = '';
-      const selectedParts = slicerSelectedFolderPath ? slicerSelectedFolderPath.split(' / ').filter(Boolean) : [];
-      let nodes = libraryTree;
-      let built = [];
-
-      while (Array.isArray(nodes) && nodes.length) {
-        const level = built.length;
-        const row = document.createElement('div');
-        row.className = 'folder-level';
-        const label = document.createElement('span');
-        label.className = 'folder-level-label';
-        label.textContent = level === 0 ? 'Main Folder' : (level === 1 ? 'Sub Folder' : 'Nested Folder ' + level);
-
-        const sel = document.createElement('select');
-        sel.className = 'folder-level-select';
-
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = level === 0 ? 'Select Main Folder' : '— Save in ' + built[built.length - 1] + ' —';
-        sel.appendChild(placeholder);
-
-        nodes.forEach(n => {
-          const name = String(n.name || '').trim();
-          if (!name) return;
-          const opt = document.createElement('option');
-          opt.value = name;
-          opt.textContent = name;
-          sel.appendChild(opt);
-        });
-
-        if (selectedParts[level] && nodes.some(n => String(n.name || '').trim() === selectedParts[level])) {
-          sel.value = selectedParts[level];
-        } else {
-          sel.value = '';
-        }
-
-        sel.onchange = () => {
-          const chosen = sel.value;
-          const nextParts = built.slice(0, level);
-          if (chosen) nextParts.push(chosen);
-          slicerSelectedFolderPath = nextParts.join(' / ');
-          window.renderSlicerFolderPathSelectors();
-          window.updateSlicerFolderPathLabel();
-        };
-
-        row.appendChild(label);
-        row.appendChild(sel);
-        box.appendChild(row);
-
-        if (!sel.value) break;
-        built.push(sel.value);
-        const node = findNodeByPath(built.join(' / '));
-        nodes = node && Array.isArray(node.children) ? node.children : [];
-      }
-
-      window.updateSlicerFolderPathLabel();
-    };
-
-    window.applySlicerFolderSelections = function(targetPath) {
-      slicerSelectedFolderPath = String(targetPath || '').trim();
-      window.renderSlicerFolderPathSelectors();
-    };
-
-    window.updateSlicerFolderPathLabel = function() {
-      const label = document.getElementById('slicer-selected-folder-path');
-      const path = getSlicerFolderPathFromSelectors();
-      if (label) label.textContent = path ? 'Saving to: ' + path : 'No folder selected';
-    };
-
-    window.initSlicerStudio = function() {
-      const box = document.getElementById('slicer-folder-path-selectors');
-      if (!box) return;
-      if (!slicerSelectedFolderPath && mainFolders.length) slicerSelectedFolderPath = mainFolders[0];
-      if (slicerSelectedFolderPath && !findNodeByPath(slicerSelectedFolderPath)) slicerSelectedFolderPath = mainFolders[0] || '';
-      window.renderSlicerFolderPathSelectors();
-    };
-
-    window.populateSlicerSubDropdown = function() { window.renderSlicerFolderPathSelectors(); };
-    window.onSlicerMainFolderChange = function() { window.renderSlicerFolderPathSelectors(); };
-
-    function findTreeNodeByName(name) {
-      return libraryTree.find(n => String(n.name || '').trim().toLowerCase() === String(name).trim().toLowerCase());
-    }
-
-    window.addNewFolderDynamic = async function() {
-      const type = prompt("क्या जोड़ना चाहते हैं? टाइप करें:\n1 -> Main Folder\n2 -> Sub Folder");
-      if (type === "1") {
-        const newMain = (prompt("नया Main Folder नाम डालें:") || "").trim();
-        if (newMain && !findTreeNodeByName(newMain)) {
-          libraryTree.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newMain, type: "folder", children: [] });
-          rebuildFlatFoldersFromTree();
-          window.initSlicerStudio();
-          const saved = await window.saveFolderRegistryToCloud();
-          if (saved) showToast("✔ Main Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
-        }
-      } else if (type === "2") {
-        const currentMain = document.getElementById('vault-main-cat').value;
-        if (!currentMain) return alert("Please select a main folder first!");
-        const newSub = (prompt(`"${currentMain}" के लिए नया Sub Folder नाम डालें:`) || "").trim();
-        const parent = findTreeNodeByName(currentMain);
-        if (newSub && parent) {
-          parent.children = Array.isArray(parent.children) ? parent.children : [];
-          if (!parent.children.some(n => String(n.name || '').trim().toLowerCase() === newSub.toLowerCase())) {
-            parent.children.push({ id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9), name: newSub, type: "folder", children: [] });
-            rebuildFlatFoldersFromTree();
-            window.populateSlicerSubDropdown(currentMain);
-            const saved = await window.saveFolderRegistryToCloud();
-            if (saved) showToast("✔ Sub Folder Successfully Added!"); else alert("Failed to save folder to cloud.");
-          }
-        }
-      }
-    };
-
-    window.saveFolderRegistryToCloud = async function() {
-      try {
-        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
-          ownerEmail: teacherEmailKey(),
-          libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
-          folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
-          updatedAt: new Date().toISOString()
-        });
-        return true;
-      } catch(e) { console.error(e); return false; }
-    };
 
     window.toggleOcrOnlyMode = function() {
       ocrOnlyMode = !ocrOnlyMode;
@@ -1426,7 +1217,9 @@ window.clearTarget = function(t) {
           localStorage.removeItem('Temp_Fallback_OptC');
           localStorage.removeItem('Temp_Fallback_OptD');
 
-          questionParts = []; solutionParts = []; window.renderLivePreviews();
+          questionParts = []; solutionParts = [];
+          window.setCropTarget('question');
+          window.renderLivePreviews();
           if (qTextEl) qTextEl.value = '';
           ['opt-a', 'opt-b', 'opt-c', 'opt-d', 'vault-free-ocr'].forEach(id => {
             const el = document.getElementById(id);
@@ -1461,16 +1254,5 @@ window.clearTarget = function(t) {
   </script>
 
 
-<script>
-(function(){
-const names={private:'Private Library',central:'Central Library',group:'Group Library'};
-window.updateSlicerLibraryPickerLabel=function(){const e=document.getElementById('a2z-library-select');if(e)e.value=window.__a2zSelectedLibrary||'private';};
-document.addEventListener('DOMContentLoaded',function(){
-window.__a2zSelectedLibrary=window.__a2zSelectedLibrary||'private';
-const sel=document.getElementById('a2z-library-select');
-if(sel){sel.value=window.__a2zSelectedLibrary;sel.addEventListener('change',async()=>{const mode=sel.value;window.__a2zSelectedLibrary=mode;if(typeof window.loadSlicerLibraryMode==='function')await window.loadSlicerLibraryMode(mode);});}
-});
-})();
-</script>
 </body>
 </html>
