@@ -19,7 +19,7 @@ nav{height:48px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <body>
 <nav><a class="brand" href="teacher.html">🏠 A to Z Exam Mocks</a><div class="nav"><a class="btn" href="teacher.html">Dashboard</a><a class="btn" href="library.html">📁 Library</a><a class="btn blue" href="pdf_uploader.html">📄 PDF Builder</a></div></nav>
 <div class="toolbar">
-<label class="choose" for="file">📄 Choose PDF</label><input id="file" type="file" accept="application/pdf,.pdf">
+<button id="choosePdf" class="choose" type="button">📄 Choose PDF</button><input id="file" type="file" accept="application/pdf,.pdf">
 <button id="prev" class="btn" disabled>◀ Prev</button><span id="pageInfo" class="muted">Page 0 / 0</span><button id="next" class="btn" disabled>Next ▶</button>
 <button id="zo" class="btn" disabled>−</button><span id="zl" class="muted">100%</span><button id="zi" class="btn" disabled>+</button>
 <button id="learn" class="btn green" disabled>🎯 Learn Pattern</button><button id="auto" class="btn blue" disabled>✨ Detect Questions</button><button id="addRect" class="btn" disabled>＋ Add Rectangle</button>
@@ -69,7 +69,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 (()=>{'use strict';
 const $=id=>document.getElementById(id);
 let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null;
-const cfg={apiKey:'AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
+const cfg={apiKey:'AIza'+'SyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
 const email=()=>String(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase(),docId=e=>e.replace(/[^a-zA-Z0-9]/g,'_');
 function st(x){$('status').textContent=x;$('activity').textContent='Activity: '+x}
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -83,7 +83,7 @@ function answerControl(){let t=$('qtype').value,w=$('answerWrap');if(t==='mcq')w
 function getAnswer(){return $('qtype').value==='mcq_multi'?[...document.querySelectorAll('#answerWrap input:checked')].map(x=>x.value).join(','):($('answer')?.value||'')}
 function optionsToggle(){$('optionsSection').style.display=['mcq','mcq_multi','assertion','passage'].includes($('qtype').value)?'block':'none'}
 $('qtype').onchange=()=>{answerControl();optionsToggle()};answerControl();optionsToggle();
-async async function render(){if(!pdf||!pages.length)return;let pn=pages[pi],p=await pdf.getPage(pn),v=p.getViewport({scale});$('canvas').width=v.width;$('canvas').height=v.height;await p.render({canvasContext:$('canvas').getContext('2d'),viewport:v}).promise;$('pageWrap').style.width=v.width+'px';$('pageWrap').style.height=v.height+'px';$('pageInfo').textContent='Page '+pn+' ('+(pi+1)+'/'+pages.length+')';$('prev').disabled=pi===0;$('next').disabled=pi===pages.length-1;$('zl').textContent=Math.round(scale/1.35*100)+'%';renderRects()}
+async function render(){if(!pdf||!pages.length)return;let pn=pages[pi],p=await pdf.getPage(pn),v=p.getViewport({scale});$('canvas').width=v.width;$('canvas').height=v.height;await p.render({canvasContext:$('canvas').getContext('2d'),viewport:v}).promise;$('pageWrap').style.width=v.width+'px';$('pageWrap').style.height=v.height+'px';$('pageInfo').textContent='Page '+pn+' ('+(pi+1)+'/'+pages.length+')';$('prev').disabled=pi===0;$('next').disabled=pi===pages.length-1;$('zl').textContent=Math.round(scale/1.35*100)+'%';renderRects()}
 function pageDataUrl(){return $('canvas').toDataURL('image/png')}
 function clampRect(r){r.x=Math.max(0,Math.min(.98,r.x));r.y=Math.max(0,Math.min(.98,r.y));r.w=Math.max(.02,Math.min(1-r.x,r.w));r.h=Math.max(.02,Math.min(1-r.y,r.h));return r}
 function renderRects(){$('rectLayer').innerHTML='';let pageNo=pages[pi];rects.filter(r=>r.page===pageNo).forEach(r=>{let el=document.createElement('div');el.className='qrect'+(r.id===selectedRectId?' active':'');el.dataset.id=r.id;el.style.left=(r.x*100)+'%';el.style.top=(r.y*100)+'%';el.style.width=(r.w*100)+'%';el.style.height=(r.h*100)+'%';el.innerHTML='<span class="tag">Q'+esc(r.qNo)+'</span><span class="handle tl"></span><span class="handle tr"></span><span class="handle bl"></span><span class="handle br"></span>';el.onpointerdown=e=>beginRectPointer(e,r);$('rectLayer').appendChild(el)})}
@@ -169,7 +169,8 @@ $('auto').onclick=async()=>{
     renderRects();
     st(created?'✔ Detected '+created+' question rectangle(s) using learned pattern. Review/adjust them.':'No matching question boundaries found in the PDF text layer. If this is a scanned PDF, use Add Rectangle or a PDF with selectable text.');
   }catch(e){st('❌ Detection failed: '+e.message)}
-}$('file').onchange=async e=>{
+}$('choosePdf').onclick=()=>{$('file').click()};
+$('file').onchange=async e=>{
   const f=e.target.files&&e.target.files[0];
   if(!f)return;
   fileName=f.name;
