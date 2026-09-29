@@ -175,11 +175,25 @@ window.addFolderForCurrentLibrary=async function(kind){
         const select = document.createElement('select');
         select.className = 'folder-level-select';
         select.innerHTML = '<option value="">— Select —</option>' +
-          options.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">' + n.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</option>').join('');
+          options.map(n => '<option value="' + n.replace(/"/g, '&quot;') + '">' + n.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</option>').join('') + '<option value="__A2Z_ADD_SUBFOLDER__">＋ Add Folder here…</option>';
         if (selectedName && options.includes(selectedName)) select.value = selectedName;
 
         select.onchange = function() {
           const chosen = this.value;
+          if (chosen === '__A2Z_ADD_SUBFOLDER__') {
+            const parentPath = String(slicerSelectedFolderPath || '').split(' / ').filter(Boolean).slice(0, level).join(' / ');
+            if (!parentPath) { alert('Please select a Main Folder first.'); renderSlicerFolderPathSelectors(); return; }
+            const name = (prompt('Add Folder inside: ' + parentPath + '\nEnter folder name:') || '').trim();
+            if (!name) { renderSlicerFolderPathSelectors(); return; }
+            const parent = findNodeByPath(parentPath);
+            if (!parent) { alert('Selected folder was not found.'); renderSlicerFolderPathSelectors(); return; }
+            parent.children = Array.isArray(parent.children) ? parent.children : [];
+            if (parent.children.some(n => String(n.name || '').trim().toLowerCase() === name.toLowerCase())) { alert('Folder already exists here.'); renderSlicerFolderPathSelectors(); return; }
+            parent.children.push({id:'f_'+Date.now(),name,type:'folder',children:[]});
+            slicerSelectedFolderPath = parentPath + ' / ' + name;
+            rebuildFlatFoldersFromTree(); renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
+            await window.saveFolderRegistryToCloud(); return;
+          }
           const parts = String(slicerSelectedFolderPath || '').split(' / ').filter(Boolean).slice(0, level);
           if (chosen) parts.push(chosen);
           slicerSelectedFolderPath = parts.join(' / ');
