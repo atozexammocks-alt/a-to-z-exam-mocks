@@ -85,6 +85,7 @@
 
     let slicerSelectedFolderPath = '';
 let slicerLibraryMode = 'private';
+let slicerLibraryLoadToken = 0;
 window.__a2zSelectedLibrary='private';
 function slicerFolderConfig(mode){
   if(mode==='central') return {collection:'folder_configs_central',id:'global_central_tree'};
@@ -92,11 +93,13 @@ function slicerFolderConfig(mode){
   return {collection:'folder_configs_private',id:teacherDocId(teacherEmailKey())};
 }
 async function loadSlicerLibraryMode(mode){
+  const loadToken = ++slicerLibraryLoadToken;
   slicerLibraryMode=mode||'private'; window.__a2zSelectedLibrary=slicerLibraryMode; window.updateSlicerLibraryPickerLabel?.(); slicerSelectedFolderPath='';
   try{
     const conf=slicerFolderConfig(slicerLibraryMode);
     const snap=await window.getDoc(window.doc(window.db,conf.collection,conf.id));
     const data=snap.exists()?snap.data():{};
+    if (loadToken !== slicerLibraryLoadToken) return;
     libraryTree=Array.isArray(data.libraryTree)?data.libraryTree:[];
     folderPdfs=(data.folderPdfs&&typeof data.folderPdfs==='object')?{...data.folderPdfs}:{};
     if(!libraryTree.length && Array.isArray(data.mainFolders)){
@@ -109,6 +112,21 @@ async function loadSlicerLibraryMode(mode){
   window.updateSlicerLibraryPickerLabel?.();
   renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
 }
+async function refreshSlicerLibraryTreeFromCloud(){
+  try{
+    const conf=slicerFolderConfig(slicerLibraryMode);
+    const snap=await window.getDoc(window.doc(window.db,conf.collection,conf.id));
+    const data=snap.exists()?snap.data():{};
+    libraryTree=Array.isArray(data.libraryTree)?data.libraryTree:[];
+    folderPdfs=(data.folderPdfs&&typeof data.folderPdfs==='object')?{...data.folderPdfs}:{};
+    if(!libraryTree.length && Array.isArray(data.mainFolders)){
+      libraryTree=data.mainFolders.map(name=>({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),name:String(name).trim(),type:'folder',children:(Array.isArray(data.subFolders?.[name])?data.subFolders[name]:[]).map(s=>({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),name:String(s).trim(),type:'folder',children:[]}))})).filter(n=>n.name);
+    }
+    rebuildFlatFoldersFromTree();
+    return true;
+  }catch(e){ console.error('Slicer tree refresh failed:',e); return false; }
+}
+
 function wireSlicerLibraryTabs(){ /* Library selection is handled by the popup picker. */ }
 function wireSlicerFolderButtons(){
   const a=document.getElementById('slicerAddMainFolder'),b=document.getElementById('slicerAddSubFolder'),r=document.getElementById('slicerRefreshFolders');
@@ -238,9 +256,26 @@ window.addFolderForCurrentLibrary=async function(kind){
               parentNodes = Array.isArray(parent.children) ? parent.children : [];
             }
             if (!parent) {
-              alert('Selected parent folder was not found. Please select the parent again.');
-              renderSlicerFolderPathSelectors();
-              return;
+              // The folder tree can be briefly stale after a Cloud save/reload.
+              // Refresh the active library once and resolve the exact same parent again
+              // before showing an error to the user.
+              const refreshed = await refreshSlicerLibraryTreeFromCloud();
+              if (refreshed) {
+                parentNodes = libraryTree;
+                parent = null;
+                for (const part of parentParts) {
+                  parent = (Array.isArray(parentNodes) ? parentNodes : []).find(
+                    n => String(n.name || '').trim().toLowerCase() === String(part || '').trim().toLowerCase()
+                  );
+                  if (!parent) break;
+                  parentNodes = Array.isArray(parent.children) ? parent.children : [];
+                }
+              }
+              if (!parent) {
+                alert('Selected parent folder was not found. Please select the parent again.');
+                renderSlicerFolderPathSelectors();
+                return;
+              }
             }
             parent.children = Array.isArray(parent.children) ? parent.children : [];
             if (parent.children.some(n => String(n.name || '').trim().toLowerCase() === name.toLowerCase())) { alert('Folder already exists here.'); renderSlicerFolderPathSelectors(); return; }
@@ -349,7 +384,7 @@ window.addFolderForCurrentLibrary=async function(kind){
       window.currentTeacherEmail = savedEmail;
       const userTag = document.getElementById('current-user-tag');
       if (userTag) userTag.textContent = savedEmail;
-      await loadLibraryState(); await window.initSlicerStudio();
+      await window.initSlicerStudio();
     });
   </script>
 
