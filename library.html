@@ -64,7 +64,7 @@
 
     .view-screen { flex: 1; display: flex !important; flex-direction: column; height: calc(100vh - 105px); width: 100%; overflow: hidden; padding: 20px; gap: 12px; }
     
-    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; overflow: visible; padding-bottom: 4px; }
+    .folder-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; overflow: visible; padding-bottom: 4px; } .folder-grid:empty{display:none}
     .pdf-library-panel{background:#0b1120;border:1px solid #1e293b;border-radius:12px;padding:12px;display:none}
     .pdf-library-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
     .pdf-library-head h4{font-size:13px;color:#38bdf8}
@@ -624,7 +624,7 @@
           const explicitGroup=q.group===true || q.libraryMode==='group' || q.targetLibrary==='group';
           if(activeLibraryMode==='private') {
             // Include older/private records even when an old uploader did not write ownerEmail.
-            return owner===email || (!explicitCentral && !explicitGroup && !owner);
+            return !explicitCentral && !explicitGroup;
           }
           if(activeLibraryMode==='central') return explicitCentral;
           if(activeLibraryMode==='group') return explicitGroup;
@@ -817,7 +817,7 @@
       const rows=libraryQuestions.filter(q=>{
         const pathCandidates=[q.folderPath,q.path,q.folder,q.subject,q.libraryPath,q.folderName].map(normalizeFolderPath).filter(Boolean);
         const current=normalizeFolderPath(currentFolderPath);
-        const pathMatch=pathCandidates.some(path=>path===current || path.endsWith(' / '+current));
+        const pathMatch=pathCandidates.some(path=>path===current || path.endsWith(' / '+current) || current.endsWith(' / '+path) || path.split(' / ').pop()===current.split(' / ').pop());
         const text=(questionText(q)+' '+questionOptions(q).join(' ')+' '+String(q.topic||q.chapter||q.unit||'')).toLowerCase();
         return pathMatch && (!term||text.includes(term));
       });
@@ -858,6 +858,8 @@
       window.open(list[0].url,'_blank','noopener,noreferrer');
     };
     window.openFolderImageGallery=function(){
+      document.getElementById('view-image-btn')?.classList.add('active');
+      document.getElementById('view-pdf-btn')?.classList.remove('active');
       const rows=(window._libraryRenderedQuestions||[]).filter(q=>!!questionImage(q));
       if(!rows.length) return alert('No question images found in this folder.');
       const modal=document.getElementById('question-images-gallery-modal');
@@ -873,10 +875,13 @@
     window.closeFolderImageGallery=function(){
       const modal=document.getElementById('question-images-gallery-modal');
       if(modal) modal.style.display='none';
+      document.getElementById('view-image-btn')?.classList.remove('active');
     };
     window.viewCurrentFolderImages=window.openFolderImageGallery;
 
     window.openFolderPdfLinks=function(){
+      document.getElementById('view-pdf-btn')?.classList.add('active');
+      document.getElementById('view-image-btn')?.classList.remove('active');
       if(!currentFolderPath) return alert('Open a folder first.');
       const list=(folderPdfs[currentFolderPath]||[]).filter(x=>String(x.url||'').trim());
       if(!list.length) return alert('No PDF link saved for this folder.');
