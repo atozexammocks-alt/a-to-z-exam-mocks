@@ -830,6 +830,41 @@
       // Keep crop-to-field images available for Builder/Library editing.
       localStorage.setItem('AZ_EDITOR_CROP_IMAGES', JSON.stringify(editorCropImages));
 
+      // LIBRARY EDIT MODE: update the same Firestore question and return to Library.
+      if (new URLSearchParams(window.location.search).get('libraryEdit') === '1') {
+        const qid = localStorage.getItem('AZ_LIBRARY_EDIT_ID');
+        if (!qid || !window.editorDb || !window.editorDoc || !window.editorUpdateDoc) {
+          alert('Library question ID / database unavailable.');
+          return;
+        }
+        try {
+          const keepOptions = document.getElementById('editor-keep-options-toggle')?.checked;
+          const opts = keepOptions ? [
+            document.getElementById('fallback-opta')?.value.trim() || '',
+            document.getElementById('fallback-optb')?.value.trim() || '',
+            document.getElementById('fallback-optc')?.value.trim() || '',
+            document.getElementById('fallback-optd')?.value.trim() || ''
+          ].filter(Boolean) : [];
+          await window.editorUpdateDoc(
+            window.editorDoc(window.editorDb, 'questions', qid),
+            {
+              question: finalUrl,
+              qText: document.getElementById('fallback-qtext')?.value.trim() || '',
+              optText: opts.map((x,n)=>['A','B','C','D'][n] ? '('+['A','B','C','D'][n]+') '+x : x).join(' | '),
+              updatedAt: new Date().toISOString()
+            }
+          );
+          showToast('✔ Library question updated');
+          setTimeout(() => {
+            if (window.parent && typeof window.parent.closeLibraryEditor === 'function') window.parent.closeLibraryEditor();
+            else window.history.back();
+          }, 700);
+        } catch(e) {
+          alert('Library update failed: '+e.message);
+        }
+        return;
+      }
+
       // TEST BUILDER EDIT MODE: permanently update the same Library question.
       // Paper Designer never enters this branch.
       if (new URLSearchParams(window.location.search).get('builderEdit') === '1') {
