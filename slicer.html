@@ -211,6 +211,15 @@
     .meta-box { background: #060911; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
     .meta-box label { color: #94a3b8; font-weight: 700; font-size: 10px; display: flex; justify-content: space-between; align-items: center; }
     .meta-box select, .meta-box input, .meta-box textarea { width: 100%; padding: 4px 6px; font-size: 11px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: white; }
+    .slicer-folder-path-selectors { display:flex; flex-direction:column; gap:4px; margin-top:4px; }
+    .folder-level { display:grid; grid-template-columns:92px 1fr; gap:5px; align-items:center; }
+    .folder-level-label { color:#94a3b8; font-size:9px; font-weight:800; white-space:nowrap; }
+    .folder-level-select { min-width:0; }
+    .slicer-selected-folder-path { margin-top:4px; padding:5px 7px; border:1px solid #1e293b; border-radius:5px; background:#060911; color:#10b981; font-size:10px; font-weight:800; word-break:break-word; }
+    .answer-control { width:100%; padding:4px 6px; font-size:11px; background:#0f172a; border:1px solid #334155; border-radius:4px; color:white; }
+    .multi-answer-control { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+    .multi-answer-control label { display:flex; align-items:center; gap:3px; padding:3px 4px; border:1px solid #334155; border-radius:4px; background:#0f172a; color:#cbd5e1; font-size:10px; }
+    .multi-answer-control input { width:auto; }
     
     .opt-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .opt-row { display: flex; flex-direction: column; gap: 2px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; padding: 4px; }
@@ -307,16 +316,14 @@
           <span>Book & Section:</span>
           <button class="tool-btn" style="padding:2px 6px; font-size:9px; background:#0284c7;" onclick="window.addNewFolderDynamic()">➕ Add Folder</button>
         </label>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
-          <select id="vault-main-cat" onchange="window.onSlicerMainFolderChange()"></select>
-          <select id="vault-sub-cat"></select>
-        </div>
+        <div id="slicer-folder-path-selectors" class="slicer-folder-path-selectors"></div>
+        <div id="slicer-selected-folder-path" class="slicer-selected-folder-path">No folder selected</div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr 1.2fr; gap:4px; margin-top:4px;">
           <div><label>Q.No & Ans:</label>
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2px;">
               <input type="number" id="vault-qno" value="1" min="1">
-              <select id="vault-ans"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>
+              <div id="vault-answer-wrap"></div>
             </div>
           </div>
           <div><label>Question Type:</label>
@@ -327,6 +334,7 @@
               <option value="short">Short Answer</option>
               <option value="long">Long Answer</option>
               <option value="numerical">Numerical</option>
+              <option value="fill_blank">Fill in the Blank</option>
               <option value="assertion">Assertion</option>
               <option value="passage">Passage</option>
             </select>
@@ -358,7 +366,7 @@
           <button class="ocr-send-btn" onclick="window.sendOcrTo('optd')">➡️ Opt D</button>
         </div>
 
-        <label style="margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
+        <label id="options-label" style="margin-top:4px; display:flex; justify-content:space-between; align-items:center;">
           <span>Options (A, B, C, D) [2x2 Grid Layout]:</span>
           <button onclick="window.clearMainOptions()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:9px; font-weight:bold;">🗑️ Clear Options</button>
         </label>
@@ -450,33 +458,114 @@
       } catch (e) { console.error("Slicer library registry load failed:", e); }
     }
 
-    window.populateSlicerSubDropdown = function(mainName) {
-      const subSel = document.getElementById('vault-sub-cat');
-      if (!subSel) return;
-      subSel.innerHTML = '';
-      (subFolders[mainName] || []).forEach(s => {
-        subSel.innerHTML += `<option value="${mainName} / ${s}">${s}</option>`;
+    function findNodeByPath(path) {
+      const parts = String(path || '').split(' / ').map(s => s.trim()).filter(Boolean);
+      if (!parts.length) return null;
+      let nodes = libraryTree;
+      let node = null;
+      for (const part of parts) {
+        node = (nodes || []).find(n => String(n.name || '').trim().toLowerCase() === part.toLowerCase());
+        if (!node) return null;
+        nodes = Array.isArray(node.children) ? node.children : [];
+      }
+      return node;
+    }
+
+    function getSlicerFolderPathFromSelectors() {
+      const parts = [];
+      document.querySelectorAll('#slicer-folder-path-selectors select').forEach(sel => {
+        if (sel.value) parts.push(sel.value);
       });
+      return parts.join(' / ');
+    }
+
+    window.renderSlicerFolderPathSelectors = function() {
+      const box = document.getElementById('slicer-folder-path-selectors');
+      if (!box) return;
+      box.innerHTML = '';
+      let nodes = libraryTree;
+      let path = [];
+
+      while (Array.isArray(nodes) && nodes.length) {
+        const level = path.length;
+        const row = document.createElement('div');
+        row.className = 'folder-level';
+        const label = document.createElement('span');
+        label.className = 'folder-level-label';
+        label.textContent = level === 0 ? 'Main Folder' : (level === 1 ? 'Sub Folder' : 'Nested Folder ' + level);
+        const sel = document.createElement('select');
+        sel.className = 'folder-level-select';
+        sel.dataset.level = String(level);
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = level === 0 ? 'Select Main Folder' : '— Save directly in ' + path[path.length - 1] + ' —';
+        sel.appendChild(placeholder);
+
+        nodes.forEach(n => {
+          const opt = document.createElement('option');
+          opt.value = String(n.name || '').trim();
+          opt.textContent = String(n.name || '').trim();
+          sel.appendChild(opt);
+        });
+
+        const selectedPath = path.join(' / ');
+        if (level === 0 && mainFolders.length) sel.value = mainFolders[0];
+        else if (selectedPath) {
+          const parentNode = findNodeByPath(selectedPath);
+          if (parentNode && Array.isArray(parentNode.children) && parentNode.children.length) sel.value = '';
+        }
+
+        sel.onchange = () => {
+          const selected = sel.value;
+          const selects = Array.from(box.querySelectorAll('select'));
+          const idx = selects.indexOf(sel);
+          selects.slice(idx + 1).forEach(x => x.parentElement.remove());
+          if (selected) {
+            const nextPath = path.slice(0, idx).concat(selected).join(' / ');
+            const node = findNodeByPath(nextPath);
+            if (node && Array.isArray(node.children) && node.children.length) {
+              window.renderSlicerFolderPathSelectors();
+              const all = Array.from(box.querySelectorAll('select'));
+              all.slice(0, idx + 1).forEach((x,i) => { if (i === idx) x.value = selected; });
+              window.applySlicerFolderSelections(nextPath);
+            }
+          }
+          window.updateSlicerFolderPathLabel();
+        };
+
+        row.appendChild(label);
+        row.appendChild(sel);
+        box.appendChild(row);
+
+        if (!sel.value) break;
+        path.push(sel.value);
+        const node = findNodeByPath(path.join(' / '));
+        nodes = node && Array.isArray(node.children) ? node.children : [];
+      }
+      window.updateSlicerFolderPathLabel();
+    };
+
+    window.applySlicerFolderSelections = function(targetPath) {
+      const parts = String(targetPath || '').split(' / ').filter(Boolean);
+      const selects = Array.from(document.querySelectorAll('#slicer-folder-path-selectors select'));
+      selects.forEach((sel, i) => { sel.value = parts[i] || ''; });
+    };
+
+    window.updateSlicerFolderPathLabel = function() {
+      const label = document.getElementById('slicer-selected-folder-path');
+      const path = getSlicerFolderPathFromSelectors();
+      if (label) label.textContent = path ? 'Saving to: ' + path : 'No folder selected';
     };
 
     window.initSlicerStudio = function() {
-      const mainSel = document.getElementById('vault-main-cat');
-      if (!mainSel) return;
-      mainSel.innerHTML = '';
-      mainFolders.forEach(m => { mainSel.innerHTML += `<option value="${m}">${m}</option>`; });
-      if (mainFolders.length > 0) {
-        mainSel.value = mainFolders[0];
-        window.populateSlicerSubDropdown(mainFolders[0]);
-      } else {
-        const subSel = document.getElementById('vault-sub-cat');
-        if (subSel) subSel.innerHTML = '';
-      }
+      const box = document.getElementById('slicer-folder-path-selectors');
+      if (!box) return;
+      window.renderSlicerFolderPathSelectors();
     };
 
-    window.onSlicerMainFolderChange = function() {
-      const mainSel = document.getElementById('vault-main-cat');
-      if (mainSel) window.populateSlicerSubDropdown(mainSel.value);
-    };
+    window.populateSlicerSubDropdown = function() { window.renderSlicerFolderPathSelectors(); };
+    window.onSlicerMainFolderChange = function() { window.renderSlicerFolderPathSelectors(); };
 
     function findTreeNodeByName(name) {
       return libraryTree.find(n => String(n.name || '').trim().toLowerCase() === String(name).trim().toLowerCase());
@@ -573,6 +662,57 @@
       document.getElementById('vault-free-ocr').value = '';
       showToast(`✔ Sent to ${target.toUpperCase()}!`);
     };
+
+    function renderAnswerControl() {
+      const type = document.getElementById('vault-q-type')?.value || 'mcq';
+      const wrap = document.getElementById('vault-answer-wrap');
+      if (!wrap) return;
+      if (type === 'mcq') {
+        wrap.innerHTML = '<select id="vault-ans" class="answer-control"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option></select>';
+      } else if (type === 'mcq_multi') {
+        wrap.innerHTML = '<div id="vault-ans-multi" class="multi-answer-control">' +
+          ['A','B','C','D'].map(x => '<label><input type="checkbox" value="'+x+'"> '+x+'</label>').join('') +
+          '</div>';
+      } else if (type === 'numerical') {
+        wrap.innerHTML = '<input id="vault-ans" class="answer-control" type="text" inputmode="decimal" placeholder="Numerical answer value">';
+      } else if (type === 'fill_blank') {
+        wrap.innerHTML = '<input id="vault-ans" class="answer-control" type="text" placeholder="Fill in the blank answer">';
+      } else {
+        wrap.innerHTML = '<input id="vault-ans" class="answer-control" type="text" placeholder="Answer / key (optional)">';
+      }
+    }
+
+    function getAnswerValue() {
+      const type = document.getElementById('vault-q-type')?.value || 'mcq';
+      if (type === 'mcq_multi') {
+        return Array.from(document.querySelectorAll('#vault-ans-multi input:checked')).map(x => x.value).join(',');
+      }
+      return document.getElementById('vault-ans')?.value || '';
+    }
+
+    function getSelectedSlicerFolderPath() {
+      return getSlicerFolderPathFromSelectors();
+    }
+
+    const qTypeControl = document.getElementById('vault-q-type');
+    if (qTypeControl) {
+      qTypeControl.addEventListener('change', () => {
+        renderAnswerControl();
+      });
+    }
+    renderAnswerControl();
+    function updateTypeSpecificFields() {
+      const type = document.getElementById('vault-q-type')?.value || 'mcq';
+      const optionsLabel = document.getElementById('options-label');
+      const optionsGrid = document.querySelector('.opt-grid-2x2');
+      const ocrBar = document.querySelector('.ocr-action-bar');
+      const showOptions = type === 'mcq' || type === 'mcq_multi' || type === 'assertion' || type === 'passage';
+      if (optionsLabel) optionsLabel.style.display = showOptions ? 'flex' : 'none';
+      if (optionsGrid) optionsGrid.style.display = showOptions ? 'grid' : 'none';
+      if (ocrBar) ocrBar.style.display = showOptions ? 'grid' : 'grid';
+    }
+    if (qTypeControl) qTypeControl.addEventListener('change', updateTypeSpecificFields);
+    updateTypeSpecificFields();
 
     if (window.pdfjsLib) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -923,7 +1063,7 @@
 
       const qNo = document.getElementById('vault-qno').value || '1';
       const qType = document.getElementById('vault-q-type').value || 'mcq';
-      const ansKey = document.getElementById('vault-ans').value || 'A';
+      const ansKey = getAnswerValue();
       const qText = document.getElementById('vault-q-text').value.trim();
       
       const optA = document.getElementById('opt-a').value.trim();
@@ -998,14 +1138,20 @@
             return;
           }
           
-          const subCat = document.getElementById('vault-sub-cat');
           const qNoInput = document.getElementById('vault-qno');
-          const ansEl = document.getElementById('vault-ans');
           const qTypeEl = document.getElementById('vault-q-type');
 
-          const chosenSub = subCat ? subCat.value : 'General';
+          const chosenFolder = getSelectedSlicerFolderPath();
           const qNo = qNoInput ? (parseInt(qNoInput.value) || 1) : 1;
           const qType = qTypeEl ? qTypeEl.value : 'mcq';
+          const answerValue = getAnswerValue();
+          if (!chosenFolder) {
+            alert('Please select a Main Folder before saving the question.');
+            saveCloudBtn.disabled = false;
+            saveCloudBtn.style.background = '#10b981';
+            saveCloudBtn.innerHTML = originalText;
+            return;
+          }
           
           const optA = document.getElementById('opt-a').value.trim();
           const optB = document.getElementById('opt-b').value.trim();
@@ -1017,17 +1163,16 @@
             optTextFormatted = `(A) ${optA} | (B) ${optB} | (C) ${optC} | (D) ${optD}`;
           }
 
-          const currentLibraryFolder = localStorage.getItem('AZ_SLICER_CURRENT_FOLDER') || localStorage.getItem('AZ_CURRENT_FOLDER_PATH') || '';
           const newQ = {
             ownerEmail: teacherEmailKey(),
-            qNo, subject: chosenSub, topic: 'General',
-            folderPath: currentLibraryFolder || chosenSub || 'General',
-            path: currentLibraryFolder || chosenSub || 'General',
+            qNo, subject: chosenFolder.split(' / ').pop() || 'General', topic: 'General',
+            folderPath: chosenFolder,
+            path: chosenFolder,
             qType: qType,
             qText: qTextEl ? qTextEl.value.trim() : '',
             optText: optTextFormatted,
             flags: { ...activeFlags },
-            key: ansEl ? ansEl.value : 'A',
+            key: answerValue,
             question: finalQImg,
             solution: finalSolImg,
             creatorEmail: window.currentTeacherEmail || 'atozexammocks@gmail.com',
