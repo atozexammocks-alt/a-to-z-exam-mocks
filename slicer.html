@@ -551,27 +551,26 @@ window.addFolderForCurrentLibrary=async function(kind){
           <span>Options (A, B, C, D) [2x2 Grid Layout]:</span>
           <button onclick="window.clearMainOptions()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:9px; font-weight:bold;">🗑️ Clear Options</button>
         </label>
-        <div style="display:flex; flex-direction:column; gap:4px;">
+        <div class="opt-grid-2x2" style="margin-top:0;">
           <div class="opt-row"><span>(A) <button type="button" class="inline-slicer-btn" title="Slice into Option A" onclick="window.setCropTarget('opta')">✂️</button></span><input type="text" id="opt-a" placeholder="Option A"></div>
           <div class="opt-row"><span>(B) <button type="button" class="inline-slicer-btn" title="Slice into Option B" onclick="window.setCropTarget('optb')">✂️</button></span><input type="text" id="opt-b" placeholder="Option B"></div>
           <div class="opt-row"><span>(C) <button type="button" class="inline-slicer-btn" title="Slice into Option C" onclick="window.setCropTarget('optc')">✂️</button></span><input type="text" id="opt-c" placeholder="Option C"></div>
+          <div class="opt-row"><span>(D) <button type="button" class="inline-slicer-btn" title="Slice into Option D" onclick="window.setCropTarget('optd')">✂️</button></span><input type="text" id="opt-d" placeholder="Option D"></div>
 
-          <div style="border-top:1px solid #1e293b; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
+          <div style="grid-column:1 / 3; border-top:1px solid #1e293b; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
             <span style="color:#38bdf8; font-size:10px; font-weight:bold;">Question Image:</span>
-            <div style="display:flex; flex-direction:column; gap:3px;">
-              <button type="button" class="target-btn active" data-target="question" onclick="window.setCropTarget('question')" title="Crop into Question Image" style="width:100%; justify-content:center;">🖼️ Question Image</button>
-              <button type="button" onclick="window.clearTarget('question')" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:10px;">Clear Question Image</button>
+            <div style="display:flex; gap:3px;">
+              <button type="button" class="target-btn active" data-target="question" onclick="window.setCropTarget('question')" title="Crop into Question Image" style="flex:1; justify-content:center;">🖼️ Question Image</button>
+              <button type="button" onclick="window.clearTarget('question')" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:10px;">Clear</button>
             </div>
             <div class="preview-thumb-box" id="box-prev-q"><span style="font-size:9px; color:#64748b;">Empty</span></div>
           </div>
 
-          <div class="opt-row"><span>(D) <button type="button" class="inline-slicer-btn" title="Slice into Option D" onclick="window.setCropTarget('optd')">✂️</button></span><input type="text" id="opt-d" placeholder="Option D"></div>
-
-          <div style="border-top:1px solid #1e293b; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
+          <div style="grid-column:1 / 3; border-top:1px solid #1e293b; padding-top:4px; display:flex; flex-direction:column; gap:3px;">
             <span style="color:#10b981; font-size:10px; font-weight:bold;">Solution Image:</span>
-            <div style="display:flex; flex-direction:column; gap:3px;">
-              <button type="button" class="target-btn" data-target="solution" onclick="window.setCropTarget('solution')" title="Crop into Solution Image" style="width:100%; justify-content:center;">💡 Solution Image</button>
-              <button type="button" onclick="window.clearTarget('solution')" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:10px;">Clear Solution Image</button>
+            <div style="display:flex; gap:3px;">
+              <button type="button" class="target-btn" data-target="solution" onclick="window.setCropTarget('solution')" title="Crop into Solution Image" style="flex:1; justify-content:center;">💡 Solution Image</button>
+              <button type="button" onclick="window.clearTarget('solution')" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:10px;">Clear</button>
             </div>
             <div class="preview-thumb-box" id="box-prev-sol"><span style="font-size:9px; color:#64748b;">Empty</span></div>
           </div>
