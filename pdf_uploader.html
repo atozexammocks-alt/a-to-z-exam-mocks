@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — PDF Builder</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>
+window.__loadPdfJsFallback=function(){
+ return new Promise(function(resolve,reject){
+  if(window.pdfjsLib){resolve(window.pdfjsLib);return}
+  var s=document.createElement('script');
+  s.src='https://unpkg.com/pdfjs-dist@2.16.105/build/pdf.min.js';
+  s.onload=function(){window.pdfjsLib?resolve(window.pdfjsLib):reject(new Error('PDF.js loaded but is unavailable'))};
+  s.onerror=function(){reject(new Error('PDF engine could not be loaded. Check internet/CDN access.'))};
+  document.head.appendChild(s);
+ });
+};
+</script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
@@ -65,8 +77,13 @@ nav{height:48px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 </div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 (()=>{'use strict';
+async function ensurePdfJs(){
+ if(!window.pdfjsLib) await window.__loadPdfJsFallback();
+ if(!window.pdfjsLib) throw new Error('PDF engine is not available');
+ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+ return window.pdfjsLib;
+}
 const $=id=>document.getElementById(id);
 let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null;
 const cfg={apiKey:'AIza'+'SyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
@@ -174,18 +191,27 @@ $('auto').onclick=async()=>{
   if(!f)return;
   fileName=f.name;
   try{
-    st('Loading '+fileName+'…');
+    st('Loading PDF engine…');
+    const pdfjs=await ensurePdfJs();
+    st('Reading '+fileName+'…');
     const data=new Uint8Array(await f.arrayBuffer());
-    const task=pdfjsLib.getDocument({data});
-    pdf=await task.promise;
+    try{
+      pdf=await pdfjs.getDocument({data,disableAutoFetch:false,disableStream:false}).promise;
+    }catch(firstErr){
+      st('Retrying PDF load…');
+      const url=URL.createObjectURL(f);
+      try{ pdf=await pdfjs.getDocument({url,disableAutoFetch:false,disableStream:false}).promise; }
+      finally{ setTimeout(()=>URL.revokeObjectURL(url),10000); }
+    }
     total=pdf.numPages;
     pages=Array.from({length:total},(_,i)=>i+1);
     pi=0; rects=[]; selectedRectId=null; template=null; drafts=[]; renderDrafts();
     $('prev').disabled=total<=1; $('next').disabled=total<=1;
     $('zo').disabled=false; $('zi').disabled=false;
     $('learn').disabled=false; $('auto').disabled=false; $('addRect').disabled=false;
-    await render(); await loadTree();
-    st('✔ PDF opened: '+total+' page(s). Zoom is ready.');
+    await render();
+    st('✔ PDF opened: '+total+' page(s).');
+    loadTree().catch(()=>{});
   }catch(err){
     pdf=null; total=0; pages=[]; pi=0; rects=[]; template=null;
     $('prev').disabled=true; $('next').disabled=true; $('zo').disabled=true; $('zi').disabled=true;
