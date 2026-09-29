@@ -471,66 +471,63 @@
       return node;
     }
 
+    let slicerSelectedFolderPath = '';
+
     function getSlicerFolderPathFromSelectors() {
-      const parts = [];
-      document.querySelectorAll('#slicer-folder-path-selectors select').forEach(sel => {
-        if (sel.value) parts.push(sel.value);
-      });
-      return parts.join(' / ');
+      return slicerSelectedFolderPath || '';
+    }
+
+    function getChildrenForPath(path) {
+      if (!path) return libraryTree;
+      const node = findNodeByPath(path);
+      return node && Array.isArray(node.children) ? node.children : [];
     }
 
     window.renderSlicerFolderPathSelectors = function() {
       const box = document.getElementById('slicer-folder-path-selectors');
       if (!box) return;
       box.innerHTML = '';
+      const selectedParts = slicerSelectedFolderPath ? slicerSelectedFolderPath.split(' / ').filter(Boolean) : [];
       let nodes = libraryTree;
-      let path = [];
+      let built = [];
 
       while (Array.isArray(nodes) && nodes.length) {
-        const level = path.length;
+        const level = built.length;
         const row = document.createElement('div');
         row.className = 'folder-level';
         const label = document.createElement('span');
         label.className = 'folder-level-label';
         label.textContent = level === 0 ? 'Main Folder' : (level === 1 ? 'Sub Folder' : 'Nested Folder ' + level);
+
         const sel = document.createElement('select');
         sel.className = 'folder-level-select';
-        sel.dataset.level = String(level);
 
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = level === 0 ? 'Select Main Folder' : '— Save directly in ' + path[path.length - 1] + ' —';
+        placeholder.textContent = level === 0 ? 'Select Main Folder' : '— Save in ' + built[built.length - 1] + ' —';
         sel.appendChild(placeholder);
 
         nodes.forEach(n => {
+          const name = String(n.name || '').trim();
+          if (!name) return;
           const opt = document.createElement('option');
-          opt.value = String(n.name || '').trim();
-          opt.textContent = String(n.name || '').trim();
+          opt.value = name;
+          opt.textContent = name;
           sel.appendChild(opt);
         });
 
-        const selectedPath = path.join(' / ');
-        if (level === 0 && mainFolders.length) sel.value = mainFolders[0];
-        else if (selectedPath) {
-          const parentNode = findNodeByPath(selectedPath);
-          if (parentNode && Array.isArray(parentNode.children) && parentNode.children.length) sel.value = '';
+        if (selectedParts[level] && nodes.some(n => String(n.name || '').trim() === selectedParts[level])) {
+          sel.value = selectedParts[level];
+        } else {
+          sel.value = '';
         }
 
         sel.onchange = () => {
-          const selected = sel.value;
-          const selects = Array.from(box.querySelectorAll('select'));
-          const idx = selects.indexOf(sel);
-          selects.slice(idx + 1).forEach(x => x.parentElement.remove());
-          if (selected) {
-            const nextPath = path.slice(0, idx).concat(selected).join(' / ');
-            const node = findNodeByPath(nextPath);
-            if (node && Array.isArray(node.children) && node.children.length) {
-              window.renderSlicerFolderPathSelectors();
-              const all = Array.from(box.querySelectorAll('select'));
-              all.slice(0, idx + 1).forEach((x,i) => { if (i === idx) x.value = selected; });
-              window.applySlicerFolderSelections(nextPath);
-            }
-          }
+          const chosen = sel.value;
+          const nextParts = built.slice(0, level);
+          if (chosen) nextParts.push(chosen);
+          slicerSelectedFolderPath = nextParts.join(' / ');
+          window.renderSlicerFolderPathSelectors();
           window.updateSlicerFolderPathLabel();
         };
 
@@ -539,17 +536,17 @@
         box.appendChild(row);
 
         if (!sel.value) break;
-        path.push(sel.value);
-        const node = findNodeByPath(path.join(' / '));
+        built.push(sel.value);
+        const node = findNodeByPath(built.join(' / '));
         nodes = node && Array.isArray(node.children) ? node.children : [];
       }
+
       window.updateSlicerFolderPathLabel();
     };
 
     window.applySlicerFolderSelections = function(targetPath) {
-      const parts = String(targetPath || '').split(' / ').filter(Boolean);
-      const selects = Array.from(document.querySelectorAll('#slicer-folder-path-selectors select'));
-      selects.forEach((sel, i) => { sel.value = parts[i] || ''; });
+      slicerSelectedFolderPath = String(targetPath || '').trim();
+      window.renderSlicerFolderPathSelectors();
     };
 
     window.updateSlicerFolderPathLabel = function() {
@@ -561,6 +558,8 @@
     window.initSlicerStudio = function() {
       const box = document.getElementById('slicer-folder-path-selectors');
       if (!box) return;
+      if (!slicerSelectedFolderPath && mainFolders.length) slicerSelectedFolderPath = mainFolders[0];
+      if (slicerSelectedFolderPath && !findNodeByPath(slicerSelectedFolderPath)) slicerSelectedFolderPath = mainFolders[0] || '';
       window.renderSlicerFolderPathSelectors();
     };
 
