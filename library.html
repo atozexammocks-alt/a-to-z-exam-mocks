@@ -433,7 +433,7 @@
     }
 
     function questionImage(q){
-      const vals=[q.image,q.img,q.questionImage,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image];
+      const vals=[q.question,q.image,q.img,q.questionImage,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image];
       for(const v of vals){
         if(typeof v==='string' && /^(data:image\/|https?:\/\/|blob:)/i.test(v.trim())) return v.trim();
         if(typeof v==='object' && v) return String(v.src||v.url||v.data||v.base64||v.image||'');
@@ -449,7 +449,7 @@
         const email=teacherEmailKey();
         libraryQuestions=all.filter(q=>{
           const owner=String(q.ownerEmail||q.creatorEmail||'').trim().toLowerCase();
-          const path=String(q.subject||q.folderPath||q.path||'').trim();
+          const path=normalizeFolderPath(q.subject||q.folderPath||q.path||'');
           if(!path) return false;
           if(activeLibraryMode==='private') return owner===email;
           if(activeLibraryMode==='central') return q.central===true || q.isCentral===true || q.libraryMode==='central' || q.targetLibrary==='central';
@@ -530,6 +530,7 @@
     }
     function questionOptions(q){
       let opts=q.options||q.choices||q.answerOptions;
+      if(!opts && typeof q.optText==='string' && q.optText.trim()) opts=q.optText.split(/\s*\|\s*/).map(x=>x.replace(/^\s*\([A-E]\)\s*/i,'').trim()).filter(Boolean);
       if(typeof opts==='string'){ try{ opts=JSON.parse(opts); }catch(e){ opts=null; } }
       if(Array.isArray(opts)) return opts.map((x,i)=> typeof x==='object' ? (x.text||x.value||x.label||'') : String(x)).filter(Boolean);
       const out=[];
@@ -539,6 +540,10 @@
       });
       return out;
     }
+    function normalizeFolderPath(v){
+      return String(v||'').trim().replace(/\\/g,'/').split('/').map(x=>x.trim()).filter(Boolean).join(' / ');
+    }
+
     function renderLibraryQuestions(){
       const box=document.getElementById('library-questions-section');
       const list=document.getElementById('library-questions-list');
@@ -549,7 +554,7 @@
       const rows=libraryQuestions.filter(q=>{
         const path=String(q.subject||q.folderPath||q.path||'').trim();
         const text=(questionText(q)+' '+questionOptions(q).join(' ')).toLowerCase();
-        return path===currentFolderPath && (!term||text.includes(term));
+        return normalizeFolderPath(path)===normalizeFolderPath(currentFolderPath) && (!term||text.includes(term));
       });
       window._libraryRenderedQuestions=rows;
       if(!rows.length){
