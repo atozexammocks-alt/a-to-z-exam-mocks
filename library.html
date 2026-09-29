@@ -583,6 +583,16 @@
         renderLibraryBrowser();
       }catch(e){alert('Move failed: '+e.message);}
     };
+    window.deleteLibraryQuestion=async function(id){
+      if(!confirm('Delete this question permanently?')) return;
+      try{
+        await window.deleteDoc(window.doc(window.db,'questions',id));
+        showToast('🗑️ Question deleted');
+        await loadPickerQuestions();
+        renderLibraryBrowser();
+      }catch(e){alert('Delete failed: '+e.message);}
+    };
+
     function renderLibraryQuestions(){
       const box=document.getElementById('library-questions-section');
       const list=document.getElementById('library-questions-list');
@@ -616,7 +626,7 @@
           '<div class="library-q-actions">'+
           (img?'<button class="tool-btn library-mini-btn" style="background:#059669;" onclick="openQuestionImage('+i+')">🖼️ View Image</button>':'')+
           (img?'<button class="tool-btn library-mini-btn" style="background:#7c3aed;" onclick="editLibraryQuestion(\''+escapeHtml(q.id)+'\')">✏️ Edit</button>':'')+
-          '<button class="tool-btn library-mini-btn" style="background:#2563eb;" onclick="moveLibraryQuestion(\''+escapeHtml(q.id)+'\')">📁 Move</button>'+
+          '<button class="tool-btn library-mini-btn" style="background:#2563eb;" onclick="moveLibraryQuestion(\''+escapeHtml(q.id)+'\')">📁 Move</button>'+\n          '<button class="tool-btn library-mini-btn" style="background:#991b1b;" onclick="deleteLibraryQuestion(\''+escapeHtml(q.id)+'\')">🗑️ Delete</button>'+
           '</div></div>';
       }).join('');
       const imageBtn=document.getElementById('view-image-btn');
