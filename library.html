@@ -367,7 +367,19 @@
     let pickerMode = new URLSearchParams(location.search).get('picker') === '1';
     let pickerQuestions = [];
     let libraryQuestions = [];
+    let libraryDisplayMode = 'questions';
 
+    function setLibraryDisplayMode(mode){
+      libraryDisplayMode=mode;
+      const q=document.getElementById('library-questions-section');
+      const p=document.getElementById('pdf-links-section');
+      const picker=document.getElementById('picker-questions-section');
+      if(q) q.style.display=(currentFolderPath && (mode==='questions'||mode==='images'))?'block':'none';
+      if(p) p.style.display=(currentFolderPath && mode==='pdf')?'block':'none';
+      if(picker) picker.style.display=(pickerMode && currentFolderPath && mode==='questions')?'block':'none';
+      document.getElementById('view-image-btn')?.classList.toggle('active',mode==='images');
+      document.getElementById('view-pdf-btn')?.classList.toggle('active',mode==='pdf');
+    }
     window.switchLibraryMode = async function(mode) {
       activeLibraryMode = mode;
       currentFolderPath = "";
@@ -380,6 +392,7 @@
         inviteBtn.style.display = (mode === 'group') ? 'inline-block' : 'none';
       }
 
+      libraryDisplayMode='questions';
       await loadLibraryStateForCurrentMode();
       await loadPickerQuestions();
       renderLibraryBrowser();
@@ -683,8 +696,7 @@
       cards.innerHTML = '';
 
       const pdfPanel=document.getElementById('pdf-links-section');
-      if(pdfPanel) pdfPanel.style.display=currentFolderPath?'block':'none';
-      if(currentFolderPath) renderPdfTableForCurrentFolder();
+      if(pdfPanel) pdfPanel.style.display='none';
 
       if(children.length){
         children.forEach(node => {
@@ -700,8 +712,9 @@
           cards.appendChild(card);
         });
       }
-      renderPickerQuestions();
-      renderLibraryQuestions();
+      if(libraryDisplayMode==='images') renderLibraryImageGrid();
+      else if(libraryDisplayMode==='pdf') renderPdfTableForCurrentFolder();
+      else { renderPickerQuestions(); renderLibraryQuestions(); }
     }
 
     function questionText(q){
@@ -858,8 +871,10 @@
       window.open(list[0].url,'_blank','noopener,noreferrer');
     };
     window.openFolderImageGallery=function(){
-      document.getElementById('view-image-btn')?.classList.add('active');
-      document.getElementById('view-pdf-btn')?.classList.remove('active');
+      if(!currentFolderPath)return alert('Open a folder first.');
+      libraryDisplayMode='images';
+      renderLibraryBrowser();
+      return;
       const rows=(window._libraryRenderedQuestions||[]).filter(q=>!!questionImage(q));
       if(!rows.length) return alert('No question images found in this folder.');
       const modal=document.getElementById('question-images-gallery-modal');
@@ -878,10 +893,21 @@
       document.getElementById('view-image-btn')?.classList.remove('active');
     };
     window.viewCurrentFolderImages=window.openFolderImageGallery;
+    function renderLibraryImageGrid(){
+      const list=document.getElementById('library-questions-list');
+      const box=document.getElementById('library-questions-section');
+      const rows=(window._libraryRenderedQuestions||libraryQuestions.filter(q=>{const p=[q.folderPath,q.path,q.folder,q.subject,q.libraryPath,q.folderName].map(normalizeFolderPath).filter(Boolean);const cur=normalizeFolderPath(currentFolderPath);return p.some(x=>x===cur||x.endsWith(' / '+cur)||cur.endsWith(' / '+x)||x.split(' / ').pop()===cur.split(' / ').pop());})).filter(q=>!!questionImage(q));
+      if(box){box.style.display=currentFolderPath?'block':'none';}
+      const title=box?.querySelector('h4'); if(title) title.innerHTML='🖼️ Question Images in this Folder';
+      const search=document.getElementById('library-question-search'); if(search) search.style.display='none';
+      if(list) { list.className='library-questions-grid'; list.innerHTML=rows.length?rows.map((q,i)=>'<div class="library-question-card"><div class="library-q-image" onclick="openQuestionImage('+i+')"><img src="'+escapeHtml(questionImage(q))+'" alt="Question image"></div><div class="library-q-title">Q'+escapeHtml(q.qNo??q.questionNo??(i+1))+'</div></div>').join(''):'<div style="color:#64748b;padding:20px;">No question images found in this folder.</div>'; }
+    }
 
     window.openFolderPdfLinks=function(){
-      document.getElementById('view-pdf-btn')?.classList.add('active');
-      document.getElementById('view-image-btn')?.classList.remove('active');
+      if(!currentFolderPath)return alert('Open a folder first.');
+      libraryDisplayMode='pdf';
+      renderLibraryBrowser();
+      return;
       if(!currentFolderPath) return alert('Open a folder first.');
       const list=(folderPdfs[currentFolderPath]||[]).filter(x=>String(x.url||'').trim());
       if(!list.length) return alert('No PDF link saved for this folder.');
