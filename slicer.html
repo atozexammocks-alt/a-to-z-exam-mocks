@@ -1472,11 +1472,15 @@ window.clearTarget = function(t) {
         [['private','🔒 Private Library'],['central','📁 Central Library'],['group','🤝 Group Library']].map(x=>'<button class="seq-lib '+(seqLibrary===x[0]?'active':'')+'" data-lib="'+x[0]+'">'+x[1]+'</button>').join('')+
         '</div><div class="seq-actions"><button class="seq-btn primary" id="seq-lib-next">Continue →</button></div></div>';
     }else if(seqStep===2){
-      body='<div class="seq-step active"><h3>Choose Folder</h3><div class="seq-sub">'+esc(seqLibrary==='central'?'Central Library':seqLibrary==='group'?'Group Library':'Private Library')+' — main folder → subfolder → exact location.</div>'+
-        '<div class="seq-folder-list">'+(hasFolders?folders.map(f=>'<button class="seq-folder '+(seqFolder===f.path?'selected':'')+'" data-folder="'+esc(f.path)+'">'+(f.depth?'↳ ':'📁 ')+esc(f.name)+'<div style="font-size:8px;color:#64748b;margin-top:2px">'+esc(f.path)+'</div></button>').join(''):'<div class="seq-empty">No folders found in this library yet.</div>')+'</div>'+
+      const selectedNode=seqFolder && typeof window.findNodeByPathForSeq==='function' ? window.findNodeByPathForSeq(seqFolder) : null;
+      const currentNodes=selectedNode && Array.isArray(selectedNode.children) ? selectedNode.children : (window.__a2zLibraryTree||[]);
+      const levelName=seqFolder ? (selectedNode && selectedNode.children && selectedNode.children.length ? 'Sub Folder' : 'Folder Location') : 'Main Folder';
+      const hasCurrent=currentNodes.length>0;
+      body='<div class="seq-step active"><h3>Choose Folder</h3><div class="seq-sub">'+esc(seqLibrary==='central'?'Central Library':seqLibrary==='group'?'Group Library':'Private Library')+' — '+levelName+' → next level only.</div>'+
+        '<div class="seq-folder-list">'+(hasCurrent?currentNodes.map(f=>{const p=seqFolder?seqFolder+' / '+String(f.name||'').trim():String(f.name||'').trim();return '<button class="seq-folder '+(seqFolder===p?'selected':'')+'" data-folder="'+esc(p)+'">'+(seqFolder?'↳ ':'📁 ')+esc(f.name)+'<div style="font-size:8px;color:#64748b;margin-top:2px">'+esc(p)+'</div></button>';}).join(''):'<div class="seq-empty">'+(seqFolder?'No deeper subfolder. This is the current save location.':'No folders found in this library yet.')+'</div>')+'</div>'+
         '<button class="seq-add" id="seq-add-folder">＋ Add '+(seqFolder?'Sub Folder':'Main Folder')+'</button>'+
         '<div class="seq-folder-path">'+(seqFolder?'📍 Location: '+esc(seqFolder):'📍 Location: Not selected')+'</div>'+
-        '<div class="seq-actions"><button class="seq-btn" id="seq-back">← Back</button><button class="seq-btn primary" id="seq-folder-next" '+(seqFolder?'':'disabled')+'>Continue →</button></div></div>';
+        '<div class="seq-actions"><button class="seq-btn" id="seq-back">← Back</button><button class="seq-btn primary" id="seq-folder-next" '+(seqFolder?'':'disabled')+'>Use This Location →</button></div></div>';
     }else{
       body='<div class="seq-step active"><h3>Question Details</h3><div class="seq-sub">अब question number और type चुनें. बाकी controls उसके बाद खुलेंगे.</div>'+
         '<div class="seq-fields"><div class="seq-field"><label>Question No.</label><input id="seq-qno" type="number" min="1" value="'+esc(document.getElementById('vault-qno')?.value||'1')+'"></div>'+
