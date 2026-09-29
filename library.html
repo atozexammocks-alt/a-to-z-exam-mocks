@@ -323,7 +323,7 @@
 
   <!-- INDEPENDENT LIBRARY MODE SWITCHER -->
   <div class="library-mode-bar" id="library-control-bar">
-    <button id="back-nav-btn" class="tool-btn library-top-action" style="background:#334155;display:none;" onclick="goBackFolder()">⬅ Back</button>
+    <button id="back-nav-btn" class="tool-btn library-top-action" style="background:#059669;border-color:#10b981;color:#fff;display:none;" onclick="goBackFolder()">⬅ Back</button>
     <div class="library-address" id="library-main-title">📚 Private Library</div>
     <span class="library-view-label">Library Views:</span>
     <button class="lib-mode-tab active" id="mode-tab-private" onclick="switchLibraryMode('private')">🔒 Private</button>
@@ -353,7 +353,6 @@
       <div id="library-questions-section" style="display:none;background:transparent;border:0;border-radius:0;padding:4px 0 20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
           <h4 style="color:#10b981;font-size:14px;">📝 Questions in this Folder</h4>
-          <input id="library-question-search" class="pdf-input" style="max-width:280px;" placeholder="Search topic / question..." oninput="renderLibraryQuestions()">
         </div>
         <div id="library-questions-list"></div>
       </div>
@@ -607,13 +606,15 @@
     };
 
     window.goBackFolder = function() {
-      if (!currentFolderPath) return;
-      const parts = currentFolderPath.split(" / ");
-      if (parts.length > 1) {
-        currentFolderPath = parts.slice(0, -1).join(" / ");
-      } else {
-        currentFolderPath = "";
+      const current = normalizeFolderPath(currentFolderPath);
+      if (!current) {
+        backToFolderCards();
+        return;
       }
+      const parts = current.split(" / ").filter(Boolean);
+      currentFolderPath = parts.length > 1 ? parts.slice(0, -1).join(" / ") : "";
+      libraryDisplayMode = "questions";
+      setLibraryDisplayMode("questions");
       renderLibraryBrowser();
     };
 
@@ -904,7 +905,7 @@
       if(!box||!list) return;
       if(!currentFolderPath){box.style.display='none';list.innerHTML='';return;}
       box.style.display='block';
-      const term=(document.getElementById('library-question-search')?.value||'').toLowerCase().trim();
+      const term='';
       const rows=libraryQuestions.filter(q=>{
         const current=normalizeFolderPath(currentFolderPath);
         const pathMatch=getQuestionFolderPath(q)===current;
@@ -967,7 +968,7 @@
       window._libraryRenderedQuestions=rows;
       if(box) box.style.display=currentFolderPath?'block':'none';
       const title=box?.querySelector('h4'); if(title) title.innerHTML='🖼️ Question Images in this Folder';
-      const search=document.getElementById('library-question-search'); if(search) search.style.display='none';
+
       if(!list) return;
       list.className='library-questions-grid';
       list.innerHTML=rows.length ? rows.map((q,i)=>{
