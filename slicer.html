@@ -1148,7 +1148,7 @@ window.addFolderForCurrentLibrary=async function(kind){
     // Firebase Firestore documents have a ~1 MiB field limit. Cropped PNG data URLs can easily exceed it.
     // Keep the visual quality high while guaranteeing a safe payload for the question/solution image fields.
     async function compressImageForFirestore(dataUrl, maxBytes = 320000) {
-      if (!dataUrl || !/^data:image\\//i.test(dataUrl)) return dataUrl || '';
+      if (!dataUrl || typeof dataUrl !== 'string' || dataUrl.indexOf('data:image/') !== 0) return dataUrl || '';
       const estimatedBytes = Math.ceil((dataUrl.length - (dataUrl.indexOf(',') + 1)) * 0.75);
       if (estimatedBytes <= maxBytes) return dataUrl;
       const img = await new Promise((resolve, reject) => {
@@ -1405,11 +1405,11 @@ window.clearTarget = function(t) {
             createdAt: new Date().toISOString()
           };
 
-          let documentBytes = new TextEncoder().encode(JSON.stringify(newQ)).length;
+          let documentBytes = JSON.stringify(newQ).length * 2;
           if (documentBytes > 900000) {
             newQ.question = await compressImageForFirestore(newQ.question, 420000);
             newQ.solution = await compressImageForFirestore(newQ.solution, 140000);
-            documentBytes = new TextEncoder().encode(JSON.stringify(newQ)).length;
+            documentBytes = JSON.stringify(newQ).length * 2;
           }
           if (documentBytes > 1000000) {
             throw new Error("Question is too large even after automatic compression. Please crop a smaller image.");
