@@ -1017,9 +1017,12 @@
             optTextFormatted = `(A) ${optA} | (B) ${optB} | (C) ${optC} | (D) ${optD}`;
           }
 
+          const currentLibraryFolder = localStorage.getItem('AZ_SLICER_CURRENT_FOLDER') || localStorage.getItem('AZ_CURRENT_FOLDER_PATH') || '';
           const newQ = {
             ownerEmail: teacherEmailKey(),
             qNo, subject: chosenSub, topic: 'General',
+            folderPath: currentLibraryFolder || chosenSub || 'General',
+            path: currentLibraryFolder || chosenSub || 'General',
             qType: qType,
             qText: qTextEl ? qTextEl.value.trim() : '',
             optText: optTextFormatted,
