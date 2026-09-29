@@ -83,7 +83,7 @@ function answerControl(){let t=$('qtype').value,w=$('answerWrap');if(t==='mcq')w
 function getAnswer(){return $('qtype').value==='mcq_multi'?[...document.querySelectorAll('#answerWrap input:checked')].map(x=>x.value).join(','):($('answer')?.value||'')}
 function optionsToggle(){$('optionsSection').style.display=['mcq','mcq_multi','assertion','passage'].includes($('qtype').value)?'block':'none'}
 $('qtype').onchange=()=>{answerControl();optionsToggle()};answerControl();optionsToggle();
-async function render(){if(!pdf||!pages.length)return;let pn=pages[pi],p=await pdf.getPage(pn),v=p.getViewport({scale});$('canvas').width=v.width;$('canvas').height=v.height;await p.render({canvasContext:$('canvas').getContext('2d'),viewport:v}).promise;$('pageWrap').style.width=v.width+'px';$('pageWrap').style.height=v.height+'px';$('pageInfo').textContent='Page '+pn+' ('+(pi+1)+'/'+pages.length+')';$('prev').disabled=pi===0;$('next').disabled=pi===pages.length-1;$('zl').textContent=Math.round(scale/1.35*100)+'%';renderRects()}
+async async function render(){if(!pdf||!pages.length)return;let pn=pages[pi],p=await pdf.getPage(pn),v=p.getViewport({scale});$('canvas').width=v.width;$('canvas').height=v.height;await p.render({canvasContext:$('canvas').getContext('2d'),viewport:v}).promise;$('pageWrap').style.width=v.width+'px';$('pageWrap').style.height=v.height+'px';$('pageInfo').textContent='Page '+pn+' ('+(pi+1)+'/'+pages.length+')';$('prev').disabled=pi===0;$('next').disabled=pi===pages.length-1;$('zl').textContent=Math.round(scale/1.35*100)+'%';renderRects()}
 function pageDataUrl(){return $('canvas').toDataURL('image/png')}
 function clampRect(r){r.x=Math.max(0,Math.min(.98,r.x));r.y=Math.max(0,Math.min(.98,r.y));r.w=Math.max(.02,Math.min(1-r.x,r.w));r.h=Math.max(.02,Math.min(1-r.y,r.h));return r}
 function renderRects(){$('rectLayer').innerHTML='';let pageNo=pages[pi];rects.filter(r=>r.page===pageNo).forEach(r=>{let el=document.createElement('div');el.className='qrect'+(r.id===selectedRectId?' active':'');el.dataset.id=r.id;el.style.left=(r.x*100)+'%';el.style.top=(r.y*100)+'%';el.style.width=(r.w*100)+'%';el.style.height=(r.h*100)+'%';el.innerHTML='<span class="tag">Q'+esc(r.qNo)+'</span><span class="handle tl"></span><span class="handle tr"></span><span class="handle bl"></span><span class="handle br"></span>';el.onpointerdown=e=>beginRectPointer(e,r);$('rectLayer').appendChild(el)})}
@@ -169,7 +169,30 @@ $('auto').onclick=async()=>{
     renderRects();
     st(created?'✔ Detected '+created+' question rectangle(s) using learned pattern. Review/adjust them.':'No matching question boundaries found in the PDF text layer. If this is a scanned PDF, use Add Rectangle or a PDF with selectable text.');
   }catch(e){st('❌ Detection failed: '+e.message)}
-}$('file').onchange=async e=>{let f=e.target.files?.[0];if(!f)return;fileName=f.name;try{st('Opening PDF…');pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise;total=pdf.numPages;$('prev').disabled=false;$('next').disabled=false;$('learn').disabled=false;$('auto').disabled=false;$('addRect').disabled=false;pages=Array.from({length:total},(_,i)=>i+1);pi=0;await render();await loadTree();st('PDF opened. Auto Layout is ready.')}catch(e){st('❌ PDF open failed: '+e.message)}};
+}$('file').onchange=async e=>{
+  const f=e.target.files&&e.target.files[0];
+  if(!f)return;
+  fileName=f.name;
+  try{
+    st('Loading '+fileName+'…');
+    const data=new Uint8Array(await f.arrayBuffer());
+    const task=pdfjsLib.getDocument({data});
+    pdf=await task.promise;
+    total=pdf.numPages;
+    pages=Array.from({length:total},(_,i)=>i+1);
+    pi=0; rects=[]; selectedRectId=null; template=null; drafts=[]; renderDrafts();
+    $('prev').disabled=total<=1; $('next').disabled=total<=1;
+    $('zo').disabled=false; $('zi').disabled=false;
+    $('learn').disabled=false; $('auto').disabled=false; $('addRect').disabled=false;
+    await render(); await loadTree();
+    st('✔ PDF opened: '+total+' page(s). Zoom is ready.');
+  }catch(err){
+    pdf=null; total=0; pages=[]; pi=0; rects=[]; template=null;
+    $('prev').disabled=true; $('next').disabled=true; $('zo').disabled=true; $('zi').disabled=true;
+    $('learn').disabled=true; $('auto').disabled=true; $('addRect').disabled=true;
+    st('❌ PDF open failed: '+(err&&err.message?err.message:String(err)));
+  }
+};
 $('prev').onclick=async()=>{if(pi>0){pi--;await render()}};$('next').onclick=async()=>{if(pi<pages.length-1){pi++;await render()}};$('zi').onclick=async()=>{scale=Math.min(2.6,scale+.2);await render()};$('zo').onclick=async()=>{scale=Math.max(.8,scale-.2);await render()};
 function cropFromRect(r){let c=$('canvas'),x=Math.round(r.x*c.width),y=Math.round(r.y*c.height),w=Math.round(r.w*c.width),h=Math.round(r.h*c.height),out=document.createElement('canvas');out.width=Math.max(1,w);out.height=Math.max(1,h);out.getContext('2d').drawImage(c,x,y,w,h,0,0,w,h);return out}
 function openEditor(r){modalRect=r;selectedTarget='qtext';cropSel=null;solutionImg='';$('modalQ').textContent='Q'+r.qNo+' • Page '+r.page;$('rectInfo').textContent='Adjust rectangle on page, then edit here';let c=cropFromRect(r),cc=$('cropCanvas');cc.width=c.width;cc.height=c.height;cc.getContext('2d').drawImage(c,0,0);$('selectCrop').style.display='none';$('qno').value=r.qNo; $('qtext').value=r.qtext||'';$('a').value=r.a||'';$('b').value=r.b||'';$('c').value=r.c||'';$('d').value=r.d||'';$('qtype').value=r.qtype||'mcq';answerControl();optionsToggle();if($('answer'))$('answer').value=r.answer||'';selectedPath=r.folderPath||selectedPath;renderTree();setTarget('qtext');$('solutionStatus').textContent='No solution crop';modal(true)}
