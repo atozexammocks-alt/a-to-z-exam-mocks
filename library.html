@@ -82,12 +82,12 @@
     .picker-question { background:#0b1120; border:1px solid #334155; border-radius:10px; padding:12px; display:flex; gap:12px; align-items:flex-start; }
     .picker-question img { max-width:180px; max-height:120px; object-fit:contain; background:#fff; border-radius:6px; }
     .picker-insert { background:#10b981; color:#fff; border:0; border-radius:7px; padding:7px 12px; cursor:pointer; font-weight:800; font-size:11px; white-space:nowrap; }
-    .library-question-card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:11px 12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .library-question-card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:14px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
     .library-q-main{min-width:0;flex:1}.library-q-title{font-size:12px;font-weight:900;color:#38bdf8;margin-bottom:4px}
-    .library-q-text{font-size:12px;color:#f8fafc;line-height:1.45;white-space:pre-wrap;max-height:58px;overflow:hidden}
-    .library-q-meta{font-size:10px;color:#64748b;margin-top:5px}.library-q-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-    .library-mini-btn{font-size:10px;padding:5px 8px;white-space:nowrap}.compact-pdf-table th,.compact-pdf-table td{padding:7px 8px}
-    @media(max-width:800px){.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}}
+    .library-q-text{font-size:13px;color:#f8fafc;line-height:1.55;white-space:pre-wrap;overflow:visible}
+    .library-q-options{margin-top:8px;font-size:12px;color:#cbd5e1;line-height:1.55}.library-q-meta{font-size:10px;color:#64748b;margin-top:7px}.library-q-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .library-mini-btn{font-size:10px;padding:6px 9px;white-space:nowrap}
+    @media(max-width:800px){.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}.folder-actions{display:none}}
   </style>
 
 <style>
@@ -173,11 +173,15 @@
   <!-- LIBRARY VIEW SCREEN -->
   <div class="view-screen" id="screen-library">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-shrink:0; background:#0b1120; border:1px solid #1e293b; padding:10px 16px; border-radius:10px; gap:10px;">
-      <div style="display:flex; align-items:center; gap:10px; flex:1;">
+      <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
         <button id="back-nav-btn" class="tool-btn" style="background:#334155; display:none;" onclick="goBackFolder()">⬅ Back</button>
         <div class="breadcrumb-bar" id="library-main-title">📚 Private Library</div>
       </div>
-      <button id="create-folder-btn" class="tool-btn" style="background:#2563eb; white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
+      <div id="folder-view-actions" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end;">
+        <button id="view-pdf-btn" class="tool-btn" style="display:none;background:#2563eb;" onclick="viewCurrentFolderPdf()">🔗 View PDF</button>
+        <button id="view-image-btn" class="tool-btn" style="display:none;background:#059669;" onclick="viewCurrentFolderImages()">🖼️ Question Images</button>
+        <button id="create-folder-btn" class="tool-btn" style="background:#2563eb; white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
+      </div>
     </div>
 
     <!-- MAIN FOLDER GRID / FOLDER CONTENT CONTAINER -->
@@ -191,32 +195,12 @@
         <div id="picker-questions-list" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
-      <!-- PDF LINKS SECTION INSIDE FOLDERS -->
-      <div id="library-questions-section" style="display:none; background:#090d16; border:1px solid #1e293b; border-radius:12px; padding:14px; margin-top:10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px;">
-          <h4 style="color:#10b981; font-size:14px;">📝 Questions in this Folder</h4>
-          <input id="library-question-search" class="pdf-input" style="max-width:280px;" placeholder="Search uploaded questions..." oninput="renderLibraryQuestions()">
+      <div id="library-questions-section" style="display:none;background:#090d16;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+          <h4 style="color:#10b981;font-size:14px;">📝 Questions in this Folder</h4>
+          <input id="library-question-search" class="pdf-input" style="max-width:280px;" placeholder="Search questions..." oninput="renderLibraryQuestions()">
         </div>
-        <div id="library-questions-list" style="display:flex; flex-direction:column; gap:8px;"></div>
-      </div>
-
-      <div id="pdf-links-section" style="display:none; background:#0b1120; border:1px solid #1e293b; border-radius:12px; padding:12px; margin-top:10px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <h4 style="color:#38bdf8; font-size:14px;">📄 PDF Links & Files in this Folder</h4>
-          <button class="tool-btn" style="background:#10b981;" onclick="addNewPdfRow()">+ Add PDF Link</button>
-        </div>
-        <table class="pdf-table">
-          <thead>
-            <tr>
-              <th>Document Title</th>
-              <th>PDF Link</th>
-              <th style="width:140px; text-align:center;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="pdf-table-body">
-            <tr><td colspan="3" style="text-align:center; color:#64748b;">No PDF links added yet.</td></tr>
-          </tbody>
-        </table>
+        <div id="library-questions-list" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
     </div>
   </div>
@@ -501,19 +485,21 @@
 
     function renderLibraryBrowser() {
       const cards = document.getElementById('folder-cards-container');
-      const pdfSection = document.getElementById('pdf-links-section');
       if(!cards) return;
 
       renderBreadcrumb();
       const children = getChildrenForPath(currentFolderPath);
       cards.innerHTML = '';
 
-      // यदि हम किसी फोल्डर के अंदर हैं, तो वहाँ PDF Links जोड़ने/देखने का सेक्शन दिखाएं
-      if (currentFolderPath) {
-        if(pdfSection) pdfSection.style.display = 'block';
-        renderPdfTableForCurrentFolder();
-      } else {
-        if(pdfSection) pdfSection.style.display = 'none';
+      const pdfBtn=document.getElementById('view-pdf-btn');
+      const imageBtn=document.getElementById('view-image-btn');
+      if(currentFolderPath){
+        const pdfs=(folderPdfs[currentFolderPath]||[]).filter(x=>String(x.url||'').trim());
+        if(pdfBtn) pdfBtn.style.display=pdfs.length?'inline-flex':'none';
+        if(imageBtn) imageBtn.style.display=libraryQuestions.some(q=>!!questionImage(q))?'inline-flex':'none';
+      }else{
+        if(pdfBtn) pdfBtn.style.display='none';
+        if(imageBtn) imageBtn.style.display='none';
       }
 
       if(children.length){
@@ -539,17 +525,31 @@
       renderLibraryQuestions();
     }
 
+    function questionText(q){
+      return String(q.text||q.qText||q.questionText||q.question||q.question_text||q.content||'').trim();
+    }
+    function questionOptions(q){
+      let opts=q.options||q.choices||q.answerOptions;
+      if(typeof opts==='string'){ try{ opts=JSON.parse(opts); }catch(e){ opts=null; } }
+      if(Array.isArray(opts)) return opts.map((x,i)=> typeof x==='object' ? (x.text||x.value||x.label||'') : String(x)).filter(Boolean);
+      const out=[];
+      ['A','B','C','D','E'].forEach(k=>{
+        const v=q['option'+k]??q['option_'+k]??q['choice'+k];
+        if(v!==undefined && String(v).trim()) out.push(String(v));
+      });
+      return out;
+    }
     function renderLibraryQuestions(){
       const box=document.getElementById('library-questions-section');
       const list=document.getElementById('library-questions-list');
-      if(!box || !list) return;
-      if(!currentFolderPath){ box.style.display='none'; list.innerHTML=''; return; }
+      if(!box||!list) return;
+      if(!currentFolderPath){box.style.display='none';list.innerHTML='';return;}
       box.style.display='block';
       const term=(document.getElementById('library-question-search')?.value||'').toLowerCase().trim();
       const rows=libraryQuestions.filter(q=>{
         const path=String(q.subject||q.folderPath||q.path||'').trim();
-        const text=String(q.qText||q.text||q.questionText||q.question||'').toLowerCase();
-        return path===currentFolderPath && (!term || text.includes(term));
+        const text=(questionText(q)+' '+questionOptions(q).join(' ')).toLowerCase();
+        return path===currentFolderPath && (!term||text.includes(term));
       });
       window._libraryRenderedQuestions=rows;
       if(!rows.length){
@@ -557,21 +557,36 @@
         return;
       }
       list.innerHTML=rows.map((q,i)=>{
+        const text=questionText(q);
+        const opts=questionOptions(q);
         const img=questionImage(q);
-        const pdfs=folderPdfs[currentFolderPath]||[];
-        const pdfBtns=pdfs.filter(p=>String(p.url||'').trim()).map((p,pi)=>
-          '<button class="tool-btn library-mini-btn" style="background:#2563eb;" onclick="openPdfLink('+i+','+pi+')">🔗 View PDF</button>'
-        ).join('');
+        const type=q.type||q.questionType||q.qType||'MCQ';
+        const marks=q.marks??q.mark??1;
         return '<div class="library-question-card">'+
-          '<div class="library-q-main"><div class="library-q-title">Q'+escapeHtml(q.qNo??(i+1))+' · '+escapeHtml(q.qType||q.type||'MCQ')+'</div>'+
-          '<div class="library-q-text">'+escapeHtml(q.qText||q.text||q.questionText||'Image-based question')+'</div>'+
-          '<div class="library-q-meta">'+escapeHtml(q.marks??1)+' marks · '+escapeHtml(q.ownerEmail||q.creatorEmail||'')+'</div></div>'+
+          '<div class="library-q-main">'+
+          '<div class="library-q-title">Q'+escapeHtml(q.qNo??q.questionNo??(i+1))+' · '+escapeHtml(type)+' · '+escapeHtml(marks)+' marks</div>'+
+          '<div class="library-q-text">'+escapeHtml(text||'Question text not found in saved record.')+'</div>'+
+          (opts.length?'<div class="library-q-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+escapeHtml(o)+'</div>').join('')+'</div>':'')+
+          '<div class="library-q-meta">'+escapeHtml(q.ownerEmail||q.creatorEmail||'')+'</div>'+
+          '</div>'+
           '<div class="library-q-actions">'+
-          (img?'<button class="tool-btn library-mini-btn" style="background:#059669;" onclick="openQuestionImage('+i+')">🖼️ Question Image</button>':'')+
-          (pdfBtns||'<span style="font-size:10px;color:#64748b;">No PDF link</span>')+
+          (img?'<button class="tool-btn library-mini-btn" style="background:#059669;" onclick="openQuestionImage('+i+')">🖼️ View Image</button>':'')+
           '</div></div>';
       }).join('');
+      const imageBtn=document.getElementById('view-image-btn');
+      if(imageBtn) imageBtn.style.display=rows.some(q=>!!questionImage(q))?'inline-flex':'none';
     }
+
+    window.viewCurrentFolderPdf=function(){
+      const list=(folderPdfs[currentFolderPath]||[]).filter(x=>String(x.url||'').trim());
+      if(!list.length) return alert('No PDF link saved for this folder.');
+      window.open(list[0].url,'_blank','noopener,noreferrer');
+    };
+    window.viewCurrentFolderImages=function(){
+      const rows=(window._libraryRenderedQuestions||[]).filter(q=>!!questionImage(q));
+      if(!rows.length) return alert('No question images found in this folder.');
+      openQuestionImage(0);
+    };
 
     window.openQuestionImage=function(index){
       const q=(window._libraryRenderedQuestions||[])[index];
@@ -672,6 +687,7 @@
       document.getElementById('auth-overlay').style.display = 'none';
       document.getElementById('current-user-tag').textContent = email;
       await loadLibraryStateForCurrentMode();
+      await loadPickerQuestions();
       renderLibraryBrowser();
     };
 
