@@ -363,6 +363,7 @@ window.addFolderForCurrentLibrary=async function(kind){
     #studio-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 50000; flex-direction: column; }
     #studio-iframe { width: 100%; height: 100%; border: none; background: #060911; }
 
+.a2z-library-picker{display:flex;align-items:center;gap:6px;margin:0 0 5px}.a2z-library-picker-label{color:#94a3b8;font-size:9px;font-weight:800;white-space:nowrap}.a2z-library-picker select{flex:1;width:100%;padding:5px 7px;border:1px solid #334155;border-radius:5px;background:#0f172a;color:#f8fafc;font-size:10px;font-weight:800}.slicer-folder-path-selectors{display:flex;flex-direction:row;align-items:flex-end;gap:5px;margin-top:4px;width:100%;overflow-x:auto;padding-bottom:2px}.folder-level{display:flex;flex-direction:column;gap:2px;min-width:125px;flex:1;padding:4px;border:1px solid #1e293b;border-radius:5px;background:#080d1a}.folder-level-select{width:100%;font-size:11px}.folder-level-label{white-space:nowrap}
     .a2z-library-picker-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;margin:0 0 5px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#f8fafc;font-size:10px;font-weight:800;cursor:pointer}.a2z-library-picker-btn:hover{border-color:#38bdf8}.a2z-library-picker-btn span{color:#10b981;font-size:9px}
     #a2z-library-modal{position:fixed;inset:0;background:rgba(3,7,18,.82);display:none;align-items:center;justify-content:center;padding:16px;z-index:100000}.a2z-library-modal-card{width:min(100%,380px);background:#0b1120;border:1px solid #334155;border-radius:12px;padding:14px;box-shadow:0 20px 70px rgba(0,0,0,.7)}.a2z-library-modal-card h3{font-size:15px;margin-bottom:4px}.a2z-library-modal-card p{font-size:10px;color:#94a3b8;margin-bottom:12px}.a2z-library-options{display:grid;gap:7px}.a2z-library-option{padding:11px;border:1px solid #334155;border-radius:8px;background:#0f172a;color:#e2e8f0;text-align:left;font-size:11px;font-weight:800;cursor:pointer}.a2z-library-option:hover{border-color:#10b981;background:#064e3b}.a2z-library-option small{display:block;margin-top:3px;color:#64748b;font-size:9px;font-weight:600}.a2z-library-modal-close{width:100%;margin-top:10px;padding:7px;border:1px solid #334155;border-radius:7px;background:#1e293b;color:#cbd5e1;font-size:10px;font-weight:800;cursor:pointer}
   </style>
@@ -430,7 +431,7 @@ window.addFolderForCurrentLibrary=async function(kind){
           <span>Book & Section:</span>
           <button class="tool-btn" style="padding:2px 6px; font-size:9px; background:#0284c7;" onclick="window.addNewFolderDynamic()">➕ Add Folder</button>
         </label>
-        <button type="button" id="a2z-library-picker-btn" class="a2z-library-picker-btn">📚 Choose Library <span id="a2z-library-picker-label">Private Library</span></button>
+        <div id="a2z-library-picker" class="a2z-library-picker"><span class="a2z-library-picker-label">Library</span><select id="a2z-library-select"><option value="private">🔒 Private Library</option><option value="central">📁 Central Library</option><option value="group">🤝 Group Library</option></select></div>
 <div id="slicer-folder-path-selectors" class="slicer-folder-path-selectors"></div>
                 <div id="slicer-selected-folder-path" class="slicer-selected-folder-path">No folder selected</div>
 
@@ -1388,16 +1389,14 @@ window.clearTarget = function(t) {
   </script>
 
 
-<div id="a2z-library-modal"><div class="a2z-library-modal-card"><h3>Choose Library</h3><p>Select where this question should be saved.</p><div class="a2z-library-options"><button type="button" class="a2z-library-option" data-a2z-library="private">🔒 Private Library<small>Your personal teacher library</small></button><button type="button" class="a2z-library-option" data-a2z-library="central">📁 Central Library<small>Common / central library</small></button><button type="button" class="a2z-library-option" data-a2z-library="group">🤝 Group Library<small>Your group library</small></button></div><button type="button" id="a2z-library-modal-close" class="a2z-library-modal-close">Cancel</button></div></div>
 <script>
 (function(){
 const names={private:'Private Library',central:'Central Library',group:'Group Library'};
-window.updateSlicerLibraryPickerLabel=function(){const e=document.getElementById('a2z-library-picker-label');if(e)e.textContent=names[window.__a2zSelectedLibrary||'private'];};
+window.updateSlicerLibraryPickerLabel=function(){const e=document.getElementById('a2z-library-select');if(e)e.value=window.__a2zSelectedLibrary||'private';};
 document.addEventListener('DOMContentLoaded',function(){
-window.__a2zSelectedLibrary=window.__a2zSelectedLibrary||'private';window.updateSlicerLibraryPickerLabel();
-document.getElementById('a2z-library-picker-btn')?.addEventListener('click',()=>{document.getElementById('a2z-library-modal').style.display='flex';});
-document.querySelectorAll('.a2z-library-option').forEach(b=>b.addEventListener('click',async()=>{const mode=b.dataset.a2zLibrary;window.__a2zSelectedLibrary=mode;window.updateSlicerLibraryPickerLabel();document.getElementById('a2z-library-modal').style.display='none';if(typeof window.loadSlicerLibraryMode==='function')await window.loadSlicerLibraryMode(mode);}));
-document.getElementById('a2z-library-modal-close')?.addEventListener('click',()=>document.getElementById('a2z-library-modal').style.display='none');
+window.__a2zSelectedLibrary=window.__a2zSelectedLibrary||'private';
+const sel=document.getElementById('a2z-library-select');
+if(sel){sel.value=window.__a2zSelectedLibrary;sel.addEventListener('change',async()=>{const mode=sel.value;window.__a2zSelectedLibrary=mode;if(typeof window.loadSlicerLibraryMode==='function')await window.loadSlicerLibraryMode(mode);});}
 });
 })();
 </script>
