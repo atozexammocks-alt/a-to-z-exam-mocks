@@ -338,8 +338,8 @@
       </div>
       <div id="pdf-links-section" class="pdf-library-panel">
         <div class="pdf-library-head">
-          <h4>🔗 PDF Links for this Folder</h4>
-          <button class="tool-btn" style="background:#2563eb;" onclick="addNewPdfRow()">＋ Add PDF Link</button>
+          <h4>🔗 PDF Materials for this Folder</h4>
+          <button class="tool-btn" style="background:#2563eb;" onclick="addNewPdfRow()">＋ Add PDF Material</button>
         </div>
         <div id="pdf-table-body"></div>
       </div>
@@ -900,7 +900,11 @@
       if(box){box.style.display=currentFolderPath?'block':'none';}
       const title=box?.querySelector('h4'); if(title) title.innerHTML='🖼️ Question Images in this Folder';
       const search=document.getElementById('library-question-search'); if(search) search.style.display='none';
-      if(list) { list.className='library-questions-grid'; list.innerHTML=rows.length?rows.map((q,i)=>'<div class="library-question-card"><div class="library-q-image" onclick="openQuestionImage('+i+')"><img src="'+escapeHtml(questionImage(q))+'" alt="Question image"></div><div class="library-q-title">Q'+escapeHtml(q.qNo??q.questionNo??(i+1))+'</div></div>').join(''):'<div style="color:#64748b;padding:20px;">No question images found in this folder.</div>'; }
+      if(list) { list.className='library-questions-grid'; list.innerHTML=rows.length?rows.map((q,i)=>{
+        const img=questionImage(q), text=questionText(q), opts=questionOptions(q);
+        const type=q.type||q.questionType||q.qType||'MCQ', marks=q.marks??q.mark??1;
+        return '<div class="library-question-card"><div class="library-q-main"><div style="display:flex;align-items:center;gap:8px;min-width:0;"><div class="library-q-title" style="flex:1;">Q'+escapeHtml(q.qNo??q.questionNo??(i+1))+' · '+escapeHtml(type)+' · '+escapeHtml(marks)+' mark'+(Number(marks)===1?'':'s')+'</div><div class="question-action-inline"><button class="tool-btn library-mini-btn" style="background:#059669;" onclick="openQuestionImage('+i+')">View</button><button class="tool-btn library-mini-btn" style="background:#7c3aed;" onclick="editLibraryQuestion(\''+escapeHtml(q.id)+'\')">Edit</button><button class="tool-btn library-mini-btn" style="background:#2563eb;" onclick="moveLibraryQuestion(\''+escapeHtml(q.id)+'\')">Move</button><button class="tool-btn library-mini-btn" style="background:#991b1b;" onclick="deleteLibraryQuestion(\''+escapeHtml(q.id)+'\')">Delete</button></div></div><div class="library-q-image" onclick="openQuestionImage('+i+')"><img src="'+escapeHtml(img)+'" alt="Question image"></div>'+(text?'<div class="library-q-text">'+escapeHtml(text)+'</div>':'')+(opts.length?'<div class="library-q-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+escapeHtml(o)+'</div>').join('')+'</div>':'')+'</div></div>';
+      }).join(''):'<div style="color:#64748b;padding:20px;">No question images found in this folder.</div>'; }
     }
 
     window.openFolderPdfLinks=function(){
@@ -952,31 +956,28 @@
     };
 
     function renderPdfTableForCurrentFolder() {
-      const tbody = document.getElementById('pdf-table-body');
-      if(!tbody) return;
-      const list = folderPdfs[currentFolderPath] || [];
-
-      if(list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#64748b;">No PDF links added in this folder yet.</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = list.map((item, idx) => `
-        <tr>
-          <td><input class="pdf-input" value="${escapeHtml(item.title||'')}" onchange="updatePdfItem(${idx}, 'title', this.value)"></td>
-          <td><input class="pdf-input" value="${escapeHtml(item.url||'')}" placeholder="https://drive.google.com/..." onchange="updatePdfItem(${idx}, 'url', this.value)"></td>
-          <td style="text-align:center; display:flex; gap:6px; justify-content:center;">
-            <button class="tool-btn" style="background:#2563eb;" onclick="window.open('${escapeHtml(item.url||'')}','_blank')">🔗 Open</button>
-            <button class="tool-btn" style="background:#7f1d1d;" onclick="deletePdfItem(${idx})">🗑</button>
-          </td>
-        </tr>
-      `).join('');
+      const tbody=document.getElementById('pdf-table-body'); if(!tbody) return;
+      const list=folderPdfs[currentFolderPath]||[];
+      document.getElementById('pdf-links-section')?.style && (document.getElementById('pdf-links-section').style.display='block');
+      const picker=document.getElementById('picker-questions-section'); if(picker) picker.style.display='none';
+      const qbox=document.getElementById('library-questions-section'); if(qbox) qbox.style.display='none';
+      const cards=document.getElementById('folder-cards-container'); if(cards) cards.style.display='none';
+      if(!list.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#64748b;">No PDF material added in this folder yet. Use “＋ Add PDF Material”.</td></tr>';return;}
+      tbody.innerHTML=list.map((item,idx)=>'<tr>'+
+        '<td><input class="pdf-input" value="'+escapeHtml(item.name||item.title||'')+'" placeholder="Material / PDF name" onchange="updatePdfItem('+idx+', \'name\', this.value)"></td>'+
+        '<td><input class="pdf-input" value="'+escapeHtml(item.subject||'')+'" placeholder="Subject" onchange="updatePdfItem('+idx+', \'subject\', this.value)"></td>'+
+        '<td><input class="pdf-input" value="'+escapeHtml(item.material||'')+'" placeholder="Material / Chapter / Description" onchange="updatePdfItem('+idx+', \'material\', this.value)"></td>'+
+        '<td><input class="pdf-input" value="'+escapeHtml(item.url||'')+'" placeholder="Paste PDF link (Drive, URL...)" onchange="updatePdfItem('+idx+', \'url\', this.value)"></td>'+
+        '<td style="text-align:center;white-space:nowrap;"><button class="tool-btn" style="background:#2563eb;" onclick="window.open(\''+escapeHtml(item.url||'')+'\',\'_blank\')">🔗 Open</button> <button class="tool-btn" style="background:#7f1d1d;" onclick="deletePdfItem('+idx+')">🗑</button></td>'+
+      '</tr>').join('');
     }
 
     window.updatePdfItem = async function(idx, field, val) {
       if(folderPdfs[currentFolderPath]?.[idx]) {
-        folderPdfs[currentFolderPath][idx][field] = String(val||'').trim();
+        folderPdfs[currentFolderPath][idx][field]=String(val||'').trim();
+        if(field==='name') folderPdfs[currentFolderPath][idx].title=folderPdfs[currentFolderPath][idx].name;
         await saveLibraryStateForCurrentMode();
+        if(libraryDisplayMode==='pdf') renderPdfTableForCurrentFolder();
       }
     };
 
