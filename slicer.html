@@ -559,8 +559,18 @@ window.addFolderForCurrentLibrary=async function(kind){
         </div>
       </div>
 
-      <div class="crop-target-status" style="display:flex;align-items:center;justify-content:flex-end;margin-top:3px;">
-        <span id="crop-target-label" style="font-size:9px;color:#64748b;">✂️ Crop target: Question</span>
+      <div class="crop-target-status" style="margin-top:5px;">
+        <div style="font-size:9px;color:#94a3b8;margin-bottom:3px;font-weight:700;">IMAGE CROP TARGET — click before drawing the crop</div>
+        <div class="slot-group" style="grid-template-columns:1fr 1fr;">
+          <button type="button" class="target-btn active" data-target="question" onclick="window.setCropTarget('question')">🖼️ Question Image</button>
+          <button type="button" class="target-btn" data-target="solution" onclick="window.setCropTarget('solution')">💡 Solution Image</button>
+        </div>
+        <div style="font-size:8px;color:#64748b;margin-top:3px;">
+          Question Image: every crop is added to the same question image (group/merge multiple crops). Solution Image works the same way.
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:2px;">
+          <span id="crop-target-label" style="font-size:9px;color:#64748b;">✂️ Crop target: Question Image</span>
+        </div>
       </div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
@@ -1213,10 +1223,13 @@ window.addFolderForCurrentLibrary=async function(kind){
 
     window.setCropTarget = function(target) {
       activeTarget = target;
-      const names = { question:'Question', qtext:'Question Text', opta:'Option A', optb:'Option B', optc:'Option C', optd:'Option D', solution:'Solution' };
+      document.querySelectorAll('.target-btn[data-target]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.target === target);
+      });
+      const names = { question:'Question Image', qtext:'Question Text', opta:'Option A', optb:'Option B', optc:'Option C', optd:'Option D', solution:'Solution Image' };
       const label = document.getElementById('crop-target-label');
-      if (label) label.textContent = '✂️ Crop target: ' + (names[target] || 'Question');
-      showToast('✂️ Crop target: ' + (names[target] || 'Question'));
+      if (label) label.textContent = '✂️ Crop target: ' + (names[target] || 'Question Image');
+      showToast('✂️ Crop target: ' + (names[target] || 'Question Image'));
     };
     window.clearCropTarget = function() { window.setCropTarget('question'); };
 
