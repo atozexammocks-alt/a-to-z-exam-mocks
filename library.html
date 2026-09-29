@@ -82,12 +82,12 @@
     .picker-question { background:#0b1120; border:1px solid #334155; border-radius:10px; padding:12px; display:flex; gap:12px; align-items:flex-start; }
     .picker-question img { max-width:180px; max-height:120px; object-fit:contain; background:#fff; border-radius:6px; }
     .picker-insert { background:#10b981; color:#fff; border:0; border-radius:7px; padding:7px 12px; cursor:pointer; font-weight:800; font-size:11px; white-space:nowrap; }
-    .library-question-card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:14px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+    .library-questions-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}.library-question-card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:14px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
     .library-q-main{min-width:0;flex:1}.library-q-title{font-size:12px;font-weight:900;color:#38bdf8;margin-bottom:4px}
     .library-q-text{font-size:13px;color:#f8fafc;line-height:1.55;white-space:pre-wrap;overflow:visible}
     .library-q-options{margin-top:8px;font-size:12px;color:#cbd5e1;line-height:1.55}.library-q-meta{font-size:10px;color:#64748b;margin-top:7px}.library-q-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
     .library-mini-btn{font-size:10px;padding:6px 9px;white-space:nowrap}.library-top-action{flex-shrink:0}.library-address{font-size:11px;font-weight:800;color:#38bdf8;min-width:150px;max-width:32vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.library-view-label{font-size:10px;font-weight:800;color:#64748b}.library-top-action{flex-shrink:0}
-    @media(max-width:800px){.library-address{min-width:110px;max-width:28vw}.library-view-label{display:none}.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}.folder-actions{display:none}}
+    @media(max-width:1050px){.library-questions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}} @media(max-width:700px){.library-questions-grid{grid-template-columns:1fr}.library-address{min-width:110px;max-width:28vw}.library-view-label{display:none}.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}.folder-actions{display:none}}
   </style>
 
 <style>
@@ -177,6 +177,11 @@
     <button id="view-image-btn" class="tool-btn library-top-action" style="display:none;background:#059669;" onclick="viewCurrentFolderImages()">🖼️ Images</button>
     <button id="create-folder-btn" class="tool-btn library-top-action" style="background:#2563eb;white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
     <button id="group-invite-btn" class="tool-btn library-top-action" style="background:#7c3aed;display:none;" onclick="openLibraryAccessModal()">👥 Invite</button>
+    <span id="folder-actions-inline" style="display:none;gap:5px;margin-left:2px;">
+      <button class="tool-btn library-top-action" style="background:#475569;" onclick="renameCurrentFolder()">✏️ Rename</button>
+      <button class="tool-btn library-top-action" style="background:#2563eb;" onclick="moveCurrentFolder()">📁 Move</button>
+      <button class="tool-btn library-top-action" style="background:#991b1b;" onclick="deleteCurrentFolder()">🗑️ Delete</button>
+    </span>
   </div>
 
   <!-- LIBRARY VIEW SCREEN -->
@@ -502,7 +507,9 @@
 
       const pdfBtn=document.getElementById('view-pdf-btn');
       const imageBtn=document.getElementById('view-image-btn');
-      if(currentFolderPath){
+      const folderActions=document.getElementById('folder-actions-inline');
+      if(folderActions) folderActions.style.display=currentFolderPath?'flex':'none';
+            if(currentFolderPath){
         const pdfs=(folderPdfs[currentFolderPath]||[]).filter(x=>String(x.url||'').trim());
         if(pdfBtn) pdfBtn.style.display=pdfs.length?'inline-flex':'none';
         if(imageBtn) imageBtn.style.display=libraryQuestions.some(q=>!!questionImage(q))?'inline-flex':'none';
@@ -552,6 +559,39 @@
     function normalizeFolderPath(v){
       return String(v||'').trim().replace(/\\/g,'/').split('/').map(x=>x.trim()).filter(Boolean).join(' / ');
     }
+
+    window.renameCurrentFolder=async function(){
+      if(!currentFolderPath) return;
+      const parts=currentFolderPath.split(' / '); const oldName=parts.pop();
+      const name=prompt('New folder name:',oldName); if(!name||!name.trim()||name.trim()===oldName) return;
+      const tree=activeLibraryMode==='private'?privateLibraryTree:activeLibraryMode==='central'?centralLibraryTree:groupLibraryTree;
+      const node=findFolderByPath(currentFolderPath); if(!node) return;
+      node.name=name.trim();
+      try{await saveLibraryStateForCurrentMode(); currentFolderPath=parts.length?parts.join(' / ')+' / '+name.trim():name.trim(); await loadLibraryStateForCurrentMode(); renderLibraryBrowser(); showToast('✔ Folder renamed');}catch(e){alert('Rename failed: '+e.message);}
+    };
+    window.deleteCurrentFolder=async function(){
+      if(!currentFolderPath) return;
+      if(!confirm('Delete this folder and its subfolders?')) return;
+      const tree=activeLibraryMode==='private'?privateLibraryTree:activeLibraryMode==='central'?centralLibraryTree:groupLibraryTree;
+      const parts=currentFolderPath.split(' / '); const name=parts.pop(); const parent=parts.length?findFolderByPath(parts.join(' / ')):null;
+      const arr=parent?parent.children:tree; const idx=arr.findIndex(x=>x.name===name);
+      if(idx<0) return; arr.splice(idx,1);
+      try{await saveLibraryStateForCurrentMode(); currentFolderPath=parts.join(' / '); renderLibraryBrowser(); showToast('🗑️ Folder deleted');}catch(e){alert('Delete failed: '+e.message);}
+    };
+    window.moveCurrentFolder=async function(){
+      if(!currentFolderPath) return;
+      const target=prompt('Move folder under this parent path (leave blank for library root):','');
+      if(target===null) return;
+      const node=findFolderByPath(currentFolderPath); if(!node) return;
+      const oldParts=currentFolderPath.split(' / '), name=oldParts.pop();
+      const oldParent=oldParts.length?findFolderByPath(oldParts.join(' / ')):null;
+      const oldArr=oldParent?oldParent.children:(activeLibraryMode==='private'?privateLibraryTree:activeLibraryMode==='central'?centralLibraryTree:groupLibraryTree);
+      const idx=oldArr.findIndex(x=>x===node); if(idx>=0) oldArr.splice(idx,1);
+      const dest=normalizeFolderPath(target); const destNode=dest?findFolderByPath(dest):null;
+      const destArr=destNode?(destNode.children||(destNode.children=[])):(activeLibraryMode==='private'?privateLibraryTree:activeLibraryMode==='central'?centralLibraryTree:groupLibraryTree);
+      destArr.push(node);
+      try{await saveLibraryStateForCurrentMode(); currentFolderPath=dest?(dest+' / '+name):name; renderLibraryBrowser(); showToast('📁 Folder moved');}catch(e){alert('Move failed: '+e.message);}
+    };
 
     window.editLibraryQuestion=function(id){
       const q=libraryQuestions.find(x=>String(x.id)===String(id));
@@ -615,6 +655,7 @@
         list.innerHTML='<div style="padding:22px;text-align:center;color:#64748b;">No uploaded questions found in this folder.</div>';
         return;
       }
+      list.className='library-questions-grid';
       list.innerHTML=rows.map((q,i)=>{
         const text=questionText(q);
         const opts=questionOptions(q);
