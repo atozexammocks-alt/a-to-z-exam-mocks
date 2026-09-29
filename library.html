@@ -82,12 +82,118 @@
     .picker-question { background:#0b1120; border:1px solid #334155; border-radius:10px; padding:12px; display:flex; gap:12px; align-items:flex-start; }
     .picker-question img { max-width:180px; max-height:120px; object-fit:contain; background:#fff; border-radius:6px; }
     .picker-insert { background:#10b981; color:#fff; border:0; border-radius:7px; padding:7px 12px; cursor:pointer; font-weight:800; font-size:11px; white-space:nowrap; }
-    .library-questions-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}.library-question-card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:14px;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
-    .library-q-main{min-width:0;flex:1}.library-q-title{font-size:12px;font-weight:900;color:#38bdf8;margin-bottom:4px}
-    .library-q-text{font-size:13px;color:#f8fafc;line-height:1.55;white-space:pre-wrap;overflow:visible}
-    .library-q-options{margin-top:8px;font-size:12px;color:#cbd5e1;line-height:1.55}.library-q-meta{font-size:10px;color:#64748b;margin-top:7px}.library-q-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-    .library-mini-btn{font-size:10px;padding:6px 9px;white-space:nowrap}.library-top-action{flex-shrink:0}.library-address{font-size:11px;font-weight:800;color:#38bdf8;min-width:150px;max-width:32vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.library-view-label{font-size:10px;font-weight:800;color:#64748b}.library-top-action{flex-shrink:0}
-    @media(max-width:1050px){.library-questions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}} @media(max-width:700px){.library-questions-grid{grid-template-columns:1fr}.library-address{min-width:110px;max-width:28vw}.library-view-label{display:none}.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}.folder-actions{display:none}}
+    .library-questions-grid{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:18px;
+      align-items:stretch;
+    }
+    .library-question-card{
+      background:#0b1120;
+      border:1px solid #1e293b;
+      border-radius:14px;
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-width:0;
+      min-height:250px;
+      box-shadow:0 8px 24px rgba(0,0,0,.18);
+      transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease;
+    }
+    .library-question-card:hover{
+      border-color:#334155;
+      transform:translateY(-2px);
+      box-shadow:0 12px 30px rgba(0,0,0,.28);
+    }
+    .library-q-main{min-width:0;display:flex;flex-direction:column;gap:8px;flex:1}
+    .library-q-title{
+      font-size:11px;
+      font-weight:800;
+      color:#94a3b8;
+      margin:0;
+      letter-spacing:.02em;
+      text-transform:uppercase;
+    }
+    .library-q-text{
+      font-size:14px;
+      color:#f8fafc;
+      line-height:1.65;
+      white-space:pre-wrap;
+      overflow-wrap:anywhere;
+      word-break:break-word;
+    }
+    .library-q-image{
+      width:100%;
+      height:210px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#f8fafc;
+      border:1px solid #e2e8f0;
+      border-radius:10px;
+      overflow:hidden;
+      cursor:pointer;
+    }
+    .library-q-image img{
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit:contain;
+    }
+    .library-q-options{
+      margin-top:2px;
+      padding-top:10px;
+      border-top:1px solid #1e293b;
+      font-size:12px;
+      color:#cbd5e1;
+      line-height:1.65;
+    }
+    .library-q-options div{margin:2px 0}
+    .library-q-meta{
+      font-size:10px;
+      color:#64748b;
+      margin-top:auto;
+      padding-top:8px;
+      border-top:1px solid #172033;
+      overflow-wrap:anywhere;
+    }
+    .library-q-actions{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:7px;
+      margin-top:2px;
+    }
+    .library-mini-btn{
+      width:100%;
+      font-size:10px;
+      padding:7px 8px;
+      white-space:nowrap;
+      border-radius:7px;
+    }
+    .library-top-action{flex-shrink:0}
+    .library-address{
+      font-size:11px;
+      font-weight:800;
+      color:#38bdf8;
+      min-width:150px;
+      max-width:32vw;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .library-view-label{font-size:10px;font-weight:800;color:#64748b}
+    @media(max-width:1050px){
+      .library-questions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media(max-width:700px){
+      .library-questions-grid{grid-template-columns:1fr;gap:12px}
+      .library-address{min-width:110px;max-width:28vw}
+      .library-view-label{display:none}
+      .library-q-image{height:190px}
+      .pdf-table{font-size:11px}
+      .folder-actions{display:none}
+    }.library-address{min-width:110px;max-width:28vw}.library-view-label{display:none}.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}.folder-actions{display:none}}
   </style>
 
 <style>
@@ -186,30 +292,18 @@
 
   <!-- LIBRARY VIEW SCREEN -->
   <div class="view-screen" id="screen-library">
-    <div id="old-library-address-row" style="display:none;">
-      <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-        <button id="back-nav-btn" class="tool-btn" style="background:#334155; display:none;" onclick="goBackFolder()">⬅ Back</button>
-        <div class="breadcrumb-bar" id="library-main-title">📚 Private Library</div>
-      </div>
-      <div id="folder-view-actions" style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end;">
-        <button id="view-pdf-btn" class="tool-btn library-top-action" style="display:none;background:#2563eb;" onclick="viewCurrentFolderPdf()">🔗 PDF</button>
-        <button id="view-image-btn" class="tool-btn library-top-action" style="display:none;background:#059669;" onclick="viewCurrentFolderImages()">🖼️ Images</button>
-        <button id="create-folder-btn" class="tool-btn library-top-action" style="background:#2563eb;white-space:nowrap;" onclick="promptNewFolder()">＋ Create Folder</button>
-      </div>
-    </div>
-
     <!-- MAIN FOLDER GRID / FOLDER CONTENT CONTAINER -->
     <div id="folder-cards-view" style="display:flex; flex-direction:column; gap:12px; overflow-y:auto; flex:1;">
       <div class="folder-grid" id="folder-cards-container"></div>
       <div id="picker-questions-section" style="display:none; background:#090d16; border:1px solid #1e293b; border-radius:12px; padding:14px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <h4 style="color:#10b981;font-size:14px;">📝 Questions in this Folder</h4>
+          <h4 style="color:#e2e8f0;font-size:15px;font-weight:800;">Questions in this folder</h4>
           <input id="picker-question-search" class="pdf-input" style="max-width:280px;" placeholder="Search questions..." oninput="renderPickerQuestions()">
         </div>
         <div id="picker-questions-list" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
-      <div id="library-questions-section" style="display:none;background:#090d16;border:1px solid #1e293b;border-radius:12px;padding:14px;">
+      <div id="library-questions-section" style="display:none;background:transparent;border:0;border-radius:0;padding:4px 0 20px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
           <h4 style="color:#10b981;font-size:14px;">📝 Questions in this Folder</h4>
           <input id="library-question-search" class="pdf-input" style="max-width:280px;" placeholder="Search questions..." oninput="renderLibraryQuestions()">
@@ -537,7 +631,13 @@
     }
 
     function questionText(q){
-      return String(q.text||q.qText||q.questionText||q.question||q.question_text||q.content||'').trim();
+      const candidates=[q.text,q.qText,q.questionText,q.question_text,q.content];
+      for(const v of candidates){
+        if(typeof v==='string' && v.trim()) return v.trim();
+      }
+      const fallback=q.question;
+      if(typeof fallback==='string' && fallback.trim() && !/^(data:image\/|https?:\/\/|blob:)/i.test(fallback.trim())) return fallback.trim();
+      return '';
     }
     function questionOptions(q){
       let opts=q.options||q.choices||q.answerOptions;
@@ -647,7 +747,7 @@
       });
       window._libraryRenderedQuestions=rows;
       if(!rows.length){
-        list.innerHTML='<div style="padding:22px;text-align:center;color:#64748b;">No uploaded questions found in this folder.</div>';
+        list.innerHTML='<div style="padding:28px 10px;text-align:center;color:#64748b;border:1px dashed #243244;border-radius:12px;background:#090d16;">No questions in this folder.</div>';
         return;
       }
       list.className='library-questions-grid';
@@ -661,7 +761,7 @@
           '<div class="library-q-main">'+
           '<div class="library-q-title">Q'+escapeHtml(q.qNo??q.questionNo??(i+1))+' · '+escapeHtml(type)+' · '+escapeHtml(marks)+' marks</div>'+
           '<div class="library-q-text">'+escapeHtml(text||'Question text not found in saved record.')+'</div>'+
-          (img?'<div style="margin-top:10px;background:#fff;border-radius:8px;padding:6px;text-align:center;"><img src="'+escapeHtml(img)+'" alt="Question image" style="max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain;display:block;margin:auto;"></div>':'')+
+          (img?'<div class="library-q-image" title="Open image" onclick="openQuestionImage('+i+')"><img src="'+escapeHtml(img)+'" alt="Question preview"></div>':'')+
           (opts.length?'<div class="library-q-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+escapeHtml(o)+'</div>').join('')+'</div>':'')+
           '<div class="library-q-meta">'+escapeHtml(q.ownerEmail||q.creatorEmail||'')+'</div>'+
           '</div>'+
