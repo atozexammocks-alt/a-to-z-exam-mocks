@@ -531,11 +531,6 @@
           `;
           cards.appendChild(card);
         });
-      } else {
-        const empty = document.createElement('div'); 
-        empty.style = 'padding:30px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:10px;grid-column:1/-1;';
-        empty.innerHTML = '';
-        cards.appendChild(empty);
       }
       renderPickerQuestions();
       renderLibraryQuestions();
