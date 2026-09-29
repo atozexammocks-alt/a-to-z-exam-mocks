@@ -687,7 +687,18 @@ window.addFolderForCurrentLibrary=async function(kind){
     }
 
     function getSelectedSlicerFolderPath() {
-      return getSlicerFolderPathFromSelectors();
+      // Read the live dropdown selection first. Never depend on a missing/stale
+      // helper or an old cached folder path during Cloud Save.
+      const box = document.getElementById('slicer-folder-path-selectors');
+      if (box) {
+        const values = Array.from(box.querySelectorAll('select.folder-level-select'))
+          .map(s => String(s.value || '').trim())
+          .filter(v => v && v !== '__A2Z_ADD_SUBFOLDER__');
+        if (values.length) return values.join(' / ');
+      }
+      return (typeof window.getSlicerFolderPathFromSelectors === 'function')
+        ? String(window.getSlicerFolderPathFromSelectors() || '').trim()
+        : '';
     }
 
     const qTypeControl = document.getElementById('vault-q-type');
