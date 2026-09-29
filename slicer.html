@@ -117,7 +117,7 @@ function wireSlicerFolderButtons(){
   if(b)b.onclick=()=>addFolderForCurrentLibrary('sub');
   if(r)r.onclick=()=>loadSlicerLibraryMode(slicerLibraryMode);
 }
-async function addFolderForCurrentLibrary(kind){
+window.addFolderForCurrentLibrary=async function(kind){
   const name=(prompt(kind==='sub'?'Sub folder name:':'Main folder name:')||'').trim(); if(!name)return;
   if(kind==='main'){
     if(libraryTree.some(n=>String(n.name||'').trim().toLowerCase()===name.toLowerCase()))return alert('Folder already exists here.');
@@ -133,6 +133,7 @@ async function addFolderForCurrentLibrary(kind){
   }
   rebuildFlatFoldersFromTree(); renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
   if(!await window.saveFolderRegistryToCloud())alert('Failed to save folder to cloud.');
+  return true;
 }
 
     function findNodeByPath(path) {
@@ -363,7 +364,9 @@ async function addFolderForCurrentLibrary(kind){
     #studio-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; z-index: 50000; flex-direction: column; }
     #studio-iframe { width: 100%; height: 100%; border: none; background: #060911; }
   </style>
-</head>
+<style>
+.a2z-flow-controls{border:1px solid #334155;background:#080d1a;border-radius:6px;padding:6px;margin-bottom:6px}.a2z-flow-title{font-size:9px;color:#94a3b8;font-weight:800;margin-bottom:5px}.a2z-ocr-row,.a2z-crop-choice{display:flex;align-items:center;gap:4px;margin-top:4px}.a2z-ocr-row>span,.a2z-crop-choice>span{font-size:9px;color:#cbd5e1;font-weight:800;margin-right:auto}.a2z-mode{padding:4px 7px;border:1px solid #334155;background:#0f172a;color:#94a3b8;border-radius:4px;font-size:9px;font-weight:800;cursor:pointer}.a2z-mode.active{background:#10b981;color:#001b12;border-color:#10b981}
+</style></head>
 <body>
 
   <div id="toast-msg">✔ Action Successful!</div>
@@ -1558,7 +1561,37 @@ window.clearTarget = function(t) {
     render();
   }
 
-  window.addEventListener('DOMContentLoaded',()=>setTimeout(install,250));
+  window.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{
+  const o=document.getElementById('a2z-seq-overlay'); if(o)o.remove();
+  const right=document.getElementById('slicer-right'); if(right){right.querySelectorAll(':scope > *').forEach(el=>el.style.display='');}
+  // Ordered, compact setup controls: Library → Folder/Location → Q.No/Type/Flags → OCR → Crop mode → Save.
+  const meta=document.querySelector('#slicer-right .meta-box');
+  if(meta){
+    const old=meta.querySelector('.a2z-flow-controls'); if(old)old.remove();
+    const flow=document.createElement('div'); flow.className='a2z-flow-controls'; flow.innerHTML=
+      '<div class="a2z-flow-title">1. Library → 2. Folder / Location → 3. Question Details → 4. OCR / Crop → 5. Save</div>'+
+      '<div class="a2z-ocr-row"><span>OCR</span><button type="button" id="a2z-ocr-off" class="a2z-mode active">OFF</button><button type="button" id="a2z-ocr-on" class="a2z-mode">ON</button></div>'+
+      '<div id="a2z-crop-choice" class="a2z-crop-choice" style="display:none"><span>Crop Mode</span><button type="button" id="a2z-full-crop" class="a2z-mode active">Full Question</button><button type="button" id="a2z-parts-crop" class="a2z-mode">Parts / Options</button></div>';
+    meta.insertBefore(flow, meta.firstChild);
+    const ocrGrid=meta.querySelector('.ocr-action-bar'); const scratch=meta.querySelector('#vault-free-ocr');
+    const qtext=meta.querySelector('#vault-q-text');
+    const labels=[...meta.querySelectorAll('label')];
+    function ocr(on){
+      document.getElementById('a2z-ocr-off').classList.toggle('active',!on); document.getElementById('a2z-ocr-on').classList.toggle('active',on);
+      const choice=document.getElementById('a2z-crop-choice'); choice.style.display=on?'flex':'none';
+      if(ocrGrid)ocrGrid.style.display=on?'grid':'none';
+      if(scratch){scratch.style.display=on?'':'none'; const lab=scratch.previousElementSibling;if(lab)lab.style.display=on?'':'none';}
+    }
+    function crop(parts){
+      document.getElementById('a2z-full-crop').classList.toggle('active',!parts); document.getElementById('a2z-parts-crop').classList.toggle('active',parts);
+      // Full-question mode keeps only the question crop controls; parts mode exposes option crop buttons.
+      meta.querySelectorAll('.opt-row .inline-slicer-btn').forEach(b=>b.style.display=parts?'inline-block':'none');
+    }
+    document.getElementById('a2z-ocr-off').onclick=()=>ocr(false); document.getElementById('a2z-ocr-on').onclick=()=>ocr(true);
+    document.getElementById('a2z-full-crop').onclick=()=>crop(false); document.getElementById('a2z-parts-crop').onclick=()=>crop(true);
+    ocr(false); crop(false);
+  }
+},250));
 })();
 </script>
 
