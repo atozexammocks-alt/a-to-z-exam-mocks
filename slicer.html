@@ -123,12 +123,22 @@ window.addFolderForCurrentLibrary=async function(kind){
     libraryTree.push({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),name,type:'folder',children:[]});
     slicerSelectedFolderPath=name;
   }else{
-    const parent=findNodeByPath(slicerSelectedFolderPath);
+    // If a leaf subsection is selected, create the next subsection beside it
+    // under the same parent (e.g. Optics / Plane Mirror -> Optics / Spherical Mirror).
+    const selectedPath = String(slicerSelectedFolderPath || '').split(' / ').filter(Boolean);
+    let parentPath = selectedPath.slice(0, -1).join(' / ');
+    let parent = parentPath ? findNodeByPath(parentPath) : findNodeByPath(slicerSelectedFolderPath);
+    const selectedNode = findNodeByPath(slicerSelectedFolderPath);
+    // If the selected folder has children, adding a sub-folder still means adding inside it.
+    if (selectedNode && Array.isArray(selectedNode.children) && selectedNode.children.length) {
+      parent = selectedNode;
+      parentPath = slicerSelectedFolderPath;
+    }
     if(!parent)return alert('Select the parent folder first.');
     parent.children=Array.isArray(parent.children)?parent.children:[];
     if(parent.children.some(n=>String(n.name||'').trim().toLowerCase()===name.toLowerCase()))return alert('Sub folder already exists here.');
     parent.children.push({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),name,type:'folder',children:[]});
-    slicerSelectedFolderPath=slicerSelectedFolderPath+' / '+name;
+    slicerSelectedFolderPath=(parentPath ? parentPath+' / ' : '')+name;
   }
   rebuildFlatFoldersFromTree(); renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
   if(!await window.saveFolderRegistryToCloud())alert('Failed to save folder to cloud.');
@@ -288,12 +298,19 @@ window.addFolderForCurrentLibrary=async function(kind){
         libraryTree.push({id:"f_"+Date.now(),name,type:"folder",children:[]});
         slicerSelectedFolderPath=name;
       } else {
-        const parent=findNodeByPath(slicerSelectedFolderPath);
+        const selectedPath = String(slicerSelectedFolderPath || "").split(" / ").filter(Boolean);
+        let parentPath = selectedPath.slice(0, -1).join(" / ");
+        let parent = parentPath ? findNodeByPath(parentPath) : findNodeByPath(slicerSelectedFolderPath);
+        const selectedNode = findNodeByPath(slicerSelectedFolderPath);
+        if (selectedNode && Array.isArray(selectedNode.children) && selectedNode.children.length) {
+          parent = selectedNode;
+          parentPath = slicerSelectedFolderPath;
+        }
         if(!parent) return alert("Select the parent folder first.");
         parent.children=Array.isArray(parent.children)?parent.children:[];
         if(parent.children.some(n=>String(n.name||"").trim().toLowerCase()===name.toLowerCase())) return alert("Sub Folder already exists.");
         parent.children.push({id:"f_"+Date.now(),name,type:"folder",children:[]});
-        slicerSelectedFolderPath=slicerSelectedFolderPath+" / "+name;
+        slicerSelectedFolderPath=(parentPath ? parentPath+" / " : "")+name;
       }
       rebuildFlatFoldersFromTree(); renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
       await window.saveFolderRegistryToCloud();
