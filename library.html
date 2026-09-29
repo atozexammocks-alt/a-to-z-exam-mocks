@@ -352,6 +352,40 @@
       renderLibraryBrowser();
     };
 
+    function legacyTreeFromConfig(data) {
+      if (Array.isArray(data?.libraryTree) && data.libraryTree.length) return data.libraryTree;
+      const mains = Array.isArray(data?.mainFolders) ? data.mainFolders : [];
+      const subs = data?.subFolders && typeof data.subFolders === "object" ? data.subFolders : {};
+      return mains.map(name => ({
+        id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2,9),
+        name: String(name).trim(),
+        type: "folder",
+        children: (Array.isArray(subs[name]) ? subs[name] : []).map(s => ({
+          id: "f_" + Date.now() + "_" + Math.random().toString(36).slice(2,9),
+          name: String(s).trim(),
+          type: "folder",
+          children: []
+        }))
+      })).filter(n => n.name);
+    }
+
+    function treeInsertPath(tree, rawPath) {
+      const parts = normalizeFolderPath(rawPath).split(" / ").filter(Boolean);
+      if (!parts.length) return false;
+      let level = tree, changed = false;
+      parts.forEach((name, index) => {
+        let node = level.find(n => String(n.name||"").trim().toLowerCase() === name.toLowerCase());
+        if (!node) {
+          node = makeFolder(name);
+          level.push(node);
+          changed = true;
+        }
+        node.children = Array.isArray(node.children) ? node.children : [];
+        level = node.children;
+      });
+      return changed;
+    }
+
     async function loadLibraryStateForCurrentMode() {
       try {
         if (!window.db) return;
@@ -360,14 +394,13 @@
 
         let docRefPath = "";
         let docId = "";
-
         if (activeLibraryMode === 'private') {
           docRefPath = "folder_configs_private";
           docId = teacherDocId(email);
         } else if (activeLibraryMode === 'central') {
           docRefPath = "folder_configs_central";
           docId = "global_central_tree";
-        } else if (activeLibraryMode === 'group') {
+        } else {
           docRefPath = "folder_configs_group";
           docId = teacherDocId(email) + "_group";
         }
@@ -375,15 +408,10 @@
         const ref = window.doc(window.db, docRefPath, docId);
         const snap = await window.getDoc(ref);
         const data = snap.exists() ? snap.data() : {};
-
-        if (activeLibraryMode === 'private') {
-          privateLibraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
-        } else if (activeLibraryMode === 'central') {
-          centralLibraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
-        } else if (activeLibraryMode === 'group') {
-          groupLibraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
-        }
-
+        const tree = legacyTreeFromConfig(data);
+        if (activeLibraryMode === 'private') privateLibraryTree = tree;
+        else if (activeLibraryMode === 'central') centralLibraryTree = tree;
+        else groupLibraryTree = tree;
         folderPdfs = (data.folderPdfs && typeof data.folderPdfs === "object") ? {...data.folderPdfs} : {};
       } catch (e) {
         console.error("Failed to load library state:", e);
@@ -557,13 +585,28 @@
         const email=teacherEmailKey();
         libraryQuestions=all.filter(q=>{
           const owner=String(q.ownerEmail||q.creatorEmail||'').trim().toLowerCase();
-          const path=normalizeFolderPath(q.subject||q.folderPath||q.path||'');
-          if(!path) return false;
           if(activeLibraryMode==='private') return owner===email;
           if(activeLibraryMode==='central') return q.central===true || q.isCentral===true || q.libraryMode==='central' || q.targetLibrary==='central';
           if(activeLibraryMode==='group') return q.group===true || q.libraryMode==='group' || q.targetLibrary==='group';
           return false;
         });
+
+        // Safety net: rebuild missing folder nodes from the actual saved question paths.
+        // This keeps the Library usable even if an older folder-config document was empty
+        // while questions were already saved successfully.
+        const tree = getCurrentActiveTree();
+        let changed = false;
+        libraryQuestions.forEach(q => {
+          const path = normalizeFolderPath(q.subject||q.folderPath||q.path||'');
+          if(path) changed = treeInsertPath(tree, path) || changed;
+        });
+        if(changed && activeLibraryMode === 'private') {
+          await saveLibraryStateForCurrentMode();
+        } else if(changed && activeLibraryMode === 'central') {
+          await saveLibraryStateForCurrentMode();
+        } else if(changed && activeLibraryMode === 'group') {
+          await saveLibraryStateForCurrentMode();
+        }
       }catch(e){ pickerQuestions=[]; libraryQuestions=[]; console.error("Library question load failed:",e); }
     }
     function renderPickerQuestions(){
