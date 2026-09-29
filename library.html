@@ -391,6 +391,7 @@
         if (!window.db) return;
         const email = teacherEmailKey();
         if (!email) return;
+        if (window.teacherAuthReady) await window.teacherAuthReady;
 
         let docRefPath = "";
         let docId = "";
@@ -579,6 +580,7 @@
     async function loadPickerQuestions(){
       if(!window.db) return;
       try{
+        if (window.teacherAuthReady) await window.teacherAuthReady;
         const snap=await window.getDocs(window.collection(window.db,"questions"));
         const all=snap.docs.map(d=>({id:d.id,...d.data()}));
         pickerQuestions=all;
