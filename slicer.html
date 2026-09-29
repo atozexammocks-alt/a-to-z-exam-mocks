@@ -308,7 +308,7 @@
     .flag-btn.active-flag-green { background: #064e3b; color: #a7f3d0; border-color: #10b981; }
     .flag-btn.active-flag-yellow { background: #78350f; color: #fde68a; border-color: #f59e0b; }
 
-    .slot-group { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .slot-group { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
     .target-btn { padding: 4px; border: 1px solid #334155; background: #0f172a; color: #cbd5e1; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 10px; text-align: center; }
     .target-btn.active { background: #2563eb; color: white; border-color: #38bdf8; }
     
@@ -449,9 +449,15 @@
         </div>
       </div>
 
-      <div class="slot-group">
-        <button class="target-btn active" data-target="question">✂️ Question Cut (HD)</button>
-        <button class="target-btn" data-target="solution">💡 Solution Cut (HD)</button>
+      <div class="slot-group" style="grid-template-columns:repeat(4,1fr);">
+        <button class="target-btn active" data-target="question">✂️ Q Image</button>
+        <button class="target-btn" data-target="qtext">📝 Q Text</button>
+        <button class="target-btn" data-target="opta">A Crop</button>
+        <button class="target-btn" data-target="optb">B Crop</button>
+        <button class="target-btn" data-target="optc">C Crop</button>
+        <button class="target-btn" data-target="optd">D Crop</button>
+        <button class="target-btn" data-target="solution">💡 Solution</button>
+        <button class="target-btn" type="button" onclick="window.clearCropTarget()">Clear Target</button>
       </div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
@@ -979,9 +985,44 @@
               showToast("❌ OCR Failed");
             }
           } else {
-            if (activeTarget === 'question') questionParts.push(cutUrl); else solutionParts.push(cutUrl);
-            window.renderLivePreviews();
-            showToast("✂️ Ultra-HD Cropped!");
+            if (activeTarget === 'question') {
+              questionParts.push(cutUrl);
+              window.renderLivePreviews();
+              showToast("✂️ Question Image Cropped!");
+            } else if (activeTarget === 'solution') {
+              solutionParts.push(cutUrl);
+              window.renderLivePreviews();
+              showToast("💡 Solution Image Cropped!");
+            } else {
+              const targetMap = {
+                qtext: 'vault-q-text',
+                opta: 'opt-a',
+                optb: 'opt-b',
+                optc: 'opt-c',
+                optd: 'opt-d'
+              };
+              const targetId = targetMap[activeTarget];
+              const targetEl = document.getElementById(targetId);
+              if (targetEl) {
+                showToast("✨ Reading selected crop...");
+                try {
+                  const { data: { text } } = await Tesseract.recognize(cutUrl, 'eng+hin', { logger: m => {} });
+                  const cleaned = (text || '').replace(/\s+/g, ' ').trim();
+                  if (cleaned) {
+                    targetEl.value = targetEl.value.trim()
+                      ? targetEl.value.trim() + ' ' + cleaned
+                      : cleaned;
+                    targetEl.dispatchEvent(new Event('input', { bubbles: true }));
+                    showToast("✔ Crop sent to " + (activeTarget === 'qtext' ? 'Question Text' : activeTarget.toUpperCase()));
+                  } else {
+                    showToast("⚠️ No text detected in crop.");
+                  }
+                } catch (err) {
+                  console.error(err);
+                  showToast("❌ OCR failed for selected crop.");
+                }
+              }
+            }
           }
         }
         activeCanvas = null; activeCanvasRect = null;
@@ -1056,7 +1097,15 @@
       if (sBox) sBox.innerHTML = solutionParts.length ? `<img src="${await stitchImages(solutionParts)}">` : `<span style="font-size:9px; color:#64748b;">Empty</span>`;
     };
 
-    window.clearTarget = function(t) { 
+    window.clearCropTarget = function() {
+      document.querySelectorAll('.target-btn').forEach(btn => btn.classList.remove('active'));
+      const first = document.querySelector('.target-btn[data-target="question"]');
+      if (first) first.classList.add('active');
+      activeTarget = 'question';
+      showToast("✂️ Crop target reset to Question Image.");
+    };
+
+window.clearTarget = function(t) { 
       if (t === 'question') {
         questionParts = []; 
         localStorage.removeItem('Temp_Editor_Synced_Image');
