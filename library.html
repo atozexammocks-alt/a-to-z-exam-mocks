@@ -527,7 +527,7 @@
       } else {
         const empty = document.createElement('div'); 
         empty.style = 'padding:30px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:10px;grid-column:1/-1;';
-        empty.innerHTML = '📂 No subfolders here.<br><span style="font-size:11px;">Click "Create Folder" above to add subfolders.</span>';
+        empty.innerHTML = '';
         cards.appendChild(empty);
       }
       renderPickerQuestions();
@@ -632,7 +632,8 @@
           '<div class="library-q-actions">'+
           (img?'<button class="tool-btn library-mini-btn" style="background:#059669;" onclick="openQuestionImage('+i+')">🖼️ View Image</button>':'')+
           (img?'<button class="tool-btn library-mini-btn" style="background:#7c3aed;" onclick="editLibraryQuestion(\''+escapeHtml(q.id)+'\')">✏️ Edit</button>':'')+
-          '<button class="tool-btn library-mini-btn" style="background:#2563eb;" onclick="moveLibraryQuestion(\''+escapeHtml(q.id)+'\')">📁 Move</button>'+\n          '<button class="tool-btn library-mini-btn" style="background:#991b1b;" onclick="deleteLibraryQuestion(\''+escapeHtml(q.id)+'\')">🗑️ Delete</button>'+
+          '<button class="tool-btn library-mini-btn" style="background:#2563eb;" onclick="moveLibraryQuestion(\''+escapeHtml(q.id)+'\')">📁 Move</button>'+
+          '<button class="tool-btn library-mini-btn" style="background:#991b1b;" onclick="deleteLibraryQuestion(\''+escapeHtml(q.id)+'\')">🗑️ Delete</button>'+
           '</div></div>';
       }).join('');
       const imageBtn=document.getElementById('view-image-btn');
