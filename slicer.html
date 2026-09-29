@@ -84,6 +84,51 @@
     };
 
     let slicerSelectedFolderPath = '';
+let slicerLibraryMode = 'private';
+function slicerFolderConfig(mode){
+  if(mode==='central') return {collection:'folder_configs_central',id:'global_central_tree'};
+  if(mode==='group') return {collection:'folder_configs_group',id:teacherDocId(teacherEmailKey())+'_group'};
+  return {collection:'folder_configs_private',id:teacherDocId(teacherEmailKey())};
+}
+async function loadSlicerLibraryMode(mode){
+  slicerLibraryMode=mode||'private'; slicerSelectedFolderPath='';
+  try{
+    const conf=slicerFolderConfig(slicerLibraryMode);
+    const snap=await window.getDoc(window.doc(window.db,conf.collection,conf.id));
+    const data=snap.exists()?snap.data():{};
+    libraryTree=Array.isArray(data.libraryTree)?data.libraryTree:[];
+    folderPdfs=(data.folderPdfs&&typeof data.folderPdfs==='object')?{...data.folderPdfs}:{};
+    rebuildFlatFoldersFromTree();
+  }catch(e){libraryTree=[];folderPdfs={};console.error(e)}
+  document.querySelectorAll('#slicer-library-selector .library-tab').forEach(b=>b.classList.toggle('active',b.dataset.library===slicerLibraryMode));
+  renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
+}
+function wireSlicerLibraryTabs(){
+  document.querySelectorAll('#slicer-library-selector .library-tab').forEach(b=>b.onclick=()=>loadSlicerLibraryMode(b.dataset.library));
+}
+function wireSlicerFolderButtons(){
+  const a=document.getElementById('slicerAddMainFolder'),b=document.getElementById('slicerAddSubFolder'),r=document.getElementById('slicerRefreshFolders');
+  if(a)a.onclick=()=>addFolderForCurrentLibrary('main');
+  if(b)b.onclick=()=>addFolderForCurrentLibrary('sub');
+  if(r)r.onclick=()=>loadSlicerLibraryMode(slicerLibraryMode);
+}
+async function addFolderForCurrentLibrary(kind){
+  const name=(prompt(kind==='sub'?'Sub folder name:':'Main folder name:')||'').trim(); if(!name)return;
+  if(kind==='main'){
+    if(libraryTree.some(n=>String(n.name||'').trim().toLowerCase()===name.toLowerCase()))return alert('Folder already exists here.');
+    libraryTree.push({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),name,type:'folder',children:[]});
+    slicerSelectedFolderPath=name;
+  }else{
+    const parent=findNodeByPath(slicerSelectedFolderPath);
+    if(!parent)return alert('Select the parent folder first.');
+    parent.children=Array.isArray(parent.children)?parent.children:[];
+    if(parent.children.some(n=>String(n.name||'').trim().toLowerCase()===name.toLowerCase()))return alert('Sub folder already exists here.');
+    parent.children.push({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),name,type:'folder',children:[]});
+    slicerSelectedFolderPath=slicerSelectedFolderPath+' / '+name;
+  }
+  rebuildFlatFoldersFromTree(); renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
+  if(!await window.saveFolderRegistryToCloud())alert('Failed to save folder to cloud.');
+}
 
     function findNodeByPath(path) {
       const parts = String(path || '').split(' / ').filter(Boolean);
@@ -166,7 +211,7 @@
       updateSlicerFolderPathLabel();
     }
 
-    window.initSlicerStudio = function() {
+    window.initSlicerStudio = async function() { wireSlicerLibraryTabs(); wireSlicerFolderButtons(); await loadSlicerLibraryMode(slicerLibraryMode);
       slicerSelectedFolderPath = '';
       renderSlicerFolderPathSelectors();
       updateSlicerFolderPathLabel();
@@ -212,7 +257,7 @@
 
     window.saveFolderRegistryToCloud = async function() {
       try {
-        await window.setDoc(window.doc(window.db, "folder_configs_private", teacherDocId(teacherEmailKey())), {
+        await window.setDoc(window.doc(window.db, slicerFolderConfig(slicerLibraryMode).collection, slicerFolderConfig(slicerLibraryMode).id), {
           ownerEmail: teacherEmailKey(),
           libraryTree: Array.isArray(libraryTree) ? libraryTree : [],
           folderPdfs: (folderPdfs && typeof folderPdfs === "object") ? folderPdfs : {},
@@ -228,8 +273,7 @@
       window.currentTeacherEmail = savedEmail;
       const userTag = document.getElementById('current-user-tag');
       if (userTag) userTag.textContent = savedEmail;
-      await loadLibraryState();
-      window.initSlicerStudio();
+      await loadLibraryState(); await window.initSlicerStudio();
     });
   </script>
 
@@ -282,6 +326,7 @@
     .meta-box { background: #060911; border: 1px solid #1e293b; border-radius: 6px; padding: 6px 8px; display: flex; flex-direction: column; gap: 4px; font-size: 11px; }
     .meta-box label { color: #94a3b8; font-weight: 700; font-size: 10px; display: flex; justify-content: space-between; align-items: center; }
     .meta-box select, .meta-box input, .meta-box textarea { width: 100%; padding: 4px 6px; font-size: 11px; background: #0f172a; border: 1px solid #334155; border-radius: 4px; color: white; }
+    .slicer-library-selector{margin:0 0 6px;padding:7px;border:1px solid #1e293b;border-radius:8px;background:#08111f}.library-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:5px}.library-tab{min-height:34px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#cbd5e1;font-weight:800;font-size:9px;cursor:pointer;touch-action:manipulation}.library-tab.active{background:#10b981!important;color:#001b12!important;border-color:#10b981!important}.slicer-folder-actions{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}.folder-action-btn{min-height:32px;padding:5px 8px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#cbd5e1;font-weight:800;font-size:9px;cursor:pointer;touch-action:manipulation}@media(max-width:700px){.library-tabs{grid-template-columns:1fr}.folder-action-btn{flex:1;min-width:90px}}
     .slicer-folder-path-selectors { display:flex; flex-direction:row; align-items:stretch; gap:4px; margin-top:4px; width:100%; max-width:100%; overflow:hidden; padding-bottom:2px; }
     .folder-level { flex:1 1 0; min-width:0; width:0; display:flex; flex-direction:column; gap:3px; align-items:stretch; padding:4px; border:1px solid #1e293b; border-radius:5px; background:#080d1a; }
     .folder-level + .folder-level { border-left:2px solid #334155; }
@@ -391,7 +436,20 @@
           <span>Book & Section:</span>
           <button class="tool-btn" style="padding:2px 6px; font-size:9px; background:#0284c7;" onclick="window.addNewFolderDynamic()">➕ Add Folder</button>
         </label>
-        <div id="slicer-folder-path-selectors" class="slicer-folder-path-selectors"></div>
+        <div id="slicer-library-selector" class="slicer-library-selector">
+  <div class="folder-level-label">1. Library</div>
+  <div class="library-tabs">
+    <button type="button" class="library-tab active" data-library="private">🔒 Private Library</button>
+    <button type="button" class="library-tab" data-library="central">📁 Central Library</button>
+    <button type="button" class="library-tab" data-library="group">🤝 Group Library</button>
+  </div>
+  <div class="slicer-folder-actions">
+    <button type="button" id="slicerAddMainFolder" class="folder-action-btn">＋ Main Folder</button>
+    <button type="button" id="slicerAddSubFolder" class="folder-action-btn">＋ Sub Folder</button>
+    <button type="button" id="slicerRefreshFolders" class="folder-action-btn">↻ Refresh</button>
+  </div>
+</div>
+<div id="slicer-folder-path-selectors" class="slicer-folder-path-selectors"></div>
         <div id="slicer-selected-folder-path" class="slicer-selected-folder-path">No folder selected</div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr 1.2fr; gap:4px; margin-top:4px;">
