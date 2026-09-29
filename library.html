@@ -60,7 +60,7 @@
     .library-mode-bar { background: #090d16; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
     .lib-mode-tab { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 6px; }
     .lib-mode-tab:hover { border-color: #38bdf8; color: white; background: #1e293b; }
-    .lib-mode-tab.active { background: #2563eb; border-color: #38bdf8; color: white; }
+    .lib-mode-tab.active { background:#059669; border-color:#10b981; color:white; box-shadow:0 0 0 1px rgba(16,185,129,.2); }
 
     .view-screen { flex: 1; display: flex !important; flex-direction: column; height: calc(100vh - 105px); width: 100%; overflow: hidden; padding: 20px; gap: 12px; }
     
@@ -74,7 +74,7 @@
     .library-view-tools{margin-left:auto;display:flex;gap:8px;align-items:center}.library-top-action#create-folder-btn{margin-left:0}
     .library-view-tool{background:#0f172a;border:1px solid #334155;color:#cbd5e1;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer}
     .library-view-tool:hover{border-color:#38bdf8;color:#fff}
-    .library-view-tool.active{background:#2563eb;border-color:#38bdf8;color:#fff}
+    .library-view-tool.active{background:#059669;border-color:#10b981;color:#fff;box-shadow:0 0 0 1px rgba(16,185,129,.2)}
     .image-gallery-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-height:76vh;overflow:auto;padding:4px}
     .image-gallery-item{background:#fff;border-radius:10px;padding:8px;min-height:180px;display:flex;align-items:center;justify-content:center;cursor:pointer}
     .image-gallery-item img{max-width:100%;max-height:70vh;object-fit:contain;display:block}
@@ -99,23 +99,29 @@
     .picker-question img { max-width:180px; max-height:120px; object-fit:contain; background:#fff; border-radius:6px; }
     .picker-insert { background:#10b981; color:#fff; border:0; border-radius:7px; padding:7px 12px; cursor:pointer; font-weight:800; font-size:11px; white-space:nowrap; }
     .library-questions-grid{
-      display:grid;
+      display:grid !important;
       grid-template-columns:repeat(3,minmax(0,1fr));
-      gap:18px;
+      grid-template-rows:repeat(2,minmax(220px,1fr));
+      grid-auto-rows:minmax(220px,1fr);
+      gap:12px;
       align-items:stretch;
+      max-height:calc(100vh - 250px);
+      overflow-y:auto;
+      padding:2px;
     }
     .library-question-card{
       background:#0b1120;
       border:1px solid #1e293b;
-      border-radius:14px;
-      padding:16px;
+      border-radius:12px;
+      padding:9px;
       display:flex;
       flex-direction:column;
-      gap:12px;
+      gap:7px;
       min-width:0;
-      min-height:250px;
-      box-shadow:0 8px 24px rgba(0,0,0,.18);
-      transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease;
+      min-height:0;
+      height:100%;
+      overflow:hidden;
+      box-shadow:0 5px 18px rgba(0,0,0,.18);
     }
     .library-question-card:hover{
       border-color:#334155;
@@ -141,15 +147,17 @@
     }
     .library-q-image{
       width:100%;
-      height:210px;
+      height:165px;
       display:flex;
       align-items:center;
       justify-content:center;
-      background:#f8fafc;
-      border:1px solid #e2e8f0;
-      border-radius:10px;
+      background:#052e2b;
+      border:2px solid #10b981;
+      border-radius:9px;
       overflow:hidden;
       cursor:pointer;
+      box-shadow:0 0 0 1px rgba(16,185,129,.22),0 0 16px rgba(16,185,129,.10);
+      flex-shrink:0;
     }
     .library-q-image img{
       display:block;
@@ -208,11 +216,12 @@
       .library-view-label{display:none}
       .library-q-image{height:190px}
       .pdf-table{font-size:11px}
-      .folder-actions{display:none}
     }
-    .library-address{min-width:110px;max-width:28vw}.library-view-label{display:none}.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}.folder-actions{display:none}
+    .library-address{min-width:110px;max-width:28vw}.library-view-label{display:none}.library-question-card{flex-direction:column;align-items:stretch}.library-q-actions{justify-content:flex-start}.pdf-table{font-size:11px}
     .library-q-meta{display:none}.library-q-text:empty{display:none}
-  </style>
+  .move-modal-card{width:min(620px,100%);max-height:82vh;background:#0b1120;border:2px solid #10b981;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.7)}
+.move-modal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid #1e293b;padding-bottom:10px}.move-modal-head h3{color:#10b981;font-size:15px}.move-modal-head div div{color:#64748b;font-size:10px;margin-top:3px}.move-modal-label{font-size:11px;color:#94a3b8;font-weight:800}.move-destination-tree{overflow:auto;max-height:52vh;border:1px solid #1e293b;border-radius:9px;padding:7px;background:#060911}.move-tree-row{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:7px;color:#cbd5e1;font-size:12px;cursor:pointer}.move-tree-row:hover{background:#0f172a}.move-tree-row.selected{background:rgba(16,185,129,.14);border:1px solid #10b981;color:#fff}.move-modal-foot{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #1e293b;padding-top:10px}
+</style>
 
 <style>
 .profile-container{position:relative;display:inline-block}.profile-dropdown{position:absolute;right:0;top:40px;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);width:220px;display:none;flex-direction:column;z-index:1000;overflow:hidden}.profile-dropdown.show{display:flex}.dropdown-header{padding:12px 16px;border-bottom:1px solid #1e293b;font-size:12px;color:#38bdf8;font-weight:700;word-break:break-all}.dropdown-item{padding:10px 16px;font-size:12px;color:#fecaca;background:#7f1d1d;border:0;cursor:pointer;text-align:left;font-weight:700;width:100%}.dropdown-item:hover{background:#991b1b}
@@ -260,9 +269,18 @@
 
   <!-- QUESTION IMAGE PREVIEW -->
   <div id="question-image-modal" style="position:fixed; inset:0; background:rgba(0,0,0,.9); display:none; align-items:center; justify-content:center; z-index:120000; padding:18px;" onclick="if(event.target===this)closeQuestionImage()">
-    <div style="width:min(1000px,100%); max-height:92vh; background:#0b1120; border:2px solid #38bdf8; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;"><strong style="color:#38bdf8;font-size:14px;">🖼️ Question Image</strong><button class="tool-btn" style="background:#7f1d1d;" onclick="closeQuestionImage()">✕ Close</button></div>
+    <div style="width:min(1000px,100%); max-height:92vh; background:#0b1120; border:2px solid #10b981; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><strong style="color:#10b981;font-size:14px;">🖼️ Question Image</strong><button class="tool-btn" style="background:#7f1d1d;" onclick="closeQuestionImage()">✕ Close</button></div>
       <div style="background:#fff;border-radius:8px;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:8px;"><img id="question-image-preview" alt="Question Image" style="max-width:100%;max-height:78vh;object-fit:contain;"></div>
+    </div>
+  </div>
+
+  <div id="library-move-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:126000;padding:18px;">
+    <div class="move-modal-card">
+      <div class="move-modal-head"><div><h3 id="move-modal-title">Move</h3><div id="move-source-path"></div></div><button class="tool-btn" style="background:#7f1d1d;" onclick="closeMoveModal()">✕</button></div>
+      <div class="move-modal-label">Choose destination folder</div>
+      <div id="move-destination-tree" class="move-destination-tree"></div>
+      <div class="move-modal-foot"><button class="tool-btn" onclick="closeMoveModal()">Cancel</button><button class="tool-btn" style="background:#059669;border-color:#10b981;" onclick="confirmMoveDestination()">📁 Move Here</button></div>
     </div>
   </div>
 
@@ -334,7 +352,7 @@
           <h4 style="color:#10b981;font-size:14px;">📝 Questions in this Folder</h4>
           <input id="library-question-search" class="pdf-input" style="max-width:280px;" placeholder="Search topic / question..." oninput="renderLibraryQuestions()">
         </div>
-        <div id="library-questions-list" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <div id="library-questions-list"></div>
       </div>
       <div id="pdf-links-section" class="pdf-library-panel">
         <div class="pdf-library-head">
@@ -613,6 +631,10 @@
             return `<span style="color:` + (i === parts.length-1 ? '#38bdf8' : '#cbd5e1') + `;cursor:pointer;" onclick="openMainFolder(\`` + path + `\`)">` + p + `</span>`;
           }).join(' <span style="color:#64748b;">›</span> ')
         : modeTitle;
+      if(parts.length){
+        const enc=encodeURIComponent(currentFolderPath);
+        el.innerHTML += `<span style="margin-left:auto;display:flex;gap:5px;"><button class="tool-btn" style="background:#7c3aed;" onclick="renameFolderByPath(decodeURIComponent('${enc}'))">Rename</button><button class="tool-btn" style="background:#2563eb;" onclick="openFolderMoveModal(decodeURIComponent('${enc}'))">Move</button><button class="tool-btn" style="background:#991b1b;" onclick="deleteFolderByPath(decodeURIComponent('${enc}'))">Delete</button></span>`;
+      }
     }
 
     function questionImage(q){
@@ -650,7 +672,7 @@
         const tree = getCurrentActiveTree();
         let changed = false;
         libraryQuestions.forEach(q => {
-          const path = normalizeFolderPath(q.subject||q.folderPath||q.path||'');
+          const path = getQuestionFolderPath(q);
           if(path) changed = treeInsertPath(tree, path) || changed;
         });
         if(changed && activeLibraryMode === 'private') {
@@ -670,7 +692,7 @@
       if(!currentFolderPath){list.innerHTML='';return;}
       const term=(document.getElementById('picker-question-search')?.value||'').toLowerCase();
       const rows=pickerQuestions.filter(q=>{
-        const subject=String(q.subject||q.folderPath||q.path||'').trim();
+        const subject=getQuestionFolderPath(q);
         const text=String(q.text||q.qText||q.questionText||q.question||'').toLowerCase();
         return subject===currentFolderPath && (!term || text.includes(term));
       });
@@ -695,6 +717,7 @@
       const children = getChildrenForPath(currentFolderPath);
       cards.innerHTML = '';
 
+      const cardsView=document.getElementById('folder-cards-container'); if(cardsView)cardsView.style.display=(currentFolderPath&&(libraryDisplayMode==='images'||libraryDisplayMode==='pdf'))?'none':'grid';
       const pdfPanel=document.getElementById('pdf-links-section');
       if(pdfPanel) pdfPanel.style.display='none';
 
@@ -704,11 +727,15 @@
           const card = document.createElement('div'); 
           card.className = 'folder-card'; 
           card.onclick = () => openMainFolder(path);
+          const enc=encodeURIComponent(path);
           card.innerHTML = `
-            <div style="font-size:32px;">📁</div>
-            <h3 style="color:#f8fafc;font-size:15px;">` + escapeHtml(node.name) + `</h3>
-            <p style="font-size:11px;color:#94a3b8;">Subfolders: ` + (node.children||[]).length + `</p>
-          `;
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;"><div style="font-size:32px;">📁</div><span style="font-size:9px;color:#64748b;">${(node.children||[]).length} subfolder${(node.children||[]).length===1?'':'s'}</span></div>
+            <h3 style="color:#f8fafc;font-size:15px;">${escapeHtml(node.name)}</h3>
+            <div class="folder-actions">
+              <button class="tool-btn" style="background:#7c3aed;" onclick="event.stopPropagation();renameFolderByPath(decodeURIComponent('${enc}'))">Rename</button>
+              <button class="tool-btn" style="background:#2563eb;" onclick="event.stopPropagation();openFolderMoveModal(decodeURIComponent('${enc}'))">Move</button>
+              <button class="tool-btn" style="background:#991b1b;" onclick="event.stopPropagation();deleteFolderByPath(decodeURIComponent('${enc}'))">Delete</button>
+            </div>`;
           cards.appendChild(card);
         });
       }
@@ -742,37 +769,95 @@
       return String(v||'').trim().replace(/\\/g,'/').split('/').map(x=>x.trim()).filter(Boolean).join(' / ');
     }
 
-    window.renameCurrentFolder=async function(){
-      if(!currentFolderPath) return;
-      const parts=currentFolderPath.split(' / '); const oldName=parts.pop();
-      const name=prompt('New folder name:',oldName); if(!name||!name.trim()||name.trim()===oldName) return;
-      const tree=activeLibraryMode==='private'?privateLibraryTree:activeLibraryMode==='central'?centralLibraryTree:groupLibraryTree;
-      const node=findFolderByPath(currentFolderPath); if(!node) return;
-      node.name=name.trim();
-      try{await saveLibraryStateForCurrentMode(); currentFolderPath=parts.length?parts.join(' / ')+' / '+name.trim():name.trim(); await loadLibraryStateForCurrentMode(); renderLibraryBrowser(); showToast('✔ Folder renamed');}catch(e){alert('Rename failed: '+e.message);}
+    window.renameCurrentFolder=function(){ if(currentFolderPath) renameFolderByPath(currentFolderPath); };
+    window.deleteCurrentFolder=function(){ if(currentFolderPath) deleteFolderByPath(currentFolderPath); };
+    window.moveCurrentFolder=function(){ if(currentFolderPath) openFolderMoveModal(currentFolderPath); };
+
+    let pendingMove={type:null,id:null,path:null,destination:''};
+    function getTreeRoot(){return getCurrentActiveTree();}
+    function findFolderParentArray(path){
+      const parts=normalizeFolderPath(path).split(' / ').filter(Boolean);
+      const name=parts.pop()||''; const parentPath=parts.join(' / ');
+      const parent=parentPath?findFolderByPath(parentPath):null;
+      return {name,parentPath,parent,arr:parent?(parent.children||(parent.children=[])):getTreeRoot()};
+    }
+    function pathIn(path,prefix){const a=normalizeFolderPath(path),b=normalizeFolderPath(prefix);return a===b||a.startsWith(b+' / ');}
+    function rewritePdfPaths(oldPrefix,newPrefix){
+      const out={}; Object.entries(folderPdfs||{}).forEach(([k,v])=>{
+        const nk=pathIn(k,oldPrefix)?newPrefix+normalizeFolderPath(k).slice(normalizeFolderPath(oldPrefix).length):k; out[nk]=v;
+      }); folderPdfs=out;
+    }
+    async function rewriteQuestionPaths(oldPrefix,newPrefix){
+      for(const q of (pickerQuestions||[])){
+        const old=getQuestionFolderPath(q); if(!pathIn(old,oldPrefix))continue;
+        const np=newPrefix+normalizeFolderPath(old).slice(normalizeFolderPath(oldPrefix).length);
+        await window.updateDoc(window.doc(window.db,'questions',q.id),{subject:np,folderPath:np,path:np,updatedAt:new Date().toISOString()});
+      }
+    }
+    function renderMoveDestinationTree(){
+      const box=document.getElementById('move-destination-tree'); if(!box)return;
+      const rows=[`<div class="move-tree-row ${pendingMove.destination===''?'selected':''}" onclick="selectMoveDestination('')">🏠 <b>Library Root</b></div>`];
+      function walk(nodes,prefix,depth){
+        (nodes||[]).forEach(n=>{
+          const path=prefix?prefix+' / '+n.name:n.name;
+          if(pendingMove.type==='folder'&&pathIn(path,pendingMove.path))return;
+          const enc=encodeURIComponent(path);
+          rows.push(`<div class="move-tree-row ${pendingMove.destination===path?'selected':''}" style="padding-left:${9+depth*18}px" onclick="selectMoveDestination(decodeURIComponent('${enc}'))">📁 ${escapeHtml(n.name)}</div>`);
+          walk(n.children||[],path,depth+1);
+        });
+      }
+      walk(getTreeRoot(),' ',0);
+      if(rows.length>1){} // keep root
+      box.innerHTML=rows.join('');
+    }
+    window.selectMoveDestination=function(path){pendingMove.destination=normalizeFolderPath(path);renderMoveDestinationTree();};
+    window.closeMoveModal=function(){document.getElementById('library-move-modal').style.display='none';pendingMove={type:null,id:null,path:null,destination:''};};
+    window.openFolderMoveModal=function(path){
+      path=normalizeFolderPath(path); if(!findFolderByPath(path))return alert('Folder not found.');
+      pendingMove={type:'folder',id:null,path,destination:''};
+      document.getElementById('move-modal-title').textContent='Move Folder';
+      document.getElementById('move-source-path').textContent=path;
+      document.getElementById('library-move-modal').style.display='flex'; renderMoveDestinationTree();
     };
-    window.deleteCurrentFolder=async function(){
-      if(!currentFolderPath) return;
-      if(!confirm('Delete this folder and its subfolders?')) return;
-      const tree=activeLibraryMode==='private'?privateLibraryTree:activeLibraryMode==='central'?centralLibraryTree:groupLibraryTree;
-      const parts=currentFolderPath.split(' / '); const name=parts.pop(); const parent=parts.length?findFolderByPath(parts.join(' / ')):null;
-      const arr=parent?parent.children:tree; const idx=arr.findIndex(x=>x.name===name);
-      if(idx<0) return; arr.splice(idx,1);
-      try{await saveLibraryStateForCurrentMode(); currentFolderPath=parts.join(' / '); renderLibraryBrowser(); showToast('🗑️ Folder deleted');}catch(e){alert('Delete failed: '+e.message);}
+    window.openQuestionMoveModal=function(id){
+      const q=libraryQuestions.find(x=>String(x.id)===String(id)); if(!q)return;
+      pendingMove={type:'question',id:String(id),path:getQuestionFolderPath(q),destination:getQuestionFolderPath(q)};
+      document.getElementById('move-modal-title').textContent='Move Question';
+      document.getElementById('move-source-path').textContent='Current: '+(pendingMove.path||'Library Root');
+      document.getElementById('library-move-modal').style.display='flex'; renderMoveDestinationTree();
     };
-    window.moveCurrentFolder=async function(){
-      if(!currentFolderPath) return;
-      const target=prompt('Move folder under this parent path (leave blank for library root):','');
-      if(target===null) return;
-      const node=findFolderByPath(currentFolderPath); if(!node) return;
-      const oldParts=currentFolderPath.split(' / '), name=oldParts.pop();
-      const oldParent=oldParts.length?findFolderByPath(oldParts.join(' / ')):null;
-      const oldArr=oldParent?oldParent.children:(activeLibraryMode==='private'?privateLibraryTree:activeLibraryMode==='central'?centralLibraryTree:groupLibraryTree);
-      const idx=oldArr.findIndex(x=>x===node); if(idx>=0) oldArr.splice(idx,1);
-      const dest=normalizeFolderPath(target); const destNode=dest?findFolderByPath(dest):null;
-      const destArr=destNode?(destNode.children||(destNode.children=[])):(activeLibraryMode==='private'?privateLibraryTree:activeLibraryMode==='central'?centralLibraryTree:groupLibraryTree);
-      destArr.push(node);
-      try{await saveLibraryStateForCurrentMode(); currentFolderPath=dest?(dest+' / '+name):name; renderLibraryBrowser(); showToast('📁 Folder moved');}catch(e){alert('Move failed: '+e.message);}
+    window.confirmMoveDestination=async function(){
+      if(!pendingMove.type)return; const dest=normalizeFolderPath(pendingMove.destination);
+      try{
+        if(pendingMove.type==='question'){
+          await window.updateDoc(window.doc(window.db,'questions',pendingMove.id),{subject:dest,folderPath:dest,path:dest,updatedAt:new Date().toISOString()});
+          closeMoveModal(); await loadPickerQuestions(); renderLibraryBrowser(); showToast('📁 Question moved'); return;
+        }
+        const oldPath=pendingMove.path,node=findFolderByPath(oldPath); if(!node)return;
+        if(dest===oldPath||pathIn(dest,oldPath))return alert('A folder cannot be moved inside itself or its subfolders.');
+        const destNode=dest?findFolderByPath(dest):null; if(dest&&!destNode)return alert('Destination folder not found.');
+        const src=findFolderParentArray(oldPath),idx=src.arr.findIndex(x=>x===node); if(idx<0)return;
+        const newPath=dest?dest+' / '+node.name:node.name;
+        const destArr=destNode?(destNode.children||(destNode.children=[])):getTreeRoot();
+        if(destArr.some(x=>x!==node&&String(x.name).toLowerCase()===String(node.name).toLowerCase()))return alert('A folder with this name already exists at the destination.');
+        src.arr.splice(idx,1); destArr.push(node); rewritePdfPaths(oldPath,newPath); await rewriteQuestionPaths(oldPath,newPath); await saveLibraryStateForCurrentMode();
+        if(pathIn(currentFolderPath,oldPath))currentFolderPath=newPath+normalizeFolderPath(currentFolderPath).slice(oldPath.length);
+        closeMoveModal(); await loadLibraryStateForCurrentMode(); await loadPickerQuestions(); renderLibraryBrowser(); showToast('📁 Folder moved');
+      }catch(e){alert('Move failed: '+e.message);}
+    };
+    window.renameFolderByPath=async function(path){
+      path=normalizeFolderPath(path); const node=findFolderByPath(path); if(!node)return;
+      const oldName=node.name,name=(prompt('New folder name:',oldName)||'').trim(); if(!name||name===oldName)return;
+      const src=findFolderParentArray(path); if(src.arr.some(x=>x!==node&&String(x.name).toLowerCase()===name.toLowerCase()))return alert('Folder with this name already exists here.');
+      const parts=path.split(' / ');parts.pop();const newPath=parts.length?parts.join(' / ')+' / '+name:name;node.name=name;
+      try{rewritePdfPaths(path,newPath);await rewriteQuestionPaths(path,newPath);await saveLibraryStateForCurrentMode();if(pathIn(currentFolderPath,path))currentFolderPath=newPath+normalizeFolderPath(currentFolderPath).slice(path.length);await loadLibraryStateForCurrentMode();await loadPickerQuestions();renderLibraryBrowser();showToast('✔ Folder renamed');}catch(e){alert('Rename failed: '+e.message);}
+    };
+    window.deleteFolderByPath=async function(path){
+      path=normalizeFolderPath(path);const node=findFolderByPath(path);if(!node)return;
+      if(!confirm('Delete this folder and its subfolders? Questions will remain saved but will no longer be assigned to this folder.'))return;
+      const src=findFolderParentArray(path),idx=src.arr.findIndex(x=>x===node);if(idx<0)return;src.arr.splice(idx,1);
+      Object.keys(folderPdfs||{}).forEach(k=>{if(pathIn(k,path))delete folderPdfs[k];});
+      try{await saveLibraryStateForCurrentMode();if(pathIn(currentFolderPath,path)){const parts=path.split(' / ');parts.pop();currentFolderPath=parts.join(' / ');}await loadLibraryStateForCurrentMode();renderLibraryBrowser();showToast('🗑️ Folder deleted');}catch(e){alert('Delete failed: '+e.message);}
     };
 
     window.editLibraryQuestion=function(id){
@@ -797,19 +882,7 @@
       localStorage.removeItem('Temp_Editor_Image');
       loadPickerQuestions().then(renderLibraryBrowser);
     };
-    window.moveLibraryQuestion=async function(id){
-      const q=libraryQuestions.find(x=>String(x.id)===String(id));
-      if(!q) return;
-      const target=prompt('Destination folder path (example: Physics / Mechanics):');
-      if(!target||!target.trim()) return;
-      const normalized=normalizeFolderPath(target);
-      try{
-        await window.updateDoc(window.doc(window.db,'questions',id),{subject:normalized,folderPath:normalized,path:normalized,updatedAt:new Date().toISOString()});
-        showToast('📁 Question moved');
-        await loadPickerQuestions();
-        renderLibraryBrowser();
-      }catch(e){alert('Move failed: '+e.message);}
-    };
+    window.moveLibraryQuestion=function(id){ openQuestionMoveModal(id); };
     window.deleteLibraryQuestion=async function(id){
       if(!confirm('Delete this question permanently?')) return;
       try{
@@ -828,9 +901,8 @@
       box.style.display='block';
       const term=(document.getElementById('library-question-search')?.value||'').toLowerCase().trim();
       const rows=libraryQuestions.filter(q=>{
-        const pathCandidates=[q.folderPath,q.path,q.folder,q.subject,q.libraryPath,q.folderName].map(normalizeFolderPath).filter(Boolean);
         const current=normalizeFolderPath(currentFolderPath);
-        const pathMatch=pathCandidates.some(path=>path===current || path.endsWith(' / '+current) || current.endsWith(' / '+path) || path.split(' / ').pop()===current.split(' / ').pop());
+        const pathMatch=getQuestionFolderPath(q)===current;
         const text=(questionText(q)+' '+questionOptions(q).join(' ')+' '+String(q.topic||q.chapter||q.unit||'')).toLowerCase();
         return pathMatch && (!term||text.includes(term));
       });
@@ -875,7 +947,8 @@
       libraryDisplayMode='images';
       renderLibraryBrowser();
       return;
-      const rows=(window._libraryRenderedQuestions||[]).filter(q=>!!questionImage(q));
+      const rows=libraryQuestions.filter(q=>getQuestionFolderPath(q)===normalizeFolderPath(currentFolderPath)&&!!questionImage(q));
+      window._libraryRenderedQuestions=rows;
       if(!rows.length) return alert('No question images found in this folder.');
       const modal=document.getElementById('question-images-gallery-modal');
       const body=document.getElementById('question-images-gallery-body');
@@ -896,7 +969,7 @@
     function renderLibraryImageGrid(){
       const list=document.getElementById('library-questions-list');
       const box=document.getElementById('library-questions-section');
-      const rows=(window._libraryRenderedQuestions||[]).filter(q=>!!questionImage(q));
+      const rows=libraryQuestions.filter(q=>getQuestionFolderPath(q)===normalizeFolderPath(currentFolderPath)&&!!questionImage(q)); window._libraryRenderedQuestions=rows;
       if(box){box.style.display=currentFolderPath?'block':'none';}
       const title=box?.querySelector('h4'); if(title) title.innerHTML='🖼️ Question Images in this Folder';
       const search=document.getElementById('library-question-search'); if(search) search.style.display='none';
