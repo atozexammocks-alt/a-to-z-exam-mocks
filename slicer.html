@@ -98,8 +98,13 @@ async function loadSlicerLibraryMode(mode){
     const data=snap.exists()?snap.data():{};
     libraryTree=Array.isArray(data.libraryTree)?data.libraryTree:[];
     folderPdfs=(data.folderPdfs&&typeof data.folderPdfs==='object')?{...data.folderPdfs}:{};
+    if(!libraryTree.length && Array.isArray(data.mainFolders)){
+      libraryTree=data.mainFolders.map(name=>({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),name:String(name).trim(),type:'folder',children:(Array.isArray(data.subFolders?.[name])?data.subFolders[name]:[]).map(s=>({id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),name:String(s).trim(),type:'folder',children:[]}))})).filter(n=>n.name);
+    }
     rebuildFlatFoldersFromTree();
   }catch(e){libraryTree=[];folderPdfs={};console.error(e)}
+  window.getSlicerLibraryTree=()=>libraryTree;
+  window.setSlicerSelectedFolderPath=(p)=>{slicerSelectedFolderPath=String(p||'');renderSlicerFolderPathSelectors();updateSlicerFolderPathLabel();};
   document.querySelectorAll('#slicer-library-selector .library-tab').forEach(b=>b.classList.toggle('active',b.dataset.library===slicerLibraryMode));
   renderSlicerFolderPathSelectors(); updateSlicerFolderPathLabel();
 }
@@ -1440,21 +1445,12 @@ window.clearTarget = function(t) {
     const label=parent?'Sub Folder name:':'Main Folder name:';
     const name=(prompt(label)||'').trim();
     if(!name)return;
-    const id='f_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-    if(parent){
-      const node=window.findNodeByPathForSeq ? window.findNodeByPathForSeq(parent) : null;
-      if(!node){alert('Please select a valid parent folder.');return;}
-      node.children=Array.isArray(node.children)?node.children:[];
-      if(node.children.some(n=>String(n.name||'').trim().toLowerCase()===name.toLowerCase())){alert('Folder already exists.');return;}
-      node.children.push({id,name,type:'folder',children:[]});
-      seqFolder=parent+' / '+name;
-    }else{
-      if((window.__a2zLibraryTree||[]).some(n=>String(n.name||'').trim().toLowerCase()===name.toLowerCase())){alert('Folder already exists.');return;}
-      window.__a2zLibraryTree=window.__a2zLibraryTree||[];
-      window.__a2zLibraryTree.push({id,name,type:'folder',children:[]});
-      seqFolder=name;
-    }
-    if(typeof window.saveFolderRegistryToCloud==='function') await window.saveFolderRegistryToCloud();
+    if(typeof window.setSlicerSelectedFolderPath==='function') window.setSlicerSelectedFolderPath(parent);
+    if(typeof window.addFolderForCurrentLibrary!=='function'){alert('Folder tool is not ready yet.');return;}
+    const ok=await window.addFolderForCurrentLibrary(parent?'sub':'main');
+    if(ok===false)return;
+    seqFolder=parent?(parent+' / '+name):name;
+    window.__a2zLibraryTree=typeof window.getSlicerLibraryTree==='function'?window.getSlicerLibraryTree():[];
     render();
   }
 
@@ -1526,11 +1522,11 @@ window.clearTarget = function(t) {
     const originalLoad=window.loadSlicerLibraryMode;
     window.loadSlicerLibraryMode=async function(mode){
       const result=await originalLoad(mode);
-      window.__a2zLibraryTree=Array.isArray(window.__a2zGetLibraryTree?.())?window.__a2zGetLibraryTree():[];
+      window.__a2zLibraryTree=typeof window.getSlicerLibraryTree==='function'?window.getSlicerLibraryTree():[];
       return result;
     };
 
-    window.__a2zGetLibraryTree=function(){return window.__a2zLibraryTree||[];};
+    window.__a2zGetLibraryTree=function(){return typeof window.getSlicerLibraryTree==='function'?window.getSlicerLibraryTree():(window.__a2zLibraryTree||[]);};
 
     // Keep the global tree reference synchronized after each library load.
     const syncTimer=setInterval(()=>{
@@ -1554,8 +1550,7 @@ window.clearTarget = function(t) {
     };
 
     // Start with the current private tree represented by the existing folder selector.
-    const initialPaths=[...document.querySelectorAll('#slicer-folder-path-selectors .folder-level-select')].map(s=>s.value).filter(Boolean);
-    window.__a2zLibraryTree=initialPaths.map(name=>({name,children:[]}));
+    window.__a2zLibraryTree=typeof window.getSlicerLibraryTree==='function'?window.getSlicerLibraryTree():[];
     render();
   }
 
