@@ -559,21 +559,27 @@ window.addFolderForCurrentLibrary=async function(kind){
         </div>
       </div>
 
-      <div class="crop-target-status" style="display:flex;align-items:center;justify-content:flex-end;margin-top:3px;gap:4px;">
-        <span style="font-size:8px;color:#64748b;">Crop:</span>
-        <button type="button" class="target-btn active" data-target="question" onclick="window.setCropTarget('question')" title="Crop into Question Image">🖼️ Question Image</button>
-        <button type="button" class="target-btn" data-target="solution" onclick="window.setCropTarget('solution')" title="Crop into Solution Image">💡 Solution Image</button>
-        <span id="crop-target-label" style="font-size:8px;color:#64748b;">Question Image</span>
-      </div>
       </div>
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:4px;">
         <div class="preview-card">
-          <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:bold;"><span style="color:#38bdf8;">Q.Img:</span><button onclick="window.clearTarget('question')" style="background:none;border:none;color:#94a3b8;cursor:pointer;">Clear</button></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:10px; font-weight:bold;">
+            <span style="color:#38bdf8;">Q.Img:</span>
+            <div style="display:flex; align-items:center; gap:3px;">
+              <button type="button" class="target-btn active" data-target="question" onclick="window.setCropTarget('question')" title="Crop into Question Image">🖼️ Question Image</button>
+              <button type="button" onclick="window.clearTarget('question')" style="background:none;border:none;color:#94a3b8;cursor:pointer;">Clear</button>
+            </div>
+          </div>
           <div class="preview-thumb-box" id="box-prev-q"><span style="font-size:9px; color:#64748b;">Empty</span></div>
         </div>
         <div class="preview-card">
-          <div style="display:flex; justify-content:space-between; font-size:10px; font-weight:bold;"><span style="color:#10b981;">Sol.Img:</span><button onclick="window.clearTarget('solution')" style="background:none;border:none;color:#94a3b8;cursor:pointer;">Clear</button></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:10px; font-weight:bold;">
+            <span style="color:#10b981;">Sol.Img:</span>
+            <div style="display:flex; align-items:center; gap:3px;">
+              <button type="button" class="target-btn" data-target="solution" onclick="window.setCropTarget('solution')" title="Crop into Solution Image">💡 Solution Image</button>
+              <button type="button" onclick="window.clearTarget('solution')" style="background:none;border:none;color:#94a3b8;cursor:pointer;">Clear</button>
+            </div>
+          </div>
           <div class="preview-thumb-box" id="box-prev-sol"><span style="font-size:9px; color:#64748b;">Empty</span></div>
         </div>
       </div>
