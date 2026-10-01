@@ -124,7 +124,9 @@ function renderRects(){[['rectLayer',pages[pi],'pageWrap'],['rectLayer2',pages[p
 function beginRectPointer(e,r,wrapId){e.preventDefault();e.stopPropagation();if(mergeMode&&mergeBaseId&&r.id!==mergeBaseId){mergeRects(mergeBaseId,r.id);return}selectedRectId=r.id;renderRects();let rect=$(wrapId).getBoundingClientRect(),sx=(e.clientX-rect.left)/rect.width,sy=(e.clientY-rect.top)/rect.height,mode=e.target.classList.contains('handle')?'resize':'move',corner=e.target.classList.contains('tl')?'tl':e.target.classList.contains('tr')?'tr':e.target.classList.contains('bl')?'bl':'br';dragState={r,wrapId,mode,corner,sx,sy,ox:r.x,oy:r.y,ow:r.w,oh:r.h};window.onpointermove=moveRectPointer;window.onpointerup=endRectPointer}
 function moveRectPointer(e){if(!dragState)return;let rect=$(dragState.wrapId).getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width,y=(e.clientY-rect.top)/rect.height,dx=x-dragState.sx,dy=y-dragState.sy,r=dragState.r;if(dragState.mode==='move'){r.x=dragState.ox+dx;r.y=dragState.oy+dy}else{let c=dragState.corner;if(c==='br'){r.w=dragState.ow+dx;r.h=dragState.oh+dy}else if(c==='tl'){r.x=dragState.ox+dx;r.y=dragState.oy+dy;r.w=dragState.ow-dx;r.h=dragState.oh-dy}else if(c==='tr'){r.y=dragState.oy+dy;r.w=dragState.ow+dx;r.h=dragState.oh-dy}else{r.x=dragState.ox+dx;r.w=dragState.ow-dx;r.h=dragState.oh+dy}}clampRect(r);renderRects()}
 function endRectPointer(){window.onpointermove=null;window.onpointerup=null;if(dragState){let r=dragState.r;dragState=null;showRectActions(r)}}
-$('pageWrap').onpointerdown=e=>{if(e.target!==$('canvas')&&e.target!==$('pageWrap'))return;let rect=$('pageWrap').getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width,y=(e.clientY-rect.top)/rect.height;let r={id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2),page:pages[pi],qNo:nextQNo(),x:Math.max(0,x-.03),y:Math.max(0,y-.03),w:.5,h:.18};clampRect(r);rects.push(r);showRectActions(r)}
+function startFreeRectOn(e,wrapId,pageNo){if(e.target!==$(wrapId).querySelector('canvas')&&e.target!==$(wrapId))return;let rect=$(wrapId).getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width,y=(e.clientY-rect.top)/rect.height;let r={id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2),page:pageNo,qNo:nextQNo(),x:Math.max(0,x-.03),y:Math.max(0,y-.03),w:.5,h:.18};clampRect(r);rects.push(r);showRectActions(r)}
+$('pageWrap').onpointerdown=e=>startFreeRectOn(e,'pageWrap',pages[pi]);
+$('pageWrap2').onpointerdown=e=>{if(pages[pi+1])startFreeRectOn(e,'pageWrap2',pages[pi+1])}
 function nextQNo(){return rects.length?Math.max(...rects.map(r=>Number(r.qNo)||0))+1:1}
 $('addRect').onclick=()=>{if(!pdf||!pages.length)return;let r={id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2),page:pages[pi],qNo:nextQNo(),x:.10,y:.12,w:.80,h:.18};clampRect(r);rects.push(r);showRectActions(r)};
 function mergeRects(baseId,partId){
@@ -262,14 +264,6 @@ async function confirmPageAndNext(){
   }
 }
 async function choosePageRange(){
-  if(!pdf)return;
-  const s=prompt('Pages available for step-by-step processing (examples: 1-5, 2,4,7-9):',pages.join(','));
-  if(s===null)return;
-  const p=parseRange(s,pdf.numPages);
-  if(!p.length){alert('No valid pages selected.');return;}
-  pages=p; pi=0; rects=[]; selectedRectId=null; hideRectActions(); await render();
-  st('✔ Step-by-step mode: '+pages.length+' page(s) selected. Only the active page is auto-detected.');
-}async function choosePageRange(){
   if(!pdf)return;
   const s=prompt('Pages to process (examples: 1-5, 2,4,7-9):',pages.join(','));
   if(s===null)return;
