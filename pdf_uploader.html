@@ -189,7 +189,7 @@ textarea{min-height:76px}
 <input id="file" class="chooseFile" type="file" accept="application/pdf,.pdf">
 <button id="prev" class="btn" disabled>◀ Prev</button><span id="pageInfo" class="muted">Page 0 / 0</span><button id="next" class="btn" disabled>Next ▶</button>
 <button id="zo" class="btn" disabled>−</button><span id="zl" class="muted">100%</span><button id="zi" class="btn" disabled>+</button>
-<button id="autoDetect" class="btn blue" disabled>⚡ Detect Current Page</button><button id="confirmPage" class="btn green" disabled>✓ Confirm Page + Next</button><button id="pageRange" class="btn" disabled>📄 Page Range</button><button id="addRect" class="btn" disabled>＋ Free Rectangle</button>
+<button id="autoDetect" class="btn blue" disabled>⚡ Detect Current Page</button><button id="editAll" class="btn green" disabled>🚀 Edit All Detected</button><button id="confirmPage" class="btn green" disabled>✓ Confirm Page + Next</button><button id="pageRange" class="btn" disabled>📄 Page Range</button><button id="addRect" class="btn" disabled>＋ Free Rectangle</button>
 <span id="status" class="status">PDF not selected</span><span id="activity" class="activity">Activity: waiting for PDF…</span>
 </div>
 <div class="workspace">
@@ -227,7 +227,7 @@ textarea{min-height:76px}
 <div id="solutionStatus" class="muted" style="font-size:9px;margin-top:3px">No solution crop</div>
 </div>
 </div>
-<div class="mf"><span id="cropStatus" class="muted">Target: Question Text</span><div style="display:flex;gap:5px"><button id="deleteRect" class="btn">Delete Rectangle</button><button id="saveQuestion" class="btn green">☁ Save Question to Queue</button></div></div>
+<div class="mf"><span id="cropStatus" class="muted">Target: Question Text</span><div style="display:flex;gap:5px"><button id="deleteRect" class="btn">Delete Rectangle</button><button id="saveQuestion" class="btn green">☁ Save Question to Cloud</button></div></div>
 </div>
 </div>
 <div id="originalCropModal" class="modalbg" style="z-index:7000">
@@ -328,6 +328,12 @@ $('mergeRect').onclick=()=>{
 
 $('cancelRect').onclick=()=>{if(selectedRectId){rects=rects.filter(r=>r.id!==selectedRectId);selectedRectId=null}hideRectActions();renderRects()};
 function getTemplate(){if(!selectedRectId)return null;return rects.find(r=>r.id===selectedRectId)||null}
+async function editAllDetected(){
+  const roots=rects.filter(r=>r.splitMode!=='from_previous'&&!r.savedToCloud).sort((a,b)=>a.page-b.page||a.y-b.y||String(a.qNo).localeCompare(String(b.qNo),undefined,{numeric:true}));
+  if(!roots.length){alert('No unsaved question boxes found. Detect questions first.');return;}
+  selectedRectId=roots[0].id; hideRectActions(); await openEditor(roots[0],true); st('🚀 Sequential editor started: '+roots.length+' question(s).');
+}
+$('editAll').onclick=editAllDetected;
 function groupTextLines(items,v){
   const raw=items.map(it=>{
     const tr=it.transform||[1,0,0,1,0,0];
@@ -484,14 +490,14 @@ $('file').onchange=async e=>{
     $('prev').disabled=total<=1; $('next').disabled=total<=1;
     $('zo').disabled=false; $('zi').disabled=false;
     $('addRect').disabled=false;
-    $('autoDetect').disabled=false; $('pageRange').disabled=false;
+    $('autoDetect').disabled=false; $('editAll').disabled=false; $('pageRange').disabled=false;
     await render();
     st('✔ PDF opened: '+total+' page(s).');
     loadTree().catch(()=>{});
   }catch(err){
     pdf=null; total=0; pages=[]; pi=0; rects=[]; template=null;
     $('prev').disabled=true; $('next').disabled=true; $('zo').disabled=true; $('zi').disabled=true;
-    $('addRect').disabled=true; $('autoDetect').disabled=true; $('confirmPage').disabled=true; $('pageRange').disabled=true;
+    $('addRect').disabled=true; $('autoDetect').disabled=true; $('editAll').disabled=true; $('confirmPage').disabled=true; $('pageRange').disabled=true;
     st('❌ PDF open failed: '+(err&&err.message?err.message:String(err)));
   }
 };
@@ -519,7 +525,7 @@ async function cropPartsCanvas(r){
   return out;
 }
 function buildEditorQueue(startRect){
-  const roots=rects.filter(r=>r.splitMode!=='from_previous').sort((a,b)=>a.page-b.page||a.y-b.y||String(a.qNo).localeCompare(String(b.qNo),undefined,{numeric:true}));
+  const roots=rects.filter(r=>r.splitMode!=='from_previous' && !r.savedToCloud).sort((a,b)=>a.page-b.page||a.y-b.y||String(a.qNo).localeCompare(String(b.qNo),undefined,{numeric:true}));
   editorQueue=roots;
   editorQueueIndex=Math.max(0,editorQueue.findIndex(x=>x.id===startRect.id));
   if(editorQueueIndex<0){editorQueue=[startRect];editorQueueIndex=0}
