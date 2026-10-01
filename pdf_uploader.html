@@ -252,7 +252,7 @@ async function ensurePdfJs(){
  return window.pdfjsLib;
 }
 const $=id=>document.getElementById(id);
-let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null,folderMode='private',mergeMode=false,mergeBaseId=null,editorQueue=[],editorQueueIndex=0;
+let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null,folderMode='private',mergeMode=false,mergeBaseId=null,editorQueue=[],editorQueueIndex=0,autoDetectRunning=false,autoDetectCancel=false;
 const cfg={apiKey:'AIza'+'SyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
 const email=()=>String(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase(),docId=e=>e.replace(/[^a-zA-Z0-9]/g,'_');
 function st(x){$('status').textContent=x;$('activity').textContent='Activity: '+x}
@@ -379,6 +379,8 @@ function detectColumns(lines,W){
 
 async function detectPageQuestions(pageNumber,opts={}) {
   if(!pdf) return 0;
+  const cancelled=()=>typeof opts.cancelCheck==='function'&&opts.cancelCheck();
+  if(cancelled()) return 0;
   const p=await pdf.getPage(pageNumber);
   const v=p.getViewport({scale:1});
   let tc={items:[]};
@@ -422,20 +424,39 @@ async function detectPageQuestions(pageNumber,opts={}) {
       }
     }catch(e){ st('Page '+pageNumber+': visual/OCR detection unavailable — Free Rectangle remains available.'); }
   }
+  if(cancelled()) return 0;
   rects=rects.filter(r=>r.page!==pageNumber);
   rects.push(...pageRects);
   return pageRects.length;
 }
 async function autoDetectCurrentPages(){
   if(!pdf||!pages.length){alert('Choose a PDF first.');return;}
-  // IMPORTANT: never scan the whole PDF. Auto-detection is deliberately page-scoped.
-  // The optional second page is only a continuation look-ahead and is not required.
-  const current=pages[pi], next=pages[pi+1];
-  selectedRectId=null; hideRectActions();
+  // Press once to detect. Press again to cancel an active detection or clear only
+  // the auto-detected boxes on the current page. Manually created boxes are preserved.
+  if(autoDetectRunning){autoDetectCancel=true;st('✕ Cancelling auto-detection…');return;}
+  const current=pages[pi];
+  const autoOnPage=rects.some(r=>r.page===current&&r.auto);
+  if(autoOnPage){
+    rects=rects.filter(r=>!(r.page===current&&r.auto));
+    selectedRectId=null;hideRectActions();await render();
+    $('autoDetect').textContent='⚡ Detect Current Page';
+    st('✕ Auto-detected rectangles removed from page '+current+'. Manual rectangles kept.');
+    return;
+  }
+  selectedRectId=null;hideRectActions();
+  autoDetectRunning=true;autoDetectCancel=false;
+  $('autoDetect').textContent='✕ Cancel Detection';
   st('⚡ Detecting questions on page '+current+' only…');
-  const count=await detectPageQuestions(current);
-  await render();
-  st(count?'✔ Page '+current+': '+count+' question box(es) detected. Review/resize, then Confirm Page.':'⚠ Page '+current+': no boundaries found. Use Free Rectangle.');
+  try{
+    const count=await detectPageQuestions(current, {cancelCheck:()=>autoDetectCancel});
+    if(autoDetectCancel){st('✕ Auto-detection cancelled.');}
+    else{st(count?'✔ Page '+current+': '+count+' question box(es) detected. Press Detect again to remove auto boxes.':'⚠ Page '+current+': no boundaries found. Use Free Rectangle.');}
+  }catch(e){st('❌ Auto-detection failed: '+(e.message||e));}
+  finally{
+    autoDetectRunning=false;autoDetectCancel=false;
+    $('autoDetect').textContent='⚡ Detect Current Page';
+    await render();
+  }
 }
 async function confirmPageAndNext(){
   if(!pdf||!pages.length)return;
@@ -597,8 +618,23 @@ $('saveImageEdit').onclick=()=>{
   $('imageEditorModal').style.display='none';st('✔ Edited question image updated. The saved image will use this edited version.');
 };
 
-function setTarget(t){selectedTarget=t;document.querySelectorAll('.target').forEach(b=>b.classList.toggle('active',b.dataset.target===t));$('cropStatus').textContent='Target: '+({qtext:'Question Text',opta:'Option A',optb:'Option B',optc:'Option C',optd:'Option D',solution:'Solution'}[t]||t)}
-document.querySelectorAll('#libraryTargetBar .target').forEach(b=>b.onclick=async()=>{folderMode=b.dataset.library;selectedPath='';document.querySelectorAll('#libraryTargetBar .target').forEach(x=>x.classList.remove('active'));b.classList.add('active');st('Loading '+folderModeLabel()+' folders…');await loadTree(folderMode);st('✔ '+folderModeLabel()+' folders ready.')});
+function setTarget(t){
+  selectedTarget=t;
+  // Only OCR-area targets are controlled here. Do NOT touch the Library buttons.
+  document.querySelectorAll('.targetbar:not(#libraryTargetBar) .target').forEach(b=>b.classList.toggle('active',b.dataset.target===t));
+  $('cropStatus').textContent='Target: '+({qtext:'Question Text',opta:'Option A',optb:'Option B',optc:'Option C',optd:'Option D',solution:'Solution'}[t]||t)
+}
+document.querySelectorAll('#libraryTargetBar .target').forEach(b=>b.onclick=async()=>{
+  const nextMode=b.dataset.library,changed=nextMode!==folderMode;
+  folderMode=nextMode;
+  // Re-clicking the already selected library must NOT erase the chosen folder path.
+  // Switching to a different library loads that library's tree and starts a fresh path.
+  if(changed)selectedPath='';
+  document.querySelectorAll('#libraryTargetBar .target').forEach(x=>x.classList.toggle('active',x.dataset.library===folderMode));
+  st('Loading '+folderModeLabel()+' folders…');
+  await loadTree(folderMode);
+  st('✔ '+folderModeLabel()+' folders ready.'+ (selectedPath?' • '+selectedPath:''));
+});
 document.querySelectorAll('.targetbar:not(#libraryTargetBar) .target').forEach(b=>b.onclick=()=>setTarget(b.dataset.target));$('solutionTarget').onclick=()=>setTarget('solution');
 $('qtype').onchange=()=>{answerControl();optionsToggle()};
 $('ocrQ').onclick=async()=>{setTarget('qtext');await ocrSelected()};
