@@ -15,6 +15,17 @@
 <div class="hero"><h2>🤖 AI PDF Extractor — Package Import</h2><div class="muted">Two ways to import: (1) direct Original PDF + AI coordinate JSON, or (2) a ZIP package containing manifest/images. Maximum 5 source-PDF pages per package.</div>
 <div class="row"><input id="zipFile" type="file" accept=".zip,application/zip"><button id="loadZip" class="btn blue">📦 Load ZIP</button><span id="status" class="muted">Waiting for package…</span></div>
 <div style="margin-top:12px;padding:12px;border:1px solid #334155;border-radius:10px;background:#07101f;">
+  <div style="font-weight:900;color:#38bdf8;margin-bottom:4px;">🚀 Automatic PDF Question Extractor</div>
+  <div class="muted" style="font-size:11px;">No Gemini/DeepSeek JSON required. The website reads the PDF's own text positions, detects question numbers, handles 1/2-column pages, and crops each complete block from the original PDF.</div>
+  <div class="row">
+    <input id="autoPdfFile" type="file" accept=".pdf,application/pdf">
+    <button id="autoExtractPdf" class="btn blue" type="button">🚀 Auto Extract Questions</button>
+  </div>
+  <div class="muted" style="font-size:10px;margin-top:6px;">Best for normal text PDFs. Scanned/image-only PDFs will report that they need OCR/manual cropping.</div>
+</div>
+<div style="margin-top:10px;padding:10px;border:1px solid #334155;border-radius:10px;background:#07101f;">
+  <div style="font-weight:900;color:#a78bfa;margin-bottom:4px;">🧩 Advanced: PDF + Coordinate JSON</div>
+  <div class="muted" style="font-size:10px;margin-bottom:5px;">Fallback only — you no longer need Gemini/DeepSeek for normal text PDFs.</div><div style="margin-top:12px;padding:12px;border:1px solid #334155;border-radius:10px;background:#07101f;">
   <div style="font-weight:900;color:#10b981;margin-bottom:4px;">🎯 Direct PDF + Coordinate JSON</div>
   <div class="muted" style="font-size:11px;">Use this when Gemini/ChatGPT gives you a JSON file containing question crop coordinates. No ZIP creation or Python is required.</div>
   <div class="row">
@@ -283,6 +294,74 @@ async function generateFromCoordinates(){
     $("stats").textContent=items.length+" question(s) extracted from coordinate JSON • Original PDF attached";
     render();st(items.length?("✔ Coordinate extraction complete. "+items.length+" question(s) loaded. Review the cards before importing."):("⚠ Coordinate JSON was read, but no usable question crop was found. Check the JSON structure."));
   }catch(e){console.error(e);st("❌ "+e.message);alert("Coordinate extraction failed: "+e.message)}
+  finally{btn.disabled=false}
+}
+
+$("autoExtractPdf").onclick=autoExtractFromPdf;
+function questionStartFromText(t){
+  const s=String(t||"").replace(/\s+/g," ").trim();
+  let m=s.match(/^(?:Q(?:uestion)?\.?\s*)?\(?(\d{1,3})\)?[.)](?:\s|$)/i);
+  if(!m)m=s.match(/^Q(?:uestion)?\s*(\d{1,3})(?:\s|$)/i);
+  return m?m[1]:null;
+}
+function textItemBox(item,viewport){
+  const tr=pdfjsLib.Util.transform(viewport.transform,item.transform);
+  const h=Math.max(8,Math.hypot(tr[2],tr[3]));
+  return {x:tr[4],top:tr[5]-h,width:Math.max(1,item.width*viewport.scale),height:h,text:String(item.str||"").trim()};
+}
+async function renderPdfCrop(pageNo,x,y,w,h,scale=2.5){
+  const p=await pdfDoc.getPage(pageNo),v=p.getViewport({scale});
+  const src=document.createElement("canvas");src.width=Math.ceil(v.width);src.height=Math.ceil(v.height);
+  await p.render({canvasContext:src.getContext("2d"),viewport:v}).promise;
+  x=Math.max(0,Math.min(x,src.width-1));y=Math.max(0,Math.min(y,src.height-1));
+  w=Math.max(1,Math.min(w,src.width-x));h=Math.max(1,Math.min(h,src.height-y));
+  const out=document.createElement("canvas");out.width=Math.round(w);out.height=Math.round(h);
+  out.getContext("2d").drawImage(src,x,y,w,h,0,0,out.width,out.height);return out.toDataURL("image/png");
+}
+async function combineVerticalImages(a,b){
+  const ia=new Image();ia.src=a;await new Promise((r,j)=>{ia.onload=r;ia.onerror=j});
+  const ib=new Image();ib.src=b;await new Promise((r,j)=>{ib.onload=r;ib.onerror=j});
+  const gap=12,w=Math.max(ia.naturalWidth,ib.naturalWidth),h=ia.naturalHeight+ib.naturalHeight+gap;
+  const out=document.createElement("canvas");out.width=w;out.height=h;const ctx=out.getContext("2d");
+  ctx.drawImage(ia,0,0);ctx.drawImage(ib,0,ia.naturalHeight+gap);return out.toDataURL("image/png");
+}
+async function autoExtractFromPdf(){
+  const f=$("autoPdfFile").files[0];if(!f)return alert("पहले Original PDF select करो.");
+  const btn=$("autoExtractPdf");btn.disabled=true;
+  try{
+    st("Opening PDF…");sourcePdf=new Uint8Array(await f.arrayBuffer());
+    pdfDoc=await pdfjsLib.getDocument({data:sourcePdf}).promise;
+    if(pdfDoc.numPages>5)throw new Error("Maximum 5 PDF pages allowed here.");
+    items=[];let detected=0;
+    for(let pageNo=1;pageNo<=pdfDoc.numPages;pageNo++){
+      st("🔎 Reading page "+pageNo+" / "+pdfDoc.numPages+"…");
+      const p=await pdfDoc.getPage(pageNo),v=p.getViewport({scale:2.5}),tc=await p.getTextContent();
+      const boxes=tc.items.map(x=>textItemBox(x,v)).filter(x=>x.text);
+      if(!boxes.length){if(items.length){items[items.length-1].image=await combineVerticalImages(items[items.length-1].image,await renderPdfCrop(pageNo,0,0,v.width,v.height));}continue}
+      const starts=boxes.filter(b=>questionStartFromText(b.text)).sort((a,b)=>a.top-b.top);
+      if(!starts.length){if(items.length){items[items.length-1].image=await combineVerticalImages(items[items.length-1].image,await renderPdfCrop(pageNo,0,0,v.width,v.height));}continue}
+      detected+=starts.length;
+      const spread=Math.max(...starts.map(s=>s.x))-Math.min(...starts.map(s=>s.x));
+      const twoColumn=starts.length>=4&&spread>v.width*0.30,mid=v.width/2;
+      // Continuation material before the first numbered question belongs to the previous question.
+      if(items.length&&starts[0].top>v.height*0.10){
+        items[items.length-1].image=await combineVerticalImages(items[items.length-1].image,await renderPdfCrop(pageNo,0,0,v.width,starts[0].top-6));
+      }
+      for(let i=0;i<starts.length;i++){
+        const s=starts[i],col=twoColumn?(s.x<mid?"L":"R"):"ALL";
+        const next=starts.slice(i+1).find(n=>!twoColumn||(n.x<mid?"L":"R")===col);
+        const left=twoColumn?(col==="L"?0:mid):0,right=twoColumn?(col==="L"?mid:v.width):v.width;
+        const top=Math.max(0,s.top-12),bottom=next?Math.max(top+30,next.top-7):v.height-8;
+        const qNo="Q"+String(questionStartFromText(s.text)).padStart(3,"0");
+        const img=await renderPdfCrop(pageNo,left,top,right-left,Math.min(v.height-top,bottom-top));
+        items.push({qNo,page:pageNo,qText:s.text,image:img,blob:null});
+      }
+      st("✂️ Extracted "+items.length+" question block(s)…");
+    }
+    if(!detected)throw new Error("No readable question-number text was found. This PDF may be scanned/image-only; use OCR/manual crop for it.");
+    const lim=Number($("limit").value);if(lim>0)items=items.slice(0,lim);
+    render();st("✔ Auto extraction complete — "+items.length+" question(s) ready for review.");
+  }catch(e){console.error(e);st("❌ "+e.message);alert("Auto extraction failed: "+e.message)}
   finally{btn.disabled=false}
 }
 $("generateFromJson").onclick=generateFromCoordinates;
