@@ -197,7 +197,7 @@ async function detectPageQuestions(pageNumber,opts={}) {
       const oc=document.createElement('canvas'); oc.width=Math.ceil(rv.width); oc.height=Math.ceil(rv.height);
       await p.render({canvasContext:oc.getContext('2d'),viewport:rv}).promise;
       const T=await window.__loadTesseract();
-      const rr=await T.recognize(oc,'eng+hin',{logger:m=>{if(m.status==='recognizing text')st('Page '+pageNumber+' OCR '+Math.round((m.progress||0)*100)+'%')}}});
+      const rr=await T.recognize(oc,'eng+hin',{logger:m=>{if(m.status==='recognizing text')st('Page '+pageNumber+' OCR '+Math.round((m.progress||0)*100)+'%')}});
       const ocrLines=(rr.data&&rr.data.lines)||[];
       const starts=ocrLines.filter(x=>isQuestionStart(x.text));
       for(let i=0;i<starts.length;i++){
