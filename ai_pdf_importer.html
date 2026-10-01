@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A to Z Exam Mocks — AI PDF Extractor Import</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}nav{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 12px}.brand{color:#38bdf8;font-weight:900;text-decoration:none}.nav a{color:#cbd5e1;text-decoration:none;border:1px solid #334155;background:#0f172a;border-radius:6px;padding:7px 10px;font-weight:800;font-size:11px}.wrap{padding:14px;max-width:1400px;margin:auto}.hero{background:#0b1120;border:1px solid #1e293b;border-radius:12px;padding:14px}.hero h2{margin:0 0 5px}.muted{color:#94a3b8}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}.btn{background:#0f172a;color:#cbd5e1;border:1px solid #334155;border-radius:7px;padding:8px 11px;font-weight:800;cursor:pointer}.btn.blue{background:#0369a1;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn.red{background:#991b1b;color:#fff;border-color:#ef4444}.btn.purple{background:#6d28d9;color:#fff;border-color:#a78bfa}.btn:disabled{opacity:.45;cursor:not-allowed}input,select{background:#07101f;color:#fff;border:1px solid #334155;border-radius:6px;padding:8px}.settings{display:grid;grid-template-columns:180px 1fr 180px;gap:8px;margin-top:10px}.settings label{font-size:10px;color:#94a3b8;font-weight:800}.field{display:flex;flex-direction:column;gap:3px}.stats{margin-top:10px;color:#10b981;font-weight:900}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.card{background:#0b1120;border:1px solid #334155;border-radius:10px;padding:8px;position:relative}.card img{width:100%;height:250px;object-fit:contain;background:#fff;border-radius:6px;display:block}.card .top{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px}.card .actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.tag{font-weight:900;color:#38bdf8}.text{font-size:10px;color:#cbd5e1;margin-top:5px;max-height:38px;overflow:hidden}.modalbg{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:10000;padding:8px}.modal{width:min(1100px,98vw);height:min(94vh,900px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.mh{height:46px;padding:8px 10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}.cropstage{flex:1;overflow:auto;text-align:center;padding:10px;background:#020617}.pagewrap{position:relative;display:inline-block;background:#fff}.pagewrap canvas{display:block;max-width:100%}.sel{position:absolute;border:3px dashed #10b981;background:#10b98122;display:none;pointer-events:none}.mf{padding:8px;border-top:1px solid #334155;display:flex;gap:7px;justify-content:flex-end}.empty{padding:35px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:10px;margin-top:12px}
+@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.settings{grid-template-columns:1fr 1fr}.card img{height:210px}}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.settings{grid-template-columns:1fr}}
+</style></head>
+<body>
+<nav><a class="brand" href="teacher.html">🏠 A to Z Exam Mocks</a><div class="nav"><a href="teacher.html">Dashboard</a><a href="library.html">📁 Library</a></div></nav>
+<div class="wrap">
+<div class="hero"><h2>🤖 AI PDF Extractor — Package Import</h2><div class="muted">Upload the ZIP produced by ChatGPT/Gemini. Recommended package: manifest.json + Q001.png… + optional source.pdf (maximum 5 PDF pages per package).</div>
+<div class="row"><input id="zipFile" type="file" accept=".zip,application/zip"><button id="loadZip" class="btn blue">📦 Load ZIP</button><span id="status" class="muted">Waiting for package…</span></div>
+<div class="settings">
+<div class="field"><label>Library</label><select id="libraryMode"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select></div>
+<div class="field"><label>Exact Folder Path</label><input id="folderPath" placeholder="e.g. Class 12 / Physics / Optics"></div>
+<div class="field"><label>Import limit</label><select id="limit"><option value="0">All questions in package</option><option value="5">Maximum 5 questions</option><option value="10">Maximum 10 questions</option><option value="25">Maximum 25 questions</option></select></div>
+</div>
+<div id="stats" class="stats"></div>
+<div class="row"><button id="saveAll" class="btn green" disabled>☁ Import All to Library</button><button id="clearAll" class="btn red" disabled>✕ Clear Package</button></div>
+</div>
+<div id="grid" class="grid"><div class="empty">ZIP upload करो। फिर हर question यहाँ अलग card में दिखाई देगा — Delete, Editor और Original PDF से Re-crop available होंगे.</div></div>
+</div>
+
+<div id="cropModal" class="modalbg"><div class="modal"><div class="mh"><b style="color:#38bdf8">✂️ Crop from Original PDF</b><span id="cropInfo" class="muted"></span><button id="closeCrop" class="btn">✕</button></div><div class="cropstage"><div id="pagewrap" class="pagewrap"><canvas id="pdfcanvas"></canvas><div id="sels" class="sel"></div></div></div><div class="mf"><button id="cancelCrop" class="btn">Cancel</button><button id="applyCrop" class="btn green">✓ Apply Crop</button></div></div></div>
+
+<script>
+const cfg={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+let items=[],sourcePdf=null,pdfDoc=null,cropIndex=-1,cropState={drag:false,sx:0,sy:0,sel:null};
+const $=id=>document.getElementById(id),email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
+const esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+function st(s){$("status").textContent=s}
+function normalizePath(s){return String(s||"").trim().replace(/\\+/g," / ").split("/").map(x=>x.trim()).filter(Boolean).join(" / ")}
+function render(){
+ const n=items.length;$("stats").textContent=n?(n+" question"+(n===1?"":"s")+" loaded • "+(sourcePdf?"Original PDF attached":"No source PDF in package")):"";
+ $("saveAll").disabled=!n;$("clearAll").disabled=!n;
+ if(!n){$("grid").innerHTML='<div class="empty">No questions loaded.</div>';return}
+ $("grid").innerHTML=items.map((q,i)=>'<div class="card"><div class="top"><span class="tag">Q'+esc(q.qNo||i+1)+'</span><span class="muted">Page '+esc(q.page||"—")+'</span></div><img src="'+q.image+'" alt="Q'+esc(q.qNo||i+1)+'"><div class="text">'+esc(q.qText||"[Image question — OCR not required]")+'</div><div class="actions"><button class="btn red" onclick="removeItem('+i+')">🗑 Delete</button><button class="btn purple" onclick="openEditor('+i+')">✏️ Editor</button>'+(sourcePdf?'<button class="btn green" onclick="openCrop('+i+')">✂️ Crop from PDF</button>':'')+'</div></div>').join("")
+}
+window.removeItem=i=>{items.splice(i,1);render();st("Question removed from import package.")};
+window.openEditor=i=>{
+ const q=items[i];localStorage.setItem("Temp_Editor_Image",q.image);localStorage.setItem("Temp_QText",q.qText||"");localStorage.setItem("Temp_Opt_A",q.a||"");localStorage.setItem("Temp_Opt_B",q.b||"");localStorage.setItem("Temp_Opt_C",q.c||"");localStorage.setItem("Temp_Opt_D",q.d||"");localStorage.setItem("AZ_AI_IMPORT_QNO",String(q.qNo||i+1));window.open("editor.html?aiImport=1","_blank","noopener,noreferrer");
+};
+async function loadZip(){
+ const f=$("zipFile").files[0];if(!f)return alert("ZIP file select करो.");
+ try{
+  st("Reading ZIP…");const z=await JSZip.loadAsync(f),mf=z.file("manifest.json")||z.file("package.json");let manifest={};
+  if(mf){try{manifest=JSON.parse(await mf.async("string"))}catch(e){throw new Error("manifest.json is not valid JSON.")}}
+  const pdfEntry=z.file("source.pdf")||z.file("original.pdf")||Object.values(z.files).find(x=>/\.(pdf)$/i.test(x.name));
+  sourcePdf=pdfEntry?await pdfEntry.async("uint8array"):null;
+  if(manifest.pageCount&&Number(manifest.pageCount)>5)throw new Error("This importer is limited to maximum 5 source-PDF pages per package.");
+  if(sourcePdf){pdfDoc=await pdfjsLib.getDocument({data:sourcePdf}).promise;if(pdfDoc.numPages>5)throw new Error("Source PDF has "+pdfDoc.numPages+" pages. Maximum allowed here is 5 pages per package.");}
+  const list=Array.isArray(manifest.questions)?manifest.questions:null;items=[];
+  if(list){
+   for(let i=0;i<list.length;i++){const m=list[i],name=m.image||m.file||m.path;if(!name)continue;const e=z.file(name);if(!e)continue;const blob=await e.async("blob");items.push({qNo:m.qNo||m.questionNo||i+1,page:m.page||"",qText:m.qText||m.text||"",a:m.a||"",b:m.b||"",c:m.c||"",d:m.d||"",image:URL.createObjectURL(blob),blob});}
+  }else{
+   const files=Object.values(z.files).filter(x=>!x.dir&&/\.(png|jpe?g|webp)$/i.test(x.name)).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
+   for(let i=0;i<files.length;i++){const blob=await files[i].async("blob");items.push({qNo:i+1,page:"",qText:"",image:URL.createObjectURL(blob),blob});}
+  }
+  const lim=Number($("limit").value);if(lim>0)items=items.slice(0,lim);
+  st("✔ Package loaded.");render();
+ }catch(e){console.error(e);st("❌ "+e.message);alert("Package load failed: "+e.message)}
+}
+$("loadZip").onclick=loadZip;$("limit").onchange=()=>{if(items.length){st("Limit changed — reload ZIP to apply it.")}};
+$("clearAll").onclick=()=>{items=[];sourcePdf=null;pdfDoc=null;render();st("Package cleared.")};
+
+function point(e){const c=$("pdfcanvas"),r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
+window.openCrop=async i=>{
+ if(!pdfDoc)return alert("Original PDF is not attached in this ZIP.");cropIndex=i;const pageNo=Math.max(1,Number(items[i].page)||1);if(pageNo>pdfDoc.numPages)return alert("Page "+pageNo+" is not available in the source PDF.");
+ const p=await pdfDoc.getPage(pageNo),v=p.getViewport({scale:2});const c=$("pdfcanvas");c.width=Math.ceil(v.width);c.height=Math.ceil(v.height);await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;$("cropInfo").textContent="Q"+items[i].qNo+" • Page "+pageNo+" • Drag corrected rectangle";$("sels").style.display="none";cropState={drag:false,sx:0,sy:0,sel:null};$("cropModal").style.display="flex";
+};
+$("pdfcanvas").onpointerdown=e=>{e.preventDefault();const p=point(e);cropState={drag:true,sx:p.x,sy:p.y,sel:{x:p.x,y:p.y,w:1,h:1}};$("pdfcanvas").setPointerCapture?.(e.pointerId);$("sels").style.display="block"};
+$("pdfcanvas").onpointermove=e=>{if(!cropState.drag)return;const p=point(e),s=cropState; s.sel={x:Math.min(s.sx,p.x),y:Math.min(s.sy,p.y),w:Math.abs(p.x-s.sx),h:Math.abs(p.y-s.sy)};const c=$("pdfcanvas"),r=c.getBoundingClientRect(),el=$("sels");el.style.left=s.sel.x/c.width*r.width+"px";el.style.top=s.sel.y/c.height*r.height+"px";el.style.width=s.sel.w/c.width*r.width+"px";el.style.height=s.sel.h/c.height*r.height+"px"};
+$("pdfcanvas").onpointerup=()=>cropState.drag=false;
+function closeCrop(){$("cropModal").style.display="none";cropIndex=-1}
+$("closeCrop").onclick=closeCrop;$("cancelCrop").onclick=closeCrop;
+$("applyCrop").onclick=()=>{const s=cropState.sel;if(cropIndex<0||!s||s.w<5||s.h<5)return alert("Select the corrected question area first.");const src=$("pdfcanvas"),o=document.createElement("canvas");o.width=Math.round(s.w);o.height=Math.round(s.h);o.getContext("2d").drawImage(src,s.x,s.y,s.w,s.h,0,0,o.width,o.height);items[cropIndex].image=o.toDataURL("image/png");items[cropIndex].blob=null;closeCrop();render();st("✔ Corrected image captured from original PDF.")};
+
+async function saveItems(){
+ if(!email())return alert("Teacher login not found. Please log in again.");const path=normalizePath($("folderPath").value);if(!path)return alert("Exact Folder Path भरें.");if(!items.length)return;
+ const mode=$("libraryMode").value;const btn=$("saveAll");btn.disabled=true;st("Saving "+items.length+" question(s) to Library…");
+ try{
+  const a=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"),f=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");let app;try{app=a.initializeApp(cfg,"ai-package-import")}catch(e){app=a.getApps().find(x=>x.name==="ai-package-import")}const db=f.getFirestore(app);
+  for(let i=0;i<items.length;i++){const q=items[i];let img=q.image;if(q.blob){const b=await q.blob.arrayBuffer();img="data:"+q.blob.type+";base64,"+btoa(String.fromCharCode(...new Uint8Array(b)))}await f.addDoc(f.collection(db,"questions"),{ownerEmail:email(),creatorEmail:email(),questionKey:"",qNo:String(q.qNo||i+1),qText:q.qText||"",question:img,solution:"",optAImg:"",optBImg:"",optCImg:"",optDImg:"",options:[q.a,q.b,q.c,q.d].filter(Boolean),keepOptions:[q.a,q.b,q.c,q.d].some(Boolean),libraryType:mode==="central"?"Central Library":mode==="group"?"Group Library":"Personal Library",libraryMode:mode,central:mode==="central",group:mode==="group",targetLibrary:mode,folderPath:path,folder:path.split(" / ")[0]||"",subfolder:path.split(" / ").slice(1).join(" / "),topic:"Physics",qType:q.qtype||"mcq",level:q.level||"Medium",answer:q.answer||"",sourcePage:q.page||"",sourceFile:"AI Package Import",splitMode:q.splitMode||"none",createdAt:new Date().toISOString()});st("☁ Saved "+(i+1)+" / "+items.length+"…")}
+  alert("✔ "+items.length+" questions imported to Library.");st("✔ Import complete.");items=[];render();
+ }catch(e){console.error(e);st("❌ Save failed: "+e.message);alert("Save failed: "+e.message)}finally{btn.disabled=!items.length}
+}
+$("saveAll").onclick=saveItems;render();
+</script></body></html>
