@@ -172,6 +172,15 @@ textarea{min-height:76px}
   .workspace{height:calc(100vh - 48px - 82px)}
   .pageWrap{max-width:100%}
 }
+
+/* Original-PDF recrop overlay */
+#originalCropModal .modal{width:min(1100px,98vw);height:min(94vh,900px)}
+#originalCropModal .originalCropStage{flex:1;min-height:0;overflow:auto;background:#020617;padding:10px;text-align:center}
+#originalCropModal .originalPageWrap{position:relative;display:inline-block;background:#fff;box-shadow:0 8px 28px #000b}
+#originalCropModal .originalPageWrap canvas{display:block;max-width:none}
+#originalCropModal .originalSelect{position:absolute;border:3px dashed #10b981;background:rgba(16,185,129,.12);display:none;pointer-events:none}
+#originalCropModal .mf{height:auto;min-height:52px;align-items:center;justify-content:space-between}
+@media(max-width:900px){#originalCropModal .modal{width:100%;height:100vh;border-radius:0}#originalCropModal .originalCropStage{padding:4px}#originalCropModal .originalPageWrap canvas{max-width:100%;height:auto}}
 </style>
 </head>
 <body>
@@ -193,7 +202,7 @@ textarea{min-height:76px}
 <div class="mh"><b style="color:#38bdf8">✂️ Question Slicer Studio</b><span id="modalQ" class="muted">Question</span><button id="closeModal" class="btn">✕ Close</button></div>
 <div class="mb">
 <div class="source">
-<div class="sourceTop"><b>Selected Question Rectangle</b><span id="rectInfo" class="muted"></span><button id="editImageBtn" class="btn tiny blue">✏️ Edit Image</button></div>
+<div class="sourceTop"><b>Selected Question Rectangle</b><span id="rectInfo" class="muted"></span><button id="editImageBtn" class="btn tiny blue">✏️ Edit Image</button><button id="cropOriginalBtn" class="btn tiny green">✂️ Crop from Original PDF</button></div>
 <div id="cropStage" class="cropStage"><div id="cropWrap" class="cropCanvasWrap"><canvas id="cropCanvas"></canvas><div id="selectCrop" class="selectCrop"></div></div></div>
 <div style="padding:6px 8px;border-top:1px solid #1e293b;font-size:9px;color:#94a3b8">Choose a target, then drag on the image to OCR that exact area. The question image itself remains the rectangle crop.</div>
 </div>
@@ -221,7 +230,12 @@ textarea{min-height:76px}
 <div class="mf"><span id="cropStatus" class="muted">Target: Question Text</span><div style="display:flex;gap:5px"><button id="deleteRect" class="btn">Delete Rectangle</button><button id="saveQuestion" class="btn green">☁ Save Question to Queue</button></div></div>
 </div>
 </div>
-<div id="imageEditorModal" class="modalbg" style="z-index:6000">
+<div id="originalCropModal" class="modalbg" style="z-index:5900">
+<div class="modal">
+<div class="mh"><b style="color:#10b981">✂️ Crop from Original PDF</b><span id="originalCropInfo" class="muted">Select the correct question area</span><button id="closeOriginalCrop" class="btn">✕ Close</button></div>
+<div class="originalCropStage"><div id="originalPageWrap" class="originalPageWrap"><canvas id="originalCropCanvas"></canvas><div id="originalSelect" class="originalSelect"></div></div></div>
+<div class="mf"><span class="muted">This crop is taken directly from the original PDF page at high resolution. Select the corrected rectangle and apply it to this question.</span><div style="display:flex;gap:5px"><button id="cancelOriginalCrop" class="btn">Cancel</button><button id="applyOriginalCrop" class="btn green">✓ Use This Crop</button></div></div>
+</div></div><div id="imageEditorModal" class="modalbg" style="z-index:6000">
 <div class="modal" style="height:min(94vh,900px)">
 <div class="mh"><b style="color:#38bdf8">✏️ Question Image Editor</b><span class="muted">Erase/clean the captured image, then save it back to this question.</span><button id="closeImageEditor" class="btn">✕ Close</button></div>
 <div style="flex:1;min-height:0;overflow:auto;background:#020617;padding:10px;text-align:center"><div style="display:inline-block;position:relative;background:#fff"><canvas id="imageEditCanvas" style="display:block;max-width:100%;height:auto;touch-action:none"></canvas></div></div>
@@ -506,7 +520,26 @@ async function cropPartsCanvas(r){
 }
 async function openEditor(r){modalRect=r;selectedTarget='qtext';cropSel=null;solutionImg='';$('modalQ').textContent='Q'+r.qNo+' • Page '+r.page;$('rectInfo').textContent='Adjust rectangle on page, then edit here';let c=await cropPartsCanvas(r),cc=$('cropCanvas');cc.width=c.width;cc.height=c.height;cc.getContext('2d').drawImage(c,0,0);$('selectCrop').style.display='none';$('qno').value=r.qNo; $('qtext').value=r.qtext||'';$('a').value=r.a||'';$('b').value=r.b||'';$('c').value=r.c||'';$('d').value=r.d||'';$('qtype').value=r.qtype||'mcq';answerControl();optionsToggle();if($('answer'))$('answer').value=r.answer||'';folderMode=r.libraryMode||'private';selectedPath=r.folderPath||'';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.remove('active'));const lb=document.querySelector('#libraryTargetBar [data-library="'+folderMode+'"]');if(lb)lb.classList.add('active');loadTree(folderMode).then(()=>renderTree());setTarget('qtext');$('solutionStatus').textContent='No solution crop';modal(true)}
 
-// Question image editor: edits the captured question PNG and writes it back to cropCanvas.
+
+// Re-crop directly from the original PDF page. Existing rectangle is not modified until the user applies the new crop.
+let originalCropState={active:false,page:0,sel:null,drag:false,sx:0,sy:0};
+async function openOriginalCrop(){
+  if(!modalRect||!pdf)return;
+  const pageNo=modalRect.page,p=await pdf.getPage(pageNo),v=p.getViewport({scale:2.5}),c=$('originalCropCanvas');
+  c.width=Math.ceil(v.width);c.height=Math.ceil(v.height);await p.render({canvasContext:c.getContext('2d'),viewport:v}).promise;
+  $('originalPageWrap').style.width=c.width+'px';$('originalPageWrap').style.height=c.height+'px';
+  $('originalCropInfo').textContent='Page '+pageNo+' • Drag a new rectangle around the correct question';
+  originalCropState={active:true,page:pageNo,sel:null,drag:false,sx:0,sy:0};$('originalSelect').style.display='none';$('originalCropModal').style.display='flex';
+}
+function originalPoint(e){const c=$('originalCropCanvas'),r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
+$('cropOriginalBtn').onclick=openOriginalCrop;
+$('closeOriginalCrop').onclick=()=>{$('originalCropModal').style.display='none';originalCropState.active=false};
+$('cancelOriginalCrop').onclick=()=>{$('originalCropModal').style.display='none';originalCropState.active=false};
+$('originalCropCanvas').onpointerdown=e=>{e.preventDefault();const p=originalPoint(e);originalCropState.drag=true;originalCropState.sx=p.x;originalCropState.sy=p.y;originalCropState.sel={x:p.x,y:p.y,w:1,h:1};$('originalSelect').style.display='block';$('originalCropCanvas').setPointerCapture?.(e.pointerId)};
+$('originalCropCanvas').onpointermove=e=>{if(!originalCropState.drag)return;const p=originalPoint(e),s=originalCropState; s.sel={x:Math.min(s.sx,p.x),y:Math.min(s.sy,p.y),w:Math.abs(p.x-s.sx),h:Math.abs(p.y-s.sy)};const c=$('originalCropCanvas'),r=c.getBoundingClientRect(),el=$('originalSelect');el.style.left=(s.sel.x/c.width*r.width)+'px';el.style.top=(s.sel.y/c.height*r.height)+'px';el.style.width=(s.sel.w/c.width*r.width)+'px';el.style.height=(s.sel.h/c.height*r.height)+'px'};
+$('originalCropCanvas').onpointerup=e=>{originalCropState.drag=false};$('originalCropCanvas').onpointercancel=e=>{originalCropState.drag=false};
+$('applyOriginalCrop').onclick=()=>{const s=originalCropState.sel;if(!s||s.w<5||s.h<5)return alert('Please select the corrected question rectangle first.');const src=$('originalCropCanvas'),out=document.createElement('canvas');out.width=Math.round(s.w);out.height=Math.round(s.h);const ctx=out.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.drawImage(src,s.x,s.y,s.w,s.h,0,0,out.width,out.height);const dst=$('cropCanvas');dst.width=out.width;dst.height=out.height;dst.getContext('2d').drawImage(out,0,0);if(modalRect)modalRect.qImg=dst.toDataURL('image/png');$('originalCropModal').style.display='none';originalCropState.active=false;st('✔ Corrected crop captured directly from original PDF page.');};
+\n// Question image editor: edits the captured question PNG and writes it back to cropCanvas.
 let imageEditCtx=null,imageEditHistory=[],imageEditDrawing=false;
 function openImageEditor(){
   const src=$('cropCanvas'); if(!src.width||!src.height)return alert('Question image is not ready yet.');
