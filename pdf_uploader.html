@@ -48,7 +48,7 @@ nav{height:48px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <span id="status" class="status">PDF not selected</span><span id="activity" class="activity">Activity: waiting for PDF…</span>
 </div>
 <div class="workspace">
-<section class="viewerPane"><div class="head"><b>📄 PDF Page — Question Layout</b><span class="muted">Rectangles are editable</span></div><div id="viewer" class="viewer"><div id="pageWrap" class="pageWrap"><canvas id="canvas"></canvas><div id="rectLayer"></div></div></div><div id="rectActions" class="rectActions"><span id="rectActionMsg" class="rectMsg">Draw a rectangle around one complete question.</span><button id="cancelRect" class="btn">✕ Cancel</button><button id="okRect" class="btn green">✓ OK — Open Slicer</button></div><div class="hint"><b>Smart PDF workflow:</b> choose page range → <b>⚡ Auto Detect Questions</b> → review/resize boxes → open any box → choose continuation if a question crosses pages/columns → OCR only the selected crop → batch save. <b>Free Rectangle</b> remains available as a fallback. The original PDF page is always preserved.</div></section>
+<section class="viewerPane"><div class="head"><b>📄 PDF Page — Question Layout</b><span class="muted">Rectangles are editable</span></div><div id="viewer" class="viewer"><div id="pageWrap" class="pageWrap"><canvas id="canvas"></canvas><div id="rectLayer"></div></div></div><div id="rectActions" class="rectActions"><span id="rectActionMsg" class="rectMsg">Draw a rectangle around one complete question.</span><button id="cancelRect" class="btn">✕ Cancel</button><button id="mergeRect" class="btn">🔗 Merge / Continuation</button><button id="okRect" class="btn green">✓ OK — Open Slicer</button></div><div class="hint"><b>Smart PDF workflow:</b> choose page range → <b>⚡ Auto Detect Questions</b> → review/resize boxes → open any box → choose continuation if a question crosses pages/columns → OCR only the selected crop → batch save. <b>Free Rectangle</b> remains available as a fallback. The original PDF page is always preserved.</div></section>
 <section class="side"><div class="head"><b>🧩 Question Queue</b><span id="count" class="muted">0</span></div><div class="body"><div class="notice"><b>Flow:</b> PDF → Auto Layout → adjust rectangle → open popup → OCR only selected question/option crop → edit → folder → save.</div><div id="drafts" class="drafts"></div><div id="preview" class="preview"><span class="muted">Student preview will appear here.</span></div></div><div class="queue"><span><b>Queue:</b> <span id="qcount">0</span></span><button id="saveAll" class="btn blue" disabled>☁ Save All</button></div></section>
 </div>
 
@@ -95,14 +95,14 @@ async function ensurePdfJs(){
  return window.pdfjsLib;
 }
 const $=id=>document.getElementById(id);
-let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null,folderMode='private';
+let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null,folderMode='private',mergeMode=false,mergeBaseId=null;
 const cfg={apiKey:'AIza'+'SyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
 const email=()=>String(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase(),docId=e=>e.replace(/[^a-zA-Z0-9]/g,'_');
 function st(x){$('status').textContent=x;$('activity').textContent='Activity: '+x}
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function modal(on){$('editorModal').style.display=on?'flex':'none'}
-function showRectActions(r){selectedRectId=r?r.id:null;$('rectActions').classList.toggle('show',!!r);$('rectActionMsg').textContent=r?'Q'+(r.qNo||'')+' rectangle selected. Fit the box, then press OK.':'Draw a rectangle around one complete question.';renderRects()}
-function hideRectActions(){$('rectActions').classList.remove('show')}
+function showRectActions(r){selectedRectId=r?r.id:null;$('rectActions').classList.toggle('show',!!r);$('rectActionMsg').textContent=r?'Q'+(r.qNo||'')+' rectangle selected. Fit the box, then press OK.':'Draw a rectangle around one complete question.';$('mergeRect').textContent=mergeMode?'🔗 Select continuation box…':'🔗 Merge / Continuation';renderRects()}
+function hideRectActions(){mergeMode=false;mergeBaseId=null;$('mergeRect').textContent='🔗 Merge / Continuation';$('rectActions').classList.remove('show')}
 function folderConfig(mode){if(mode==='central')return {collection:'folder_configs_central',id:'global_central_tree'};if(mode==='group')return {collection:'folder_configs_group',id:docId(email())+'_group'};return {collection:'folder_configs_private',id:docId(email())}}
 function folderModeLabel(){return folderMode==='central'?'Central Library':folderMode==='group'?'Group Library':'Private Library'}
 function parseRange(s,max){let out=new Set;String(s).split(',').forEach(p=>{p=p.trim();if(!p)return;if(p.includes('-')){let[a,b]=p.split('-').map(Number);let lo=Math.max(1,Math.min(a||1,b||max)),hi=Math.min(max,Math.max(a||1,b||max));for(let i=lo;i<=hi;i++)out.add(i)}else{let n=Number(p);if(n>=1&&n<=max)out.add(n)}});return[...out].sort((a,b)=>a-b)}
@@ -120,14 +120,29 @@ $('qtype').onchange=()=>{answerControl();optionsToggle()};answerControl();option
 async function render(){if(!pdf||!pages.length)return;let pn=pages[pi],p=await pdf.getPage(pn),v=p.getViewport({scale});$('canvas').width=v.width;$('canvas').height=v.height;await p.render({canvasContext:$('canvas').getContext('2d'),viewport:v}).promise;$('pageWrap').style.width=v.width+'px';$('pageWrap').style.height=v.height+'px';$('pageInfo').textContent='Page '+pn+' ('+(pi+1)+'/'+pages.length+')';$('prev').disabled=pi===0;$('next').disabled=pi===pages.length-1;$('zl').textContent=Math.round(scale/1.35*100)+'%';renderRects()}
 function pageDataUrl(){return $('canvas').toDataURL('image/png')}
 function clampRect(r){r.x=Math.max(0,Math.min(.98,r.x));r.y=Math.max(0,Math.min(.98,r.y));r.w=Math.max(.02,Math.min(1-r.x,r.w));r.h=Math.max(.02,Math.min(1-r.y,r.h));return r}
-function renderRects(){$('rectLayer').innerHTML='';let pageNo=pages[pi];rects.filter(r=>r.page===pageNo).forEach(r=>{let el=document.createElement('div');el.className='qrect'+(r.id===selectedRectId?' active':'');el.dataset.id=r.id;el.style.left=(r.x*100)+'%';el.style.top=(r.y*100)+'%';el.style.width=(r.w*100)+'%';el.style.height=(r.h*100)+'%';el.innerHTML='<span class="tag">Q'+esc(r.qNo)+'</span><span class="handle tl"></span><span class="handle tr"></span><span class="handle bl"></span><span class="handle br"></span>';el.onpointerdown=e=>beginRectPointer(e,r);$('rectLayer').appendChild(el)})}
-function beginRectPointer(e,r){e.preventDefault();e.stopPropagation();selectedRectId=r.id;renderRects();let rect=$('pageWrap').getBoundingClientRect(),sx=(e.clientX-rect.left)/rect.width,sy=(e.clientY-rect.top)/rect.height,mode=e.target.classList.contains('handle')?'resize':'move',corner=e.target.classList.contains('tl')?'tl':e.target.classList.contains('tr')?'tr':e.target.classList.contains('bl')?'bl':'br';dragState={r,mode,corner,sx,sy,ox:r.x,oy:r.y,ow:r.w,oh:r.h};window.onpointermove=moveRectPointer;window.onpointerup=endRectPointer}
+function renderRects(){$('rectLayer').innerHTML='';let pageNo=pages[pi];rects.filter(r=>r.page===pageNo).forEach(r=>{let el=document.createElement('div');el.className='qrect'+(r.id===selectedRectId?' active':'')+(r.mergeGroup?' merged':'');el.dataset.id=r.id;el.style.left=(r.x*100)+'%';el.style.top=(r.y*100)+'%';el.style.width=(r.w*100)+'%';el.style.height=(r.h*100)+'%';el.innerHTML='<span class="tag">Q'+esc(r.qNo)+'</span><span class="handle tl"></span><span class="handle tr"></span><span class="handle bl"></span><span class="handle br"></span>';el.onpointerdown=e=>beginRectPointer(e,r);$('rectLayer').appendChild(el)})}
+function beginRectPointer(e,r){e.preventDefault();e.stopPropagation();if(mergeMode&&mergeBaseId&&r.id!==mergeBaseId){mergeRects(mergeBaseId,r.id);return}selectedRectId=r.id;renderRects();let rect=$('pageWrap').getBoundingClientRect(),sx=(e.clientX-rect.left)/rect.width,sy=(e.clientY-rect.top)/rect.height,mode=e.target.classList.contains('handle')?'resize':'move',corner=e.target.classList.contains('tl')?'tl':e.target.classList.contains('tr')?'tr':e.target.classList.contains('bl')?'bl':'br';dragState={r,mode,corner,sx,sy,ox:r.x,oy:r.y,ow:r.w,oh:r.h};window.onpointermove=moveRectPointer;window.onpointerup=endRectPointer}
 function moveRectPointer(e){if(!dragState)return;let rect=$('pageWrap').getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width,y=(e.clientY-rect.top)/rect.height,dx=x-dragState.sx,dy=y-dragState.sy,r=dragState.r;if(dragState.mode==='move'){r.x=dragState.ox+dx;r.y=dragState.oy+dy}else{let c=dragState.corner;if(c==='br'){r.w=dragState.ow+dx;r.h=dragState.oh+dy}else if(c==='tl'){r.x=dragState.ox+dx;r.y=dragState.oy+dy;r.w=dragState.ow-dx;r.h=dragState.oh-dy}else if(c==='tr'){r.y=dragState.oy+dy;r.w=dragState.ow+dx;r.h=dragState.oh-dy}else{r.x=dragState.ox+dx;r.w=dragState.ow-dx;r.h=dragState.oh+dy}}clampRect(r);renderRects()}
 function endRectPointer(){window.onpointermove=null;window.onpointerup=null;if(dragState){let r=dragState.r;dragState=null;showRectActions(r)}}
 $('pageWrap').onpointerdown=e=>{if(e.target!==$('canvas')&&e.target!==$('pageWrap'))return;let rect=$('pageWrap').getBoundingClientRect(),x=(e.clientX-rect.left)/rect.width,y=(e.clientY-rect.top)/rect.height;let r={id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2),page:pages[pi],qNo:nextQNo(),x:Math.max(0,x-.03),y:Math.max(0,y-.03),w:.5,h:.18};clampRect(r);rects.push(r);showRectActions(r)}
 function nextQNo(){return rects.length?Math.max(...rects.map(r=>Number(r.qNo)||0))+1:1}
 $('addRect').onclick=()=>{if(!pdf||!pages.length)return;let r={id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2),page:pages[pi],qNo:nextQNo(),x:.10,y:.12,w:.80,h:.18};clampRect(r);rects.push(r);showRectActions(r)};
-$('okRect').onclick=()=>{let r=getTemplate();if(r){openEditor(r);hideRectActions()}};
+function mergeRects(baseId,partId){
+  const a=rects.find(x=>x.id===baseId),b=rects.find(x=>x.id===partId);
+  if(!a||!b||a.id===b.id)return;
+  const gid=a.mergeGroup||('mg_'+Date.now()+'_'+Math.random().toString(36).slice(2));
+  a.mergeGroup=gid;b.mergeGroup=gid;a.splitMode='both';b.splitMode='from_previous';b.qNo=a.qNo;
+  mergeMode=false;mergeBaseId=null;selectedRectId=a.id;
+  $('mergeRect').textContent='🔗 Merge / Continuation';
+  $('rectActionMsg').textContent='✔ Continuation linked: Q'+a.qNo+' now has '+rects.filter(x=>x.mergeGroup===gid).length+' crop part(s).';
+  renderRects();st('✔ Question parts linked. Press OK — Open Slicer to render the merged question.');
+}
+$('mergeRect').onclick=()=>{
+  const r=getTemplate(); if(!r)return;
+  if(!mergeMode){mergeMode=true;mergeBaseId=r.id;$('mergeRect').textContent='🔗 Tap continuation box';$('rectActionMsg').textContent='Tap the continuation box — same page/column or navigate to the next page, then tap its box.';st('🔗 Merge mode: select the continuation rectangle.');return}
+  mergeMode=false;mergeBaseId=null;$('mergeRect').textContent='🔗 Merge / Continuation';
+};
+$('okRect').onclick=async()=>{let r=getTemplate();if(r){await openEditor(r);hideRectActions()}};
 $('cancelRect').onclick=()=>{if(selectedRectId){rects=rects.filter(r=>r.id!==selectedRectId);selectedRectId=null}hideRectActions();renderRects()};
 function getTemplate(){if(!selectedRectId)return null;return rects.find(r=>r.id===selectedRectId)||null}
 function groupTextLines(items,v){
@@ -151,7 +166,11 @@ function groupTextLines(items,v){
   }).sort((a,b)=>a.cy-b.cy);
 }
 function isQuestionStart(t){
-  return /^(?:question\s*)?\d{1,4}\s*[\.)\]:-]|^q\s*\.?\s*\d{1,4}\b|^प्रश्न\s*\d{1,4}\s*[\.)\]:-]/i.test(String(t||'').trim());
+  const s=String(t||'').trim();
+  return /^(?:question\s*)?\d{1,4}\s*[\.)\]:-]/i.test(s)
+    || /^q\s*\.?\s*\d{1,4}\b/i.test(s)
+    || /^प्रश्न\s*\d{1,4}\s*[\.)\]:-]?/i.test(s)
+    || /^\d{1,4}\s+(?=.{3,})/.test(s);
 }
 function numberFrom(t){return (String(t||'').match(/(?:question|प्रश्न|q)?\s*([0-9]{1,4})/i)||[])[1]||''}
 function detectColumns(lines,W){
@@ -197,9 +216,9 @@ async function detectPageQuestions(pageNumber,opts={}) {
       const oc=document.createElement('canvas'); oc.width=Math.ceil(rv.width); oc.height=Math.ceil(rv.height);
       await p.render({canvasContext:oc.getContext('2d'),viewport:rv}).promise;
       const T=await window.__loadTesseract();
-      const rr=await T.recognize(oc,'eng+hin',{logger:m=>{if(m.status==='recognizing text')st('Page '+pageNumber+' OCR '+Math.round((m.progress||0)*100)+'%')}});
+      const rr=await T.recognize(oc,'eng+hin',{logger:m=>{if(m.status==='recognizing text')st('Page '+pageNumber+' OCR '+Math.round((m.progress||0)*100)+'%')},config:{tessedit_pageseg_mode:'6'}});
       const ocrLines=(rr.data&&rr.data.lines)||[];
-      const starts=ocrLines.filter(x=>isQuestionStart(x.text));
+      const starts=ocrLines.filter(x=>isQuestionStart(x.text) || /^\s*\d{1,4}\s*[\.)\]:-]?\s+/.test(String(x.text||'')));
       for(let i=0;i<starts.length;i++){
         const s=starts[i], n=starts[i+1];
         const bottom=n?Math.max(s.bbox.y1+10,n.bbox.y0-5):Math.max(...ocrLines.map(x=>x.bbox.y1))+6;
@@ -300,7 +319,23 @@ $('autoDetect').onclick=autoDetectCurrentPages;
 $('pageRange').onclick=choosePageRange;
 
 function cropFromRect(r){let c=$('canvas'),x=Math.round(r.x*c.width),y=Math.round(r.y*c.height),w=Math.round(r.w*c.width),h=Math.round(r.h*c.height),out=document.createElement('canvas');out.width=Math.max(1,w);out.height=Math.max(1,h);out.getContext('2d').drawImage(c,x,y,w,h,0,0,w,h);return out}
-function openEditor(r){modalRect=r;selectedTarget='qtext';cropSel=null;solutionImg='';$('modalQ').textContent='Q'+r.qNo+' • Page '+r.page;$('rectInfo').textContent='Adjust rectangle on page, then edit here';let c=cropFromRect(r),cc=$('cropCanvas');cc.width=c.width;cc.height=c.height;cc.getContext('2d').drawImage(c,0,0);$('selectCrop').style.display='none';$('qno').value=r.qNo; $('qtext').value=r.qtext||'';$('a').value=r.a||'';$('b').value=r.b||'';$('c').value=r.c||'';$('d').value=r.d||'';$('qtype').value=r.qtype||'mcq';$('splitMode').value=r.splitMode||'none';answerControl();optionsToggle();if($('answer'))$('answer').value=r.answer||'';folderMode=r.libraryMode||'private';selectedPath=r.folderPath||'';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.remove('active'));const lb=document.querySelector('#libraryTargetBar [data-library="'+folderMode+'"]');if(lb)lb.classList.add('active');loadTree(folderMode).then(()=>renderTree());setTarget('qtext');$('solutionStatus').textContent='No solution crop';modal(true)}
+async function cropPartsCanvas(r){
+  const group=r.mergeGroup?rects.filter(x=>x.mergeGroup===r.mergeGroup).sort((a,b)=>a.page-b.page||a.y-b.y):[r];
+  const parts=[];
+  for(const part of group){
+    const p=await pdf.getPage(part.page),v=p.getViewport({scale:1.5}),cv=document.createElement('canvas');
+    cv.width=Math.ceil(v.width);cv.height=Math.ceil(v.height);
+    await p.render({canvasContext:cv.getContext('2d'),viewport:v}).promise;
+    const x=Math.round(part.x*cv.width),y=Math.round(part.y*cv.height),w=Math.max(1,Math.round(part.w*cv.width)),h=Math.max(1,Math.round(part.h*cv.height));
+    const pc=document.createElement('canvas');pc.width=w;pc.height=h;pc.getContext('2d').drawImage(cv,x,y,w,h,0,0,w,h);parts.push(pc);
+  }
+  const gap=group.length>1?12:0,totalH=parts.reduce((s,p)=>s+p.height,0)+gap*Math.max(0,parts.length-1),out=document.createElement('canvas');
+  out.width=Math.max(...parts.map(p=>p.width));out.height=totalH;
+  const ctx=out.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,out.width,out.height);
+  let yy=0;for(const p of parts){ctx.drawImage(p,0,yy);yy+=p.height+gap}
+  return out;
+}
+async function openEditor(r){modalRect=r;selectedTarget='qtext';cropSel=null;solutionImg='';$('modalQ').textContent='Q'+r.qNo+' • Page '+r.page;$('rectInfo').textContent='Adjust rectangle on page, then edit here';let c=await cropPartsCanvas(r),cc=$('cropCanvas');cc.width=c.width;cc.height=c.height;cc.getContext('2d').drawImage(c,0,0);$('selectCrop').style.display='none';$('qno').value=r.qNo; $('qtext').value=r.qtext||'';$('a').value=r.a||'';$('b').value=r.b||'';$('c').value=r.c||'';$('d').value=r.d||'';$('qtype').value=r.qtype||'mcq';$('splitMode').value=r.splitMode||'none';answerControl();optionsToggle();if($('answer'))$('answer').value=r.answer||'';folderMode=r.libraryMode||'private';selectedPath=r.folderPath||'';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.remove('active'));const lb=document.querySelector('#libraryTargetBar [data-library="'+folderMode+'"]');if(lb)lb.classList.add('active');loadTree(folderMode).then(()=>renderTree());setTarget('qtext');$('solutionStatus').textContent='No solution crop';modal(true)}
 function setTarget(t){selectedTarget=t;document.querySelectorAll('.target').forEach(b=>b.classList.toggle('active',b.dataset.target===t));$('cropStatus').textContent='Target: '+({qtext:'Question Text',opta:'Option A',optb:'Option B',optc:'Option C',optd:'Option D',solution:'Solution'}[t]||t)}
 document.querySelectorAll('.target').forEach(b=>b.onclick=()=>setTarget(b.dataset.target));$('solutionTarget').onclick=()=>setTarget('solution');
 $('qtype').onchange=()=>{answerControl();optionsToggle()};
