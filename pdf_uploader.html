@@ -336,15 +336,15 @@ async function cropPartsCanvas(r){
   const group=r.mergeGroup?rects.filter(x=>x.mergeGroup===r.mergeGroup).sort((a,b)=>a.page-b.page||a.y-b.y):[r];
   const parts=[];
   for(const part of group){
-    const p=await pdf.getPage(part.page),v=p.getViewport({scale:1.5}),cv=document.createElement('canvas');
+    const p=await pdf.getPage(part.page),v=p.getViewport({scale:2.5}),cv=document.createElement('canvas');
     cv.width=Math.ceil(v.width);cv.height=Math.ceil(v.height);
     await p.render({canvasContext:cv.getContext('2d'),viewport:v}).promise;
     const x=Math.round(part.x*cv.width),y=Math.round(part.y*cv.height),w=Math.max(1,Math.round(part.w*cv.width)),h=Math.max(1,Math.round(part.h*cv.height));
-    const pc=document.createElement('canvas');pc.width=w;pc.height=h;pc.getContext('2d').drawImage(cv,x,y,w,h,0,0,w,h);parts.push(pc);
+    const pc=document.createElement('canvas');pc.width=w;pc.height=h;const pctx=pc.getContext('2d');pctx.imageSmoothingEnabled=false;pctx.drawImage(cv,x,y,w,h,0,0,w,h);parts.push(pc);
   }
   const gap=group.length>1?12:0,totalH=parts.reduce((s,p)=>s+p.height,0)+gap*Math.max(0,parts.length-1),out=document.createElement('canvas');
   out.width=Math.max(...parts.map(p=>p.width));out.height=totalH;
-  const ctx=out.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,out.width,out.height);
+  const ctx=out.getContext('2d');ctx.imageSmoothingEnabled=false;ctx.fillStyle='#fff';ctx.fillRect(0,0,out.width,out.height);
   let yy=0;for(const p of parts){ctx.drawImage(p,0,yy);yy+=p.height+gap}
   return out;
 }
