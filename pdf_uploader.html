@@ -44,11 +44,11 @@ nav{height:48px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <input id="file" class="chooseFile" type="file" accept="application/pdf,.pdf">
 <button id="prev" class="btn" disabled>◀ Prev</button><span id="pageInfo" class="muted">Page 0 / 0</span><button id="next" class="btn" disabled>Next ▶</button>
 <button id="zo" class="btn" disabled>−</button><span id="zl" class="muted">100%</span><button id="zi" class="btn" disabled>+</button>
-<button id="addRect" class="btn" disabled>＋ Free Rectangle</button>
+<button id="autoDetect" class="btn blue" disabled>⚡ Auto Detect Questions</button><button id="pageRange" class="btn" disabled>📄 Page Range</button><button id="addRect" class="btn" disabled>＋ Free Rectangle</button>
 <span id="status" class="status">PDF not selected</span><span id="activity" class="activity">Activity: waiting for PDF…</span>
 </div>
 <div class="workspace">
-<section class="viewerPane"><div class="head"><b>📄 PDF Page — Question Layout</b><span class="muted">Rectangles are editable</span></div><div id="viewer" class="viewer"><div id="pageWrap" class="pageWrap"><canvas id="canvas"></canvas><div id="rectLayer"></div></div></div><div id="rectActions" class="rectActions"><span id="rectActionMsg" class="rectMsg">Draw a rectangle around one complete question.</span><button id="cancelRect" class="btn">✕ Cancel</button><button id="okRect" class="btn green">✓ OK — Open Slicer</button></div><div class="hint">Workflow: <b>Free Rectangle → fit it exactly → ✓ OK → Slicer Studio.</b> Auto Detect is optional. If the PDF has no selectable text, use Free Rectangle. OCR runs only on the crop you select inside Slicer Studio.</div></section>
+<section class="viewerPane"><div class="head"><b>📄 PDF Page — Question Layout</b><span class="muted">Rectangles are editable</span></div><div id="viewer" class="viewer"><div id="pageWrap" class="pageWrap"><canvas id="canvas"></canvas><div id="rectLayer"></div></div></div><div id="rectActions" class="rectActions"><span id="rectActionMsg" class="rectMsg">Draw a rectangle around one complete question.</span><button id="cancelRect" class="btn">✕ Cancel</button><button id="okRect" class="btn green">✓ OK — Open Slicer</button></div><div class="hint"><b>Smart PDF workflow:</b> choose page range → <b>⚡ Auto Detect Questions</b> → review/resize boxes → open any box → choose continuation if a question crosses pages/columns → OCR only the selected crop → batch save. <b>Free Rectangle</b> remains available as a fallback. The original PDF page is always preserved.</div></section>
 <section class="side"><div class="head"><b>🧩 Question Queue</b><span id="count" class="muted">0</span></div><div class="body"><div class="notice"><b>Flow:</b> PDF → Auto Layout → adjust rectangle → open popup → OCR only selected question/option crop → edit → folder → save.</div><div id="drafts" class="drafts"></div><div id="preview" class="preview"><span class="muted">Student preview will appear here.</span></div></div><div class="queue"><span><b>Queue:</b> <span id="qcount">0</span></span><button id="saveAll" class="btn blue" disabled>☁ Save All</button></div></section>
 </div>
 
@@ -65,11 +65,11 @@ nav{height:48px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <div class="grid4">
 <div class="field"><label>Q.No</label><input id="qno" type="number" min="1"></div>
 <div class="field"><label>Question Type</label><select id="qtype"><option value="mcq">MCQ Single</option><option value="mcq_multi">MCQ Multiple</option><option value="numerical">Numerical</option><option value="fill_blank">Fill in the Blank</option><option value="very_short">Very Short Answer</option><option value="short">Short Answer</option><option value="long">Long Answer</option><option value="assertion">Assertion / Reason</option><option value="passage">Passage Based</option></select></div>
-<div class="field"><label>Difficulty</label><select id="level"><option>Easy (Green)</option><option>Medium (Yellow)</option><option>Hard (Blue)</option><option>Expert / JEE (Red)</option></select></div>
+<div class="field"><label>Difficulty</label><select id="level"><option>Easy (Green)</option><option>Medium (Yellow)</option><option>Hard (Blue)</option><option>Expert / JEE (Red)</option></select></div><div class="field"><label>Page Split / Continuation</label><select id="splitMode"><option value="none">Standalone question</option><option value="from_previous">Continues from previous page/column</option><option value="to_next">Continues on next page/column</option><option value="both">Split: previous + next</option></select></div>
 <div class="field"><label>Answer</label><div id="answerWrap"></div></div>
 </div>
 <div class="field"><label>Library / Save Location</label><div class="targetbar" id="libraryTargetBar"><button class="target active" data-library="private">🔒 Private</button><button class="target" data-library="central">📁 Central</button><button class="target" data-library="group">🤝 Group</button></div><div id="path" class="path"></div><div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap"><button id="addMainFolder" class="btn tiny blue">＋ Main Folder</button><button id="addSubFolder" class="btn tiny">＋ Sub Folder</button><button id="refreshFolders" class="btn tiny">↻ Refresh</button></div><div id="pathLabel" class="savepath">No folder selected</div></div>
-<div class="field"><label>Question Text <button id="ocrQ" class="inline">✨ OCR selected</button></label><textarea id="qtext" placeholder="Question text…"></textarea></div>
+<div class="notice" style="margin-top:7px"><b>Split-question support:</b> If a question is cut at the bottom of a page or column, mark <b>Continues on next</b>. On the next part mark <b>Continues from previous</b>. You can still edit each rectangle independently; the source page/column is retained with the draft.</div><div class="field"><label>Question Text <button id="ocrQ" class="inline">✨ OCR selected</button></label><textarea id="qtext" placeholder="Question text…"></textarea></div>
 <div class="targetbar">
 <button class="target active" data-target="qtext">Q.Text</button><button class="target" data-target="opta">Option A</button><button class="target" data-target="optb">Option B</button><button class="target" data-target="optc">Option C</button><button class="target" data-target="optd">Option D</button>
 </div>
@@ -164,6 +164,79 @@ function detectColumns(lines,W){
   if(split==null)return [lines];
   return [lines.filter(l=>l.x<=split+W*.03),lines.filter(l=>l.x>split+W*.03)].filter(a=>a.length);
 }
+
+async function autoDetectCurrentPages(){
+  if(!pdf||!pages.length){alert('Choose a PDF first.');return;}
+  const chosen=pages.slice();
+  rects=[];
+  selectedRectId=null;
+  hideRectActions();
+  st('⚡ Analysing '+chosen.length+' page(s) for question layout…');
+  let globalNo=1, detected=0;
+  for(let idx=0;idx<chosen.length;idx++){
+    const pn=chosen[idx];
+    const p=await pdf.getPage(pn);
+    const v=p.getViewport({scale:1});
+    let tc;
+    try{tc=await p.getTextContent({normalizeWhitespace:true,disableCombineTextItems:false});}
+    catch(e){tc={items:[]};}
+    const lines=groupTextLines(tc.items||[],v);
+    if(!lines.length){st('Page '+pn+': no selectable text — use Free Rectangle here.');continue;}
+    const cols=detectColumns(lines,v.width);
+    const pageRects=[];
+    for(const col of cols){
+      const starts=col.filter(l=>isQuestionStart(l.t));
+      if(!starts.length) continue;
+      for(let i=0;i<starts.length;i++){
+        const s=starts[i], n=starts[i+1];
+        const bottom=n ? Math.max(s.bottom+6, n.top-4) : Math.max(s.bottom+6, Math.max(...col.map(l=>l.bottom))+4);
+        const left=Math.max(0,Math.min(...col.filter(l=>l.cy>=s.cy && l.cy<=bottom).map(l=>l.x))-6);
+        const right=Math.min(v.width,Math.max(...col.filter(l=>l.cy>=s.cy && l.cy<=bottom).map(l=>l.x2))+6);
+        const top=Math.max(0,s.top-6);
+        const x=left/v.width,y=top/v.height,w=Math.max(.05,(right-left)/v.width),h=Math.max(.04,(bottom-top)/v.height);
+        pageRects.push({id:'auto_'+pn+'_'+i+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),page:pn,qNo:Number(numberFrom(s.t))||globalNo++,x,y,w,h,auto:true,splitMode:'none'});
+      }
+    }
+    // If a question starts near the bottom, flag it as a possible cross-page continuation.
+    pageRects.forEach((r,i)=>{
+      if(r.y+r.h>.91) r.splitMode='to_next';
+    });
+    // Preserve detected order while avoiding tiny duplicates.
+    for(const r of pageRects){
+      if(!rects.some(x=>x.page===r.page && Math.abs(x.x-r.x)<.012 && Math.abs(x.y-r.y)<.012 && Math.abs(x.w-r.w)<.02 && Math.abs(x.h-r.h)<.02)){rects.push(r);detected++;}
+    }
+    st('⚡ Page '+pn+': detected '+pageRects.length+' question block(s) — '+detected+' total');
+  }
+  // Detect likely continuation at the top of a page/column when no new question number is present.
+  const byPage=new Map();
+  rects.forEach(r=>{if(!byPage.has(r.page))byPage.set(r.page,[]);byPage.get(r.page).push(r)});
+  for(let i=1;i<chosen.length;i++){
+    const prev=byPage.get(chosen[i-1])||[], cur=byPage.get(chosen[i])||[];
+    if(!cur.length) continue;
+    const first=cur.slice().sort((a,b)=>a.y-b.y)[0];
+    const hasStart=first && first.y<.16;
+    if(hasStart){
+      const prevLast=prev.slice().sort((a,b)=>(a.y+a.h)-(b.y+b.h)).at(-1);
+      if(prevLast && prevLast.splitMode==='to_next'){
+        first.splitMode='from_previous';
+        first.continuationOf=prevLast.qNo;
+      }
+    }
+  }
+  await render();
+  st('✔ Smart detection complete: '+detected+' question box(es). Review/resize any box before saving.');
+  if(detected===0) alert('No question boundaries were detected on these pages. Use Free Rectangle; the rest of the workflow still works.');
+}
+async function choosePageRange(){
+  if(!pdf)return;
+  const s=prompt('Pages to process (examples: 1-5, 2,4,7-9):',pages.join(','));
+  if(s===null)return;
+  const p=parseRange(s,pdf.numPages);
+  if(!p.length){alert('No valid pages selected.');return;}
+  pages=p; pi=0; rects=rects.filter(r=>pages.includes(r.page)); selectedRectId=null; hideRectActions(); await render();
+  st('✔ Selected '+pages.length+' page(s): '+pages.join(', '));
+}
+
 $('file').onchange=async e=>{
   const f=e.target.files&&e.target.files[0];
   if(!f)return;
@@ -187,19 +260,24 @@ $('file').onchange=async e=>{
     $('prev').disabled=total<=1; $('next').disabled=total<=1;
     $('zo').disabled=false; $('zi').disabled=false;
     $('addRect').disabled=false;
+    $('autoDetect').disabled=false; $('pageRange').disabled=false;
     await render();
     st('✔ PDF opened: '+total+' page(s).');
     loadTree().catch(()=>{});
   }catch(err){
     pdf=null; total=0; pages=[]; pi=0; rects=[]; template=null;
     $('prev').disabled=true; $('next').disabled=true; $('zo').disabled=true; $('zi').disabled=true;
-    $('addRect').disabled=true;
+    $('addRect').disabled=true; $('autoDetect').disabled=true; $('pageRange').disabled=true;
     st('❌ PDF open failed: '+(err&&err.message?err.message:String(err)));
   }
 };
 $('prev').onclick=async()=>{if(pi>0){pi--;await render()}};$('next').onclick=async()=>{if(pi<pages.length-1){pi++;await render()}};$('zi').onclick=async()=>{scale=Math.min(2.6,scale+.2);await render()};$('zo').onclick=async()=>{scale=Math.max(.8,scale-.2);await render()};
+
+$('autoDetect').onclick=autoDetectCurrentPages;
+$('pageRange').onclick=choosePageRange;
+
 function cropFromRect(r){let c=$('canvas'),x=Math.round(r.x*c.width),y=Math.round(r.y*c.height),w=Math.round(r.w*c.width),h=Math.round(r.h*c.height),out=document.createElement('canvas');out.width=Math.max(1,w);out.height=Math.max(1,h);out.getContext('2d').drawImage(c,x,y,w,h,0,0,w,h);return out}
-function openEditor(r){modalRect=r;selectedTarget='qtext';cropSel=null;solutionImg='';$('modalQ').textContent='Q'+r.qNo+' • Page '+r.page;$('rectInfo').textContent='Adjust rectangle on page, then edit here';let c=cropFromRect(r),cc=$('cropCanvas');cc.width=c.width;cc.height=c.height;cc.getContext('2d').drawImage(c,0,0);$('selectCrop').style.display='none';$('qno').value=r.qNo; $('qtext').value=r.qtext||'';$('a').value=r.a||'';$('b').value=r.b||'';$('c').value=r.c||'';$('d').value=r.d||'';$('qtype').value=r.qtype||'mcq';answerControl();optionsToggle();if($('answer'))$('answer').value=r.answer||'';folderMode=r.libraryMode||'private';selectedPath=r.folderPath||'';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.remove('active'));const lb=document.querySelector('#libraryTargetBar [data-library="'+folderMode+'"]');if(lb)lb.classList.add('active');loadTree(folderMode).then(()=>renderTree());setTarget('qtext');$('solutionStatus').textContent='No solution crop';modal(true)}
+function openEditor(r){modalRect=r;selectedTarget='qtext';cropSel=null;solutionImg='';$('modalQ').textContent='Q'+r.qNo+' • Page '+r.page;$('rectInfo').textContent='Adjust rectangle on page, then edit here';let c=cropFromRect(r),cc=$('cropCanvas');cc.width=c.width;cc.height=c.height;cc.getContext('2d').drawImage(c,0,0);$('selectCrop').style.display='none';$('qno').value=r.qNo; $('qtext').value=r.qtext||'';$('a').value=r.a||'';$('b').value=r.b||'';$('c').value=r.c||'';$('d').value=r.d||'';$('qtype').value=r.qtype||'mcq';$('splitMode').value=r.splitMode||'none';answerControl();optionsToggle();if($('answer'))$('answer').value=r.answer||'';folderMode=r.libraryMode||'private';selectedPath=r.folderPath||'';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.remove('active'));const lb=document.querySelector('#libraryTargetBar [data-library="'+folderMode+'"]');if(lb)lb.classList.add('active');loadTree(folderMode).then(()=>renderTree());setTarget('qtext');$('solutionStatus').textContent='No solution crop';modal(true)}
 function setTarget(t){selectedTarget=t;document.querySelectorAll('.target').forEach(b=>b.classList.toggle('active',b.dataset.target===t));$('cropStatus').textContent='Target: '+({qtext:'Question Text',opta:'Option A',optb:'Option B',optc:'Option C',optd:'Option D',solution:'Solution'}[t]||t)}
 document.querySelectorAll('.target').forEach(b=>b.onclick=()=>setTarget(b.dataset.target));$('solutionTarget').onclick=()=>setTarget('solution');
 $('qtype').onchange=()=>{answerControl();optionsToggle()};
@@ -211,15 +289,15 @@ $('cropCanvas').onpointermove=e=>{if(!dragState?.crop)return;let r=$('cropCanvas
 $('cropCanvas').onpointerup=()=>{if(dragState?.crop)dragState=null};
 function selectedCropCanvas(){if(!cropSel)return null;let src=$('cropCanvas'),o=document.createElement('canvas');o.width=Math.max(1,Math.round(cropSel.w));o.height=Math.max(1,Math.round(cropSel.h));o.getContext('2d').drawImage(src,cropSel.x,cropSel.y,cropSel.w,cropSel.h,0,0,o.width,o.height);return o}
 async function ocrSelected(){let c=selectedCropCanvas();if(!c)return alert('Select a crop area first.');st('OCR only selected area…');try{let Tesseract=await window.__loadTesseract();let r=await Tesseract.recognize(c,'eng+hin',{logger:m=>{if(m.status==='recognizing text')st('OCR selected area '+Math.round((m.progress||0)*100)+'%')}}),txt=(r.data.text||'').replace(/\s+/g,' ').trim();if(!txt){st('No text detected in selected area.');return}if(selectedTarget==='qtext')$('qtext').value=($('qtext').value.trim()?$('qtext').value.trim()+' ':'')+txt;else if(selectedTarget==='opta')$('a').value=($('a').value.trim()?$('a').value.trim()+' ':'')+txt;else if(selectedTarget==='optb')$('b').value=($('b').value.trim()?$('b').value.trim()+' ':'')+txt;else if(selectedTarget==='optc')$('c').value=($('c').value.trim()?$('c').value.trim()+' ':'')+txt;else if(selectedTarget==='optd')$('d').value=($('d').value.trim()?$('d').value.trim()+' ':'')+txt;else if(selectedTarget==='solution'){solutionImg=c.toDataURL('image/png');$('solutionStatus').textContent='✔ Solution crop captured';}st('✔ Selected area processed.');}catch(e){st('❌ OCR failed: '+e.message)}}
-function currentForm(){return{qNo:$('qno').value||1,qText:$('qtext').value.trim(),a:$('a').value.trim(),b:$('b').value.trim(),c:$('c').value.trim(),d:$('d').value.trim(),qtype:$('qtype').value,level:$('level').value,answer:getAnswer(),folderPath:selectedPath,libraryMode:folderMode,qImg:cropFromRect(modalRect).toDataURL('image/png'),solution:solutionImg,sourcePage:modalRect.page}}
+function currentForm(){return{qNo:$('qno').value||1,qText:$('qtext').value.trim(),a:$('a').value.trim(),b:$('b').value.trim(),c:$('c').value.trim(),d:$('d').value.trim(),qtype:$('qtype').value,level:$('level').value,answer:getAnswer(),folderPath:selectedPath,libraryMode:folderMode,qImg:cropFromRect(modalRect).toDataURL('image/png'),solution:solutionImg,sourcePage:modalRect.page,splitMode:$('splitMode').value}}
 $('addDraft').onclick=()=>{if(!modalRect)return;let d=currentForm();if(editingDraft>=0){drafts[editingDraft]=d;editingDraft=-1}else drafts.push(d);renderDrafts();modal(false);st('Draft added to queue.')}
 $('useQuestionCrop').onclick=()=>{if(modalRect){modalRect.qImg=cropFromRect(modalRect).toDataURL('image/png');st('Question rectangle captured as image.')}}
 $('deleteRect').onclick=()=>{rects=rects.filter(r=>r.id!==modalRect.id);selectedRectId=null;modal(false);hideRectActions();renderRects();st('Rectangle deleted.')}
 $('closeModal').onclick=()=>modal(false);
 let drafts=[];
-function renderDrafts(){$('drafts').innerHTML=drafts.map((d,i)=>'<div class="draft"><div class="drafttop"><b style="color:#38bdf8">Q'+esc(d.qNo)+'</b><span><button class="btn tiny" data-edit="'+i+'">Edit</button> <button class="btn tiny" data-del="'+i+'">Delete</button></span></div><div style="font-size:10px;margin-top:3px">'+esc(d.qText||'[Image question]')+'</div><div class="muted" style="font-size:9px">Page '+d.sourcePage+' • '+esc(d.folderPath||'No folder')+'</div></div>').join('');$('count').textContent=drafts.length;$('qcount').textContent=drafts.length;$('saveAll').disabled=!drafts.length;document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{let d=drafts[+b.dataset.edit];editingDraft=+b.dataset.edit;let r={id:'draft_'+Date.now(),page:d.sourcePage,qNo:d.qNo,qText:d.qText,a:d.a,b:d.b,c:d.c,d:d.d,qtype:d.qtype,answer:d.answer,folderPath:d.folderPath};modalRect=r;let c=document.createElement('canvas');c.width=$('canvas').width;c.height=$('canvas').height;c.getContext('2d').drawImage($('canvas'),0,0);$('qno').value=d.qNo;$('qtext').value=d.qText;$('a').value=d.a;$('b').value=d.b;$('c').value=d.c;$('d').value=d.d;$('qtype').value=d.qtype;answerControl();optionsToggle();if($('answer'))$('answer').value=d.answer||'';folderMode=d.libraryMode||'private';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.toggle('active',x.dataset.library===folderMode));selectedPath=d.folderPath||'';loadTree(folderMode).then(()=>renderTree());let im=new Image();im.onload=()=>{$('cropCanvas').width=im.width;$('cropCanvas').height=im.height;$('cropCanvas').getContext('2d').drawImage(im,0,0);modal(true)};im.src=d.qImg});document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{drafts.splice(+b.dataset.del,1);renderDrafts();renderPreview()});renderPreview()}
+function renderDrafts(){$('drafts').innerHTML=drafts.map((d,i)=>'<div class="draft"><div class="drafttop"><b style="color:#38bdf8">Q'+esc(d.qNo)+'</b><span><button class="btn tiny" data-edit="'+i+'">Edit</button> <button class="btn tiny" data-del="'+i+'">Delete</button></span></div><div style="font-size:10px;margin-top:3px">'+esc(d.qText||'[Image question]')+'</div><div class="muted" style="font-size:9px">Page '+d.sourcePage+' • '+esc(d.folderPath||'No folder')+'</div></div>').join('');$('count').textContent=drafts.length;$('qcount').textContent=drafts.length;$('saveAll').disabled=!drafts.length;document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{let d=drafts[+b.dataset.edit];editingDraft=+b.dataset.edit;let r={id:'draft_'+Date.now(),page:d.sourcePage,qNo:d.qNo,qText:d.qText,a:d.a,b:d.b,c:d.c,d:d.d,qtype:d.qtype,answer:d.answer,splitMode:d.splitMode||'none',folderPath:d.folderPath};modalRect=r;let c=document.createElement('canvas');c.width=$('canvas').width;c.height=$('canvas').height;c.getContext('2d').drawImage($('canvas'),0,0);$('qno').value=d.qNo;$('qtext').value=d.qText;$('a').value=d.a;$('b').value=d.b;$('c').value=d.c;$('d').value=d.d;$('qtype').value=d.qtype;$('splitMode').value=d.splitMode||'none';answerControl();optionsToggle();if($('answer'))$('answer').value=d.answer||'';folderMode=d.libraryMode||'private';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.toggle('active',x.dataset.library===folderMode));selectedPath=d.folderPath||'';loadTree(folderMode).then(()=>renderTree());let im=new Image();im.onload=()=>{$('cropCanvas').width=im.width;$('cropCanvas').height=im.height;$('cropCanvas').getContext('2d').drawImage(im,0,0);modal(true)};im.src=d.qImg});document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{drafts.splice(+b.dataset.del,1);renderDrafts();renderPreview()});renderPreview()}
 function renderPreview(){$('preview').innerHTML=drafts.length?drafts.map(d=>'<div style="border-bottom:1px solid #cbd5e1;padding-bottom:6px;margin-bottom:6px"><b>Q'+esc(d.qNo)+'.</b> '+esc(d.qText)+(d.qImg?'<img src="'+d.qImg+'">':'')+['A','B','C','D'].map((k,i)=>{let t=[d.a,d.b,d.c,d.d][i];return t?'<div class="opt"><b>('+k+')</b> '+esc(t)+'</div>':''}).join('')+'</div>').join(''):'<span class="muted">Student preview will appear here.</span>'}
-$('saveAll').onclick=async()=>{if(!drafts.length)return;if(!email())return alert('Teacher login not found.');if(drafts.some(d=>!d.folderPath))return alert('Please select the exact folder path for every question.');$('saveAll').disabled=true;st('Saving '+drafts.length+' question(s) to Firebase…');try{let a=await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js'),f=await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');let app;try{app=a.initializeApp(cfg,'pdf-builder-save')}catch(e){app=a.getApps().find(x=>x.name==='pdf-builder-save')}let db=f.getFirestore(app);for(const d of drafts){await f.addDoc(f.collection(db,'questions'),{ownerEmail:email(),creatorEmail:email(),qNo:String(d.qNo),qText:d.qText||'',question:d.qImg||'',solution:d.solution||'',optAImg:'',optBImg:'',optCImg:'',optDImg:'',options:[d.a,d.b,d.c,d.d].filter(Boolean),keepOptions:[d.a,d.b,d.c,d.d].some(Boolean),libraryType:d.libraryMode==='central'?'Central Library':d.libraryMode==='group'?'Group Library':'Personal Library',libraryMode:d.libraryMode||'private',central:d.libraryMode==='central',group:d.libraryMode==='group',targetLibrary:d.libraryMode||'private',folderPath:d.folderPath,folder:d.folderPath.split(' / ')[0]||'',subfolder:d.folderPath.split(' / ').slice(1).join(' / '),topic:'Physics',qType:d.qtype||'mcq',level:d.level||'Medium',answer:d.answer||'',sourcePage:d.sourcePage,sourceFile:fileName,createdAt:new Date().toISOString()})}drafts=[];renderDrafts();st('✔ All questions saved successfully.');alert('✔ Questions saved to Firebase Library.')}catch(e){st('❌ Save failed: '+e.message);alert('Save failed: '+e.message)}finally{$('saveAll').disabled=!drafts.length}};
+$('saveAll').onclick=async()=>{if(!drafts.length)return;if(!email())return alert('Teacher login not found.');if(drafts.some(d=>!d.folderPath))return alert('Please select the exact folder path for every question.');$('saveAll').disabled=true;st('Saving '+drafts.length+' question(s) to Firebase…');try{let a=await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js'),f=await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');let app;try{app=a.initializeApp(cfg,'pdf-builder-save')}catch(e){app=a.getApps().find(x=>x.name==='pdf-builder-save')}let db=f.getFirestore(app);for(const d of drafts){await f.addDoc(f.collection(db,'questions'),{ownerEmail:email(),creatorEmail:email(),qNo:String(d.qNo),qText:d.qText||'',question:d.qImg||'',solution:d.solution||'',optAImg:'',optBImg:'',optCImg:'',optDImg:'',options:[d.a,d.b,d.c,d.d].filter(Boolean),keepOptions:[d.a,d.b,d.c,d.d].some(Boolean),libraryType:d.libraryMode==='central'?'Central Library':d.libraryMode==='group'?'Group Library':'Personal Library',libraryMode:d.libraryMode||'private',central:d.libraryMode==='central',group:d.libraryMode==='group',targetLibrary:d.libraryMode||'private',folderPath:d.folderPath,folder:d.folderPath.split(' / ')[0]||'',subfolder:d.folderPath.split(' / ').slice(1).join(' / '),topic:'Physics',qType:d.qtype||'mcq',level:d.level||'Medium',answer:d.answer||'',sourcePage:d.sourcePage,sourceFile:fileName,splitMode:d.splitMode||'none',createdAt:new Date().toISOString()})}drafts=[];renderDrafts();st('✔ All questions saved successfully.');alert('✔ Questions saved to Firebase Library.')}catch(e){st('❌ Save failed: '+e.message);alert('Save failed: '+e.message)}finally{$('saveAll').disabled=!drafts.length}};
 renderDrafts();renderTree();st('✔ Ready. Choose PDF → Free Rectangle → fit → ✓ OK → Slicer Studio.');
 })();
 </script>
