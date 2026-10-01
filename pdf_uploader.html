@@ -301,6 +301,10 @@ function nextQNo(){return rects.length?Math.max(...rects.map(r=>Number(r.qNo)||0
 $('addRect').onclick=()=>{if(!pdf||!pages.length)return;let r={id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2),page:pages[pi],qNo:nextQNo(),x:.10,y:.12,w:.80,h:.18};clampRect(r);rects.push(r);showRectActions(r)};
 function mergeRects(baseId,partId){
   const a=rects.find(x=>x.id===baseId),b=rects.find(x=>x.id===partId); if(!a||!b||a.id===b.id)return;
+  // Assign one logical merge group so the editor crops BOTH source rectangles.
+  const group=a.mergeGroup||b.mergeGroup||('mg_'+Date.now()+'_'+Math.random().toString(36).slice(2));
+  a.mergeGroup=group;
+  b.mergeGroup=group;
   b.qNo=a.qNo;
   b.splitMode='from_previous';
   a.splitMode='to_next';
