@@ -97,7 +97,12 @@ const AI_EXTRACTION_PROMPT = `You are extracting QUESTION BLOCKS from the upload
 
 Your job is NOT merely to OCR the page and NOT to make one crop per line or per option. You must first visually inspect each page and identify the exact start and end of EVERY complete QUESTION BLOCK.
 
-Return ONLY valid JSON. No markdown, no explanations, no Python, no base64, no recreated images.
+Return a REAL DOWNLOADABLE JSON FILE named "questions_coordinates.json" if your interface supports file creation. If file creation is supported, attach/provide that JSON file for download.
+If your interface cannot create an attachment, return ONLY the raw JSON document so the user can save it as questions_coordinates.json.
+
+ABSOLUTELY DO NOT return a code block. Do not wrap the JSON in ```json or ```.
+Do not write "Here is the JSON", explanations, notes, comments, or any other text.
+The response must be machine-readable.
 
 HARD LIMIT: maximum 5 PDF pages.
 
@@ -114,7 +119,7 @@ Required JSON structure:
       "image_filename": "Q001.png",
       "block_type": "question",
       "question_text": "...",
-      "crop": {"x":0,"y":0,"width":0,"height":0,"coordinate_system":"pixel","origin":"top-left"},
+      "crop": {"x":0.0,"y":0.0,"width":0.0,"height":0.0,"coordinate_system":"normalized","origin":"top-left"},
       "contains_options": true,
       "contains_figure": false,
       "crop_confidence": 0.0,
@@ -149,17 +154,24 @@ READING / COMPLETENESS:
 19. A continuation part must contain the remaining text/options/figures for the SAME question.
 20. If a page contains a question whose number is visually unclear, still create the question block and use the best visible number/text; do not drop it.
 21. question_text is only an aid. The crop boundaries and original visual content are authoritative.
+22. IMPORTANT: Never create coordinates from a fixed grid, guessed page size, or regular spacing.
+23. Every question must have independently measured x, y, width and height values.
+24. The crop MUST start at the actual visual question number and MUST include the complete current question through its final option/visual.
+25. If you cannot confidently determine the bottom boundary, extend the crop downward until all current options/visuals are included, but stop before the next question.
 
 SELF-CHECK BEFORE RETURNING JSON:
-22. Count the question blocks independently from the page before finalizing JSON.
-23. Check every crop: does it contain the question number AND the full stem AND every option/figure belonging to it?
-24. Check the boundary: does it accidentally contain the previous question's tail? If yes, move the top boundary down.
-25. Check the boundary: does it accidentally cut off the current question's options/figure? If yes, move the bottom/right boundary out.
-26. Check that no option-only crop exists. Every item in questions[] MUST be a complete question block.
-27. Check that the number of JSON questions matches the number of visually detected question blocks.
-28. If coordinates are uncertain, widen the crop slightly rather than cutting content, but still stop before the next question.
+26. Count the question blocks independently from the page before finalizing JSON.
+27. Check every crop visually: question number + complete stem + every option + every figure/formula/table.
+28. Check the top boundary: it must NOT contain the previous question's tail.
+29. Check the bottom boundary: it must NOT cut off the current question's options/figure.
+30. Check that no option-only crop exists. Every questions[] item MUST be a complete question block.
+31. Check that the number of JSON questions matches the number of visually detected question blocks.
+32. Check that no two unrelated questions have identical or suspiciously similar rectangles unless they genuinely occupy the same geometry.
+33. Check that x/y/width/height are NOT copied from the previous question unless the visual boundaries are actually identical.
+34. If coordinates are uncertain, widen the crop slightly rather than cutting content, but still stop before the next question.
+35. Validate the final JSON one last time before returning/providing the file.
 
-Do not generate image files in the response. The importer will crop the ORIGINAL PDF using your coordinates.
+Do not generate image files in the response. The importer will crop the ORIGINAL PDF using the coordinates in this JSON file.
 `;
 
 function copyAiExtractionPrompt(){
