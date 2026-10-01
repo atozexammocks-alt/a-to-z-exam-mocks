@@ -9,10 +9,24 @@
 @media(max-width:520px){.grid{grid-template-columns:1fr}.settings{grid-template-columns:1fr}}
 </style></head>
 <body>
-<nav><a class="brand" href="teacher.html">🏠 A to Z Exam Mocks</a><div class="nav"><a href="teacher.html">Dashboard</a><a href="library.html">📁 Library</a></div></nav>
+<nav><a class="brand" href="teacher.html">🏠 A to Z Exam Mocks</a><div class="nav"><a href="teacher.html">Dashboard</a><a href="library.html">📁 Library</a><a href="teacher.html">Dashboard</a></div></nav>
 <div class="wrap">
-<div class="hero"><h2>🤖 AI PDF Extractor — Package Import</h2><div class="muted">Upload the ZIP produced by ChatGPT/Gemini. Recommended package: manifest.json + Q001.png… + optional source.pdf (maximum 5 PDF pages per package).</div>
+<div class="hero"><h2>🤖 AI PDF Extractor — Package Import</h2><div class="muted">Two ways to import: (1) direct Original PDF + AI coordinate JSON, or (2) a ZIP package containing manifest/images. Maximum 5 source-PDF pages per package.</div>
 <div class="row"><input id="zipFile" type="file" accept=".zip,application/zip"><button id="loadZip" class="btn blue">📦 Load ZIP</button><span id="status" class="muted">Waiting for package…</span></div>
+<div style="margin-top:12px;padding:12px;border:1px solid #334155;border-radius:10px;background:#07101f;">
+  <div style="font-weight:900;color:#10b981;margin-bottom:4px;">🎯 Direct PDF + Coordinate JSON</div>
+  <div class="muted" style="font-size:11px;">Use this when Gemini/ChatGPT gives you a JSON file containing question crop coordinates. No ZIP creation or Python is required.</div>
+  <div class="row">
+    <input id="sourcePdfFile" type="file" accept=".pdf,application/pdf">
+    <input id="coordJsonFile" type="file" accept=".json,application/json">
+    <button id="generateFromJson" class="btn green">✂️ Extract from PDF + JSON</button>
+  </div>
+  <div class="row" style="margin-top:7px;">
+    <button id="copyAiPrompt" class="btn purple">📋 Copy AI Extraction Prompt</button>
+    <span class="muted" style="font-size:10px;">Copy the prompt and paste to AI assistant</span>
+  </div>
+  <div id="jsonHint" class="muted" style="font-size:10px;margin-top:6px;">Expected: questions[] with source_page and crop {x,y,width,height}. Optional coordinate_reference {width,height}.</div>
+</div>
 <div class="settings">
 <div class="field"><label>Library</label><select id="libraryMode"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select></div>
 <div class="field"><label>Exact Folder Path</label><input id="folderPath" placeholder="e.g. Class 12 / Physics / Optics"></div>
@@ -54,7 +68,7 @@ async function loadZip(){
   if(sourcePdf){pdfDoc=await pdfjsLib.getDocument({data:sourcePdf}).promise;if(pdfDoc.numPages>5)throw new Error("Source PDF has "+pdfDoc.numPages+" pages. Maximum allowed here is 5 pages per package.");}
   const list=Array.isArray(manifest.questions)?manifest.questions:null;items=[];
   if(list){
-   for(let i=0;i<list.length;i++){const m=list[i],name=m.image||m.file||m.path;if(!name)continue;const e=z.file(name);if(!e)continue;const blob=await e.async("blob");items.push({qNo:m.qNo||m.questionNo||i+1,page:m.page||"",qText:m.qText||m.text||"",a:m.a||"",b:m.b||"",c:m.c||"",d:m.d||"",image:URL.createObjectURL(blob),blob});}
+   for(let i=0;i<list.length;i++){const m=list[i],name=m.image||m.image_filename||m.file||m.path;if(!name)continue;const e=z.file(name);if(!e)continue;const blob=await e.async("blob");items.push({qNo:m.qNo||m.question_number||m.questionNo||i+1,page:m.page||m.source_page||"",qText:m.qText||m.question_text||m.text||"",a:m.a||"",b:m.b||"",c:m.c||"",d:m.d||"",image:URL.createObjectURL(blob),blob});}
   }else{
    const files=Object.values(z.files).filter(x=>!x.dir&&/\.(png|jpe?g|webp)$/i.test(x.name)).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
    for(let i=0;i<files.length;i++){const blob=await files[i].async("blob");items.push({qNo:i+1,page:"",qText:"",image:URL.createObjectURL(blob),blob});}
@@ -78,12 +92,122 @@ function closeCrop(){$("cropModal").style.display="none";cropIndex=-1}
 $("closeCrop").onclick=closeCrop;$("cancelCrop").onclick=closeCrop;
 $("applyCrop").onclick=()=>{const s=cropState.sel;if(cropIndex<0||!s||s.w<5||s.h<5)return alert("Select the corrected question area first.");const src=$("pdfcanvas"),o=document.createElement("canvas");o.width=Math.round(s.w);o.height=Math.round(s.h);o.getContext("2d").drawImage(src,s.x,s.y,s.w,s.h,0,0,o.width,o.height);items[cropIndex].image=o.toDataURL("image/png");items[cropIndex].blob=null;closeCrop();render();st("✔ Corrected image captured from original PDF.")};
 
+
+const AI_EXTRACTION_PROMPT = `Analyze the uploaded ORIGINAL PDF and identify EVERY complete question on every page.
+
+Return ONLY valid JSON. Do not return Python code, markdown, explanations, or recreated question images.
+
+Maximum package: 5 PDF pages.
+
+Required JSON structure:
+{
+  "source_pdf": "source.pdf",
+  "processed_pages": [1,2,3],
+  "coordinate_reference": {"width": 600, "height": 800, "coordinate_system": "pixel", "origin": "top-left"},
+  "total_questions": 0,
+  "questions": [
+    {
+      "question_number": "Q001",
+      "source_page": 1,
+      "image_filename": "Q001.png",
+      "question_text": "...",
+      "crop": {"x":0,"y":0,"width":0,"height":0,"coordinate_system":"pixel","origin":"top-left"},
+      "continuation_info": null
+    }
+  ]
+}
+
+Rules:
+1. Coordinates MUST be measured against the ORIGINAL PDF page image using the stated coordinate_reference width and height.
+2. Include the COMPLETE question: question number, question text, all options, formulas, equations, symbols, diagrams, figures, graphs and tables belonging to it.
+3. Do not rewrite, redraw, reconstruct, summarize or omit visual content.
+4. Do not include the next question.
+5. Keep a small margin around the complete question.
+6. Detect questions page-by-page in reading order.
+7. For a question continuing onto another page, use continuation_info with parts containing page and crop for each part.
+8. Keep question_text as OCR assistance only; the image crop is authoritative.
+9. Use accurate coordinates. Do not invent a regular grid or assume every question has the same width/height.
+10. Include every detected question, even if it contains a figure or poor OCR.
+11. The JSON must be directly usable by an importer that scales the coordinates to the actual PDF page size.
+`;
+
+function copyAiExtractionPrompt(){
+  navigator.clipboard?.writeText(AI_EXTRACTION_PROMPT).then(()=>st("✔ AI extraction prompt copied. Paste it into Gemini/ChatGPT with the PDF.")).catch(()=>{
+    const ta=document.createElement("textarea");ta.value=AI_EXTRACTION_PROMPT;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();st("✔ AI extraction prompt copied.");
+  });
+}
+$("copyAiPrompt").onclick=copyAiExtractionPrompt;
+
+async function readJsonFile(file){
+  return JSON.parse(await file.text());
+}
+function clampCrop(c,w,h){
+  const x=Math.max(0,Number(c?.x)||0), y=Math.max(0,Number(c?.y)||0);
+  const cw=Math.max(1,Number(c?.width)||1), ch=Math.max(1,Number(c?.height)||1);
+  return {x:Math.min(x,w-1),y:Math.min(y,h-1),width:Math.min(cw,w-x),height:Math.min(ch,h-y)};
+}
+async function canvasCropFromPage(pageNo,crop,refW,refH){
+  const p=await pdfDoc.getPage(pageNo), v=p.getViewport({scale:2.5});
+  const src=document.createElement("canvas");src.width=Math.ceil(v.width);src.height=Math.ceil(v.height);
+  await p.render({canvasContext:src.getContext("2d"),viewport:v}).promise;
+  const rw=Number(refW)||600,rh=Number(refH)||800;
+  const c=clampCrop(crop,rw,rh);
+  const sx=c.x/rw*src.width, sy=c.y/rh*src.height, sw=c.width/rw*src.width, sh=c.height/rh*src.height;
+  const out=document.createElement("canvas");out.width=Math.max(1,Math.round(sw));out.height=Math.max(1,Math.round(sh));
+  const ctx=out.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.drawImage(src,sx,sy,sw,sh,0,0,out.width,out.height);
+  return out.toDataURL("image/png");
+}
+async function generateFromCoordinates(){
+  const pf=$("sourcePdfFile").files[0], jf=$("coordJsonFile").files[0];
+  if(!pf||!jf)return alert("Select both the original PDF and the coordinate JSON.");
+  try{
+    st("Reading PDF + coordinate JSON…");
+    const json=await readJsonFile(jf);
+    const pages=Array.isArray(json.processed_pages)?json.processed_pages:[];
+    if(json.pageCount&&Number(json.pageCount)>5)throw new Error("Maximum 5 PDF pages per package.");
+    sourcePdf=new Uint8Array(await pf.arrayBuffer());
+    pdfDoc=await pdfjsLib.getDocument({data:sourcePdf}).promise;
+    if(pdfDoc.numPages>5)throw new Error("Source PDF has "+pdfDoc.numPages+" pages. Maximum allowed is 5 pages.");
+    const list=Array.isArray(json.questions)?json.questions:[];
+    if(!list.length)throw new Error("JSON does not contain questions[].");
+    const ref=json.coordinate_reference||json.coordinateReference||{};
+    const refW=Number(ref.width)||600, refH=Number(ref.height)||800;
+    items=[];
+    for(let i=0;i<list.length;i++){
+      const q=list[i], qNo=q.question_number||q.qNo||q.questionNo||("Q"+String(i+1).padStart(3,"0"));
+      const page=Number(q.source_page||q.page||1);
+      if(page<1||page>pdfDoc.numPages)continue;
+      if(q.continuation_info?.continues && Array.isArray(q.continuation_info.parts) && q.continuation_info.parts.length){
+        const parts=[];
+        for(const part of q.continuation_info.parts){
+          if(!part.crop)continue;
+          parts.push(await canvasCropFromPage(Number(part.page)||page,part.crop,refW,refH));
+        }
+        if(parts.length){
+          const imgs=[];
+          for(const src of parts){const im=new Image();im.src=src;await new Promise(r=>im.onload=r);imgs.push(im);}
+          const w=Math.max(...imgs.map(x=>x.naturalWidth)), gap=12, h=imgs.reduce((s,x)=>s+x.naturalHeight,0)+gap*(imgs.length-1);
+          const out=document.createElement("canvas");out.width=w;out.height=h;const ctx=out.getContext("2d");let y=0;
+          imgs.forEach((im,k)=>{ctx.drawImage(im,0,y);y+=im.naturalHeight+(k<imgs.length-1?gap:0)});
+          items.push({qNo,page,qText:q.question_text||q.qText||"",image:out.toDataURL("image/png"),blob:null});
+        }
+      }else if(q.crop){
+        items.push({qNo,page,qText:q.question_text||q.qText||"",image:await canvasCropFromPage(page,q.crop,q.crop.page_width||refW,q.crop.page_height||refH),blob:null});
+      }
+      st("✂️ Extracting "+(i+1)+" / "+list.length+"…");
+    }
+    $("stats").textContent=items.length+" question(s) extracted from coordinate JSON • Original PDF attached";
+    render();st("✔ Coordinate extraction complete. Review the cards before importing.");
+  }catch(e){console.error(e);st("❌ "+e.message);alert("Coordinate extraction failed: "+e.message)}
+}
+$("generateFromJson").onclick=generateFromCoordinates;
+
 async function saveItems(){
  if(!email())return alert("Teacher login not found. Please log in again.");const path=normalizePath($("folderPath").value);if(!path)return alert("Exact Folder Path भरें.");if(!items.length)return;
  const mode=$("libraryMode").value;const btn=$("saveAll");btn.disabled=true;st("Saving "+items.length+" question(s) to Library…");
  try{
   const a=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"),f=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");let app;try{app=a.initializeApp(cfg,"ai-package-import")}catch(e){app=a.getApps().find(x=>x.name==="ai-package-import")}const db=f.getFirestore(app);
-  for(let i=0;i<items.length;i++){const q=items[i];let img=q.image;if(q.blob){const b=await q.blob.arrayBuffer();img="data:"+q.blob.type+";base64,"+btoa(String.fromCharCode(...new Uint8Array(b)))}await f.addDoc(f.collection(db,"questions"),{ownerEmail:email(),creatorEmail:email(),questionKey:"",qNo:String(q.qNo||i+1),qText:q.qText||"",question:img,solution:"",optAImg:"",optBImg:"",optCImg:"",optDImg:"",options:[q.a,q.b,q.c,q.d].filter(Boolean),keepOptions:[q.a,q.b,q.c,q.d].some(Boolean),libraryType:mode==="central"?"Central Library":mode==="group"?"Group Library":"Personal Library",libraryMode:mode,central:mode==="central",group:mode==="group",targetLibrary:mode,folderPath:path,folder:path.split(" / ")[0]||"",subfolder:path.split(" / ").slice(1).join(" / "),topic:"Physics",qType:q.qtype||"mcq",level:q.level||"Medium",answer:q.answer||"",sourcePage:q.page||"",sourceFile:"AI Package Import",splitMode:q.splitMode||"none",createdAt:new Date().toISOString()});st("☁ Saved "+(i+1)+" / "+items.length+"…")}
+  for(let i=0;i<items.length;i++){const q=items[i];let img=q.image;if(q.blob){img=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(q.blob)})}await f.addDoc(f.collection(db,"questions"),{ownerEmail:email(),creatorEmail:email(),questionKey:"",qNo:String(q.qNo||i+1),qText:q.qText||"",question:img,solution:"",optAImg:"",optBImg:"",optCImg:"",optDImg:"",options:[q.a,q.b,q.c,q.d].filter(Boolean),keepOptions:[q.a,q.b,q.c,q.d].some(Boolean),libraryType:mode==="central"?"Central Library":mode==="group"?"Group Library":"Personal Library",libraryMode:mode,central:mode==="central",group:mode==="group",targetLibrary:mode,folderPath:path,folder:path.split(" / ")[0]||"",subfolder:path.split(" / ").slice(1).join(" / "),topic:"Physics",qType:q.qtype||"mcq",level:q.level||"Medium",answer:q.answer||"",sourcePage:q.page||"",sourceFile:"AI Package Import",splitMode:q.splitMode||"none",createdAt:new Date().toISOString()});st("☁ Saved "+(i+1)+" / "+items.length+"…")}
   alert("✔ "+items.length+" questions imported to Library.");st("✔ Import complete.");items=[];render();
  }catch(e){console.error(e);st("❌ Save failed: "+e.message);alert("Save failed: "+e.message)}finally{btn.disabled=!items.length}
 }
