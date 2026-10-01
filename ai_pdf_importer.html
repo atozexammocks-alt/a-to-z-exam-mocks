@@ -194,11 +194,11 @@ function clampCrop(c,w,h){
   const cw=Math.max(1,Number(c?.width)||1), ch=Math.max(1,Number(c?.height)||1);
   return {x:Math.min(x,w-1),y:Math.min(y,h-1),width:Math.min(cw,w-x),height:Math.min(ch,h-y)};
 }
-async function canvasCropFromPage(pageNo,crop,refW,refH){
+async function canvasCropFromPage(pageNo,crop,refW,refH,defaultCoordSystem){
   const p=await pdfDoc.getPage(pageNo), v=p.getViewport({scale:2.5});
   const src=document.createElement("canvas");src.width=Math.ceil(v.width);src.height=Math.ceil(v.height);
   await p.render({canvasContext:src.getContext("2d"),viewport:v}).promise;
-  const coordSystem=String(crop?.coordinate_system||crop?.coordinateSystem||"").toLowerCase();
+  const coordSystem=String(crop?.coordinate_system||crop?.coordinateSystem||defaultCoordSystem||"").toLowerCase();
   let sx,sy,sw,sh;
   if(coordSystem==="normalized"||coordSystem==="relative"){
     const x=Number(crop?.x),y=Number(crop?.y),w=Number(crop?.width),h=Number(crop?.height);
@@ -216,6 +216,8 @@ async function canvasCropFromPage(pageNo,crop,refW,refH){
   const ctx=out.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.drawImage(src,sx,sy,sw,sh,0,0,out.width,out.height);
   return out.toDataURL("image/png");
 }
+function parsePageNumber(v,fallback=1){const m=String(v??"").match(/\d+/);return m?Number(m[0]):fallback}
+function getCropObject(q){return q?.crop||q?.crop_coordinates||q?.cropCoordinates||q?.coordinates||q?.bbox||q?.bounding_box||null}
 async function generateFromCoordinates(){
   const pf=$("sourcePdfFile").files[0], jf=$("coordJsonFile").files[0];
   if(!pf||!jf)return alert("Select both the original PDF and the coordinate JSON.");
@@ -231,22 +233,25 @@ async function generateFromCoordinates(){
     if(pdfDoc.numPages>5)throw new Error("Source PDF has "+pdfDoc.numPages+" pages. Maximum allowed is 5 pages.");
     const list=Array.isArray(json.questions)?json.questions:[];
     if(!list.length)throw new Error("JSON does not contain questions[].");
-    const ref=json.coordinate_reference||json.coordinateReference||{};
+    const ref=json.coordinate_reference||json.coordinateReference||json.coordinateReferenceSize||{};
+    const defaultCoordSystem=String(ref.coordinate_system||ref.coordinateSystem||json.coordinate_system||json.coordinateSystem||"").toLowerCase();
     const refW=Number(ref.width), refH=Number(ref.height);
     const suspicious=[];
-    const pixelMissingRef=list.some(q=>String(q.crop?.coordinate_system||q.crop?.coordinateSystem||"").toLowerCase()==="pixel" && (!Number.isFinite(refW)||!Number.isFinite(refH)));
+    const pixelMissingRef=list.some(q=>{const cr=getCropObject(q);const cs=String(cr?.coordinate_system||cr?.coordinateSystem||defaultCoordSystem||"").toLowerCase();return cs==="pixel"&&(!Number.isFinite(refW)||!Number.isFinite(refH))});
     if(pixelMissingRef) throw new Error("JSON uses pixel coordinates but has no exact coordinate_reference. Generate normalized coordinates with the new prompt.");
 
     items=[];
     for(let i=0;i<list.length;i++){
-      const q=list[i], qNo=q.question_number||q.qNo||q.questionNo||("Q"+String(i+1).padStart(3,"0"));
-      const page=Number(q.source_page||q.page||1);
+      const q=list[i], qNo=q.question_number||q.qNo||q.questionNo||q.number||("Q"+String(i+1).padStart(3,"0"));
+      const page=parsePageNumber(q.source_page??q.page??q.page_number??q.pageNo??1,1);
+      const crop=getCropObject(q);
       if(page<1||page>pdfDoc.numPages)continue;
       if(q.continuation_info?.continues && Array.isArray(q.continuation_info.parts) && q.continuation_info.parts.length){
         const parts=[];
         for(const part of q.continuation_info.parts){
-          if(!part.crop)continue;
-          parts.push(await canvasCropFromPage(Number(part.page)||page,part.crop,refW,refH));
+          const partCrop=getCropObject(part);
+          if(!partCrop)continue;
+          parts.push(await canvasCropFromPage(parsePageNumber(part.page??part.source_page??page,page),partCrop,refW,refH,defaultCoordSystem));
         }
         if(parts.length){
           const imgs=[];
@@ -256,13 +261,15 @@ async function generateFromCoordinates(){
           imgs.forEach((im,k)=>{ctx.drawImage(im,0,y);y+=im.naturalHeight+(k<imgs.length-1?gap:0)});
           items.push({qNo,page,qText:q.question_text||q.qText||"",image:out.toDataURL("image/png"),blob:null});
         }
-      }else if(q.crop){
-        items.push({qNo,page,qText:q.question_text||q.qText||"",image:await canvasCropFromPage(page,q.crop,q.crop.page_width||refW,q.crop.page_height||refH),blob:null,containsOptions:q.contains_options!==false,containsFigure:!!q.contains_figure,cropConfidence:Number(q.crop_confidence)||0});
+      }else if(crop){
+        const localRefW=Number(crop.page_width||crop.pageWidth||refW);
+        const localRefH=Number(crop.page_height||crop.pageHeight||refH);
+        items.push({qNo,page,qText:q.question_text||q.qText||q.questionText||q.text||"",image:await canvasCropFromPage(page,crop,localRefW,localRefH,defaultCoordSystem),blob:null,containsOptions:q.contains_options!==false,containsFigure:!!q.contains_figure,cropConfidence:Number(q.crop_confidence)||0});
       }
       st("✂️ Extracting "+(i+1)+" / "+list.length+"…");
     }
     $("stats").textContent=items.length+" question(s) extracted from coordinate JSON • Original PDF attached";
-    render();st("✔ Coordinate extraction complete. Review the cards before importing.");
+    render();st(items.length?("✔ Coordinate extraction complete. "+items.length+" question(s) loaded. Review the cards before importing."):("⚠ Coordinate JSON was read, but no usable question crop was found. Check the JSON structure."));
   }catch(e){console.error(e);st("❌ "+e.message);alert("Coordinate extraction failed: "+e.message)}
   finally{btn.disabled=false}
 }
