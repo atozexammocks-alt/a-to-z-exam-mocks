@@ -252,7 +252,7 @@ async function ensurePdfJs(){
  return window.pdfjsLib;
 }
 const $=id=>document.getElementById(id);
-let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null,folderMode='private',mergeMode=false,mergeBaseId=null;
+let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null,folderMode='private',mergeMode=false,mergeBaseId=null,editorQueue=[],editorQueueIndex=0;
 const cfg={apiKey:'AIza'+'SyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
 const email=()=>String(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase(),docId=e=>e.replace(/[^a-zA-Z0-9]/g,'_');
 function st(x){$('status').textContent=x;$('activity').textContent='Activity: '+x}
@@ -312,7 +312,7 @@ function mergeRects(baseId,partId){
   $('rectActionMsg').textContent='✔ Continuation linked to Q'+(a.qNo||'')+'. Press OK — Edit Question to continue.';
   renderRects();
 }
-$('okRect').onclick=async()=>{let r=getTemplate();if(r){await openEditor(r);hideRectActions()}};
+$('okRect').onclick=async()=>{let r=getTemplate();if(r){await openEditor(r,true);hideRectActions()}};
 $('mergeRect').onclick=()=>{
   const r=getTemplate(); if(!r)return;
   if(!mergeMode){
@@ -518,7 +518,25 @@ async function cropPartsCanvas(r){
   let yy=0;for(const p of parts){ctx.drawImage(p,0,yy);yy+=p.height+gap}
   return out;
 }
-async function openEditor(r){modalRect=r;selectedTarget='qtext';cropSel=null;solutionImg='';$('modalQ').textContent='Q'+r.qNo+' • Page '+r.page;$('rectInfo').textContent='Adjust rectangle on page, then edit here';let c=await cropPartsCanvas(r),cc=$('cropCanvas');cc.width=c.width;cc.height=c.height;cc.getContext('2d').drawImage(c,0,0);$('selectCrop').style.display='none';$('qno').value=r.qNo; $('qtext').value=r.qtext||'';$('a').value=r.a||'';$('b').value=r.b||'';$('c').value=r.c||'';$('d').value=r.d||'';$('qtype').value=r.qtype||'mcq';answerControl();optionsToggle();if($('answer'))$('answer').value=r.answer||'';folderMode=r.libraryMode||'private';selectedPath=r.folderPath||'';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.remove('active'));const lb=document.querySelector('#libraryTargetBar [data-library="'+folderMode+'"]');if(lb)lb.classList.add('active');loadTree(folderMode).then(()=>renderTree());setTarget('qtext');$('solutionStatus').textContent='No solution crop';modal(true)}
+function buildEditorQueue(startRect){
+  const roots=rects.filter(r=>r.splitMode!=='from_previous').sort((a,b)=>a.page-b.page||a.y-b.y||String(a.qNo).localeCompare(String(b.qNo),undefined,{numeric:true}));
+  editorQueue=roots;
+  editorQueueIndex=Math.max(0,editorQueue.findIndex(x=>x.id===startRect.id));
+  if(editorQueueIndex<0){editorQueue=[startRect];editorQueueIndex=0}
+  updateEditorQueueUI();
+}
+function updateEditorQueueUI(){
+  const n=editorQueue.length,i=editorQueueIndex+1;
+  $('modalQ').textContent=modalRect?('Q'+modalRect.qNo+' • Page '+modalRect.page):'';
+  const b=$('saveQuestion'); if(b)b.textContent=n>1?(i<n?'☁ Save & Next ('+i+'/'+n+')':'☁ Save & Finish'):'☁ Save Question to Cloud';
+  const d=$('addDraft'); if(d)d.textContent=n>1?(i<n?'➕ Draft & Next':'➕ Add Draft & Finish'):'➕ Add / Update Draft';
+  const q=$('editorQueueInfo'); if(q)q.textContent=n>1?('Question '+i+' of '+n):'';
+}
+async function openNextEditor(){
+  if(editorQueueIndex+1<editorQueue.length){editorQueueIndex++;await openEditor(editorQueue[editorQueueIndex],false);return true}
+  editorQueue=[];editorQueueIndex=0;modal(false);hideRectActions();st('✔ All selected questions processed.');return false;
+}
+async function openEditor(r,startQueue=true){modalRect=r;if(startQueue)buildEditorQueue(r);selectedTarget='qtext';cropSel=null;solutionImg='';$('modalQ').textContent='Q'+r.qNo+' • Page '+r.page;$('rectInfo').textContent='Adjust rectangle on page, then edit here';let c=await cropPartsCanvas(r),cc=$('cropCanvas');cc.width=c.width;cc.height=c.height;cc.getContext('2d').drawImage(c,0,0);$('selectCrop').style.display='none';$('qno').value=r.qNo; $('qtext').value=r.qtext||'';$('a').value=r.a||'';$('b').value=r.b||'';$('c').value=r.c||'';$('d').value=r.d||'';$('qtype').value=r.qtype||'mcq';answerControl();optionsToggle();if($('answer'))$('answer').value=r.answer||'';folderMode=r.libraryMode||'private';selectedPath=r.folderPath||'';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.remove('active'));const lb=document.querySelector('#libraryTargetBar [data-library="'+folderMode+'"]');if(lb)lb.classList.add('active');loadTree(folderMode).then(()=>renderTree());setTarget('qtext');$('solutionStatus').textContent='No solution crop';modal(true)}
 
 
 // Re-crop directly from the original PDF page. Existing rectangle is not modified until the user applies the new crop.
@@ -587,8 +605,8 @@ async function saveOneQuestionToCloud(d){
   const db=f.getFirestore(app);
   await f.addDoc(f.collection(db,'questions'),{ownerEmail:email(),creatorEmail:email(),qNo:String(d.qNo),qText:d.qText||'',question:d.qImg||'',solution:d.solution||'',optAImg:'',optBImg:'',optCImg:'',optDImg:'',options:[d.a,d.b,d.c,d.d].filter(Boolean),keepOptions:[d.a,d.b,d.c,d.d].some(Boolean),libraryType:d.libraryMode==='central'?'Central Library':d.libraryMode==='group'?'Group Library':'Personal Library',libraryMode:d.libraryMode||'private',central:d.libraryMode==='central',group:d.libraryMode==='group',targetLibrary:d.libraryMode||'private',folderPath:d.folderPath,folder:d.folderPath.split(' / ')[0]||'',subfolder:d.folderPath.split(' / ').slice(1).join(' / '),topic:'Physics',qType:d.qtype||'mcq',level:d.level||'Medium',answer:d.answer||'',sourcePage:d.sourcePage,sourceFile:fileName,splitMode:d.splitMode||'none',createdAt:new Date().toISOString()});
 }
-$('addDraft').onclick=()=>{if(!modalRect)return;let d=currentForm();if(editingDraft>=0){drafts[editingDraft]=d;editingDraft=-1}else drafts.push(d);renderDrafts();modal(false);st('Draft added to queue.')};
-$('saveQuestion').onclick=async()=>{if(!modalRect)return;const d=currentForm();const btn=$('saveQuestion');btn.disabled=true;st('☁ Saving question to Firebase…');try{await saveOneQuestionToCloud(d);modalRect.savedToCloud=true;st('✔ Question saved to Firebase Library.');alert('✔ Question saved to cloud successfully.');modal(false)}catch(e){st('❌ Cloud save failed: '+(e.message||e));alert('Save failed: '+(e.message||e))}finally{btn.disabled=false}}
+$('addDraft').onclick=async()=>{if(!modalRect)return;let d=currentForm();if(editingDraft>=0){drafts[editingDraft]=d;editingDraft=-1}else drafts.push(d);renderDrafts();st('✔ Draft saved.');await openNextEditor()};
+$('saveQuestion').onclick=async()=>{if(!modalRect)return;const d=currentForm(),btn=$('saveQuestion');btn.disabled=true;st('☁ Saving Q'+d.qNo+' to Firebase…');try{await saveOneQuestionToCloud(d);modalRect.savedToCloud=true;st('✔ Q'+d.qNo+' saved to Firebase Library.');await openNextEditor()}catch(e){st('❌ Cloud save failed: '+(e.message||e));alert('Save failed: '+(e.message||e))}finally{btn.disabled=false;updateEditorQueueUI()}}
 $('useQuestionCrop').onclick=()=>{if(modalRect){modalRect.qImg=$('cropCanvas').toDataURL('image/png');st('✔ Current rendered question image captured (including merged continuation parts).')}}
 $('deleteRect').onclick=()=>{rects=rects.filter(r=>r.id!==modalRect.id);selectedRectId=null;modal(false);hideRectActions();renderRects();st('Rectangle deleted.')}
 $('closeModal').onclick=()=>modal(false);
