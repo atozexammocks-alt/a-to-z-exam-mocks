@@ -48,7 +48,7 @@ nav{height:48px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <span id="status" class="status">PDF not selected</span><span id="activity" class="activity">Activity: waiting for PDF…</span>
 </div>
 <div class="workspace">
-<section class="viewerPane"><div class="head"><b>📄 Full-Screen PDF Workspace</b><span class="muted">Left = current page • Right = next page • rectangles are editable</span></div><div id="viewer" class="viewer"><div class="pdfPageSlot"><div id="pageLabel1" class="pdfPageLabel">Current Page</div><div id="pageWrap" class="pageWrap"><canvas id="canvas"></canvas><div id="rectLayer"></div></div></div><div class="pdfPageSlot"><div id="pageLabel2" class="pdfPageLabel">Next Page</div><div id="pageWrap2" class="pageWrap"><canvas id="canvas2"></canvas><div id="rectLayer2"></div></div></div></div><div id="rectActions" class="rectActions"><span id="rectActionMsg" class="rectMsg">Draw a rectangle around one complete question.</span><button id="cancelRect" class="btn">✕ Cancel</button><button id="okRect" class="btn green">✓ OK — Edit Question</button></div><div class="hint"><b>Smart PDF workflow:</b> choose page range → <b>⚡ Auto Detect Questions</b> → review/resize boxes → open any box → choose continuation if a question crosses pages/columns → OCR only the selected crop → batch save. <b>Free Rectangle</b> remains available as a fallback. The original PDF page is always preserved.</div></section>
+<section class="viewerPane"><div class="head"><b>📄 Full-Screen PDF Workspace</b><span class="muted">Left = current page • Right = next page • rectangles are editable</span></div><div id="viewer" class="viewer"><div class="pdfPageSlot"><div id="pageLabel1" class="pdfPageLabel">Current Page</div><div id="pageWrap" class="pageWrap"><canvas id="canvas"></canvas><div id="rectLayer"></div></div></div><div class="pdfPageSlot"><div id="pageLabel2" class="pdfPageLabel">Next Page</div><div id="pageWrap2" class="pageWrap"><canvas id="canvas2"></canvas><div id="rectLayer2"></div></div></div></div><div id="rectActions" class="rectActions"><span id="rectActionMsg" class="rectMsg">Draw a rectangle around one complete question.</span><button id="cancelRect" class="btn">✕ Cancel</button><button id="okRect" class="btn green">✓ OK — Edit Question</button><button id="mergeRect" class="btn">🔗 Merge / Continuation</button></div><div class="hint"><b>Smart PDF workflow:</b> choose page range → <b>⚡ Auto Detect Questions</b> → review/resize boxes → open any box → choose continuation if a question crosses pages/columns → OCR only the selected crop → batch save. <b>Free Rectangle</b> remains available as a fallback. The original PDF page is always preserved.</div></section>
 <section class="side"><div class="head"><b>🧩 Question Queue</b><span id="count" class="muted">0</span></div><div class="body"><div class="notice"><b>Flow:</b> PDF → Auto Layout → adjust rectangle → open popup → OCR only selected question/option crop → edit → folder → save.</div><div id="drafts" class="drafts"></div><div id="preview" class="preview"><span class="muted">Student preview will appear here.</span></div></div><div class="queue"><span><b>Queue:</b> <span id="qcount">0</span></span><button id="saveAll" class="btn blue" disabled>☁ Save All</button></div></section>
 </div>
 
@@ -102,14 +102,14 @@ async function ensurePdfJs(){
  return window.pdfjsLib;
 }
 const $=id=>document.getElementById(id);
-let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null,folderMode='private';
+let pdf=null,total=0,pages=[],pi=0,scale=1.35,fileName='',rects=[],selectedRectId=null,editingDraft=-1,dragState=null,selectedTarget='qtext',cropSel=null,modalRect=null,solutionImg='',tree=[],selectedPath='',template=null,folderMode='private',mergeMode=false,mergeBaseId=null;
 const cfg={apiKey:'AIza'+'SyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0',authDomain:'physicsvault-80a10.firebaseapp.com',projectId:'physicsvault-80a10',storageBucket:'physicsvault-80a10.firebasestorage.app',messagingSenderId:'1043166507399',appId:'1:1043166507399:web:634efdac6f109273d42322'};
 const email=()=>String(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase(),docId=e=>e.replace(/[^a-zA-Z0-9]/g,'_');
 function st(x){$('status').textContent=x;$('activity').textContent='Activity: '+x}
 function esc(x){return String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function modal(on){$('editorModal').style.display=on?'flex':'none'}
-function showRectActions(r){selectedRectId=r?r.id:null;$('rectActions').classList.toggle('show',!!r);$('rectActionMsg').textContent=r?'Q'+(r.qNo||'')+' rectangle selected. Fit the box, then press OK.':'Draw a rectangle around one complete question.';renderRects()}
-function hideRectActions(){$('rectActions').classList.remove('show')}
+function showRectActions(r){selectedRectId=r?r.id:null;$('rectActions').classList.toggle('show',!!r);$('rectActionMsg').textContent=r?(mergeMode?'Tap the continuation rectangle to merge with Q'+(mergeBaseId?((rects.find(x=>x.id===mergeBaseId)||{}).qNo||''):'')+'.':'Q'+(r.qNo||'')+' rectangle selected. Fit the box, then press OK.'):'Draw a rectangle around one complete question.';renderRects()}
+function hideRectActions(){mergeMode=false;mergeBaseId=null;$('rectActions').classList.remove('show')}
 function folderConfig(mode){if(mode==='central')return {collection:'folder_configs_central',id:'global_central_tree'};if(mode==='group')return {collection:'folder_configs_group',id:docId(email())+'_group'};return {collection:'folder_configs_private',id:docId(email())}}
 function folderModeLabel(){return folderMode==='central'?'Central Library':folderMode==='group'?'Group Library':'Private Library'}
 function parseRange(s,max){let out=new Set;String(s).split(',').forEach(p=>{p=p.trim();if(!p)return;if(p.includes('-')){let[a,b]=p.split('-').map(Number);let lo=Math.max(1,Math.min(a||1,b||max)),hi=Math.min(max,Math.max(a||1,b||max));for(let i=lo;i<=hi;i++)out.add(i)}else{let n=Number(p);if(n>=1&&n<=max)out.add(n)}});return[...out].sort((a,b)=>a-b)}
@@ -136,7 +136,33 @@ $('pageWrap').onpointerdown=e=>startFreeRectOn(e,'pageWrap',pages[pi]);
 $('pageWrap2').onpointerdown=e=>{if(pages[pi+1])startFreeRectOn(e,'pageWrap2',pages[pi+1])}
 function nextQNo(){return rects.length?Math.max(...rects.map(r=>Number(r.qNo)||0))+1:1}
 $('addRect').onclick=()=>{if(!pdf||!pages.length)return;let r={id:'r_'+Date.now()+'_'+Math.random().toString(36).slice(2),page:pages[pi],qNo:nextQNo(),x:.10,y:.12,w:.80,h:.18};clampRect(r);rects.push(r);showRectActions(r)};
+function mergeRects(baseId,partId){
+  const a=rects.find(x=>x.id===baseId),b=rects.find(x=>x.id===partId); if(!a||!b||a.id===b.id)return;
+  b.qNo=a.qNo;
+  b.splitMode='from_previous';
+  a.splitMode='to_next';
+  a.continuesTo=b.id;
+  b.continuesFrom=a.id;
+  // Keep both source rectangles; the editor/save workflow treats them as one logical question.
+  selectedRectId=a.id; mergeMode=false; mergeBaseId=null;
+  $('mergeRect').textContent='🔗 Merge / Continuation';
+  $('rectActionMsg').textContent='✔ Continuation linked to Q'+(a.qNo||'')+'. Press OK — Edit Question to continue.';
+  renderRects();
+}
 $('okRect').onclick=async()=>{let r=getTemplate();if(r){await openEditor(r);hideRectActions()}};
+$('mergeRect').onclick=()=>{
+  const r=getTemplate(); if(!r)return;
+  if(!mergeMode){
+    mergeMode=true; mergeBaseId=r.id;
+    $('mergeRect').textContent='🔗 Select continuation box';
+    $('rectActionMsg').textContent='Now tap the rectangle containing the continuation of this question — even on the next page.';
+    st('🔗 Merge mode: select the continuation rectangle.');
+    return;
+  }
+  if(r.id===mergeBaseId)return;
+  mergeRects(mergeBaseId,r.id);
+};
+
 $('cancelRect').onclick=()=>{if(selectedRectId){rects=rects.filter(r=>r.id!==selectedRectId);selectedRectId=null}hideRectActions();renderRects()};
 function getTemplate(){if(!selectedRectId)return null;return rects.find(r=>r.id===selectedRectId)||null}
 function groupTextLines(items,v){
