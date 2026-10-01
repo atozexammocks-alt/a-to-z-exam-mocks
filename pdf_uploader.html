@@ -44,7 +44,7 @@ nav{height:48px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;
 <input id="file" class="chooseFile" type="file" accept="application/pdf,.pdf">
 <button id="prev" class="btn" disabled>◀ Prev</button><span id="pageInfo" class="muted">Page 0 / 0</span><button id="next" class="btn" disabled>Next ▶</button>
 <button id="zo" class="btn" disabled>−</button><span id="zl" class="muted">100%</span><button id="zi" class="btn" disabled>+</button>
-<button id="autoDetect" class="btn blue" disabled>⚡ Auto Detect Questions</button><button id="pageRange" class="btn" disabled>📄 Page Range</button><button id="addRect" class="btn" disabled>＋ Free Rectangle</button>
+<button id="autoDetect" class="btn blue" disabled>⚡ Detect Current Page</button><button id="confirmPage" class="btn green" disabled>✓ Confirm Page + Next</button><button id="pageRange" class="btn" disabled>📄 Page Range</button><button id="addRect" class="btn" disabled>＋ Free Rectangle</button>
 <span id="status" class="status">PDF not selected</span><span id="activity" class="activity">Activity: waiting for PDF…</span>
 </div>
 <div class="workspace">
@@ -165,69 +165,92 @@ function detectColumns(lines,W){
   return [lines.filter(l=>l.x<=split+W*.03),lines.filter(l=>l.x>split+W*.03)].filter(a=>a.length);
 }
 
-async function autoDetectCurrentPages(){
-  if(!pdf||!pages.length){alert('Choose a PDF first.');return;}
-  const chosen=pages.slice();
-  rects=[];
-  selectedRectId=null;
-  hideRectActions();
-  st('⚡ Analysing '+chosen.length+' page(s) for question layout…');
-  let globalNo=1, detected=0;
-  for(let idx=0;idx<chosen.length;idx++){
-    const pn=chosen[idx];
-    const p=await pdf.getPage(pn);
-    const v=p.getViewport({scale:1});
-    let tc;
-    try{tc=await p.getTextContent({normalizeWhitespace:true,disableCombineTextItems:false});}
-    catch(e){tc={items:[]};}
-    const lines=groupTextLines(tc.items||[],v);
-    if(!lines.length){st('Page '+pn+': no selectable text — use Free Rectangle here.');continue;}
-    const cols=detectColumns(lines,v.width);
-    const pageRects=[];
-    for(const col of cols){
-      const starts=col.filter(l=>isQuestionStart(l.t));
-      if(!starts.length) continue;
+async function detectPageQuestions(pageNumber,opts={}) {
+  if(!pdf) return 0;
+  const p=await pdf.getPage(pageNumber);
+  const v=p.getViewport({scale:1});
+  let tc={items:[]};
+  try{tc=await p.getTextContent({normalizeWhitespace:true,disableCombineTextItems:false});}catch(e){}
+  let lines=groupTextLines(tc.items||[],v);
+  let cols=detectColumns(lines,v.width);
+  let pageRects=[];
+  for(const col of cols){
+    const starts=col.filter(l=>isQuestionStart(l.t));
+    for(let i=0;i<starts.length;i++){
+      const s=starts[i], n=starts[i+1];
+      const inBlock=col.filter(l=>l.cy>=s.cy && (!n || l.cy<n.cy));
+      if(!inBlock.length) continue;
+      const bottom=n ? Math.max(s.bottom+8,n.top-4) : Math.max(...inBlock.map(l=>l.bottom))+6;
+      const left=Math.max(0,Math.min(...inBlock.map(l=>l.x))-8);
+      const right=Math.min(v.width,Math.max(...inBlock.map(l=>l.x2))+8);
+      const top=Math.max(0,s.top-8);
+      const r={id:'auto_'+pageNumber+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),page:pageNumber,qNo:Number(numberFrom(s.t))||nextQNo(),x:left/v.width,y:top/v.height,w:Math.max(.05,(right-left)/v.width),h:Math.max(.04,(bottom-top)/v.height),auto:true,splitMode:'none'};
+      if(r.y+r.h>.90) r.splitMode='to_next';
+      pageRects.push(r);
+    }
+  }
+  // If the PDF has no useful text layer, do a lightweight OCR fallback on THIS page only.
+  if(!pageRects.length){
+    try{
+      const renderScale=Math.max(1.5,Math.min(2.2,scale+0.3));
+      const rv=p.getViewport({scale:renderScale});
+      const oc=document.createElement('canvas'); oc.width=Math.ceil(rv.width); oc.height=Math.ceil(rv.height);
+      await p.render({canvasContext:oc.getContext('2d'),viewport:rv}).promise;
+      const T=await window.__loadTesseract();
+      const rr=await T.recognize(oc,'eng+hin',{logger:m=>{if(m.status==='recognizing text')st('Page '+pageNumber+' OCR '+Math.round((m.progress||0)*100)+'%')}}});
+      const ocrLines=(rr.data&&rr.data.lines)||[];
+      const starts=ocrLines.filter(x=>isQuestionStart(x.text));
       for(let i=0;i<starts.length;i++){
         const s=starts[i], n=starts[i+1];
-        const bottom=n ? Math.max(s.bottom+6, n.top-4) : Math.max(s.bottom+6, Math.max(...col.map(l=>l.bottom))+4);
-        const left=Math.max(0,Math.min(...col.filter(l=>l.cy>=s.cy && l.cy<=bottom).map(l=>l.x))-6);
-        const right=Math.min(v.width,Math.max(...col.filter(l=>l.cy>=s.cy && l.cy<=bottom).map(l=>l.x2))+6);
-        const top=Math.max(0,s.top-6);
-        const x=left/v.width,y=top/v.height,w=Math.max(.05,(right-left)/v.width),h=Math.max(.04,(bottom-top)/v.height);
-        pageRects.push({id:'auto_'+pn+'_'+i+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),page:pn,qNo:Number(numberFrom(s.t))||globalNo++,x,y,w,h,auto:true,splitMode:'none'});
+        const bottom=n?Math.max(s.bbox.y1+10,n.bbox.y0-5):Math.max(...ocrLines.map(x=>x.bbox.y1))+6;
+        const x=Math.max(0,s.bbox.x0-10), right=Math.min(oc.width,Math.max(...ocrLines.filter(x=>x.bbox.y0>=s.bbox.y0 && x.bbox.y0<bottom).map(x=>x.bbox.x1))+10);
+        const top=Math.max(0,s.bbox.y0-10);
+        const r={id:'ocr_'+pageNumber+'_'+Date.now()+'_'+i,page:pageNumber,qNo:Number(numberFrom(s.text))||nextQNo(),x:x/oc.width,y:top/oc.height,w:Math.max(.05,(right-x)/oc.width),h:Math.max(.04,(bottom-top)/oc.height),auto:true,splitMode:bottom>oc.height*.90?'to_next':'none'};
+        pageRects.push(r);
       }
-    }
-    // If a question starts near the bottom, flag it as a possible cross-page continuation.
-    pageRects.forEach((r,i)=>{
-      if(r.y+r.h>.91) r.splitMode='to_next';
-    });
-    // Preserve detected order while avoiding tiny duplicates.
-    for(const r of pageRects){
-      if(!rects.some(x=>x.page===r.page && Math.abs(x.x-r.x)<.012 && Math.abs(x.y-r.y)<.012 && Math.abs(x.w-r.w)<.02 && Math.abs(x.h-r.h)<.02)){rects.push(r);detected++;}
-    }
-    st('⚡ Page '+pn+': detected '+pageRects.length+' question block(s) — '+detected+' total');
+    }catch(e){ st('Page '+pageNumber+': visual/OCR detection unavailable — Free Rectangle remains available.'); }
   }
-  // Detect likely continuation at the top of a page/column when no new question number is present.
-  const byPage=new Map();
-  rects.forEach(r=>{if(!byPage.has(r.page))byPage.set(r.page,[]);byPage.get(r.page).push(r)});
-  for(let i=1;i<chosen.length;i++){
-    const prev=byPage.get(chosen[i-1])||[], cur=byPage.get(chosen[i])||[];
-    if(!cur.length) continue;
-    const first=cur.slice().sort((a,b)=>a.y-b.y)[0];
-    const hasStart=first && first.y<.16;
-    if(hasStart){
-      const prevLast=prev.slice().sort((a,b)=>(a.y+a.h)-(b.y+b.h)).at(-1);
-      if(prevLast && prevLast.splitMode==='to_next'){
-        first.splitMode='from_previous';
-        first.continuationOf=prevLast.qNo;
-      }
-    }
-  }
+  rects=rects.filter(r=>r.page!==pageNumber);
+  rects.push(...pageRects);
+  return pageRects.length;
+}
+async function autoDetectCurrentPages(){
+  if(!pdf||!pages.length){alert('Choose a PDF first.');return;}
+  // IMPORTANT: never scan the whole PDF. Auto-detection is deliberately page-scoped.
+  // The optional second page is only a continuation look-ahead and is not required.
+  const current=pages[pi], next=pages[pi+1];
+  selectedRectId=null; hideRectActions();
+  st('⚡ Detecting questions on page '+current+' only…');
+  const count=await detectPageQuestions(current);
   await render();
-  st('✔ Smart detection complete: '+detected+' question box(es). Review/resize any box before saving.');
-  if(detected===0) alert('No question boundaries were detected on these pages. Use Free Rectangle; the rest of the workflow still works.');
+  st(count?'✔ Page '+current+': '+count+' question box(es) detected. Review/resize, then Confirm Page.':'⚠ Page '+current+': no boundaries found. Use Free Rectangle.');
+}
+async function confirmPageAndNext(){
+  if(!pdf||!pages.length)return;
+  hideRectActions(); selectedRectId=null;
+  const current=pages[pi];
+  st('✔ Page '+current+' confirmed. Moving to next page…');
+  if(pi<pages.length-1){
+    pi++;
+    await render();
+    // Detect ONLY the newly opened page. No full-PDF scan.
+    st('⚡ Detecting questions on page '+pages[pi]+' only…');
+    const count=await detectPageQuestions(pages[pi]);
+    await render();
+    st(count?'✔ Page '+pages[pi]+': '+count+' question box(es) detected. Review/resize, then Confirm Page.':'⚠ Page '+pages[pi]+': no boundaries found. Use Free Rectangle.');
+  }else{
+    st('✔ Final page confirmed. All page boundaries remain available in the queue.');
+  }
 }
 async function choosePageRange(){
+  if(!pdf)return;
+  const s=prompt('Pages available for step-by-step processing (examples: 1-5, 2,4,7-9):',pages.join(','));
+  if(s===null)return;
+  const p=parseRange(s,pdf.numPages);
+  if(!p.length){alert('No valid pages selected.');return;}
+  pages=p; pi=0; rects=[]; selectedRectId=null; hideRectActions(); await render();
+  st('✔ Step-by-step mode: '+pages.length+' page(s) selected. Only the active page is auto-detected.');
+}async function choosePageRange(){
   if(!pdf)return;
   const s=prompt('Pages to process (examples: 1-5, 2,4,7-9):',pages.join(','));
   if(s===null)return;
@@ -267,7 +290,7 @@ $('file').onchange=async e=>{
   }catch(err){
     pdf=null; total=0; pages=[]; pi=0; rects=[]; template=null;
     $('prev').disabled=true; $('next').disabled=true; $('zo').disabled=true; $('zi').disabled=true;
-    $('addRect').disabled=true; $('autoDetect').disabled=true; $('pageRange').disabled=true;
+    $('addRect').disabled=true; $('autoDetect').disabled=true; $('confirmPage').disabled=true; $('pageRange').disabled=true;
     st('❌ PDF open failed: '+(err&&err.message?err.message:String(err)));
   }
 };
@@ -298,7 +321,7 @@ let drafts=[];
 function renderDrafts(){$('drafts').innerHTML=drafts.map((d,i)=>'<div class="draft"><div class="drafttop"><b style="color:#38bdf8">Q'+esc(d.qNo)+'</b><span><button class="btn tiny" data-edit="'+i+'">Edit</button> <button class="btn tiny" data-del="'+i+'">Delete</button></span></div><div style="font-size:10px;margin-top:3px">'+esc(d.qText||'[Image question]')+'</div><div class="muted" style="font-size:9px">Page '+d.sourcePage+' • '+esc(d.folderPath||'No folder')+'</div></div>').join('');$('count').textContent=drafts.length;$('qcount').textContent=drafts.length;$('saveAll').disabled=!drafts.length;document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{let d=drafts[+b.dataset.edit];editingDraft=+b.dataset.edit;let r={id:'draft_'+Date.now(),page:d.sourcePage,qNo:d.qNo,qText:d.qText,a:d.a,b:d.b,c:d.c,d:d.d,qtype:d.qtype,answer:d.answer,splitMode:d.splitMode||'none',folderPath:d.folderPath};modalRect=r;let c=document.createElement('canvas');c.width=$('canvas').width;c.height=$('canvas').height;c.getContext('2d').drawImage($('canvas'),0,0);$('qno').value=d.qNo;$('qtext').value=d.qText;$('a').value=d.a;$('b').value=d.b;$('c').value=d.c;$('d').value=d.d;$('qtype').value=d.qtype;$('splitMode').value=d.splitMode||'none';answerControl();optionsToggle();if($('answer'))$('answer').value=d.answer||'';folderMode=d.libraryMode||'private';document.querySelectorAll('#libraryTargetBar [data-library]').forEach(x=>x.classList.toggle('active',x.dataset.library===folderMode));selectedPath=d.folderPath||'';loadTree(folderMode).then(()=>renderTree());let im=new Image();im.onload=()=>{$('cropCanvas').width=im.width;$('cropCanvas').height=im.height;$('cropCanvas').getContext('2d').drawImage(im,0,0);modal(true)};im.src=d.qImg});document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{drafts.splice(+b.dataset.del,1);renderDrafts();renderPreview()});renderPreview()}
 function renderPreview(){$('preview').innerHTML=drafts.length?drafts.map(d=>'<div style="border-bottom:1px solid #cbd5e1;padding-bottom:6px;margin-bottom:6px"><b>Q'+esc(d.qNo)+'.</b> '+esc(d.qText)+(d.qImg?'<img src="'+d.qImg+'">':'')+['A','B','C','D'].map((k,i)=>{let t=[d.a,d.b,d.c,d.d][i];return t?'<div class="opt"><b>('+k+')</b> '+esc(t)+'</div>':''}).join('')+'</div>').join(''):'<span class="muted">Student preview will appear here.</span>'}
 $('saveAll').onclick=async()=>{if(!drafts.length)return;if(!email())return alert('Teacher login not found.');if(drafts.some(d=>!d.folderPath))return alert('Please select the exact folder path for every question.');$('saveAll').disabled=true;st('Saving '+drafts.length+' question(s) to Firebase…');try{let a=await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js'),f=await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');let app;try{app=a.initializeApp(cfg,'pdf-builder-save')}catch(e){app=a.getApps().find(x=>x.name==='pdf-builder-save')}let db=f.getFirestore(app);for(const d of drafts){await f.addDoc(f.collection(db,'questions'),{ownerEmail:email(),creatorEmail:email(),qNo:String(d.qNo),qText:d.qText||'',question:d.qImg||'',solution:d.solution||'',optAImg:'',optBImg:'',optCImg:'',optDImg:'',options:[d.a,d.b,d.c,d.d].filter(Boolean),keepOptions:[d.a,d.b,d.c,d.d].some(Boolean),libraryType:d.libraryMode==='central'?'Central Library':d.libraryMode==='group'?'Group Library':'Personal Library',libraryMode:d.libraryMode||'private',central:d.libraryMode==='central',group:d.libraryMode==='group',targetLibrary:d.libraryMode||'private',folderPath:d.folderPath,folder:d.folderPath.split(' / ')[0]||'',subfolder:d.folderPath.split(' / ').slice(1).join(' / '),topic:'Physics',qType:d.qtype||'mcq',level:d.level||'Medium',answer:d.answer||'',sourcePage:d.sourcePage,sourceFile:fileName,splitMode:d.splitMode||'none',createdAt:new Date().toISOString()})}drafts=[];renderDrafts();st('✔ All questions saved successfully.');alert('✔ Questions saved to Firebase Library.')}catch(e){st('❌ Save failed: '+e.message);alert('Save failed: '+e.message)}finally{$('saveAll').disabled=!drafts.length}};
-renderDrafts();renderTree();st('✔ Ready. Choose PDF → Free Rectangle → fit → ✓ OK → Slicer Studio.');
+renderDrafts();renderTree();st('✔ Ready. Choose PDF → Detect Current Page → review → Confirm Page + Next. Free Rectangle remains available.');
 })();
 </script>
 </body>
