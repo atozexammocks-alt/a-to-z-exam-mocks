@@ -207,7 +207,7 @@ function syncEditorOptions(){
   var vals=Array.from(document.querySelectorAll(".editor-option")).map(function(x){return normalizeAngstromText(x.value).trim()}).filter(Boolean);
   $("eOptions").value=vals.join("\n");
 }
-function editQ(i){
+function openQuestionEditor(i){var q=qs[i];if(!q)return;try{localStorage.setItem("A2Z_AI_EDITOR_QUESTION",JSON.stringify({index:i,question:q,sourcePage:"ai_question_import.html",savedAt:Date.now()}));window.open("editor.html","_blank","noopener");}catch(e){alert("Could not open Question Editor: "+e.message);}}window.addEventListener("storage",function(e){if(e.key!=="A2Z_AI_EDITOR_RESULT"||!e.newValue)return;try{var d=JSON.parse(e.newValue),idx=Number(d.index);if(!Number.isFinite(idx)||!qs[idx]||!d.question)return;qs[idx]=Object.assign(qs[idx],d.question);render();showSaveToast("✔ Q"+qs[idx].no+" updated from Question Editor.");localStorage.removeItem("A2Z_AI_EDITOR_RESULT");}catch(err){console.warn("Editor result error",err);}});function editQ(i){
   editing=i;let q=qs[i];q.contentMode=q.contentMode||"text";
   $("eNo").value=q.no||"";$("eText").value=q.text||"";$("eOptions").value=(q.options||[]).join("\n");renderEditorOptions(q);
   $("eAnswer").value=q.answer||"";$("eTopic").value=q.topic||q.chapter||"";$("eSource").value=q.source||"";$("eDiagram").value=q.diagram||"";
@@ -471,7 +471,7 @@ function setup(){
     else if(a==="keep-text"){readQuestionModeChoice(i,"text");}
     else if(a==="keep-image"){readQuestionModeChoice(i,"image");}
     else if(a==="keep-both"){readQuestionModeChoice(i,"both");}
-    else if(a==="edit"){editQ(i);}
+    else if(a==="edit-page"){openQuestionEditor(i);}
     else if(a==="flag"){applyFlagChoice(qs[i],b.dataset.flag);render();showSaveToast("🏷️ Q"+qs[i].no+" flagged as "+b.dataset.flag+".");}
     else if(a==="crop"){await cropQ(i);}else if(a==="figure"){await cropFigure(i);}
     else if(a==="del"){
