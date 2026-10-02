@@ -149,12 +149,12 @@ function render(){
       '<button class="btn blue '+(mode==="text"?"selected":"")+'" data-a="keep-text" data-i="'+i+'">📝 Keep Text</button>'+
       '<button class="btn purple '+(mode==="image"?"selected":"")+'" data-a="keep-image" data-i="'+i+'">🖼 Keep Image</button>'+
       '<span class="keep-state">'+(mode==="image"?"🖼 Image Only selected":"📝 Text Only selected")+'</span></div>'+
-      '<div class="row"><button class="btn purple" data-a="crop" data-i="'+i+'">✂ Re-crop from Original PDF</button><button class="btn" data-a="edit" data-i="'+i+'">✏️ Go to Editor</button></div>'+
+      '<div class="row"><button class="btn purple" data-a="crop" data-i="'+i+'">✂ Re-crop Question</button>'+(q.figureRequired?'<button class="btn green" data-a="figure" data-i="'+i+'">🖼️ Insert Figure</button>':"")+'<button class="btn" data-a="edit" data-i="'+i+'">✏️ Go to Editor</button></div>'+
       path+
       '<div class="row"><button class="btn green" data-a="save" data-i="'+i+'">☁ Save to Library</button><button class="btn red" data-a="del" data-i="'+i+'">🗑 Delete</button></div></div>';
     var right='<div class="student-review"><div class="student-head"><b>🎓 Student View</b><span class="muted">Live preview</span></div>'+
       '<div class="student-text"><b style="color:#38bdf8">'+esc(q.no)+'</b><div class="q math-content">'+formatQuestionText(q.text).split("\n").map(renderMathLine).join("<br>")+'</div>'+opts+'</div>'+
-      '<div class="student-image">'+image+'</div></div>';
+      '<div class="student-image">'+image+(q.figureRequired?'<div class="figure-required">⚠️ FIGURE REQUIRED — Insert the figure from the original PDF before saving.</div>':"")+(q.figureImage?'<div class="figure-preview"><b>🖼️ Inserted Figure</b><img src="'+esc(q.figureImage)+'" alt="Inserted figure"></div>':"")+'</div></div>';
     return '<div class="card aiq-review-card"><div class="review-layout">'+left+right+'</div><div class="muted review-meta">'+esc([q.topic,q.chapter,q.source,q.year,q.answer?"Answer: "+q.answer:"",q.page?"Page: "+q.page:""].filter(Boolean).join(" • "))+'</div></div>';
   }).join("");
   qs.forEach(function(_,i){renderQuestionPathSelectors(i)});
