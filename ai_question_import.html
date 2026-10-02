@@ -352,24 +352,26 @@ async function extract(){
     }
     async function addPageQuestions(list,pageNo,pageImageData){
       let added=0;
-      (Array.isArray(list)?list:[]).forEach(function(q){
+      for(let idx=0;idx<(Array.isArray(list)?list.length:0);idx++){
+        let q=list[idx]||{};
         let n=String(q.question_number||"").trim().toLowerCase();
         let t=String(q.question||"").replace(/\s+/g," ").trim().toLowerCase();
         let existing=n?all.find(function(x){return String(x.no||"").trim().toLowerCase()===n}):null;
         if(existing&&(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true)){
           if(Array.isArray(q.options)&&q.options.length)existing.options=(existing.options||[]).concat(q.options.map(function(x){return normalizeAngstromText(String(x))}));
           if(q.question&&String(q.question).trim()&&String(q.question).trim().toLowerCase()!==String(existing.text||"").trim().toLowerCase())existing.text=(existing.text+"\n"+q.question).trim();
-          return;
+          if(!existing.cropImage&&q.crop_box&&pageImageData)existing.cropImage=await makeAutoCrop(pageImageData,q.crop_box);
+          continue;
         }
         let k=n?"n:"+n:"t:"+t.slice(0,180);
-        if(!t||seen[k])return;
+        if(!t||seen[k])continue;
         seen[k]=1;
         let nq=normalizePageQuestion(q,all.length,pageNo);
         if(!nq.cropImage&&nq.cropBox&&pageImageData)nq.cropImage=await makeAutoCrop(pageImageData,nq.cropBox);
         delete nq.cropBox;
         applyFlagChoice(nq,nq.flagChoice);
         all.push(nq);qs.push(nq);added++;
-      });
+      }
       totalDetected=all.length;render();return added;
     }
 
