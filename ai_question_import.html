@@ -259,10 +259,118 @@ async function repairMathWithVision(key,pdfB64,items){
     return q;
   });
 }
-async function extract(){let f=$("pdf").files[0];if(!f)return alert("पहले PDF select करो.");sourcePdfFile=f;let key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!key)return alert("पहले Gemini API key डालें.");$("extract").disabled=true;qs=[];totalDetected=0;uploadedCount=0;render();try{if(f.size>50*1024*1024)throw Error("PDF is larger than 50 MB. Gemini inline PDF input supports up to 50 MB.");$("status").textContent="📄 Reading PDF page count…";let u=new Uint8Array(await f.arrayBuffer()),bin="";for(let i=0;i<u.length;i+=32768)bin+=String.fromCharCode(...u.subarray(i,i+32768));if(!folderPaths.length){try{await loadFolders("private",$("ePath"),$("eStatus"))}catch(_){}}
-let libraryList=folderPaths.length?folderPaths.join(" | "):"(No Library folders available yet)";let totalPages=1;try{if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdfDoc=await pdfjsLib.getDocument({data:u}).promise;totalPages=pdfDoc.numPages||1;}}catch(_){console.warn("Could not read PDF page count; using one extraction batch.")}let lim=Number($("max").value)||0,batchSize=10,batches=[];for(let s=1;s<=totalPages;s+=batchSize)batches.push([s,Math.min(totalPages,s+batchSize-1)]);if(!batches.length)batches=[[1,totalPages]];let all=[];
-for(let bi=0;bi<batches.length;bi++){let range=batches[bi],from=range[0],to=range[1];$("status").textContent="🤖 Extracting PDF pages "+from+"–"+to+" (batch "+(bi+1)+"/"+batches.length+")…";let prompt="Extract EVERY COMPLETE QUESTION BLOCK whose question STARTS on PDF pages "+from+" through "+to+" only. The original PDF is supplied in full, so inspect the requested page range carefully. If a question starts in this range and continues onto the next page, include the COMPLETE question including its continuation, options, subparts and figure references. Do NOT extract questions whose start is outside this range. Do not summarize and do not skip questions. Return ONLY JSON with a questions array. Never split options/assertions/subparts. Preserve the COMPLETE wording exactly as printed, including every English and Hindi/Devanagari word, punctuation mark, slash \"/\", brackets, option labels and bilingual phrases. NEVER omit or translate a Hindi word because it is adjacent to an equation. NEVER interpret a slash \"/\" as division unless the PDF visibly contains a mathematical fraction. Treat prose and mathematics as separate layers: preserve prose verbatim and convert only the mathematical glyphs to LaTeX. This rule applies equally to questions, options, assertions, statements, matrix entries and bilingual text. Preserve wording, numbers, units, equations, powers, subscripts, superscripts, Greek symbols and figures. CRITICAL MATHEMATICS RULE: Preserve the Angstrom symbol exactly when visible as Å or Å; never output AA, /A, or double-A. every mathematical expression MUST be valid LaTeX enclosed in MathJax delimiters \\\\( ... \\\\) for inline math or \\\\[ ... \\\\] for display math. NEVER output raw LaTeX commands such as \\\\int, \\\\frac, \\\\sqrt, ^, _, \\\\partial, \\\\nabla, \\\\sum, \\\\begin, SQRT or the word INT as plain text when they represent mathematics. Preserve exponents as x^{2}, subscripts as a_{1}, fractions as \\\\frac{a}{b}, roots as \\\\sqrt{x}, integrals as \\\\int, derivatives as \\\\frac{d y}{d x}, matrices only as proper LaTeX matrices, and Fourier/Laplace symbols exactly. Do not split a mathematical expression across lines. Keep parenthetical conditions and values attached to the sentence. Do not insert artificial line breaks inside a sentence. Real tables MUST be table_rows arrays; NEVER convert tables to matrices. Use matrix_latex only for actual mathematical matrices. Merge continuations. LIBRARY SUGGESTION RULE: ALWAYS provide suggested_library_path for every question, even if that folder does not currently exist. This is a semantic destination suggestion, not a check against existing folders. For Mathematics, use paths such as Mathematics / Calculus / Integration, Mathematics / Calculus / Differentiation, Mathematics / Calculus / Fourier Transform, Mathematics / Calculus / Laplace Transform, Mathematics / Algebra / Matrices, Mathematics / Algebra / Complex Numbers, Mathematics / Differential Equations / Differential Equations, or the closest specific topic. For Physics, use paths such as Physics / Mechanics / ... , Physics / Optics / ... , Physics / Electromagnetism / ... , Physics / Quantum Mechanics / ... , Physics / Mathematical Physics / ... and choose the most specific topic. For other subjects, create an equally clear Subject / Chapter / Topic semantic path. Existing Library paths currently available are: "+libraryList+". Fields: question_number,question,options,answer,topic,chapter,source,year,difficulty,suggested_flag,explanation,diagram_description,page,book,subject,subtopic,section,suggested_library_path,table_rows,matrix_latex. For suggested_flag, classify each question as exactly one of: easy, hard, important, nonimportant, normal. Use visible/content complexity and exam relevance; use normal when uncertain. IMPORTANT: this is extraction batch "+(bi+1)+" of "+batches.length+" covering pages "+from+"–"+to+". Return only questions that START in this page range.";let body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:btoa(bin)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:65536}},d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";raw=raw.trim();let fence=String.fromCharCode(96).repeat(3);if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim()}let p,list=[];try{p=parseGeminiJson(raw);list=Array.isArray(p.questions)?p.questions:[]}catch(parseErr){$("status").textContent="🤖 Batch "+(bi+1)+" response was incomplete. Retrying…";let compactPrompt="Extract ONLY the complete questions whose START is on PDF pages "+from+"–"+to+". Include a question's continuation if it runs onto the next page. Preserve every English and Hindi/Devanagari word exactly; never drop Hindi around equations and never reinterpret \"/\" as division unless it is visibly a fraction bar. Return ONLY JSON with a questions array. For each question use ONLY these keys: question_number, question, options, answer, topic, chapter, source, year, difficulty, suggested_flag, explanation, diagram_description, page, suggested_library_path, table_rows, matrix_latex. Preserve all wording, options, subparts and mathematics. suggested_flag must be exactly easy, hard, important, nonimportant, or normal. All math must be valid LaTeX inside MathJax delimiters.";let compactBody={contents:[{role:"user",parts:[{text:compactPrompt},{inlineData:{mimeType:"application/pdf",data:btoa(bin)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:65536}};d=await geminiRequest(key,compactBody);raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";p=parseGeminiJson(raw);list=Array.isArray(p.questions)?p.questions:[]}if(!list.length){$("status").textContent="🔎 Batch "+(bi+1)+" found no starts on pages "+from+"–"+to+"; retrying with visible-page detection…";let fallbackPrompt="Find every complete exam question that is VISIBLE or has its QUESTION TEXT START on PDF pages "+from+" through "+to+". The supplied PDF is the full original. If a question starts on these pages and continues later, include the complete question and all options/subparts. Do not require the question number itself to be on the same page. Preserve every English and Hindi/Devanagari word exactly. Never translate, shorten, paraphrase or delete prose. Treat slash / as literal text unless visibly a fraction. Preserve all mathematics as valid LaTeX inside MathJax delimiters, including °C, Å/Å, integrals, limits, derivatives, partial derivatives, summation, matrices, determinants, vectors, Greek symbols, fractions, powers, roots, subscripts and superscripts. Return ONLY valid JSON with a questions array using the same fields as the main extraction.";let fallbackBody={contents:[{role:"user",parts:[{text:fallbackPrompt},{inlineData:{mimeType:"application/pdf",data:btoa(bin)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:65536}};try{let fd=await geminiRequest(key,fallbackBody),fr=fd?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";let fp=parseGeminiJson(fr.trim());list=Array.isArray(fp.questions)?fp.questions:[]}catch(fe){console.warn("Visible-page fallback failed:",fe)}}all=all.concat(list);let seen={};all=all.filter(function(q){let n=String(q.question_number||"").trim().toLowerCase(),t=String(q.question||"").replace(/\\s+/g," ").trim().toLowerCase(),k=n?"n:"+n:"t:"+t.slice(0,180);if(seen[k])return false;seen[k]=1;return true});if(lim&&all.length>=lim){all=all.slice(0,lim);break;}$("status").textContent="✔ Batch "+(bi+1)+"/"+batches.length+" complete — "+all.length+" questions collected.";}
-if(!all.length)throw Error("No questions found after extraction.");let list=lim?all.slice(0,lim):all;qs=list.map((q,i)=>({no:q.question_number||"Q"+(i+1),text:String(q.question||"").trim(),options:Array.isArray(q.options)?q.options.map(String):[],answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||"").trim(),page:String(q.page||"").trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:Array.isArray(q.table_rows)?q.table_rows.filter(Array.isArray):[],matrixLatex:String(q.matrix_latex||"").trim(),cropImage:String(q.crop_image||q.image||"").trim()}));qs.forEach(function(q){applyFlagChoice(q,q.flagChoice)});totalDetected=qs.length;uploadedCount=0;render();$("status").textContent="🤖 Checking mathematics against the original PDF in batches…";try{let repaired=[];for(let s=0;s<qs.length;s+=40){let chunk=qs.slice(s,s+40);$("status").textContent="🔎 Verifying math/physics "+(s+1)+"–"+Math.min(s+40,qs.length)+" of "+qs.length+"…";try{let fixed=await repairMathWithVision(key,btoa(bin),chunk);repaired=repaired.concat(fixed)}catch(vErr){console.warn("Math verification batch skipped:",vErr);repaired=repaired.concat(chunk)}}qs=repaired;render();$("status").textContent="✔ AI extraction + visual Math/Physics verification complete. "+qs.length+" question(s) ready for review."}catch(mathErr){console.warn("Math verification skipped:",mathErr);$("status").textContent="✔ AI extraction complete. Math verification could not be completed; review the notation."}}catch(e){$("status").textContent="❌ "+e.message;alert("AI extraction failed: "+e.message)}finally{$("extract").disabled=false}}
+async function extract(){
+  let f=$("pdf").files[0];
+  if(!f)return alert("पहले PDF select करो.");
+  sourcePdfFile=f;
+  let key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
+  if(!key)return alert("पहले Gemini API key डालें.");
+  $("extract").disabled=true;qs=[];totalDetected=0;uploadedCount=0;render();
+  try{
+    if(f.size>50*1024*1024)throw Error("PDF is larger than 50 MB. Gemini inline input supports up to 50 MB.");
+    $("status").textContent="📄 Reading PDF…";
+    let u=new Uint8Array(await f.arrayBuffer());
+    if(!folderPaths.length){try{await loadFolders("private",$("ePath"),$("eStatus"))}catch(_){}}
+    let libraryList=folderPaths.length?folderPaths.join(" | "):"(No Library folders available yet)";
+    if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");
+    pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+    let pdfDoc=await pdfjsLib.getDocument({data:u}).promise,totalPages=pdfDoc.numPages||1;
+    let lim=Number($("max").value)||0,all=[],seen={};
+
+    async function pageImage(pageNo){
+      let page=await pdfDoc.getPage(pageNo),base=page.getViewport({scale:1});
+      let scale=Math.min(2.0,Math.max(1.35,1800/base.width)),vp=page.getViewport({scale});
+      let can=document.createElement("canvas");can.width=Math.ceil(vp.width);can.height=Math.ceil(vp.height);
+      await page.render({canvasContext:can.getContext("2d",{willReadFrequently:true}),viewport:vp}).promise;
+      return can.toDataURL("image/jpeg",.92).split(",")[1];
+    }
+    function normalizePageQuestion(q,i,pageNo){
+      return {
+        no:q.question_number||"Q"+(i+1),text:String(q.question||"").trim(),
+        options:Array.isArray(q.options)?q.options.map(String):[],
+        answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),
+        source:String(q.source||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),
+        flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},
+        libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),
+        diagram:String(q.diagram_description||"").trim(),page:String(q.page||pageNo).trim(),book:String(q.book||"").trim(),
+        subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
+        suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
+        tableRows:Array.isArray(q.table_rows)?q.table_rows.filter(Array.isArray):[],
+        matrixLatex:String(q.matrix_latex||"").trim(),cropImage:String(q.crop_image||q.image||"").trim()
+      };
+    }
+    function addPageQuestions(list,pageNo){
+      let added=0;
+      (Array.isArray(list)?list:[]).forEach(function(q){
+        let n=String(q.question_number||"").trim().toLowerCase();
+        let t=String(q.question||"").replace(/\s+/g," ").trim().toLowerCase();
+        let k=n?"n:"+n:"t:"+t.slice(0,180);
+        if(!t||seen[k])return;
+        seen[k]=1;
+        let nq=normalizePageQuestion(q,all.length,pageNo);
+        applyFlagChoice(nq,nq.flagChoice);
+        all.push(nq);qs.push(nq);added++;
+      });
+      totalDetected=all.length;render();return added;
+    }
+
+    for(let pageNo=1;pageNo<=totalPages;pageNo++){
+      if(lim&&all.length>=lim)break;
+      $("status").textContent="🖼️ Reading page "+pageNo+"/"+totalPages+"…";
+      let currentImage=await pageImage(pageNo);
+      let nextImage=pageNo<totalPages?await pageImage(pageNo+1):"";
+      let prompt="You are extracting an exam paper one page at a time. CURRENT PAGE = "+pageNo+" of "+totalPages+". Extract EVERY complete question whose QUESTION TEXT STARTS on the CURRENT PAGE. You may inspect the NEXT PAGE image only to complete a question that starts on the current page. Do not extract a question that starts on the next page. If a question continues onto the next page, include its complete continuation, all options, subparts and figure references. If a question number is visually above/before the current page but its question text starts here, treat it as starting on the current page. Return ONLY valid JSON with a questions array. Never summarize, translate, shorten, paraphrase or omit anything. Preserve every English and Hindi/Devanagari word exactly as printed, punctuation, brackets, option labels, bilingual wording, numbers and units. A slash / is literal prose unless the PDF visibly shows a mathematical fraction. Preserve prose separately from mathematics. CRITICAL MATH RULE: preserve mathematical meaning exactly and use valid LaTeX inside MathJax delimiters \\\\( ... \\\\) or \\\\[ ... \\\\]. Preserve °C, Å and Å exactly; NEVER turn Å into AA, /A or double-A. Preserve μ, Ω, eV, nm, K and other units. Preserve integrals, contour integrals, limits, derivatives d/dx, partial derivatives, nabla, summation, products, Greek symbols, vectors, fractions, roots, powers, subscripts, superscripts, determinants and actual mathematical matrices. Use proper LaTeX such as \\\\frac, \\\\sqrt, \\\\int, \\\\sum, \\\\begin{pmatrix}...\\\\end{pmatrix}; never replace a matrix with prose or a table with a matrix. Do not output raw math commands outside MathJax delimiters. Do not invent equations. Real tables must use table_rows; matrix_latex is only for actual mathematical matrices. Do not split an expression across lines. Preserve all question/options/subparts as one complete block. ALWAYS provide suggested_library_path for every question. Existing Library paths: "+libraryList+". Fields: question_number,question,options,answer,topic,chapter,source,year,difficulty,suggested_flag,explanation,diagram_description,page,book,subject,subtopic,section,suggested_library_path,table_rows,matrix_latex. suggested_flag must be exactly easy, hard, important, nonimportant, or normal; use normal when uncertain.";
+      let parts=[{text:prompt},{inlineData:{mimeType:"image/jpeg",data:currentImage}}];
+      if(nextImage)parts.push({text:"NEXT PAGE (continuation reference only; do not extract new question starts from this page):"},{inlineData:{mimeType:"image/jpeg",data:nextImage}});
+      let body={contents:[{role:"user",parts:parts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:32768}};
+      let list=[];
+      try{
+        let d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
+        raw=raw.trim();let fence=String.fromCharCode(96).repeat(3);
+        if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim()}
+        let parsed=parseGeminiJson(raw);list=Array.isArray(parsed.questions)?parsed.questions:[];
+      }catch(err){
+        console.warn("Page "+pageNo+" extraction failed:",err);
+        $("status").textContent="⚠️ Page "+pageNo+" failed; retrying…";
+        try{
+          let retryPrompt="Extract only the complete exam questions whose QUESTION TEXT STARTS on CURRENT PAGE "+pageNo+". NEXT PAGE is supplied only for continuation. Preserve every English/Hindi word exactly and preserve mathematics as valid MathJax LaTeX. Preserve Å/Å exactly, °C, μ, Ω, integrals, limits, derivatives, partial derivatives, summations, matrices, determinants, vectors, fractions, roots, powers, subscripts and superscripts. Do not translate or summarize. Return ONLY JSON {questions:[...]}.";
+          let retryParts=[{text:retryPrompt},{inlineData:{mimeType:"image/jpeg",data:currentImage}}];
+          if(nextImage)retryParts.push({inlineData:{mimeType:"image/jpeg",data:nextImage}});
+          let rd=await geminiRequest(key,{contents:[{role:"user",parts:retryParts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:32768}});
+          let rr=rd?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
+          let rp=parseGeminiJson(rr.trim());list=Array.isArray(rp.questions)?rp.questions:[];
+        }catch(re){console.warn("Page retry failed:",re)}
+      }
+      let added=addPageQuestions(list,pageNo);
+      if(added){
+        $("status").textContent="✔ Page "+pageNo+"/"+totalPages+" done — "+added+" new question(s). Processing next page…";
+      }else{
+        $("status").textContent="🔎 Page "+pageNo+"/"+totalPages+" scanned — no new question start found. Processing next page…";
+      }
+      await new Promise(r=>setTimeout(r,0));
+    }
+
+    if(lim&&qs.length>lim){qs=qs.slice(0,lim);all=all.slice(0,lim);totalDetected=qs.length;render();}
+    if(!qs.length)throw Error("No questions found after extraction.");
+    $("status").textContent="🤖 All pages scanned. Questions are ready; checking mathematics against the original PDF…";
+    try{
+      let repaired=[];
+      for(let s=0;s<qs.length;s+=40){
+        let chunk=qs.slice(s,s+40);
+        $("status").textContent="🔎 Verifying math/physics "+(s+1)+"–"+Math.min(s+40,qs.length)+" of "+qs.length+"…";
+        try{let fixed=await repairMathWithVision(key,btoa(bin),chunk);repaired=repaired.concat(fixed)}
+        catch(vErr){console.warn("Math verification batch skipped:",vErr);repaired=repaired.concat(chunk)}
+      }
+      qs=repaired;totalDetected=qs.length;render();
+      $("status").textContent="✔ AI page-by-page extraction + visual Math/Physics verification complete. "+qs.length+" question(s) ready for review.";
+    }catch(mathErr){
+      console.warn("Math verification skipped:",mathErr);
+      $("status").textContent="✔ AI extraction complete. Math verification could not be completed; review the notation.";
+    }
+  }catch(e){
+    $("status").textContent="❌ "+e.message;alert("AI extraction failed: "+e.message);
+  }finally{$("extract").disabled=false}
+}
 async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;cropPage=Number(qs[i].page)||1;$("cropPanel").style.display="block";$("cropStatus").textContent="Loading page "+cropPage+"…";try{if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;cropPage=Math.max(1,Math.min(cropPage,pdf.numPages));let page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(1.5,Math.max(.8,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Drag over the question area."}catch(e){$("cropStatus").textContent=e.message}}
 function setup(){ $("geminiKey").value=localStorage.getItem(KEY)||"";$("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("Gemini API key भरें.");localStorage.setItem(KEY,v);alert("✔ Key saved on this device.")};$("pdf").addEventListener("change",function(){let f=this.files&&this.files[0];$("status").textContent=f?"📄 PDF selected: "+f.name+" ("+(f.size/1048576).toFixed(2)+" MB)":"Waiting for PDF…";});$("extract").onclick=extract;$("clear").onclick=()=>{qs=[];render();$("status").textContent="Cleared.";showSaveToast("Review list cleared.")};$("import").onclick=async()=>{if(!qs.length)return;$("import").disabled=true;let processed=0;try{while(qs.length){let q=qs[0];if(!q.folderPath)throw Error("Question "+q.no+": select its Library path first.");q.libraryMode=q.libraryMode||"private";await saveQ(0);uploadedCount++;processed++;qs.splice(0,1);render();$("status").textContent="☁ Saved "+processed+" question(s). "+qs.length+" remaining.";showSaveToast("✔ Question "+q.no+" saved to Library. "+qs.length+" remaining.");}}catch(e){showSaveToast("❌ Save stopped: "+e.message,true);alert("Save failed: "+e.message)}finally{$("import").disabled=!qs.length}};$("grid").addEventListener("change",e=>{let sel=e.target.closest("select[data-path-i]");if(sel)setQuestionPath(Number(sel.dataset.pathI),sel.value)});$("grid").addEventListener("click",async function(e){
   var b=e.target.closest("button[data-a]");
