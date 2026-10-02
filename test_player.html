@@ -74,6 +74,8 @@ try{
  document.addEventListener("click",e=>{const el=e.target.closest("button,a,[role='button'],input[type='submit'],input[type='button'],select");if(!el)return;const label=(el.innerText||el.value||el.getAttribute("aria-label")||el.getAttribute("title")||el.id||"click").trim();const href=el.getAttribute("href");__log("click",label,href?("href="+href):"")});
 }catch(e){console.debug("Activity analytics:",e)}
 </script>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
 
@@ -274,23 +276,31 @@ try{
 
       const imgWrapper = document.getElementById('q-img-wrapper');
       const imgEl = document.getElementById('current-q-img');
-      if (q.question && q.question.trim() !== '') {
-        imgEl.src = q.question;
+      const imageSrc = String(q.questionImage || q.image || q.croppedImage || q.question || '').trim();
+      if (/^data:image\\//i.test(imageSrc)) {
+        imgEl.src = imageSrc;
+        imgEl.style.display = 'block';
         imgWrapper.style.display = 'flex';
       } else {
+        imgEl.removeAttribute('src');
+        imgEl.style.display = 'none';
         imgWrapper.style.display = 'none';
       }
 
+      const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       const qTextEl = document.getElementById('q-text-note');
-      qTextEl.textContent = q.qText || `Question ${idx + 1}`;
+      qTextEl.innerHTML = esc(q.qText || q.text || q.questionText || (imageSrc && !/^data:image\\//i.test(imageSrc) ? imageSrc : '') || `Question ${idx + 1}`);
 
       const qOptsEl = document.getElementById('q-opts-note');
-      if (q.optText) {
-        qOptsEl.innerHTML = `<strong>Options:</strong><br>` + q.optText.replace(/\|/g, '<br>');
+      const opts = Array.isArray(q.options) ? q.options.map(String).filter(Boolean) :
+                   (q.optText ? q.optText.split(/\\s*\\|\\s*/).map(s => s.trim()).filter(Boolean) : []);
+      if (opts.length) {
+        qOptsEl.innerHTML = `<strong>Options:</strong><br>` + opts.map(o => esc(o)).join('<br>');
         qOptsEl.style.display = 'block';
       } else {
         qOptsEl.style.display = 'none';
       }
+      if(window.MathJax && window.MathJax.typesetPromise) MathJax.typesetPromise([qTextEl,qOptsEl]).catch(()=>{});
 
       ['A', 'B', 'C', 'D'].forEach(opt => {
         const btn = document.getElementById(`btn-opt-${opt}`);
