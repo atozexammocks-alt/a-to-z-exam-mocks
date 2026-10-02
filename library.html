@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>A to Z Exam Mocks - Library Manager</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -104,8 +108,7 @@
     .library-questions-grid{
       display:grid !important;
       grid-template-columns:repeat(3,minmax(0,1fr));
-      grid-template-rows:repeat(2,minmax(220px,1fr));
-      grid-auto-rows:minmax(220px,1fr);
+      grid-auto-rows:max-content;
       gap:12px;
       align-items:stretch;
       max-height:calc(100vh - 250px);
@@ -122,7 +125,7 @@
       gap:7px;
       min-width:0;
       min-height:0;
-      height:100%;
+      height:auto;
       overflow:hidden;
       box-shadow:0 5px 18px rgba(0,0,0,.18);
     }
@@ -131,7 +134,7 @@
       transform:translateY(-2px);
       box-shadow:0 12px 30px rgba(0,0,0,.28);
     }
-    .library-q-main{min-width:0;display:flex;flex-direction:column;gap:8px;flex:1}
+    .library-q-main{min-width:0;display:flex;flex-direction:column;gap:8px;flex:none}
     .library-q-title{
       font-size:11px;
       font-weight:800;
@@ -351,7 +354,7 @@
         <div id="picker-questions-list" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
-      <div id="library-questions-section" style="display:none;background:transparent;border:0;border-radius:0;padding:4px 0 20px;">
+      <div id="library-questions-section" style="display:none;background:transparent;border:0;border-radius:0;padding:4px 0 6px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
           <h4 style="color:#10b981;font-size:14px;">📝 Questions in this Folder</h4>
         </div>
@@ -755,6 +758,29 @@
       if(typeof fallback==='string' && fallback.trim() && !/^(data:image\/|https?:\/\/|blob:)/i.test(fallback.trim())) return fallback.trim();
       return '';
     }
+    function libraryMathMarkup(v){
+      var x=String(v||"");
+      if(!x)return "";
+      if(/\\\\\(|\\\\\[/.test(x)) return x;
+      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
+        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
+        return "\\("+x+"\\)";
+      }
+      return x;
+    }
+    function renderLibraryText(v){
+      var x=libraryMathMarkup(v);
+      return escapeHtml(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+    }
+    function typesetLibraryMath(){
+      if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
+      if(MathJax.startup&&MathJax.startup.promise){
+        MathJax.startup.promise.then(function(){
+          MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
+        }).catch(function(){});
+      }
+    }
+
     function questionOptions(q){
       let opts=q.options||q.choices||q.answerOptions;
       if(!opts && typeof q.optText==='string' && q.optText.trim()) opts=q.optText.split(/\s*\|\s*/).map(x=>x.replace(/^\s*\([A-E]\)\s*/i,'').trim()).filter(Boolean);
@@ -928,7 +954,7 @@
         return '<div class="library-question-card">'+
           '<div class="library-q-main">'+
           '<div style="display:flex;align-items:center;gap:8px;min-width:0;">'+
-          '<div class="library-q-title" style="flex:1;">Q'+escapeHtml(q.qNo??q.questionNo??(i+1))+' · '+escapeHtml(type)+' · '+escapeHtml(marks)+' mark'+(Number(marks)===1?'':'s')+'</div>'+
+          '<div class="library-q-title" style="flex:1;">Q'+(i+1)+' · '+escapeHtml(type)+' · '+escapeHtml(marks)+' mark'+(Number(marks)===1?'':'s')+'</div>'+
           '<div class="question-action-inline">'+
           (img?'<button class="tool-btn library-mini-btn" style="background:#059669;" onclick="openQuestionImage('+i+')">View</button>':'')+
           (img?'<button class="tool-btn library-mini-btn" style="background:#7c3aed;" onclick="editLibraryQuestion(\''+escapeHtml(q.id)+'\')">Edit</button>':'')+
@@ -936,10 +962,11 @@
           '<button class="tool-btn library-mini-btn" style="background:#991b1b;" onclick="deleteLibraryQuestion(\''+escapeHtml(q.id)+'\')">Delete</button>'+
           '</div></div>'+
           (img?'<div class="library-q-image" title="Open image" onclick="openQuestionImage('+i+')"><img src="'+escapeHtml(img)+'" alt="Question preview"></div>':'')+
-          (text?'<div class="library-q-text">'+escapeHtml(text)+'</div>':'')+
-          (opts.length?'<div class="library-q-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+escapeHtml(o)+'</div>').join('')+'</div>':'')+
+          (text?'<div class="library-q-text">'+renderLibraryText(text)+'</div>':'')+
+          (opts.length?'<div class="library-q-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderLibraryText(o)+'</div>').join('')+'</div>':'')+
           '</div></div>';
       }).join('');
+      typesetLibraryMath();
       const imageBtn=document.getElementById('view-image-btn');
       if(imageBtn) imageBtn.style.display=rows.some(q=>!!questionImage(q))?'inline-flex':'none';
     }
@@ -974,7 +1001,7 @@
       list.className='library-questions-grid';
       list.innerHTML=rows.length ? rows.map((q,i)=>{
         const img=questionImage(q);
-        const label='Q'+escapeHtml(q.qNo??q.questionNo??(i+1));
+        const label='Q'+(i+1);
         return '<div class="library-question-card image-only-card">'+
           '<div class="library-q-image" title="Open image" onclick="openQuestionImage('+i+')"><img src="'+escapeHtml(img)+'" alt="'+label+'"></div>'+
           '<div class="question-action-inline" style="margin-left:0;width:100%;">'+
