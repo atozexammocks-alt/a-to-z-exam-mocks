@@ -74,6 +74,26 @@ function typesetMath(){
     },100);
   });
 }
+function formatQuestionText(s){
+  var x=String(s||"").replace(/\r\n?/g,"\n").trim();
+  if(!x)return "";
+  var lines=x.split("\n"),out=[],buf="";
+  lines.forEach(function(line){
+    var t=line.trim();
+    if(!t)return;
+    if(/^(?:\(?[A-Ha-h1-9][\).]|\(?[ivxlcdmIVXLCDM]+[\).])\s+/.test(t)){
+      if(buf){out.push(buf.trim());buf="";}
+      out.push(t);
+    }else if(/^(?:Question\s*)?\d+[\).:]\s+/.test(t)){
+      if(buf){out.push(buf.trim());buf="";}
+      out.push(t);
+    }else{
+      buf+=(buf?" ":"")+t;
+    }
+  });
+  if(buf)out.push(buf.trim());
+  return out.join("\n");
+}
 function renderQuestionPathSelectors(i){
   var wrap=$("qpath-"+i),q=qs[i];if(!wrap||!q)return;
   var mode=q.libraryMode||"private",nodes=folderTrees[mode]||[],selected=norm(q.folderPath||suggestedMatch(q)),parts=selected.split(" / ").filter(Boolean),level=0;
