@@ -14,15 +14,6 @@ const cfg={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsv
 async function getFirebase(){const appMod=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js");const fsMod=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");const app=appMod.initializeApp(cfg,"ai-question-import-beta");return{db:fsMod.getFirestore(app),addDoc:fsMod.addDoc,collection:fsMod.collection,getDoc:fsMod.getDoc,doc:fsMod.doc};}
 const $=x=>document.getElementById(x),email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase(),esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 function mathHTML(value){
- let s=esc(value);
- // MathJax needs explicit delimiters. Gemini is instructed to return them, and this fallback
- // catches common raw-LaTeX output without touching ordinary prose.
- if(!/[\\\\](?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|lim|vec|mu|lambda|theta|alpha|beta|gamma|Delta|infty|leq|geq|neq|pm|times|cdot|pi|Omega|omega|rightarrow|to)\\b/.test(s) &&
-    !/(?:[A-Za-z0-9)\\]}]+\\^|[A-Za-z0-9)\\]}]+_\\{)/.test(s)) return s;
- if(/\\\\\\(|\\\\\\[/.test(s)) return s;
- return "\\\\("+s+"\\\\)";
-}
-function mathHTML(value){
   let s=esc(value);
   // Gemini may return raw LaTeX without delimiters. Wrap only clear LaTeX math fragments.
   s=s.replace(/\\\\(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|lim|vec|mathbf|mathrm|mu|lambda|theta|alpha|beta|gamma|Delta|infty|leq|geq|neq|pm|times|cdot|pi|Omega|omega|rightarrow|to)\\b[^\n]*/g,function(m){
