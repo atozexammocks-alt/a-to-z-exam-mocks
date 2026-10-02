@@ -149,7 +149,7 @@ function render(){
       '<button class="btn blue '+(mode==="text"?"selected":"")+'" data-a="keep-text" data-i="'+i+'">📝 Keep Text</button>'+
       '<button class="btn purple '+(mode==="image"?"selected":"")+'" data-a="keep-image" data-i="'+i+'">🖼 Keep Image</button>'+
       '<span class="keep-state">'+(mode==="image"?"🖼 Image Only selected":"📝 Text Only selected")+'</span></div>'+
-      '<div class="row"><button class="btn purple" data-a="crop" data-i="'+i+'">✂ Re-crop Question</button>'+(q.figureRequired?'<button class="btn green" data-a="figure" data-i="'+i+'">🖼️ Insert Figure</button>':"")+'<button class="btn" data-a="edit" data-i="'+i+'">✏️ Go to Editor</button></div>'+
+      '<div class="row"><button class="btn purple" data-a="crop" data-i="'+i+'">✂ Re-crop Question</button>'+(q.figureRequired?'<button class="btn green" data-a="figure" data-i="'+i+'">🖼️ Insert Figure</button>':"")+'<button class="btn" data-a="edit-page" data-i="'+i+'">✏️ Open Question Editor</button></div>'+
       path+
       '<div class="row"><button class="btn green" data-a="save" data-i="'+i+'">☁ Save to Library</button><button class="btn red" data-a="del" data-i="'+i+'">🗑 Delete</button></div></div>';
     var right='<div class="student-review"><div class="student-head"><b>🎓 Student View</b><span class="muted">Live preview</span></div>'+
