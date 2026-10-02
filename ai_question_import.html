@@ -9,7 +9,7 @@ body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:5
 <div class="settings"><div class="field"><label>Maximum</label><select id="max"><option value="0">All</option><option>25</option><option>50</option><option>100</option></select></div></div>
 <div class="row"><button id="import" class="btn green" disabled>☁ Import Reviewed Questions</button><button id="clear" class="btn red" disabled>✕ Clear</button></div><div id="stats" class="muted" style="margin-top:8px"></div><div class="import-progress"><div class="progress-chip">Total Questions: <b id="totalCount">0</b></div><div class="progress-chip">Uploaded: <b id="uploadedCount">0</b></div><div class="progress-chip">Remaining: <b id="remainingCount">0</b></div></div></div>
 <div id="grid" class="grid"><div class="card muted">Your extracted questions will appear here.</div></div></div>
-<div id="editor" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:20;padding:12px;overflow:auto"><div style="max-width:1100px;margin:20px auto;background:#0b1120;border:1px solid #475569;border-radius:12px;padding:14px"><h3>✏️ Question Editor</h3>
+<div id="editor" aria-hidden="true" style="display:none!important;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:20;padding:12px;overflow:auto"><div style="max-width:1100px;margin:20px auto;background:#0b1120;border:1px solid #475569;border-radius:12px;padding:14px"><h3>✏️ Question Editor</h3>
 <div id="editorVisual" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,420px);gap:12px;margin:10px 0">
 <div class="card" style="min-width:0"><b>📝 Text Preview</b><div id="editorTextPreview" class="math-content" style="margin-top:8px;white-space:pre-wrap;line-height:1.7;max-height:420px;overflow:auto"></div></div>
 <div class="card" style="min-width:0"><b>🖼 Cropped PDF Image</b><div id="editorImagePreview" class="figure-preview" style="min-height:180px;display:flex;align-items:center;justify-content:center"><span class="muted">No crop yet.</span></div>
@@ -123,12 +123,12 @@ function render(){
   $("import").disabled=!qs.length;$("clear").disabled=!qs.length;
   if(!qs.length){$("grid").innerHTML='<div class="card muted">No questions loaded.</div>';return}
   $("grid").innerHTML=qs.map(function(q,i){
-    var aiPath=norm(q.suggestedPath||"")||semanticSuggestedPath(q),auto=suggestedMatch(q),chosen=q.folderPath||auto;
+    var aiPath=norm(q.suggestedPath||"")||semanticSuggestedPath(q),auto=suggestedMatch(q);
     if(!q.folderPath&&auto)q.folderPath=auto;
     var flagChoice=q.flagChoice||suggestedFlagFromDifficulty(q.difficulty);
-    var opts=(q.options||[]).map(function(o,oi){return '<div class="opt math-content">'+esc(formatQuestionText(o))+'</div>'}).join("");
-    var figureNote=q.diagram?'<div class="figure-required">⚠️ FIGURE / IMAGE REQUIRED — '+esc(q.diagram)+'</div>':"";
-    var image=q.cropImage?'<div class="figure-preview"><b>🖼 Cropped Question Image</b><img src="'+esc(q.cropImage)+'" alt="Cropped question image"></div>':'<div class="figure-preview" style="min-height:150px;display:flex;align-items:center;justify-content:center"><span class="muted">No cropped image yet.<br>Use “✂ Insert / Crop Image” on the left.</span></div>';
+    var mode=q.contentMode||"text";
+    var opts=(q.options||[]).map(function(o){return '<div class="opt math-content">'+esc(formatQuestionText(o))+'</div>'}).join("");
+    var image=q.cropImage?'<div class="figure-preview auto-source-image"><b>🖼 Original Question Image</b><img src="'+esc(q.cropImage)+'" alt="Automatically cropped source question"></div>':'<div class="figure-preview auto-source-image empty-image"><span class="muted">⏳ Source image crop not available for this question.</span></div>';
     var path='<div class="pathbox"><b>📁 Library Location — This Question</b>'+
       (q.suggestedPath?'<div class="pathhint">🤖 AI suggested: '+esc(q.suggestedPath)+'</div>':"")+
       '<div id="qpath-'+i+'" class="pathrow" style="align-items:flex-start"></div>'+
@@ -137,20 +137,19 @@ function render(){
       '<div class="suggest-actions">'+(folderPaths.indexOf(norm(aiPath))>=0?'<button class="btn blue" data-a="use-suggest" data-i="'+i+'">✓ Confirm Path</button>':'<button class="btn purple" data-a="create-suggest" data-i="'+i+'">＋ Confirm & Create Folder Path</button>')+
       '<button class="btn" data-a="add-main" data-i="'+i+'">＋ Add Main Folder</button><button class="btn" data-a="add-sub" data-i="'+i+'">＋ Add Sub Folder</button></div>'+
       '<div class="pathhint">Confirming a missing path creates the full path in this question’s Library.</div>'+flagSuggestionHtml(i,q,flagChoice)+'</div></div>';
-    var mode=q.contentMode||"text";
-    var modeLabel=mode==="image"?"🖼 Image Only":mode==="both"?"📝+🖼 Image + Text":"📝 Text Only";
-    var modeButtons='<div class="keep-tools"><b>KEEP IN STUDENT PAPER</b><span class="keep-state">'+modeLabel+'</span>'+
+    var left='<div class="review-left"><div class="review-title">Q'+esc(q.no)+' — OCR Text</div>'+
+      '<textarea class="main-ocr-editor" data-ocr-i="'+i+'" spellcheck="false">'+esc(q.text||"")+'</textarea>'+
+      '<div class="row" style="margin-top:8px"><button class="btn blue" data-a="apply-text" data-i="'+i+'">✓ Apply Text</button></div>'+
+      '<div class="keep-tools"><b>KEEP IN STUDENT PAPER</b>'+
       '<button class="btn blue '+(mode==="text"?"selected":"")+'" data-a="keep-text" data-i="'+i+'">📝 Keep Text</button>'+
       '<button class="btn purple '+(mode==="image"?"selected":"")+'" data-a="keep-image" data-i="'+i+'">🖼 Keep Image</button>'+
-      '<button class="btn green '+(mode==="both"?"selected":"")+'" data-a="keep-both" data-i="'+i+'">📝+🖼 Keep Both</button></div>';
-    var left='<div class="review-left"><div class="review-title">⚙️ Question Controls</div>'+
-      '<div class="field"><label>LIBRARY</label><select class="q-library-mode" data-i="'+i+'"><option value="private"'+(q.libraryMode==="private"?" selected":"")+' >Private Library</option><option value="central"'+(q.libraryMode==="central"?" selected":"")+' >Central Library</option><option value="group"'+(q.libraryMode==="group"?" selected":"")+' >Group Library</option></select></div>'+
-      '<div class="row"><button class="btn purple" data-a="crop" data-i="'+i+'">✂ Insert / Crop Image</button></div>'+
-      modeButtons+path+
+      '<span class="keep-state">'+(mode==="image"?"🖼 Image Only selected":"📝 Text Only selected")+'</span></div>'+
+      '<div class="row"><button class="btn purple" data-a="crop" data-i="'+i+'">✂ Re-crop from Original PDF</button></div>'+
+      path+
       '<div class="row"><button class="btn green" data-a="save" data-i="'+i+'">☁ Save to Library</button><button class="btn red" data-a="del" data-i="'+i+'">🗑 Delete</button></div></div>';
-    var right='<div class="student-review"><div class="student-head"><b>🎓 Student View</b><span class="muted">Live review preview — compare Text vs Image before saving</span></div>'+
-      '<div class="student-text"><b style="color:#38bdf8">'+esc(q.no)+'</b><div class="q math-content">'+formatQuestionText(q.text).split("\n").map(renderMathLine).join("<br>")+'</div>'+opts+figureNote+'</div>'+
-      '<div class="student-image"><div class="student-image-title">🖼 Cropped Image</div>'+image+'</div></div>';
+    var right='<div class="student-review"><div class="student-head"><b>🎓 Student View</b><span class="muted">Live preview</span></div>'+
+      '<div class="student-text"><b style="color:#38bdf8">'+esc(q.no)+'</b><div class="q math-content">'+formatQuestionText(q.text).split("\n").map(renderMathLine).join("<br>")+'</div>'+opts+'</div>'+
+      '<div class="student-image">'+image+'</div></div>';
     return '<div class="card aiq-review-card"><div class="review-layout">'+left+right+'</div><div class="muted review-meta">'+esc([q.topic,q.chapter,q.source,q.year,q.answer?"Answer: "+q.answer:"",q.page?"Page: "+q.page:""].filter(Boolean).join(" • "))+'</div></div>';
   }).join("");
   qs.forEach(function(_,i){renderQuestionPathSelectors(i)});
@@ -317,6 +316,25 @@ async function extract(){
       await page.render({canvasContext:can.getContext("2d",{willReadFrequently:true}),viewport:vp}).promise;
       return can.toDataURL("image/jpeg",.92).split(",")[1];
     }
+    async function makeAutoCrop(pageData,b){
+      if(!pageData||!b)return "";
+      try{
+        var box=b;
+        var x=Math.max(0,Math.min(1,Number(box.x??box.left??0)));
+        var y=Math.max(0,Math.min(1,Number(box.y??box.top??0)));
+        var w=Math.max(0,Math.min(1-x,Number(box.width??box.w??0)));
+        var h=Math.max(0,Math.min(1-y,Number(box.height??box.h??0)));
+        if(w<0.02||h<0.02)return "";
+        var img=new Image();img.src="data:image/jpeg;base64,"+pageData;
+        await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
+        var padX=Math.round(img.width*.012),padY=Math.round(img.height*.012);
+        var sx=Math.max(0,Math.round(x*img.width)-padX),sy=Math.max(0,Math.round(y*img.height)-padY);
+        var sw=Math.min(img.width-sx,Math.round(w*img.width)+padX*2),sh=Math.min(img.height-sy,Math.round(h*img.height)+padY*2);
+        var can=document.createElement("canvas");can.width=sw;can.height=sh;
+        can.getContext("2d").drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
+        return can.toDataURL("image/jpeg",.9);
+      }catch(e){console.warn("Auto crop failed",e);return ""}
+    }
     function normalizePageQuestion(q,i,pageNo){
       return {
         no:q.question_number||"Q"+(i+1),text:normalizeAngstromText(String(q.question||"").trim()),
@@ -329,10 +347,10 @@ async function extract(){
         subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
         suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
         tableRows:Array.isArray(q.table_rows)?q.table_rows.filter(Array.isArray):[],
-        matrixLatex:String(q.matrix_latex||"").trim(),cropImage:String(q.crop_image||q.image||"").trim()
+        matrixLatex:String(q.matrix_latex||"").trim(),cropImage:String(q.crop_image||q.image||"").trim(),cropBox:q.crop_box||q.bounding_box||null
       };
     }
-    function addPageQuestions(list,pageNo){
+    async function addPageQuestions(list,pageNo,pageImageData){
       let added=0;
       (Array.isArray(list)?list:[]).forEach(function(q){
         let n=String(q.question_number||"").trim().toLowerCase();
@@ -347,6 +365,8 @@ async function extract(){
         if(!t||seen[k])return;
         seen[k]=1;
         let nq=normalizePageQuestion(q,all.length,pageNo);
+        if(!nq.cropImage&&nq.cropBox&&pageImageData)nq.cropImage=await makeAutoCrop(pageImageData,nq.cropBox);
+        delete nq.cropBox;
         applyFlagChoice(nq,nq.flagChoice);
         all.push(nq);qs.push(nq);added++;
       });
@@ -358,7 +378,7 @@ async function extract(){
       $("status").textContent="🖼️ Reading page "+pageNo+"/"+totalPages+"…";
       let currentImage=await pageImage(pageNo);
       let nextImage=pageNo<totalPages?await pageImage(pageNo+1):"";
-      let prompt="You are extracting an exam paper one page at a time. CURRENT PAGE = "+pageNo+" of "+totalPages+". Extract EVERY complete question whose QUESTION TEXT STARTS on the CURRENT PAGE. You may inspect the NEXT PAGE image only to complete a question that starts on the current page. Do not extract a question that starts on the next page. If a question continues onto the next page, include its complete continuation, all options, subparts and figure references. If the next page contains the options for a question started on the current page, those options MUST be attached to that question in the options array; never return only the statement. If a question number is visually above/before the current page but its question text starts here, treat it as starting on the current page. Return ONLY valid JSON with a questions array. Never summarize, translate, shorten, paraphrase or omit anything. Preserve every English and Hindi/Devanagari word exactly as printed, punctuation, brackets, option labels, bilingual wording, numbers and units. IMPORTANT LINE FORMAT: keep English and Hindi on separate lines whenever they are separate in the PDF. Never merge the English line with its Hindi line. Preserve intentional line breaks between statement, Hindi translation, options, assertions, subparts and equations. A slash / is literal prose unless the PDF visibly shows a mathematical fraction. Preserve prose separately from mathematics. CRITICAL MATH RULE: preserve mathematical meaning exactly and use valid LaTeX inside MathJax delimiters \\\\( ... \\\\) or \\\\[ ... \\\\]. Preserve °C, Å and Å exactly; NEVER turn Å into AA, /A or double-A. Preserve μ, Ω, eV, nm, K and other units. Preserve integrals, contour integrals, limits, derivatives d/dx, partial derivatives, nabla, summation, products, Greek symbols, vectors, fractions, roots, powers, subscripts, superscripts, determinants and actual mathematical matrices. Use proper LaTeX such as \\\\frac, \\\\sqrt, \\\\int, \\\\sum, \\\\begin{pmatrix}...\\\\end{pmatrix}; never replace a matrix with prose or a table with a matrix. Do not output raw math commands outside MathJax delimiters. Do not invent equations. Real tables must use table_rows; matrix_latex is only for actual mathematical matrices. Do not split an expression across lines. Preserve all question/options/subparts as one complete block. ALWAYS provide suggested_library_path for every question. Existing Library paths: "+libraryList+". Fields: question_number,question,options,answer,topic,chapter,source,year,difficulty,suggested_flag,explanation,diagram_description,page,book,subject,subtopic,section,suggested_library_path,table_rows,matrix_latex,is_continuation,continuation. suggested_flag must be exactly easy, hard, important, nonimportant, or normal; use normal when uncertain.";
+      let prompt="You are extracting an exam paper one page at a time. CURRENT PAGE = "+pageNo+" of "+totalPages+". Extract EVERY complete question whose QUESTION TEXT STARTS on the CURRENT PAGE. You may inspect the NEXT PAGE image only to complete a question that starts on the current page. Do not extract a question that starts on the next page. If a question continues onto the next page, include its complete continuation, all options, subparts and figure references. If the next page contains the options for a question started on the current page, those options MUST be attached to that question in the options array; never return only the statement. If a question number is visually above/before the current page but its question text starts here, treat it as starting on the current page. Return ONLY valid JSON with a questions array. Never summarize, translate, shorten, paraphrase or omit anything. Preserve every English and Hindi/Devanagari word exactly as printed, punctuation, brackets, option labels, bilingual wording, numbers and units. IMPORTANT LINE FORMAT: keep English and Hindi on separate lines whenever they are separate in the PDF. Never merge the English line with its Hindi line. Preserve intentional line breaks between statement, Hindi translation, options, assertions, subparts and equations. A slash / is literal prose unless the PDF visibly shows a mathematical fraction. Preserve prose separately from mathematics. CRITICAL MATH RULE: preserve mathematical meaning exactly and use valid LaTeX inside MathJax delimiters \\\\( ... \\\\) or \\\\[ ... \\\\]. Preserve °C, Å and Å exactly; NEVER turn Å into AA, /A or double-A. Preserve μ, Ω, eV, nm, K and other units. Preserve integrals, contour integrals, limits, derivatives d/dx, partial derivatives, nabla, summation, products, Greek symbols, vectors, fractions, roots, powers, subscripts, superscripts, determinants and actual mathematical matrices. Use proper LaTeX such as \\\\frac, \\\\sqrt, \\\\int, \\\\sum, \\\\begin{pmatrix}...\\\\end{pmatrix}; never replace a matrix with prose or a table with a matrix. Do not output raw math commands outside MathJax delimiters. Do not invent equations. Real tables must use table_rows; matrix_latex is only for actual mathematical matrices. Do not split an expression across lines. Preserve all question/options/subparts as one complete block. ALWAYS provide suggested_library_path for every question. Existing Library paths: "+libraryList+". Fields: question_number,question,options,answer,topic,chapter,source,year,difficulty,suggested_flag,explanation,diagram_description,page,book,subject,subtopic,section,suggested_library_path,table_rows,matrix_latex,is_continuation,continuation,crop_box. For every question starting on CURRENT PAGE, return crop_box as normalized JSON {x,y,width,height} around the complete visible question content on CURRENT PAGE, including its options when present. This box is used to automatically show the original PDF image beside the OCR text. suggested_flag must be exactly easy, hard, important, nonimportant, or normal; use normal when uncertain.";
       let parts=[{text:prompt},{inlineData:{mimeType:"image/jpeg",data:currentImage}}];
       if(nextImage)parts.push({text:"NEXT PAGE (continuation reference only; do not extract new question starts from this page):"},{inlineData:{mimeType:"image/jpeg",data:nextImage}});
       let body={contents:[{role:"user",parts:parts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:32768}};
@@ -380,7 +400,7 @@ async function extract(){
           let rp=parseGeminiJson(rr.trim());list=Array.isArray(rp.questions)?rp.questions:[];
         }catch(re){console.warn("Page retry failed:",re)}
       }
-      let added=addPageQuestions(list,pageNo);
+      let added=await addPageQuestions(list,pageNo,currentImage);
       if(added){
         $("status").textContent="✔ Page "+pageNo+"/"+totalPages+" done — "+added+" new question(s). Processing next page…";
       }else{
@@ -418,7 +438,11 @@ function setup(){ $("eCropFromPdf").onclick=()=>{if(editing>=0)cropQ(editing)}; 
   if(!Number.isFinite(i)||!qs[i])return;
   try{
     var a=b.dataset.a;
-    if(a==="keep-text"){readQuestionModeChoice(i,"text");}
+    if(a==="apply-text"){
+      var ta=document.querySelector('textarea.main-ocr-editor[data-ocr-i="'+i+'"]');
+      if(ta){qs[i].text=normalizeAngstromText(ta.value);render();showSaveToast("✔ Q"+qs[i].no+" text updated.");}
+    }
+    else if(a==="keep-text"){readQuestionModeChoice(i,"text");}
     else if(a==="keep-image"){readQuestionModeChoice(i,"image");}
     else if(a==="keep-both"){readQuestionModeChoice(i,"both");}
     else if(a==="edit"){return;}
