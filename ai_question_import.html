@@ -13,6 +13,17 @@ body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:5
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";import{getFirestore,addDoc,collection,getDoc,doc}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const cfg={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"},db=getFirestore(initializeApp(cfg,"ai-question-import-beta")),model="gemini-3.8-flash",fallbackModel="gemini-3.5-flash-lite";let qs=[];
 const $=x=>document.getElementById(x),email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase(),esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+function mathHTML(value){
+  let s=esc(value);
+  // Gemini may return raw LaTeX without delimiters. Wrap only clear LaTeX math fragments.
+  s=s.replace(/\\\\(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|lim|vec|mathbf|mathrm|mu|lambda|theta|alpha|beta|gamma|Delta|infty|leq|geq|neq|pm|times|cdot|pi|Omega|omega|rightarrow|to)\\b[^\n]*/g,function(m){
+    return "\\("+m+"\\)";
+  });
+  s=s.replace(/(^|[\s(=,:;])((?:[A-Za-z0-9]+(?:[_^][A-Za-z0-9{}+\-]+)+|[0-9]+(?:\\.[0-9]+)?\s*[A-Za-z]+(?:\\/[A-Za-z]+)?))(?=$|[\s),.;!?])/g,function(_,pre,m){
+    return pre+"\\("+m+"\\)";
+  });
+  return s;
+}
 function render(){
  $("stats").textContent=qs.length?qs.length+" question(s) ready for review.":"";$(
 "import").disabled=!qs.length;$("clear").disabled=!qs.length;
@@ -46,12 +57,6 @@ function parseGeminiJSON(raw){
  const first=x.indexOf("{"),last=x.lastIndexOf("}");
  if(first>=0&&last>first)x=x.slice(first,last+1);
  try{return JSON.parse(x);}catch(e){throw Error("Gemini returned malformed JSON. Please retry extraction.");}
-}
-function mathHTML(value){
- let s=esc(value);
- s=s.replace(/(\\\\(?:frac|sqrt|int|sum|prod|lim|vec|mu|lambda|theta|alpha|beta|gamma|Delta|infty|le|ge|neq|pm|times|propto)(?:[^\n<]|\\{[^}]*\\})*)/g,function(m){return "\\\\("+m+"\\\\)";});
- s=s.replace(/([A-Za-z0-9)\\]}]+\\^[A-Za-z0-9+\\-{}]+)/g,"\\\\($1\\\\)");
- return s;
 }
 p=parseGeminiJSON(t);const list=Array.isArray(p.questions)?p.questions:Array.isArray(p)?p:[];if(!list.length)throw Error("No questions found.");const lim=Number($("max").value);qs=list.slice(0,lim||list.length).map((q,i)=>({no:q.question_number||q.qNo||"Q"+(i+1),text:String(q.question||q.question_text||q.text||"").trim(),options:Array.isArray(q.options)?q.options.map(String).slice(0,4):[],answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||q.exam||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||"").trim(),page:String(q.page||"").trim()}));render();$("status").textContent="✔ AI extraction complete. Review before importing."}catch(e){$("status").textContent="❌ "+e.message;alert("AI extraction failed: "+e.message)}finally{b.disabled=false}}
 $("extract").onclick=extract;$("clear").onclick=()=>{qs=[];render();$("status").textContent="Cleared."};
