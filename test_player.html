@@ -276,8 +276,11 @@ try{
 
       const imgWrapper = document.getElementById('q-img-wrapper');
       const imgEl = document.getElementById('current-q-img');
+      const contentMode = String(q.contentMode || (q.questionImage || q.image || q.croppedImage ? 'both' : 'text')).toLowerCase();
       const imageSrc = String(q.questionImage || q.image || q.croppedImage || q.question || '').trim();
-      if (/^data:image\\//i.test(imageSrc)) {
+      const hasImage = /^data:image\\//i.test(imageSrc);
+      const showImage = hasImage && (contentMode === 'image' || contentMode === 'both');
+      if (showImage) {
         imgEl.src = imageSrc;
         imgEl.style.display = 'block';
         imgWrapper.style.display = 'flex';
@@ -289,15 +292,17 @@ try{
 
       const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       const qTextEl = document.getElementById('q-text-note');
-      qTextEl.innerHTML = esc(q.qText || q.text || q.questionText || (imageSrc && !/^data:image\\//i.test(imageSrc) ? imageSrc : '') || `Question ${idx + 1}`);
+      qTextEl.innerHTML = contentMode === 'image' ? '' : esc(q.qText || q.text || q.questionText || (imageSrc && !/^data:image\\//i.test(imageSrc) ? imageSrc : '') || ('Question ' + (idx + 1)));
+      qTextEl.style.display = contentMode === 'image' ? 'none' : 'block';
 
       const qOptsEl = document.getElementById('q-opts-note');
       const opts = Array.isArray(q.options) ? q.options.map(String).filter(Boolean) :
                    (q.optText ? q.optText.split(/\\s*\\|\\s*/).map(s => s.trim()).filter(Boolean) : []);
-      if (opts.length) {
+      if (opts.length && contentMode !== 'image') {
         qOptsEl.innerHTML = `<strong>Options:</strong><br>` + opts.map(o => esc(o)).join('<br>');
         qOptsEl.style.display = 'block';
       } else {
+        qOptsEl.innerHTML = '';
         qOptsEl.style.display = 'none';
       }
       if(window.MathJax && window.MathJax.typesetPromise) MathJax.typesetPromise([qTextEl,qOptsEl]).catch(()=>{});
