@@ -169,7 +169,10 @@
       });
 
       document.getElementById('total-vault-count-badge').textContent = cloudVault.length + " Qs";
-      builderTypeset();
+      // MathJax is optional on the Builder screen. Never let a rendering helper stop the folder/question UI.
+      if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+        window.MathJax.typesetPromise().catch(() => {});
+      }
     }
 
     function builderEscape(v){ return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
