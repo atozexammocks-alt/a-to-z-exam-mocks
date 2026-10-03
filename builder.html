@@ -97,7 +97,7 @@
     function questionImage(q){const vals=[q.questionImage,q.image,q.img,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image,q.question];return vals.map(v=>String(v||'').trim()).find(v=>/^data:image\\//i.test(v)||/^https?:\\/\\//i.test(v))||'';}
     function normalizeMathSource(v){let s=String(v??'');s=s.replace(/\\b(?:SQRT|sqrt)\\s*\\(\\s*([^()]+)\\s*\\)/g,'\\\\sqrt{$1}');s=s.replace(/\\b(?:SQRT|sqrt)\\s+([A-Za-z0-9.+-]+)/g,'\\\\sqrt{$1}');return s;}
     function builderMathHtml(v){return builderEscape(normalizeMathSource(v)).replace(/\\n/g,'<br>');}
-    function builderTypeset(){if(window.MathJax&&window.MathJax.typesetPromise)MathJax.typesetPromise().catch(()=>{});}
+    function folderMatchesQuestion(q,target){const a=normalizeFolderPath(getQuestionFolderPath(q)),b=normalizeFolderPath(target);if(!a||!b)return false;if(a===b||a.startsWith(b+' / '))return true;const parts=b.split(' / ');const leaf=parts[parts.length-1];return parts.length>1 && a===leaf;}
 
     window.initBuilderStudio = async function() {
       const tabsCont = document.getElementById('navbar-inline-tabs');
@@ -109,7 +109,10 @@
         `;
       }
 
-      try { const snap=await window.getDocs(window.collection(window.db,'questions')); const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()})); cloudVault=allQuestions.filter(q=>getQuestionLibraryMode(q)===activeBuilderLibraryMode); selectedIds=selectedIds.filter(id=>cloudVault.some(q=>q.id===id)); localStorage.setItem('AZ_BUILDER_SELECTED_IDS',JSON.stringify(selectedIds)); } catch(e){console.error('Question vault load failed:',e);cloudVault=[];}
+      try { const snap=await window.getDocs(window.collection(window.db,'questions')); const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()})); cloudVault=allQuestions.filter(q=>getQuestionLibraryMode(q)===activeBuilderLibraryMode); selectedIds=selectedIds.filter(id=>cloudVault.some(q=>q.id===id)); localStorage.setItem('AZ_BUILDER_SELECTED_IDS',JSON.stringify(selectedIds));
+        // Rebuild missing sidebar paths from the same saved question paths used by Library.
+        cloudVault.forEach(q=>{const path=normalizeFolderPath(getQuestionFolderPath(q));if(!path)return;const parts=path.split(' / ');const root=parts[0];if(!mainFolders.includes(root))mainFolders.push(root);if(parts.length>1){subFolders[root]=subFolders[root]||[];const rel=parts.slice(1).join(' / ');if(!subFolders[root].includes(rel))subFolders[root].push(rel);}});
+      } catch(e){console.error('Question vault load failed:',e);cloudVault=[];}
 
       renderMainFoldersRow();
       renderBuilderSidebarTopics();
@@ -157,7 +160,7 @@
 
       availableSubs.forEach(fullSub => {
         const subName = fullSub.split(" / ").pop();
-        const count = cloudVault.filter(q => getQuestionFolderPath(q) === normalizeFolderPath(fullSub)).length;
+        const count = cloudVault.filter(q => folderMatchesQuestion(q, fullSub)).length;
         const subBtn = document.createElement('button');
         subBtn.className = `nav-item-btn ${activeBuilderSub === fullSub ? 'active' : ''}`;
         subBtn.innerHTML = `<span>↳ ${subName}</span><span>${count}</span>`;
@@ -171,22 +174,21 @@
 
     function builderEscape(v){ return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
     function builderImage(q){ const v=String(q.questionImage||q.image||q.croppedImage||q.question||'').trim(); return /^data:image\\//i.test(v)?v:''; }
-    function builderTypeset(){ if(window.MathJax&&window.MathJax.typesetPromise) MathJax.typesetPromise().catch(()=>{}); }
     function renderFilteredQuestions() {
       const grid = document.getElementById('question-card-grid');
       if (!grid) return;
       grid.innerHTML = '';
 
       let list = cloudVault;
-      if(activeBuilderMain!=='ALL'){const root=normalizeFolderPath(activeBuilderMain);list=list.filter(q=>{const path=getQuestionFolderPath(q);return path===root||path.startsWith(root+' / ');});}
-      if(activeBuilderSub!=='ALL'){const target=normalizeFolderPath(activeBuilderSub);list=list.filter(q=>getQuestionFolderPath(q)===target);}
+      if(activeBuilderMain!=='ALL'){const root=normalizeFolderPath(activeBuilderMain);list=list.filter(q=>folderMatchesQuestion(q,root));}
+      if(activeBuilderSub!=='ALL'){const target=normalizeFolderPath(activeBuilderSub);list=list.filter(q=>folderMatchesQuestion(q,target));}
       cachedFilteredList = list;
 
       document.getElementById('crumb-bank-name').textContent = activeBuilderSub === 'ALL' ? (activeBuilderMain === 'ALL' ? 'All Books & Sections' : activeBuilderMain) : activeBuilderSub;
       document.getElementById('filtered-count-badge').textContent = list.length;
 
       if (!list.length) {
-        grid.innerHTML = `<div style="grid-column:1/-1; padding:40px; text-align:center; color:#64748b;">इस सेक्शन में कोई प्रश्न उपलब्ध नहीं है।</div>`;
+        grid.innerHTML = `<div style="grid-column:1/-1; padding:40px; text-align:center; color:#64748b;">No questions available in this section.</div>`;
         return;
       }
 
@@ -202,8 +204,8 @@
               <input type="checkbox" ${isSel ? 'checked' : ''} onchange="event.stopPropagation(); window.toggleSelectQ('${q.id}')" style="width:16px; height:16px; accent-color:#10b981; cursor:pointer;">
             </div>
           </div>
-          ${q.qText ? `<div class="q-builder-text" style="font-size:12px; color:#f8fafc; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical;">${builderMathHtml(q.qText)}</div>` : ''}
           ${questionImage(q) ? `<div class="q-img-holder"><img src="${builderEscape(questionImage(q))}" alt="Question image"></div>` : ''}
+          ${!questionImage(q) && q.qText ? `<div class="q-builder-text" style="font-size:12px; color:#f8fafc; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical;">${builderMathHtml(q.qText)}</div>` : ''}
         `;
         card.onclick = (e) => { if(e.target.tagName !== 'INPUT') window.toggleSelectQ(q.id); };
         grid.appendChild(card);
