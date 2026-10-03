@@ -101,11 +101,11 @@
       return sub ? (root ? root+' / '+sub : sub) : root;
     }
     function getQuestionLibraryMode(q){
-      const raw=String(q?.libraryMode||q?.targetLibrary||q?.libraryType||'').trim().toLowerCase();
-      if(raw.includes('central')) return 'central';
-      if(raw.includes('group')) return 'group';
-      if(q?.central===true||q?.isCentral===true) return 'central';
-      if(q?.group===true) return 'group';
+      const lm=String(q?.libraryMode||'').trim().toLowerCase();
+      const tl=String(q?.targetLibrary||'').trim().toLowerCase();
+      const lt=String(q?.libraryType||'').trim().toLowerCase();
+      if(q?.central===true || q?.isCentral===true || lm==='central' || tl==='central' || lt==='central' || lt.includes('central library')) return 'central';
+      if(q?.group===true || lm==='group' || tl==='group' || lt==='group' || lt.includes('group library')) return 'group';
       return 'private';
     }
     function legacyTreeFromConfig(data){
@@ -138,7 +138,7 @@
         }
         const snap=await window.getDocs(window.collection(window.db,'questions'));
         const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
-        if(status) status.textContent=`Firebase connected • ${allQuestions.length} total question(s)`;
+        if(status) { status.textContent=`Firebase connected • ${allQuestions.length} total question(s) • mode: ${activeBuilderLibraryMode}`; status.dataset.loaded='1'; }
         // Keep the Builder compatible with both new records and the older Library schema.
         // Private = every question that is not explicitly marked Central/Group.
         cloudVault=allQuestions.filter(q=>{
@@ -215,7 +215,7 @@
 
       document.getElementById('total-vault-count-badge').textContent = cloudVault.length + " Qs";
       const diag=document.getElementById('builder-load-status');
-      if(diag) diag.textContent = `Firestore loaded: ${cloudVault.length} question(s) • ${mainFolders.length} folder(s)`;
+      if(diag && !status?.dataset?.loaded) diag.textContent = `Firestore loaded: ${cloudVault.length} question(s) • ${mainFolders.length} folder(s)`;
       // MathJax is optional on the Builder screen. Never let a rendering helper stop the folder/question UI.
       if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
         window.MathJax.typesetPromise().catch(() => {});
@@ -782,20 +782,7 @@
       setTimeout(() => { el.style.display = 'none'; }, 2000);
     }
 
-    window.onload = async () => {
-      const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-      if (savedEmail) {
-        window.currentTeacherEmail = savedEmail;
-        document.getElementById('current-user-tag').textContent = savedEmail;
-        document.getElementById('dropdown-user-email').textContent = savedEmail;
-        await window.builderAuthReady;
-        await loadLibraryState();
-        await initBuilderStudio();
-      } else {
-        alert("Please login from Teacher Library first!");
-        window.location.href = 'teacher.html';
-      }
-    };
+    
   </script>
 
   <style>
@@ -1102,20 +1089,7 @@
       setTimeout(() => { el.style.display = 'none'; }, 2000);
     }
 
-    window.onload = async () => {
-      const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-      if (savedEmail) {
-        window.currentTeacherEmail = savedEmail;
-        document.getElementById('current-user-tag').textContent = savedEmail;
-        document.getElementById('dropdown-user-email').textContent = savedEmail;
-        await window.builderAuthReady;
-        await loadLibraryState();
-        await initBuilderStudio();
-      } else {
-        alert("Please login from Teacher Library first!");
-        window.location.href = 'teacher.html';
-      }
-    };
+    
   </script>
 
   <style>
