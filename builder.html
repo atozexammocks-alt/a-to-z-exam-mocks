@@ -315,6 +315,8 @@
 
     window.executePdfExport = async function() {
       const institute = (document.getElementById('print-inst-name')?.value || 'Future Scholar').trim() || 'Future Scholar';
+      const logoUrl = (document.getElementById('print-logo-url')?.value || localStorage.getItem('ExamVault_Logo_URL') || './icon.png').trim() || './icon.png';
+      localStorage.setItem('ExamVault_Logo_URL', logoUrl);
       const layout = document.getElementById('pdf-layout-mode')?.value || '2col';
       document.getElementById('print-modal-overlay').style.display = 'none';
 
@@ -366,7 +368,7 @@
           body::before{content:"A TO Z EXAM MOCKS";position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-32deg);font-size:42pt;font-weight:800;letter-spacing:4px;color:rgba(100,116,139,.075);white-space:nowrap;z-index:0;pointer-events:none}
           .paper-grid{position:relative;z-index:1}
           .paper-header{grid-column:1/-1;text-align:center;border-bottom:1px solid #222;padding-bottom:8px;margin-bottom:4px}
-          .paper-header h1{font-size:18pt;margin:0 0 3px}
+          .paper-logo{display:block;margin:0 auto 5px;max-width:90px;max-height:55px;object-fit:contain}.paper-header h1{font-size:18pt;margin:0 0 3px}
           .paper-header .inst{font-size:13pt;font-weight:700}
           .paper-header .meta{font-size:10pt;margin-top:4px}
           .paper-grid{display:grid;grid-template-columns:${layout==='1col'?'1fr':'repeat(2,minmax(0,1fr))'};column-gap:8mm;row-gap:7mm;align-items:start}
@@ -381,6 +383,7 @@
         </style></head><body>
         <div class="paper-grid">
           <header class="paper-header">
+            <img class="paper-logo" src="${esc(logoUrl)}" alt="Institute Logo" onerror="this.style.display='none'">
             <div class="inst">${esc(institute)}</div>
             <h1>${esc(document.getElementById('test-title')?.value || 'Question Paper')}</h1>
             <div class="meta">Total Questions: ${selectedQuestions.length} &nbsp; | &nbsp; Marks: ${esc(document.getElementById('test-marks')?.value || '')} &nbsp; | &nbsp; Time: ${esc(document.getElementById('test-time')?.value || '')} min</div>
