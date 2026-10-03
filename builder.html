@@ -139,15 +139,35 @@
         const snap=await window.getDocs(window.collection(window.db,'questions'));
         const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
         if(status) { status.textContent=`Firebase connected • ${allQuestions.length} total question(s) • mode: ${activeBuilderLibraryMode}`; status.dataset.loaded='1'; }
-        // Keep the Builder compatible with both new records and the older Library schema.
-        // Private = every question that is not explicitly marked Central/Group.
-        cloudVault=allQuestions.filter(q=>{
-          const mode=getQuestionLibraryMode(q);
-          return activeBuilderLibraryMode==='private' ? (mode!=='central' && mode!=='group') : mode===activeBuilderLibraryMode;
-        });
-        // Legacy records may have no library metadata at all; they belong to Private Library.
-        if(activeBuilderLibraryMode==='private' && !cloudVault.length && allQuestions.length){
-          cloudVault=allQuestions.filter(q=>q.central!==true&&q.isCentral!==true&&q.group!==true);
+        // Use the SAME library classification rules as library.html.
+        // Do not let a legacy/unknown metadata field hide valid questions from Builder.
+        const isCentralQuestion = q =>
+          q?.central === true ||
+          q?.isCentral === true ||
+          String(q?.libraryMode || '').trim().toLowerCase() === 'central' ||
+          String(q?.targetLibrary || '').trim().toLowerCase() === 'central' ||
+          String(q?.libraryType || '').trim().toLowerCase() === 'central library';
+        const isGroupQuestion = q =>
+          q?.group === true ||
+          String(q?.libraryMode || '').trim().toLowerCase() === 'group' ||
+          String(q?.targetLibrary || '').trim().toLowerCase() === 'group' ||
+          String(q?.libraryType || '').trim().toLowerCase() === 'group library';
+
+        if(activeBuilderLibraryMode === 'central') {
+          cloudVault = allQuestions.filter(q => isCentralQuestion(q));
+        } else if(activeBuilderLibraryMode === 'group') {
+          cloudVault = allQuestions.filter(q => isGroupQuestion(q));
+        } else {
+          // Private Builder must include every question that is NOT explicitly Central/Group.
+          cloudVault = allQuestions.filter(q => !isCentralQuestion(q) && !isGroupQuestion(q));
+          // Absolute legacy fallback: if the database has questions but their metadata
+          // is from an older schema that cannot be classified, never show a false "0".
+          if(!cloudVault.length && allQuestions.length) cloudVault = allQuestions.slice();
+        }
+
+        if(status) {
+          status.textContent = `Firebase connected • ${allQuestions.length} total • ${cloudVault.length} visible • ${activeBuilderLibraryMode}`;
+          status.dataset.loaded = '1';
         }
         selectedIds=selectedIds.filter(id=>cloudVault.some(q=>q.id===id));
         localStorage.setItem('AZ_BUILDER_SELECTED_IDS',JSON.stringify(selectedIds));
