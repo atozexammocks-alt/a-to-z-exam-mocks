@@ -493,20 +493,30 @@
       setTimeout(() => { el.style.display = 'none'; }, 2000);
     }
 
-    window.onload = async () => {
+    let builderStarted = false;
+    async function startBuilder() {
+      if (builderStarted) return;
+      builderStarted = true;
       const savedEmail = (localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-      if (savedEmail) {
-        window.currentTeacherEmail = savedEmail;
-        document.getElementById('current-user-tag').textContent = savedEmail;
-        document.getElementById('dropdown-user-email').textContent = savedEmail;
+      if (!savedEmail) {
+        alert("Please login from Teacher Library first!");
+        window.location.href = 'teacher.html';
+        return;
+      }
+      window.currentTeacherEmail = savedEmail;
+      document.getElementById('current-user-tag').textContent = savedEmail;
+      document.getElementById('dropdown-user-email').textContent = savedEmail;
+      try {
         await window.builderAuthReady;
         await window.loadLibraryState();
         await window.initBuilderStudio();
-      } else {
-        alert("Please login from Teacher Library first!");
-        window.location.href = 'teacher.html';
+      } catch (e) {
+        console.error('[Builder] startup failed:', e);
+        const s = document.getElementById('builder-load-status');
+        if (s) s.textContent = 'Builder startup error: ' + (e?.code || e?.message || e);
       }
-    };
+    }
+    window.addEventListener('DOMContentLoaded', startBuilder);
   </script>
 
   <style>
