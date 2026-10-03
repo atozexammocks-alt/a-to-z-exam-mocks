@@ -120,6 +120,8 @@
     function folderMatchesQuestion(q,target){const a=normalizeFolderPath(getQuestionFolderPath(q)),b=normalizeFolderPath(target);if(!a||!b)return false;if(a===b||a.startsWith(b+' / '))return true;const parts=b.split(' / ');const leaf=parts[parts.length-1];return parts.length>1 && a===leaf;}
 
     window.initBuilderStudio = async function() {
+      const status=document.getElementById('builder-load-status');
+      if(status) status.textContent='Loading questions from Firebase…';
       const tabsCont = document.getElementById('navbar-inline-tabs');
       if (tabsCont && !tabsCont.innerHTML) {
         tabsCont.innerHTML = `
@@ -131,8 +133,12 @@
 
       try {
         if(window.builderAuthReady) await window.builderAuthReady;
+        if(!window.auth?.currentUser){
+          try { await window.signInAnonymously?.(window.auth); } catch(_){}
+        }
         const snap=await window.getDocs(window.collection(window.db,'questions'));
         const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
+        if(status) status.textContent=`Firebase connected • ${allQuestions.length} total question(s)`;
         // Keep the Builder compatible with both new records and the older Library schema.
         // Private = every question that is not explicitly marked Central/Group.
         cloudVault=allQuestions.filter(q=>{
@@ -147,7 +153,11 @@
         localStorage.setItem('AZ_BUILDER_SELECTED_IDS',JSON.stringify(selectedIds));
         // Rebuild missing sidebar paths from the same saved question paths used by Library.
         cloudVault.forEach(q=>{const path=normalizeFolderPath(getQuestionFolderPath(q));if(!path)return;const parts=path.split(' / ');const root=parts[0];if(!mainFolders.includes(root))mainFolders.push(root);if(parts.length>1){subFolders[root]=subFolders[root]||[];const rel=parts.slice(1).join(' / ');if(!subFolders[root].includes(rel))subFolders[root].push(rel);}});
-      } catch(e){console.error('Question vault load failed:',e);cloudVault=[];}
+      } catch(e){
+        console.error('Question vault load failed:',e);
+        cloudVault=[];
+        if(status) status.textContent='Firebase load error: '+(e?.code||e?.message||e);
+      }
 
       renderMainFoldersRow();
       renderBuilderSidebarTopics();
@@ -204,6 +214,8 @@
       });
 
       document.getElementById('total-vault-count-badge').textContent = cloudVault.length + " Qs";
+      const diag=document.getElementById('builder-load-status');
+      if(diag) diag.textContent = `Firestore loaded: ${cloudVault.length} question(s) • ${mainFolders.length} folder(s)`;
       // MathJax is optional on the Builder screen. Never let a rendering helper stop the folder/question UI.
       if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
         window.MathJax.typesetPromise().catch(() => {});
@@ -334,7 +346,7 @@
           </div>`;
       }
       document.getElementById('question-preview-overlay').style.display = 'flex';
-      builderTypeset();
+      if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') window.MathJax.typesetPromise().catch(()=>{});
     };
 
     window.editPreviewQuestion = function() {
@@ -642,7 +654,7 @@
       <!-- Main Question Grid -->
       <div id="assembler-main">
         <div id="assembler-topbar">
-          <span style="font-weight:700; font-size:13px;">Active Filter: <span id="crumb-bank-name" style="color:#38bdf8;">All Sections</span> (<span id="filtered-count-badge" style="color:#10b981;">0</span> Questions)</span>
+          <span id="builder-load-status" style="position:absolute;left:20px;top:42px;font-size:9px;color:#64748b;font-weight:600;">Waiting for Firebase…</span><span style="font-weight:700; font-size:13px;">Active Filter: <span id="crumb-bank-name" style="color:#38bdf8;">All Sections</span> (<span id="filtered-count-badge" style="color:#10b981;">0</span> Questions)</span>
           <button type="button" class="tool-btn" style="background:#2563eb;" onclick="toggleSelectAllVisible()">Select / Deselect Visible</button>
         </div>
         <div id="question-card-grid"></div>
