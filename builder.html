@@ -24,6 +24,7 @@
     const app = initializeApp(firebaseConfig);
     window.db = getFirestore(app);
     window.auth = getAuth(app);
+    window.signInAnonymously = signInAnonymously;
     window.builderAuthReady = signInAnonymously(window.auth).catch(e => { console.warn("Builder auth unavailable:", e); return null; });
     window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
     window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc;
@@ -138,7 +139,8 @@
         }
         const snap=await window.getDocs(window.collection(window.db,'questions'));
         const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
-        if(status) { status.textContent=`Firebase connected • ${allQuestions.length} total question(s) • mode: ${activeBuilderLibraryMode}`; status.dataset.loaded='1'; }
+        if(status) { status.textContent=`Firebase connected • ${allQuestions.length} total question(s) • reading questions collection`; status.dataset.loaded='1'; }
+        console.log('[Builder] Firestore questions:', allQuestions.length, allQuestions.slice(0,3));
         // Use the SAME library classification rules as library.html.
         // Do not let a legacy/unknown metadata field hide valid questions from Builder.
         const isCentralQuestion = q =>
@@ -158,12 +160,13 @@
         } else if(activeBuilderLibraryMode === 'group') {
           cloudVault = allQuestions.filter(q => isGroupQuestion(q));
         } else {
-          // Private Builder must include every question that is NOT explicitly Central/Group.
+          // PRIVATE: Builder must show the same questions that Library can see.
+          // Older extracted records can have mixed/unknown metadata, so only
+          // explicitly Central/Group records are excluded.
           cloudVault = allQuestions.filter(q => !isCentralQuestion(q) && !isGroupQuestion(q));
-          // Absolute legacy fallback: if the database has questions but their metadata
-          // is from an older schema that cannot be classified, never show a false "0".
           if(!cloudVault.length && allQuestions.length) cloudVault = allQuestions.slice();
         }
+        console.log('[Builder] visible questions:', cloudVault.length, 'mode:', activeBuilderLibraryMode);
 
         if(status) {
           status.textContent = `Firebase connected • ${allQuestions.length} total • ${cloudVault.length} visible • ${activeBuilderLibraryMode}`;
@@ -179,10 +182,15 @@
         if(status) status.textContent='Firebase load error: '+(e?.code||e?.message||e);
       }
 
-      renderMainFoldersRow();
-      renderBuilderSidebarTopics();
-      renderFilteredQuestions();
-      updateRevenueSplit();
+      try {
+        renderMainFoldersRow();
+        renderBuilderSidebarTopics();
+        renderFilteredQuestions();
+        updateRevenueSplit();
+      } catch(renderError) {
+        console.error('[Builder] render error:', renderError);
+        if(status) status.textContent='Builder render error: '+(renderError?.message||renderError);
+      }
     };
 
     function renderMainFoldersRow() {
