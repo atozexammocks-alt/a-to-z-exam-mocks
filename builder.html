@@ -215,7 +215,7 @@
 
       document.getElementById('total-vault-count-badge').textContent = cloudVault.length + " Qs";
       const diag=document.getElementById('builder-load-status');
-      if(diag && !status?.dataset?.loaded) diag.textContent = `Firestore loaded: ${cloudVault.length} question(s) • ${mainFolders.length} folder(s)`;
+      if(diag && diag.dataset.loaded !== '1') diag.textContent = `Firestore loaded: ${cloudVault.length} question(s) • ${mainFolders.length} folder(s)`;
       // MathJax is optional on the Builder screen. Never let a rendering helper stop the folder/question UI.
       if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
         window.MathJax.typesetPromise().catch(() => {});
