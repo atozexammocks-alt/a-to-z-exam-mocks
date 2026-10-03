@@ -73,7 +73,7 @@
         const ref = window.doc(window.db, docRefPath, docId);
         const snap = await window.getDoc(ref);
         const data = snap.exists() ? snap.data() : {};
-        libraryTree = Array.isArray(data.libraryTree) ? data.libraryTree : [];
+        libraryTree = legacyTreeFromConfig(data);
         mainFolders = libraryTree.map(n => String(n.name || '').trim()).filter(Boolean);
         subFolders = {};
 
@@ -92,8 +92,28 @@
     };
 
     function normalizeFolderPath(v){return String(v||'').replace(/\\/g,'/').split('/').map(x=>x.trim()).filter(Boolean).join(' / ');}
-    function getQuestionFolderPath(q){const explicit=normalizeFolderPath(q.folderPath||q.path||q.libraryPath||'');return explicit||normalizeFolderPath(q.folder||q.subject||q.folderName||'');}
-    function getQuestionLibraryMode(q){const mode=String(q.libraryMode||q.targetLibrary||'').trim().toLowerCase();if(mode==='central'||q.central===true||q.isCentral===true)return 'central';if(mode==='group'||q.group===true)return 'group';return 'private';}
+    function getQuestionFolderPath(q){
+      if(!q) return '';
+      const explicit=normalizeFolderPath(q.folderPath||q.path||q.libraryPath||'');
+      if(explicit) return explicit;
+      const root=normalizeFolderPath(q.folder||q.subject||q.folderName||'');
+      const sub=normalizeFolderPath(q.subfolder||q.subFolder||q.topicPath||'');
+      return sub ? (root ? root+' / '+sub : sub) : root;
+    }
+    function getQuestionLibraryMode(q){
+      const raw=String(q?.libraryMode||q?.targetLibrary||q?.libraryType||'').trim().toLowerCase();
+      if(raw.includes('central')) return 'central';
+      if(raw.includes('group')) return 'group';
+      if(q?.central===true||q?.isCentral===true) return 'central';
+      if(q?.group===true) return 'group';
+      return 'private';
+    }
+    function legacyTreeFromConfig(data){
+      if(Array.isArray(data?.libraryTree) && data.libraryTree.length) return data.libraryTree;
+      const mains=Array.isArray(data?.mainFolders)?data.mainFolders:[];
+      const subs=data?.subFolders && typeof data.subFolders==='object'?data.subFolders:{};
+      return mains.map(name=>({name:String(name).trim(),children:(Array.isArray(subs[name])?subs[name]:[]).map(s=>({name:String(s).trim(),children:[]}))})).filter(n=>n.name);
+    }
     function questionImage(q){const vals=[q.questionImage,q.image,q.img,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image,q.question];return vals.map(v=>String(v||'').trim()).find(v=>/^data:image\\//i.test(v)||/^https?:\\/\\//i.test(v))||'';}
     function normalizeMathSource(v){let s=String(v??'');s=s.replace(/\\b(?:SQRT|sqrt)\\s*\\(\\s*([^()]+)\\s*\\)/g,'\\\\sqrt{$1}');s=s.replace(/\\b(?:SQRT|sqrt)\\s+([A-Za-z0-9.+-]+)/g,'\\\\sqrt{$1}');return s;}
     function builderMathHtml(v){return builderEscape(normalizeMathSource(v)).replace(/\\n/g,'<br>');}
@@ -109,7 +129,22 @@
         `;
       }
 
-      try { const snap=await window.getDocs(window.collection(window.db,'questions')); const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()})); cloudVault=allQuestions.filter(q=>getQuestionLibraryMode(q)===activeBuilderLibraryMode); selectedIds=selectedIds.filter(id=>cloudVault.some(q=>q.id===id)); localStorage.setItem('AZ_BUILDER_SELECTED_IDS',JSON.stringify(selectedIds));
+      try {
+        if(window.builderAuthReady) await window.builderAuthReady;
+        const snap=await window.getDocs(window.collection(window.db,'questions'));
+        const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
+        // Keep the Builder compatible with both new records and the older Library schema.
+        // Private = every question that is not explicitly marked Central/Group.
+        cloudVault=allQuestions.filter(q=>{
+          const mode=getQuestionLibraryMode(q);
+          return activeBuilderLibraryMode==='private' ? (mode!=='central' && mode!=='group') : mode===activeBuilderLibraryMode;
+        });
+        // Legacy records may have no library metadata at all; they belong to Private Library.
+        if(activeBuilderLibraryMode==='private' && !cloudVault.length && allQuestions.length){
+          cloudVault=allQuestions.filter(q=>q.central!==true&&q.isCentral!==true&&q.group!==true);
+        }
+        selectedIds=selectedIds.filter(id=>cloudVault.some(q=>q.id===id));
+        localStorage.setItem('AZ_BUILDER_SELECTED_IDS',JSON.stringify(selectedIds));
         // Rebuild missing sidebar paths from the same saved question paths used by Library.
         cloudVault.forEach(q=>{const path=normalizeFolderPath(getQuestionFolderPath(q));if(!path)return;const parts=path.split(' / ');const root=parts[0];if(!mainFolders.includes(root))mainFolders.push(root);if(parts.length>1){subFolders[root]=subFolders[root]||[];const rel=parts.slice(1).join(' / ');if(!subFolders[root].includes(rel))subFolders[root].push(rel);}});
       } catch(e){console.error('Question vault load failed:',e);cloudVault=[];}
