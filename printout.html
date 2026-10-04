@@ -37,8 +37,9 @@ body{min-height:100vh}
 .qtext{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
 .image-box{margin:6px auto;width:100%;height:var(--imgbox,170px);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .image-box img{display:block;width:auto;max-width:96%;height:auto;max-height:var(--img,160px);object-fit:contain}
-.options{margin:5px 0 0 25px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px;row-gap:3px}
-.options span{display:grid;grid-template-columns:20px minmax(0,1fr);column-gap:3px;align-items:start;min-width:0;font-size:var(--opt,13px);line-height:1.4}
+.options{margin:5px 0 0 25px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:18px;row-gap:5px;width:calc(100% - 25px);min-width:0}
+.option-item{display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:5px;align-items:start;min-width:0;width:100%;font-size:var(--opt,13px);line-height:1.4;white-space:normal;word-break:normal;overflow-wrap:break-word}
+.option-item .option-text{min-width:0;width:100%;white-space:normal;word-break:normal;overflow-wrap:break-word}
 .footer{text-align:center;border-top:1px solid #777;margin-top:18px;padding-top:5px;font-size:10px}
 .empty{padding:60px;text-align:center;color:#64748b}
 @media print{
@@ -113,7 +114,7 @@ function qHtml(q,n){
  const style='font-size:'+fs+'px;font-weight:'+weight+';line-height:'+line+';text-align:'+(edit.align||'left')+';';
  return '<div class="paper-q" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(esc(txt))+'</span></div>'+
  (img?'<div class="image-box"><img src="'+esc(img)+'"></div>':'')+
- (opts.length&&!hide?'<div class="options">'+opts.map((o,i)=>'<span><b>'+String.fromCharCode(65+i)+'.</b><span>'+renderMath(esc(o))+'</span></span>').join('')+'</div>':'')+
+ (opts.length&&!hide?'<div class="options">'+opts.map((o,i)=>'<div class="option-item"><b>'+String.fromCharCode(65+i)+'.</b><span class="option-text">'+renderMath(esc(o))+'</span></div>').join('')+'</div>':'')+
  '</div>';
 }
 function build(){
