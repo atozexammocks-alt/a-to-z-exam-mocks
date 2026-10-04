@@ -180,5 +180,34 @@ async function directLoad(){
  setTimeout(()=>directLoad().catch(e=>{console.warn("Direct print load failed",e);window.__AZ_DIRECT_PRINT_ERROR=String(e?.message||e)}),100);
  setTimeout(()=>directLoad().catch(e=>{console.warn("Direct print retry failed",e);window.__AZ_DIRECT_PRINT_ERROR=String(e?.message||e)}),1200);
 }catch(e){console.warn("Printout Firebase init failed",e)}
+</script><script>
+(function(){
+ async function bootIndexedDB(){
+  try{
+   if(window.__AZ_IDB_BOOTED)return;
+   window.__AZ_IDB_BOOTED=true;
+   const id=new URLSearchParams(location.search).get("session");
+   if(!id)return;
+   const session=await new Promise((resolve,reject)=>{
+    const req=indexedDB.open("AZExamPrintSessions",1);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("sessions"))db.createObjectStore("sessions",{keyPath:"id"})};
+    req.onsuccess=()=>{const db=req.result;const tx=db.transaction("sessions","readonly");const get=tx.objectStore("sessions").get(id);get.onsuccess=()=>{const v=get.result||null;db.close();resolve(v)};get.onerror=()=>{db.close();reject(get.error)}};
+    req.onerror=()=>reject(req.error);
+   });
+   if(session&&Array.isArray(session.questions)&&session.questions.length){
+    receive({questions:session.questions,sections:Array.isArray(session.sections)?session.sections:[],branding:session.branding||{},fontFamily:session.branding?.fontFamily||"Times New Roman",title:session.branding?.paperTitle||"Question Paper",school:session.branding?.schoolName||"",logo:session.branding?.showLogo?session.branding.logoUrl:"",watermarkCount:1});
+   }else{
+    const p=document.getElementById("paper");
+    if(p)p.innerHTML='<div class="empty">Print session found, but no questions were saved. Please go back and press Print again.</div>';
+   }
+  }catch(e){
+   console.error("Printout IndexedDB boot failed",e);
+   const p=document.getElementById("paper");
+   if(p)p.innerHTML='<div class="empty">Unable to load the print session. Please press Print again from Paper Designer.</div>';
+  }
+ }
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bootIndexedDB,{once:true});
+ else bootIndexedDB();
+})();
 </script></body>
 </html>
