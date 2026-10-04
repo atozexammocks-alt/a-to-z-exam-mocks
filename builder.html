@@ -46,7 +46,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 <button class="libtab" data-mode="central" onclick="setMode('central')">🏛 Central</button>
 <button class="libtab" data-mode="group" onclick="setMode('group')">👥 Group</button>
 </div>
-<div class="navtabs"><a class="navbtn" href="teacher.html">🏠 Dashboard</a></div>
+<div class="navtabs"><a class="navbtn" href="teacher.html">🏠 Dashboard</a><a class="navbtn" href="builder.html" style="background:#2563eb;color:#fff;border-color:#38bdf8">🛠️ Test Builder</a></div>
 </header>
 <div id="status">Starting Firebase…</div>
 <div id="folderbar"></div>
@@ -85,15 +85,40 @@ const email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim
 const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 const path=v=>String(v??"").replace(/\\/g,"/").split("/").map(x=>x.trim()).filter(Boolean).join(" / ");
 function qPath(q){return path(q.folderPath||q.path||q.libraryPath||((q.folder||q.subject||q.folderName||"")+(q.subfolder||q.subFolder||q.topicPath?"/"+(q.subfolder||q.subFolder||q.topicPath):"")));}
-function qText(q){return q.qText||q.questionText||q.text||q.questionTextHtml||q.prompt||"";}
-function qImage(q){const vals=[q.questionImage,q.image,q.img,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image];return vals.map(v=>String(v||"").trim()).find(v=>/^data:image\\//i.test(v)||/^https?:\\/\\//i.test(v))||"";}
+function qText(q){
+ const vals=[q.qText,q.text,q.questionText,q.question_text,q.content,q.questionTextHtml,q.prompt,q.question];
+ for(const v of vals){
+   if(v==null) continue;
+   const s=String(v).trim();
+   if(!s) continue;
+   if(/^data:image\\//i.test(s)||/^https?:\\/\\//i.test(s)||/^blob:/i.test(s)) continue;
+   return s;
+ }
+ return "";
+}
+function qImage(q){
+ const vals=[q.question,q.questionImage,q.image,q.img,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image];
+ for(const v of vals){
+   if(!v) continue;
+   if(typeof v==="object"){
+     const s=String(v.src||v.url||v.data||v.base64||v.image||"").trim();
+     if(/^data:image\\//i.test(s)||/^https?:\\/\\//i.test(s)||/^blob:/i.test(s)) return s;
+   }else{
+     const s=String(v).trim();
+     if(/^data:image\\//i.test(s)||/^https?:\\/\\//i.test(s)||/^blob:/i.test(s)) return s;
+   }
+ }
+ return "";
+}
 function libraryMode(q){const lm=String(q.libraryMode||q.targetLibrary||q.libraryType||"").toLowerCase();if(q.central===true||q.isCentral===true||lm==="central"||lm.includes("central"))return"central";if(q.group===true||lm==="group"||lm.includes("group"))return"group";return"private";}
 function math(v){let s=String(v??"");s=s.replace(/\\b(?:SQRT|sqrt)\\s*\\(\\s*([^()]+)\\s*\\)/g,"\\\\sqrt{$1}");s=s.replace(/\\b(?:SQRT|sqrt)\\s+([A-Za-z0-9.+-]+)/g,"\\\\sqrt{$1}");return esc(s).replace(/\\n/g,"<br>");}
 async function start(){
  document.getElementById("brandlogo").src=localStorage.getItem("ExamVault_Logo_URL")||"./icon.png";
  document.getElementById("loading").style.display="flex";
  try{
-   try{await signInAnonymously(auth)}catch(e){console.warn("Anonymous auth:",e)}
+   // Use the same Firebase/Auth initialization path as the working Library page.
+   // Waiting for the shared auth promise avoids a Firestore read racing anonymous sign-in.
+   try{await window.teacherAuthReady}catch(e){console.warn("Auth wait:",e)}
    const snap=await getDocs(collection(db,"questions"));
    allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
    document.getElementById("status").textContent="Firebase connected • "+allQuestions.length+" total questions";
