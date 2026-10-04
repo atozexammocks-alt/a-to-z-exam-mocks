@@ -164,7 +164,10 @@
           // Older extracted records can have mixed/unknown metadata, so only
           // explicitly Central/Group records are excluded.
           cloudVault = allQuestions.filter(q => !isCentralQuestion(q) && !isGroupQuestion(q));
-          if(!cloudVault.length && allQuestions.length) cloudVault = allQuestions.slice();
+          // Builder's Private tab must never become empty just because an older
+          // question has ambiguous/missing library metadata. Library itself uses
+          // the same compatibility rule. If Firebase returned documents, show them.
+          if(allQuestions.length && !cloudVault.length) cloudVault = allQuestions.slice();
         }
         console.log('[Builder] visible questions:', cloudVault.length, 'mode:', activeBuilderLibraryMode);
 
@@ -257,13 +260,17 @@
       if (!grid) return;
       grid.innerHTML = '';
 
-      let list = cloudVault;
+      let list = Array.isArray(cloudVault) ? cloudVault.slice() : [];
+      // "All Folders" means ALL Firebase questions. Folder filters are applied
+      // only after the user explicitly selects a folder/section.
       if(activeBuilderMain!=='ALL'){const root=normalizeFolderPath(activeBuilderMain);list=list.filter(q=>folderMatchesQuestion(q,root));}
       if(activeBuilderSub!=='ALL'){const target=normalizeFolderPath(activeBuilderSub);list=list.filter(q=>folderMatchesQuestion(q,target));}
       cachedFilteredList = list;
 
-      document.getElementById('crumb-bank-name').textContent = activeBuilderSub === 'ALL' ? (activeBuilderMain === 'ALL' ? 'All Books & Sections' : activeBuilderMain) : activeBuilderSub;
-      document.getElementById('filtered-count-badge').textContent = list.length;
+      const crumb=document.getElementById('crumb-bank-name');
+      const badge=document.getElementById('filtered-count-badge');
+      if(crumb) crumb.textContent = activeBuilderSub === 'ALL' ? (activeBuilderMain === 'ALL' ? 'All Books & Sections' : activeBuilderMain) : activeBuilderSub;
+      if(badge) badge.textContent = list.length;
 
       if (!list.length) {
         grid.innerHTML = `<div style="grid-column:1/-1; padding:40px; text-align:center; color:#64748b;">No questions available in this section.</div>`;
@@ -516,7 +523,12 @@
         if (s) s.textContent = 'Builder startup error: ' + (e?.code || e?.message || e);
       }
     }
-    window.addEventListener('DOMContentLoaded', startBuilder);
+    // Start reliably on both normal navigation and cached/mobile restores.
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', startBuilder, { once: true });
+    } else {
+      startBuilder();
+    }
   </script>
 
   <style>
