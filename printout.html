@@ -6,7 +6,7 @@
 <title>A to Z Exam Mocks — Paper Print Preview</title>
 <script>
 window.MathJax={
-  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+  tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]'],['$$','$$']]},
   svg:{fontCache:'global'}
 };
 </script>
@@ -95,17 +95,17 @@ function cleanQ(v){
 }
 function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim();}
 function renderMath(s){
- let x=String(s??'').replace(/\r\n?/g,'\n');
- const lines=x.split('\n');
- return lines.map(line=>{
-   const t=line.trim();
-   if(!t)return '';
-   if(/^\\\(|^\\\[|^\$\$|^\$/.test(t)) return line;
-   const hasTeX=/\\[A-Za-z]+|[A-Za-z0-9}]\s*[_^]\s*(?:[A-Za-z0-9{]|\\)/.test(t);
-   if(hasTeX){
-     return line.replace(t,'\\('+t+'\\)');
-   }
-   return line;
+ const raw=String(s??'').replace(/\r\n?/g,'\n');
+ return raw.split('\n').map(line=>{
+  const t=line.trim();
+  if(!t)return '';
+  // Already-delimited TeX: leave it untouched.
+  if(/^(?:\\\(|\\\[|\$\$|\$)/.test(t)) return line;
+  // Only promote a line to MathJax when it actually contains TeX syntax.
+  const hasCommand=/\\[A-Za-z]+/.test(t);
+  const hasIndex=/[A-Za-z0-9}]\s*[_^]\s*(?:[A-Za-z0-9{]|\\)/.test(t);
+  if(hasCommand||hasIndex) return '\\('+t+'\\)';
+  return line;
  }).join('<br>');
 }
 let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
