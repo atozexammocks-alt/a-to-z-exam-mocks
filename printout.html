@@ -97,17 +97,28 @@ function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)
 function renderMath(s){
  const raw=String(s??'').replace(/\r\n?/g,'\n');
  return raw.split('\n').map(line=>{
+  if(!line.trim()) return '';
   const t=line.trim();
-  if(!t)return '';
-  // Already-delimited TeX: leave it untouched.
   if(/^(?:\\\(|\\\[|\$\$|\$)/.test(t)) return line;
-  // Only promote a line to MathJax when it actually contains TeX syntax.
-  const hasCommand=/\\[A-Za-z]+/.test(t);
-  const hasIndex=/[A-Za-z0-9}]\s*[_^]\s*(?:[A-Za-z0-9{]|\\)/.test(t);
-  if(hasCommand||hasIndex) return '\\('+t+'\\)';
-  return line;
- }).join('<br>');
+
+  // Render only genuine TeX fragments. Do NOT wrap an entire prose sentence
+  // in MathJax just because it contains one LaTeX command.
+  const mark='___MATHJAX_FRAGMENT___';
+  const parts=[];
+  const save=m=>{parts.push(m);return mark+(parts.length-1)+'___';};
+  let out=line;
+
+  out=out.replace(/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|mathbf|mathrm|sin|cos|tan|cot|sec|csc|log|ln|exp|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)(?:\{[^{}]*\}(?:\{[^{}]*\})?|\b)/g,save);
+  out=out.replace(/[A-Za-z0-9)]\s*[_^]\s*(?:\{[^{}]*\}|[A-Za-z0-9+\-()]+)/g,save);
+
+  if(parts.length){
+   out=out.replace(/___MATHJAX_FRAGMENT___(\d+)___/g,(_,i)=>'\\('+parts[Number(i)]+'\\)');
+  }
+  return out;
+ }).
+join('<br>');
 }
+
 let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
 function qHtml(q,n){
  const id=String(q.id||'');
