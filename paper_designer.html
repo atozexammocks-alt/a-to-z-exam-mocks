@@ -207,19 +207,29 @@ function openBranding(){
 function closeBranding(){document.getElementById("brandingModal").classList.remove("show")}
 function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>o[k]=document.getElementById(k).value.trim());["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>o[k]=document.getElementById(k).checked);return o}
 function printPaper(){
- branding=readBranding();
- try{localStorage.setItem("AZ_PAPER_BRANDING",JSON.stringify(branding));localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections))}catch(e){}
+ branding=readBranding();localStorage.setItem("AZ_PAPER_BRANDING",JSON.stringify(branding));localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections));
  closeBranding();
- const html=buildPrintHtml(questions,sections,branding);
- const blob=new Blob([html],{type:"text/html;charset=utf-8"});
- const url=URL.createObjectURL(blob);
- const w=window.open(url,"_blank");
- if(!w){
-  URL.revokeObjectURL(url);
-  alert("Popup blocked. Please allow popups for Print.");
-  return;
- }
- setTimeout(()=>URL.revokeObjectURL(url),60000);
+ const payload={questions:questions,sections:sections,branding:branding,fontFamily:branding.fontFamily||"Times New Roman",textEdits:{},title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:(branding.showLogo?branding.logoUrl:"")||"",layout:"one",qSize:14,oSize:13,titleSize:18,schoolSize:20,subSize:13,lineW:2,qGap:10,imgH:160};
+ window.__AZ_PRINT_PAYLOAD=payload;
+ try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage skipped:",e)}
+ const selectedQuery=questions.map(q=>String(q.id)).filter(Boolean).join(",");
+ const printSession="AZPS_"+Date.now()+"_"+Math.random().toString(36).slice(2,10);
+ const printRecord={id:printSession,questions:questions,sections:sections,branding:branding};
+ const savePrintSession=()=>new Promise((resolve,reject)=>{
+   try{
+    const req=indexedDB.open("AZExamPrintSessions",1);
+    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("sessions"))db.createObjectStore("sessions",{keyPath:"id"})};
+    req.onsuccess=()=>{const db=req.result;const tx=db.transaction("sessions","readwrite");tx.objectStore("sessions").put(printRecord);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}};
+    req.onerror=()=>reject(req.error);
+   }catch(e){reject(e)}
+ });
+ try{localStorage.setItem("AZ_PRINT_SELECTED_IDS",JSON.stringify(questions.map(q=>String(q.id)).filter(Boolean)));localStorage.setItem("AZ_PRINT_SECTIONS",JSON.stringify(sections))}catch(e){}
+ const w=window.open("about:blank","_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
+ savePrintSession().then(()=>{
+  const url="printout.html?session="+encodeURIComponent(printSession)+"&selected="+encodeURIComponent(selectedQuery);
+  try{w.location.replace(url)}catch(e){w.location.href=url}
+ }).catch(e=>{console.warn("IndexedDB print session save failed",e);try{w.close()}catch(_){}alert("Could not prepare the print session. Please try Print again.")});
+ const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
 }function buildPrintHtml(items){
  const b=branding;const escP=esc;
  const sectionsHtml=sections.map(s=>{const qs=s.questionIds.map(id=>questions.find(q=>q.id===id)).filter(Boolean);if(!qs.length)return "";return '<section class="psec"><h2>'+escP(s.name)+' <span>('+qs.length+' Questions • '+sectionStats(s).marks+' Marks)</span></h2>'+qs.map((q,i)=>printQ(q,i+1)).join("")+'</section>'}).join("");
