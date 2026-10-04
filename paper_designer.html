@@ -54,6 +54,10 @@ html,body{height:100%;min-height:0}
  #printPreviewContent{padding-bottom:28px!important}
 }
 </style>
+<script>
+window.MathJax={tex:{inlineMath:[["\\\\(","\\\\)"],["$","$"]],displayMath:[["\\\\[","\\\\]"],["$","$"]]},svg:{fontCache:"global"}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
 <div id="navbar" class="az-top-nav no-print">
@@ -221,8 +225,61 @@ let overrides={};
 
 function uid(p){return p+'_'+Date.now()+'_'+Math.floor(Math.random()*10000)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function breaks(s){return esc(s).replace(/\n/g,'<br>')}
 function safeJSON(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch(e){return fallback}}
+function cleanQuestionText(v){
+ let s=String(v??'').trim();
+ s=s.replace(/^\s*(?:question|ques|q)\s*[-.:]?\s*\d+\s*[.)\-:]?\s*/i,'');
+ s=s.replace(/^\s*\d+\s*[.)\-:]?\s*/,'');
+ return s.trim();
+}
+function cleanOptionText(v){
+ return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim();
+}
+function optionArray(q){
+ const v=q?.options??q?.choices??q?.answers;
+ if(Array.isArray(v)) return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x).map(String).filter(x=>x.trim());
+ if(v&&typeof v==='object') return Object.values(v).map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x).map(String).filter(x=>x.trim());
+ if(typeof v==='string'&&v.trim()){
+  try{const a=JSON.parse(v);if(Array.isArray(a))return a.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x).map(String).filter(x=>x.trim())}catch(e){}
+  return v.split(/\s*\|\s*|\r?\n/).map(x=>x.replace(/^\s*\([A-Ea-e]\)\s*/,'').trim()).filter(Boolean);
+ }
+ return ['A','B','C','D','E'].map(k=>q?.['option'+k]??q?.['option_'+k]??q?.['choice'+k]).map(x=>String(x??'')).filter(x=>x.trim());
+}
+function builderTextOf(q){
+ const candidates=[q?.qText,q?.text,q?.questionText,q?.question_text,q?.content,q?.questionTextHtml,q?.prompt,q?.question];
+ for(const v of candidates) if(typeof v==='string'&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim())) return v.trim();
+ return '';
+}
+function builderImageOf(q){
+ const keys=['question','questionImage','image','img','imageData','croppedImage','questionImageData','imageUrl','imageURL','diagram','imageSrc','src','base64Image'];
+ for(const k of keys){
+  const v=q?.[k];
+  if(typeof v==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())) return v.trim();
+ }
+ return '';
+}
+function builderMathMarkup(v){
+ const x=String(v||'');
+ if(!x)return '';
+ if(/\\\(|\\\[/.test(x)) return x;
+ if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\b/.test(x)
+   || /(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)) return "\\("+x+"\\)";
+ return x;
+}
+function renderDesignerMath(v){
+ const x=builderMathMarkup(v);
+ return esc(x).replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+}
+function typesetDesignerMath(){
+ if(!window.MathJax||typeof MathJax.typesetPromise!=='function')return;
+ const run=()=>MathJax.typesetPromise([document.getElementById('questionsCanvasContainer')]).catch(()=>{});
+ if(MathJax.startup?.promise) MathJax.startup.promise.then(run).catch(()=>{}); else run();
+}
+function textStyleFor(q){
+ const e=q?._builderEdit||{};
+ return 'font-size:'+Number(e.fontSize||14)+'px;font-weight:'+Number(e.weight||400)+';text-align:'+String(e.align||'left')+';line-height:'+Number(e.lineHeight||1.65)+';';
+}
+function breaks(s){return renderDesignerMath(s).replace(/\n/g,'<br>')}
 
 function openDesignerDB(){
  return new Promise(resolve=>{
@@ -263,15 +320,19 @@ function resolveQuestionImage(q,o,qId){
  return '';
 }
 function normalizeQuestion(q,fallbackId){
- const qId=q?.id||q?.qid||q?.questionId||fallbackId;
+ const qId=String(q?.id||q?.qid||q?.questionId||fallbackId);
  const o=overrides[qId]||overrides[fallbackId]||{};
- const text=o.qText??o.text??q?.qText??q?.text??q?.questionText??'';
+ const builderEdits=safeJSON('AZ_BUILDER_TEXT_EDITS',{})||{};
+ const edit=builderEdits[qId]||{};
+ const rawText=edit.text!==undefined?edit.text:builderTextOf(q);
+ const text=cleanQuestionText(rawText);
  let image=resolveQuestionImage(q,o,qId);
  if(o.keepImage===false)image='';
- const options=o.optText??o.options??q?.optText??q?.options??q?.choices??'';
+ const rawOptions=Array.isArray(edit.options)?edit.options:(o.optText??o.options??q?.optText??q?.options??q?.choices??'');
+ const options=Array.isArray(rawOptions)?rawOptions.map(cleanOptionText).filter(Boolean).join('\n'):String(rawOptions||'').split(/\r?\n|\s*\|\s*/).map(cleanOptionText).filter(Boolean).join('\n');
  const marks=Number(o.marks??q?.marks??1)||1;
  const type=o.paperType??q?.type??q?.questionType??inferType(q);
- return{id:qId,type,text,options,image,marks,key:o.key??q?.key??''};
+ return{id:qId,type,text,options,image,marks,key:o.key??q?.key??'',_builderEdit:edit};
 }
 
 function inferType(q){
@@ -407,6 +468,7 @@ function sectionForQuestion(id){return testPaper.sections.find(s=>s.questions.so
 function renderCanvas(){
  const c=document.getElementById('questionsCanvasContainer');
  if(!allQuestions.length){c.innerHTML='<div class="text-center py-20 text-slate-500">No Builder-selected questions found. Please select questions in the Builder first.</div>';return}
+ c.className='grid grid-cols-1 lg:grid-cols-2 gap-3';
  c.innerHTML='';
  allQuestions.forEach((q,i)=>{
   const sec=sectionForQuestion(q.id);
@@ -417,21 +479,21 @@ function renderCanvas(){
   card.className='bg-slate-900 border '+(included?'border-emerald-700/60':'border-slate-700')+' rounded-xl p-4 shadow-sm';
   let opts='<option value="">Choose section…</option>';
   testPaper.sections.forEach(s=>{
-   const disabled=!sectionTypeMatches(q,s);
-   opts+='<option value="'+esc(s.id)+'" '+(sec?.id===s.id?'selected':'')+' '+(disabled?'disabled':'')+'>'+esc(s.name)+' — '+esc(s.type)+'</option>';
+   opts+='<option value="'+esc(s.id)+'" '+(sec?.id===s.id?'selected':'')+'>'+esc(s.name)+' — '+esc(s.type)+'</option>';
   });
-  
-  // High fidelity image rendering for cropped questions
-  const img = q.image ? '<div class="mt-3 bg-white p-2 rounded-lg text-center"><img class="q-image" src="'+esc(q.image)+'" alt="Cropped Question Diagram" onerror="this.onerror=null;this.parentElement.innerHTML=\'<span class=\\\'text-xs text-rose-400 italic\\\'>[Image failed to render]</span>\'"></div>' : '<div class="mt-2 text-xs text-amber-400/80 italic">⚠️ No image data found for this question ID. Click Edit to attach or verify.</div>';
-  const options = q.options ? '<div class="mt-2 text-xs text-slate-300 bg-slate-950 p-2 rounded-lg whitespace-pre-line">'+breaks(q.options)+'</div>' : '';
-  const noContent = !q.text && !q.image && !q.options ? '<div class="mt-3 text-xs text-amber-400 italic">No question text/image/options found in the source record.</div>' : '';
-  
-  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+' (ID: '+esc(q.id)+')</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit / Crop</button></div></div><div class="mt-2 text-sm whitespace-pre-line '+(included?'text-slate-100':'text-slate-400')+'">'+(q.text?breaks(q.text):'<span class="italic text-slate-400">Cropped image-based question</span>')+'</div>'+img+options+noContent+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
+  const style=textStyleFor(q);
+  const txt=q.text;
+  const optionList=q.options?String(q.options).split(/\r?\n/).map(cleanOptionText).filter(Boolean):[];
+  const img=q.image ? '<div class="mt-3 bg-white p-2 rounded-lg text-center"><img class="q-image" style="max-width:100%;max-height:420px;object-fit:contain;display:block;margin:auto" src="'+esc(q.image)+'" alt="Question"></div>' : '';
+  const textHtml=txt ? '<div class="mt-2 whitespace-pre-wrap break-words" style="'+style+'">'+breaks(txt)+'</div>' : '';
+  const optionsHtml=optionList.length ? '<div class="mt-2 border-t border-slate-700 pt-2" style="'+style+'">'+optionList.map((o,j)=>'<div class="grid" style="grid-template-columns:24px minmax(0,1fr);column-gap:4px;align-items:start"><b>'+String.fromCharCode(65+j)+'.</b><span>'+breaks(o)+'</span></div>').join('')+'</div>' : '';
+  const noContent=!txt&&!img&&!optionList.length ? '<div class="mt-3 text-xs text-amber-400 italic">No question text/image/options found in the source record.</div>' : '';
+  card.innerHTML='<div class="flex items-start gap-3"><label class="pt-1 cursor-pointer"><input type="checkbox" '+(included?'checked':'')+' onchange="toggleQuestionInclude(\''+esc(q.id)+'\',this.checked)" class="accent-emerald-500 w-4 h-4"></label><div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2 flex-wrap"><div><span class="bg-indigo-600/20 text-indigo-400 font-bold px-2 py-0.5 rounded text-xs mr-2">Q.'+(i+1)+'</span><span class="text-xs bg-slate-800 px-2 py-0.5 rounded">'+esc(q.type)+'</span></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-400 font-bold">'+q.marks+' marks</span><button onclick="openEditorForPaper(\''+esc(q.id)+'\')" class="text-xs bg-sky-600/20 text-sky-400 px-2 py-1 rounded"><i class="fa-solid fa-pen"></i> Edit / Crop</button></div></div>'+textHtml+img+optionsHtml+noContent+'<div class="mt-3 flex items-center gap-2 flex-wrap"><span class="text-[11px] '+(included?'text-emerald-400':'text-slate-500')+'">'+(included?'Included in: '+esc(sec.name):'Not included — will NOT print')+'</span><select onchange="assignQuestion(\''+esc(q.id)+'\',this.value)" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200">'+opts+'</select></div></div></div>';
   c.appendChild(card);
  });
+ typesetDesignerMath();
  updateTotals();
 }
-
 function toggleQuestionInclude(id,on){
  if(!on){removeQuestionFromAll(id);return}
  if(!testPaper.sections.length){
