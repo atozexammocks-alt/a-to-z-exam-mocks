@@ -53,7 +53,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 <div id="layout">
 <aside id="tree"><div class="tree-title"><span>Books & Sections</span><span id="treecount">0 Qs</span></div><div id="treebody"></div></aside>
 <main id="main">
-<div id="topbar"><div id="filtertitle">All Books & Sections (<span id="count">0</span> Questions)</div><button class="toolbtn" onclick="selectVisible()">Select / Deselect Visible</button></div>
+<div id="topbar"><div id="filtertitle">All Books & Sections (<span id="count">0</span> Questions)</div><div style="display:flex;gap:6px"><button class="toolbtn" onclick="reloadQuestions()">↻ Reload Questions</button><button class="toolbtn" onclick="selectVisible()">Select / Deselect Visible</button></div></div>
 <div id="grid"></div>
 </main>
 <aside id="controls">
@@ -139,22 +139,49 @@ function libraryMode(q){
  return "private";
 }
 function math(v){let s=String(v??"");s=s.replace(/\\b(?:SQRT|sqrt)\\s*\\(\\s*([^()]+)\\s*\\)/g,"\\\\sqrt{$1}");s=s.replace(/\\b(?:SQRT|sqrt)\\s+([A-Za-z0-9.+-]+)/g,"\\\\sqrt{$1}");return esc(s).replace(/\\n/g,"<br>");}
+async function loadQuestionsFromFirebase(){
+ if(!window.db||!window.collection||!window.getDocs) throw new Error("Firebase database is not initialized");
+ if(window.teacherAuthReady) await window.teacherAuthReady;
+ let snap;
+ try{
+   snap=await window.getDocs(window.collection(window.db,"questions"));
+ }catch(firstError){
+   // Retry once after auth/session settles; this handles a slow anonymous-auth startup.
+   console.warn("Builder first question load failed; retrying:",firstError);
+   await new Promise(r=>setTimeout(r,900));
+   if(window.teacherAuthReady) await window.teacherAuthReady;
+   snap=await window.getDocs(window.collection(window.db,"questions"));
+ }
+ return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
 async function start(){
  document.getElementById("brandlogo").src=localStorage.getItem("ExamVault_Logo_URL")||"./icon.png";
  document.getElementById("loading").style.display="flex";
+ document.getElementById("loadmsg").textContent="Connecting to Library…";
  try{
-   // Wait until anonymous authentication is complete, exactly like Library.
-   if(window.teacherAuthReady) await window.teacherAuthReady;
-   const snap=await window.getDocs(window.collection(window.db,"questions"));
-   allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
+   allQuestions=await loadQuestionsFromFirebase();
    document.getElementById("status").textContent="Firebase connected • "+allQuestions.length+" total questions";
    await applyMode();
  }catch(e){
-   console.error(e);
+   console.error("Test Builder question load failed:",e);
    document.getElementById("status").textContent="Firebase error: "+(e.code||e.message||e);
+   document.getElementById("loadmsg").textContent=(e.code||e.message||"Unable to load questions");
    render();
  }finally{document.getElementById("loading").style.display="none"}
 }
+window.reloadQuestions=async function(){
+ document.getElementById("loading").style.display="flex";
+ document.getElementById("loadmsg").textContent="Reloading all Library questions…";
+ try{
+   allQuestions=await loadQuestionsFromFirebase();
+   await applyMode();
+   document.getElementById("status").textContent="Firebase connected • "+allQuestions.length+" total • "+visible.length+" in "+mode+" library";
+ }catch(e){
+   console.error("Builder reload failed:",e);
+   document.getElementById("status").textContent="Firebase error: "+(e.code||e.message||e);
+   alert("Questions could not be loaded: "+(e.code||e.message||e));
+ }finally{document.getElementById("loading").style.display="none"}
+};
 async function loadFolderConfig(){
  try{
    let p="",id="";
