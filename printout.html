@@ -108,7 +108,7 @@ function libraryMathMarkup(v){
 function renderMath(v){
  var x=String(v??"");
  // Never allow source/OCR Enter or <br> markers to split a question around physics symbols.
- x=x.replace(/<br\\s*\\/?>(?:\\s*)/gi," ").replace(/\\r?\\n+/g," ");
+ x=x.replace(/<br\s*\/?>(?:\s*)/gi," ").replace(/\r?\n+/g," ");
  var math=libraryMathMarkup(x);
  return esc(math).replace(/&lt;/g,"<").replace(/&gt;/g,">");
 }
