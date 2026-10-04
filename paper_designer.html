@@ -1,348 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>A to Z Exam Mocks - Paper Designer</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-html,body{height:100%;min-height:0}
-@media print{
- body *{visibility:hidden!important}
- #printPreviewContent,#printPreviewContent *{visibility:visible!important}
- #printPreviewContent{position:absolute!important;left:0;top:0;width:100%;padding:0!important;margin:0!important;background:#fff!important;color:#000!important}
- #printModal{position:static!important;background:#fff!important;padding:0!important}
- #printModal>div{box-shadow:none!important;max-height:none!important;border-radius:0!important}
- #printModalToolbar{display:none!important}
- .no-print{display:none!important}
- @page{margin:1.5cm}
-}
-.q-image{max-width:100%;max-height:450px;object-fit:contain;background:#fff;border-radius:6px;display:block;margin:0 auto}
-.print-q-image{display:block;max-width:100%;height:auto;margin:8px 0;page-break-inside:avoid}
-</style>
-<style id="az-unified-nav-css">
-.az-top-nav{height:56px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:10000;flex-shrink:0}
-.az-brand{font-size:16px;font-weight:900;color:#38bdf8;text-decoration:none;display:flex;align-items:center;gap:8px}.az-nav-tabs{display:flex;gap:8px;align-items:center;position:relative}.az-nav-btn{background:#0f172a;border:1px solid #334155;color:#94a3b8;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;text-decoration:none;display:flex;align-items:center;gap:6px}.az-nav-btn:hover{border-color:#38bdf8;color:#fff}.az-admin{background:#2563eb;color:#fff;border-color:#38bdf8}.az-profile-container{position:relative;display:inline-block}.az-user-pill{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);color:#38bdf8;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer}.az-profile-dropdown{position:absolute;right:0;top:40px;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);width:220px;display:none;flex-direction:column;z-index:10001;overflow:hidden}.az-profile-dropdown.show{display:flex}.az-dropdown-header{padding:12px 16px;border-bottom:1px solid #1e293b;font-size:12px;color:#38bdf8;font-weight:700;word-break:break-all}.az-dropdown-item{padding:10px 16px;font-size:12px;color:#fecaca;background:#7f1d1d;border:0;cursor:pointer;text-align:left;font-weight:700;width:100%}.az-dropdown-item:hover{background:#991b1b}
-@media(max-width:800px){.az-top-nav{padding:0 10px}.az-brand span{display:none}.az-nav-tabs{gap:4px}.az-nav-btn{padding:6px 8px}.az-nav-btn:nth-child(2),.az-nav-btn:nth-child(3){font-size:0}.az-nav-btn:nth-child(2)::first-letter,.az-nav-btn:nth-child(3)::first-letter{font-size:14px}}
-</style>
-
-<style id="az-professional-print-css">
-#printPreviewContent{position:relative;background:#fff;color:#000;overflow:hidden}
-.az-paper-page{position:relative;min-height:100%;background:#fff}
-.az-paper-watermark{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%) rotate(-32deg);font-size:46px;font-weight:900;letter-spacing:3px;color:rgba(15,23,42,.055);white-space:nowrap;pointer-events:none;z-index:0}
-.az-paper-bottom-mark{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:10px;font-weight:800;letter-spacing:2px;color:rgba(15,23,42,.20);pointer-events:none}
-.az-paper-content{position:relative;z-index:1}
-.az-paper-header{border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
-.az-paper-brand-logo{width:42px;height:42px;object-fit:contain;display:block}
-.az-paper-logo{width:78px;height:78px;max-height:78px;max-width:150px;object-fit:contain;display:block;flex:0 0 auto}
-.az-paper-institute{font-size:20px;font-weight:900;text-transform:uppercase;line-height:1.2}
-.az-paper-exam{font-size:19px;font-weight:900;text-transform:uppercase;line-height:1.25;margin-top:3px}
-.az-paper-subject{font-size:14px;font-weight:800;margin-top:4px}
-.az-paper-meta{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #111;border-bottom:1px solid #111;padding:6px 2px;margin-top:8px;font-size:12px;font-weight:900}
-.az-paper-meta span{font-weight:900}
-.az-paper-instructions{font-size:11px;font-weight:700;margin-top:8px}
-.az-paper-section{margin:16px 0 18px}
-.az-paper-section-title{font-size:14px;font-weight:900;text-align:center;border-top:1.5px solid #111;border-bottom:1.5px solid #111;padding:5px 4px;margin-bottom:10px;text-transform:uppercase}
-.az-paper-question{font-size:13px;margin-bottom:12px;page-break-inside:avoid}
-.az-paper-question-text{font-weight:700;line-height:1.55}
-.az-paper-options{font-weight:600;line-height:1.5;margin-top:3px}
-.az-paper-question-image{display:block;max-width:100%;height:auto;margin:7px auto;page-break-inside:avoid}
-@media print{
- .az-paper-watermark{color:rgba(15,23,42,.045)!important}
- .az-paper-bottom-mark{color:rgba(15,23,42,.18)!important}
- #printPreviewContent{padding-bottom:28px!important}
-}
-</style>
-<script>
-window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};
-</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-</head>
-<body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden font-sans">
-<div id="navbar" class="az-top-nav no-print">
-  <a href="teacher.html" class="az-brand"><img class="az-paper-brand-logo" src="./icon.png" alt="A2Z Exam Mocks Logo" onerror="this.style.display='none'"> <span>A to Z Exam Mocks</span></a>
-  <div class="az-nav-tabs">
-    <a class="az-nav-btn" href="teacher.html">🏠 Dashboard</a>
-    <a href="admin.html" id="super-admin-nav-btn" class="az-nav-btn az-admin" style="display:none;">👑 Super Admin Panel</a>
-    <a href="library.html" class="az-nav-btn">📁 Central Library</a>
-    <a href="library_access.html" class="az-nav-btn">🤝 Group Library</a>
-    <div class="az-profile-container">
-      <button class="az-user-pill" onclick="toggleProfileDropdown()">👤 <span id="current-user-tag">Educator</span> ▼</button>
-      <div class="az-profile-dropdown" id="profile-dropdown-menu">
-        <div class="az-dropdown-header" id="dropdown-user-email">Not Logged In</div>
-        <button class="az-dropdown-item" onclick="logoutTeacher()">🔒 Logout</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shadow-md z-10 no-print">
- <div class="flex items-center space-x-4">
-  <button onclick="goBackToBuilder()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600 flex items-center space-x-2"><i class="fa-solid fa-arrow-left text-indigo-400"></i><span>Back to Builder</span></button>
-  <button onclick="openStudentView()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold border border-emerald-500 flex items-center space-x-2"><i class="fa-solid fa-eye"></i><span>Student View</span></button>
-  <div class="flex items-center space-x-3 border-l border-slate-700 pl-4"><div class="bg-indigo-600 p-2 rounded-lg text-white"><i class="fa-solid fa-pen-ruler text-lg"></i></div><div><h1 class="text-lg font-bold">A to Z Paper Designer</h1><p class="text-xs text-slate-400">Questions selected in Builder appear here with full image visualization</p></div></div>
- </div>
- <div class="flex items-center space-x-3">
-  <button onclick="openLibraryModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-lg text-xs font-semibold"><i class="fa-solid fa-book-open mr-1"></i>Insert from Library</button>
-  <button onclick="refreshSelectedQuestions()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3.5 py-2 rounded-lg text-xs font-semibold border border-slate-600"><i class="fa-solid fa-rotate mr-1.5 text-indigo-400"></i>Refresh / Load Selected</button>
-  <button onclick="openPrintSettings()" class="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"><i class="fa-solid fa-sliders"></i><span>Paper / Branding</span></button>
-  
-  <button onclick="previewPrintLayout()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"><i class="fa-solid fa-print"></i><span>Print / Export Paper</span></button>
- </div>
-</header>
-
-<div class="flex-1 flex overflow-hidden min-h-0 no-print">
-<aside class="w-80 bg-slate-800 border-r border-slate-700 flex flex-col">
- <div class="p-4 border-b border-slate-700">
-  <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Blueprint Summary</h2>
-  <div class="grid grid-cols-2 gap-2 text-center">
-   <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50"><span class="block text-xs text-slate-400">Total Qs</span><span id="totalQuestionsCount" class="text-lg font-bold text-indigo-400">0</span></div>
-   <div class="bg-slate-900/60 p-2 rounded border border-slate-700/50"><span class="block text-xs text-slate-400">Total Marks</span><span id="totalMarksCount" class="text-lg font-bold text-emerald-400">0</span></div>
-  </div>
- </div>
- <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><span class="text-sm font-bold"><i class="fa-solid fa-layer-group mr-2 text-indigo-400"></i>Paper Sections</span><p class="text-[10px] text-slate-500 mt-1">Create sections yourself</p></div><button onclick="addNewSection()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs"><i class="fa-solid fa-plus"></i> Add Section</button></div>
- <div id="sectionsSidebarList" class="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-900/40"><div class="text-center text-slate-500 text-xs py-12 px-3">No sections yet.<br><span class="text-slate-600">Click <b class="text-indigo-400">Add Section</b> to create your paper pattern.</span></div></div>
-</aside>
-
-<main class="flex-1 min-w-0 min-h-0 bg-slate-950 flex flex-col overflow-hidden">
- <div class="bg-slate-800/80 border-b border-slate-700 px-5 py-3 flex items-center justify-between">
-  <div><h2 class="text-base font-bold">Question Pool</h2><p class="text-xs text-slate-400">Inspect your questions and images, tick to include, and assign them to specific sections.</p></div>
-  <div class="flex gap-2"></div>
- </div>
- <div class="flex-1 min-h-0 overflow-y-auto p-5">
-  <div class="max-w-6xl mx-auto">
-   <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-3 text-xs">
-    <span class="font-bold text-slate-200">How to assign:</span><span class="text-slate-400">First create your sections on the left. Then tick a question and select the matching section. Images and text are shown exactly as available in the Builder.</span>
-   </div>
-   <div id="questionsCanvasContainer" class="space-y-3"></div>
-  </div>
- </div>
-</main>
-</div>
-
-<!-- Modals -->
-<div id="sectionModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4 no-print">
- <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
-  <div class="p-4 border-b border-slate-700 flex justify-between"><h3 class="font-bold text-indigo-300">Add New Section</h3><button onclick="closeSectionModal()"><i class="fa-solid fa-xmark"></i></button></div>
-  <div class="p-5 space-y-4">
-   <input id="secNameInput" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Section B">
-   <label class="block text-xs text-slate-400">Question Type<select id="secTypeInput" onchange="handleSecTypeChange()" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"><option value="MCQ">MCQ — Multiple Choice</option><option value="ASSERTION">Assertion & Reason</option><option value="NUMERICAL">Numerical</option><option value="CASE_STUDY">Case Study / Passage</option><option value="SHORT">Short Answer</option><option value="LONG">Long Answer / Descriptive</option><option value="VERY_SHORT">Very Short Answer</option><option value="TRUE_FALSE">True / False</option><option value="FILL_BLANK">Fill in the Blanks</option><option value="MATCH">Match the Following</option><option value="CUSTOM">Custom / Other</option></select></label>
-   <input id="customSecTypeInput" class="hidden w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Custom section type">
-   <label class="block text-xs text-slate-400">Marks per Question<input id="secMarksInput" type="number" min="0" step="0.5" value="1" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. 1, 2, 4"></label>
-  </div>
-  <div class="p-4 border-t border-slate-700 flex justify-end gap-3"><button onclick="closeSectionModal()" class="bg-slate-700 px-4 py-2 rounded-lg">Cancel</button><button onclick="saveNewSection()" class="bg-indigo-600 px-5 py-2 rounded-lg">Save Section</button></div>
- </div>
-</div>
-
-<div id="questionModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 p-4 no-print">
- <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl">
-  <div class="p-4 border-b border-slate-700 flex justify-between"><h3 id="questionModalTitle" class="font-bold text-indigo-300">Edit Question</h3><button onclick="closeQuestionModal()"><i class="fa-solid fa-xmark"></i></button></div>
-  <div class="p-5 space-y-4">
-   <input type="hidden" id="editQuestionId">
-   <select id="qType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"><option value="MCQ">MCQ</option><option value="ASSERTION">Assertion & Reason</option><option value="SHORT">Short Answer</option><option value="LONG">Long Answer</option><option value="CUSTOM">Custom / Other</option></select>
-   <input id="customQTypeInput" class="hidden w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Custom question type">
-   <textarea id="qText" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Question text"></textarea>
-   <textarea id="qOptions" rows="4" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="Options / choices (optional)"></textarea>
-   <input id="qMarks" type="number" min="0" step="0.5" value="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm">
-  </div>
-  <div class="p-4 border-t border-slate-700 flex justify-end gap-3"><button onclick="closeQuestionModal()" class="bg-slate-700 px-4 py-2 rounded-lg">Cancel</button><button onclick="saveQuestionData()" class="bg-indigo-600 px-5 py-2 rounded-lg">Save Changes</button></div>
- </div>
-</div>
-
-<div id="libraryModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-3 no-print">
- <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-7xl h-[92vh] flex flex-col shadow-2xl overflow-hidden">
-  <div class="p-3 border-b border-slate-700 flex items-center justify-between shrink-0">
-   <div><h3 class="font-bold text-emerald-300">Insert Questions from Library</h3><p class="text-xs text-slate-400">Choose Private, Central or Group Library, open a folder, then insert a question.</p></div>
-   <button onclick="closeLibraryModal()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg"><i class="fa-solid fa-xmark"></i></button>
-  </div>
-  <iframe id="libraryPickerFrame" src="library.html?picker=1" class="flex-1 w-full border-0 bg-slate-950" title="Library Question Picker"></iframe>
- </div>
-</div>
-<div id="printSettingsModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-4 no-print">
- <div class="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl">
-  <div class="p-4 border-b border-slate-700 flex items-center justify-between"><div><h3 class="font-bold text-indigo-300">Paper / Institute Branding Setup</h3><p class="text-xs text-slate-400">These details are used only on this paper's printout.</p></div><button onclick="closePrintSettings()"><i class="fa-solid fa-xmark"></i></button></div>
-  <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-3">
-   <label class="text-xs text-slate-400">School / Institute Name<input id="paperInstitute" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. A to Z Exam Mocks"></label>
-   <label class="text-xs text-slate-400">Test / Exam Name<input id="paperExamName" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Physics Mock Test"></label>
-   <label class="text-xs text-slate-400">Subject<input id="paperSubject" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Physics"></label>
-   <label class="text-xs text-slate-400">Class / Course<input id="paperClass" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. Class 12 / JEE"></label>
-   <label class="text-xs text-slate-400">Duration<input id="paperDuration" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. 3 Hours"></label>
-   <label class="text-xs text-slate-400">Date<input id="paperDate" type="date" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm"></label>
-   <label class="text-xs text-slate-400 md:col-span-2">Logo URL (Optional)<input id="paperLogoUrl" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="https://.../logo.png"></label>
-   <label class="text-xs text-slate-400 md:col-span-2">Or Upload Logo (Optional)<input id="paperLogoFile" type="file" accept="image/*" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm"></label>
-   <label class="text-xs text-slate-400 md:col-span-2">Instructions / Note (Optional)<textarea id="paperInstructions" rows="3" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm" placeholder="e.g. All questions are compulsory."></textarea></label>
-  </div>
-  <div class="p-4 border-t border-slate-700 flex justify-end gap-3"><button onclick="closePrintSettings()" class="bg-slate-700 px-4 py-2 rounded-lg">Cancel</button><button onclick="savePrintSettingsAndPreview()" class="bg-indigo-600 px-5 py-2 rounded-lg">Save & Preview</button></div>
- </div>
-</div>
-
-<div id="printModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50 p-6">
- <div class="bg-white text-slate-900 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-  <div id="printModalToolbar" class="bg-slate-100 p-4 border-b flex items-center justify-between"><h3 class="font-bold text-lg">Print Preview Layout</h3><div class="flex gap-2"><button onclick="window.print()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg">Print Paper</button><button onclick="closePrintModal()" class="p-2"><i class="fa-solid fa-xmark text-xl"></i></button></div></div>
-  <div id="printPreviewContent" class="p-8 flex-1 overflow-y-auto font-serif"></div>
- </div>
-</div>
-
-<script id="az-paperdesigner-firebase">
-</script>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-const AZ_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
-  authDomain: "physicsvault-80a10.firebaseapp.com",
-  projectId: "physicsvault-80a10",
-  storageBucket: "physicsvault-80a10.firebasestorage.app",
-  messagingSenderId: "1043166507399",
-  appId: "1:1043166507399:web:634efdac6f109273d42322"
-};
-try {
-  const azApp = initializeApp(AZ_FIREBASE_CONFIG, "PaperDesignerApp");
-  window.azPaperDesignerDb = getFirestore(azApp);
-  window.azPaperDesignerAuth = getAuth(azApp);
-  window.azPaperDesignerAuthReady = signInAnonymously(window.azPaperDesignerAuth).catch(e=>{console.warn("Paper Designer anonymous auth unavailable:",e);return null;});
-  window.azPaperDesignerGetDocs = getDocs;
-  window.azPaperDesignerCollection = collection;
-} catch(e) {
-  console.warn("Paper Designer Firebase init:", e);
-}
-</script>
-<script>
-const STATE_KEY='paperDesignerState';
-const SELECTED_ID_KEY='AZ_BUILDER_SELECTED_IDS';
-const BLUEPRINT_KEY='AZ_PAPER_DESIGNER_STATE';
-const OVERRIDE_KEY='AZ_PAPER_DESIGNER_OVERRIDES';
-const DB_NAME='AZExamMocksDesignerDB';
-const DB_STORE='questions';
-
-let testPaper={title:'Question Paper',sections:[]};
-let activeSectionId=null;
-let questionCache=new Map();
-let allQuestions=[];
-let overrides={};
-
-function uid(p){return p+'_'+Date.now()+'_'+Math.floor(Math.random()*10000)}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function safeJSON(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch(e){return fallback}}
-function cleanQuestionText(v){
- let s=String(v??'').trim();
- s=s.replace(/^\s*(?:question|ques|q)\s*[-.:]?\s*\d+\s*[.)\-:]?\s*/i,'');
- s=s.replace(/^\s*\d+\s*[.)\-:]?\s*/,'');
- return s.trim();
-}
-function cleanOptionText(v){
- return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim();
-}
-function optionArray(q){
- const v=q?.options??q?.choices??q?.answers;
- if(Array.isArray(v)) return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x).map(String).filter(x=>x.trim());
- if(v&&typeof v==='object') return Object.values(v).map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x).map(String).filter(x=>x.trim());
- if(typeof v==='string'&&v.trim()){
-  try{const a=JSON.parse(v);if(Array.isArray(a))return a.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x).map(String).filter(x=>x.trim())}catch(e){}
-  return v.split(/\s*\|\s*|\r?\n/).map(x=>x.replace(/^\s*\([A-Ea-e]\)\s*/,'').trim()).filter(Boolean);
- }
- return ['A','B','C','D','E'].map(k=>q?.['option'+k]??q?.['option_'+k]??q?.['choice'+k]).map(x=>String(x??'')).filter(x=>x.trim());
-}
-function builderTextOf(q){
- const candidates=[q?.qText,q?.text,q?.questionText,q?.question_text,q?.content,q?.questionTextHtml,q?.prompt,q?.question];
- for(const v of candidates) if(typeof v==='string'&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim())) return v.trim();
- return '';
-}
-function builderImageOf(q){
- const keys=['question','questionImage','image','img','imageData','croppedImage','questionImageData','imageUrl','imageURL','diagram','imageSrc','src','base64Image'];
- for(const k of keys){
-  const v=q?.[k];
-  if(typeof v==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())) return v.trim();
- }
- return '';
-}
-function builderMathMarkup(v){
- const x=String(v||'');
- if(!x)return '';
- if(/\\\(|\\\[/.test(x)) return x;
- if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\b/.test(x)
-   || /(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)) return "\\("+x+"\\)";
- return x;
-}
-function renderDesignerMath(v){
- const x=builderMathMarkup(v);
- return esc(x).replace(/&lt;/g,'<').replace(/&gt;/g,'>');
-}
-function typesetDesignerMath(){
- if(!window.MathJax||typeof MathJax.typesetPromise!=='function')return;
- const run=()=>MathJax.typesetPromise([document.getElementById('questionsCanvasContainer')]).catch(()=>{});
- if(MathJax.startup?.promise) MathJax.startup.promise.then(run).catch(()=>{}); else run();
-}
-function textStyleFor(q){
- const e=q?._builderEdit||{};
- return 'font-size:'+Number(e.fontSize||14)+'px;font-weight:'+Number(e.weight||400)+';text-align:'+String(e.align||'left')+';line-height:'+Number(e.lineHeight||1.65)+';';
-}
-function breaks(s){return renderDesignerMath(s).replace(/\n/g,'<br>')}
-
-function openDesignerDB(){
- return new Promise(resolve=>{
-  try{
-   const req=indexedDB.open(DB_NAME,1);
-   req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(DB_STORE))db.createObjectStore(DB_STORE,{keyPath:'id'});};
-   req.onsuccess=()=>resolve(req.result); req.onerror=()=>resolve(null);
-  }catch(e){resolve(null)}
- });
-}
-
-function isLikelyImageValue(v){
- if(!v)return false;
- if(typeof v==='object')return !!(v.src||v.url||v.data||v.base64||v.image);
- const s=String(v).trim();
- return /^(data:image\/|https?:\/\/|blob:)/i.test(s) || /\.(png|jpe?g|gif|webp|svg)(\\?.*)?$/i.test(s);
-}
-function imageValue(v){
- if(!v)return'';
- if(typeof v==='object')return String(v.src||v.url||v.data||v.base64||v.image||'');
- const s=String(v).trim();
- const m=s.match(/<img[^>]+src=["']([^"']+)["']/i);
- return m?m[1]:s;
-}
-function resolveQuestionImage(q,o,qId){
- const candidates=[
-  o?.image,o?.questionImage,o?.imageData,o?.croppedImage,o?.img,o?.question,
-  q?.image,q?.img,q?.questionImage,q?.imageData,q?.croppedImage,q?.question,
-  q?.questionImageData,q?.imageUrl,q?.imageURL,q?.diagram,q?.questionImageUrl,q?.questionImageURL,
-  q?.imageSrc,q?.src,q?.base64Image,q?.croppedImageData,q?.editorImage,q?.questionHtml,o?.questionHtml
- ];
- for(const v of candidates)if(isLikelyImageValue(v))return imageValue(v);
- const tempId=localStorage.getItem('AZ_PAPER_EDITOR_QID');
- if(qId===tempId){
-  const v=localStorage.getItem('Temp_Editor_Image')||'';
-  if(v)return v;
- }
- return '';
-}
-function normalizeQuestion(q,fallbackId){
- const qId=String(q?.id||q?.qid||q?.questionId||fallbackId);
- const o=overrides[qId]||overrides[fallbackId]||{};
- const builderEdits=safeJSON('AZ_BUILDER_TEXT_EDITS',{})||{};
- const edit=builderEdits[qId]||{};
- const rawText=edit.text!==undefined?edit.text:builderTextOf(q);
- const text=cleanQuestionText(rawText);
- let image=resolveQuestionImage(q,o,qId);
- if(o.keepImage===false)image='';
- const rawOptions=Array.isArray(edit.options)?edit.options:(o.optText??o.options??q?.optText??q?.options??q?.choices??'');
- const options=Array.isArray(rawOptions)?rawOptions.map(cleanOptionText).filter(Boolean).join('\n'):String(rawOptions||'').split(/\r?\n|\s*\|\s*/).map(cleanOptionText).filter(Boolean).join('\n');
- const marks=Number(o.marks??q?.marks??1)||1;
- const type=o.paperType??q?.type??q?.questionType??inferType(q);
- return{id:qId,type,text,options,image,marks,key:o.key??q?.key??'',_builderEdit:edit};
-}
-
-function inferType(q){
- const t=String(q?.type||q?.questionType||'').toUpperCase();
- if(t.includes('ASSERT'))return'ASSERTION';
- if(t.includes('LONG'))return'LONG';
- if(t.includes('SHORT')||t.includes('VSA'))return'SHORT';
- return'MCQ';
-}
-
 async function loadFromBuilder(){
  const params=new URLSearchParams(location.search);
  const urlIds=String(params.get("selected")||"").split(",").map(x=>x.trim()).filter(Boolean);
@@ -359,6 +14,8 @@ async function loadFromBuilder(){
    if(q?.id!==undefined) questionCache.set(String(q.id),q);
    if(q?.qid!==undefined) questionCache.set(String(q.qid),q);
   });
+  // Exact Builder handoff is authoritative for this paper; render it immediately.
+  // This removes the unnecessary Firestore/IndexedDB wait from the Customize flow.
  }
 
  // Primary source: the same Firestore "questions" collection used by Test Builder.
@@ -408,6 +65,19 @@ async function loadFromBuilder(){
   const qObj=questionCache.get(id) || [...questionCache.values()].find(x=>String(x.id)===id || String(x.qid)===id);
   return qObj ? normalizeQuestion(qObj,id) : null;
  }).filter(q=>q && q.id);
+
+ // Paper Designer owns these edits locally. They never write back to Library/Firebase.
+ const paperEdits=safeJSON('AZ_PAPER_DESIGN_EDITS',{})||{};
+ allQuestions=allQuestions.map(q=>{
+  const e=paperEdits[String(q.id)];
+  if(!e)return q;
+  return Object.assign({},q,{
+   text:e.text!==undefined?String(e.text):q.text,
+   options:Array.isArray(e.options)?e.options.map(cleanOptionText).filter(Boolean).join('\n'):q.options,
+   image:e.image!==undefined?String(e.image):q.image,
+   marks:e.marks!==undefined?(Number(e.marks)||q.marks):q.marks
+  });
+ });
 
  // Keep all selected IDs visible even if a source has a missing record; this gives a clear diagnostic.
  const blueprint=safeJSON(BLUEPRINT_KEY,null);
@@ -538,7 +208,7 @@ function openEditorForPaper(id){
   localStorage.setItem('AZ_PAPER_EDITOR_QID',q.id);
   localStorage.setItem('Temp_Editor_Image',q.image||'');
   localStorage.setItem('Temp_QText',q.text||'');
-  const opts=String(q.options||'').split(/\n|\r\n/);
+  const opts=String(q.options||'').split(/\r?\n/);
   localStorage.setItem('Temp_Opt_A',opts[0]||'');
   localStorage.setItem('Temp_Opt_B',opts[1]||'');
   localStorage.setItem('Temp_Opt_C',opts[2]||'');
