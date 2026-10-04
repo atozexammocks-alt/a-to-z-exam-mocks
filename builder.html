@@ -80,6 +80,10 @@ import {getFirestore,collection,getDocs,doc,getDoc,addDoc} from "https://www.gst
 
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+// IMPORTANT: builder must create the same anonymous Firebase session as Library.
+window.db=db;
+window.auth=auth;
+window.teacherAuthReady=signInAnonymously(auth).catch(e=>{console.error("Anonymous auth failed:",e);throw e;});
 let mode="private",allQuestions=[],visible=[],selected=new Set(),mainFilter="ALL",sectionFilter="ALL",treeData={},openNodes=new Set();
 const email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
 const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
@@ -116,9 +120,8 @@ async function start(){
  document.getElementById("brandlogo").src=localStorage.getItem("ExamVault_Logo_URL")||"./icon.png";
  document.getElementById("loading").style.display="flex";
  try{
-   // Use the same Firebase/Auth initialization path as the working Library page.
-   // Waiting for the shared auth promise avoids a Firestore read racing anonymous sign-in.
-   try{await window.teacherAuthReady}catch(e){console.warn("Auth wait:",e)}
+   // Wait until anonymous authentication is complete, exactly like Library.
+   await window.teacherAuthReady;
    const snap=await getDocs(collection(db,"questions"));
    allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
    document.getElementById("status").textContent="Firebase connected • "+allQuestions.length+" total questions";
