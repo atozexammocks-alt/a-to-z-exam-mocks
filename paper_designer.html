@@ -283,7 +283,11 @@ function inferType(q){
 }
 
 async function loadFromBuilder(){
- const ids=safeJSON(SELECTED_ID_KEY,[]);
+ const params=new URLSearchParams(location.search);
+ const urlIds=String(params.get("selected")||"").split(",").map(x=>x.trim()).filter(Boolean);
+ const storedIds=safeJSON(SELECTED_ID_KEY,[]);
+ const legacyIds=safeJSON("AZ_BUILDER_SELECTED_IDS",[]);
+ const ids=urlIds.length?urlIds:(Array.isArray(storedIds)&&storedIds.length?storedIds:(Array.isArray(legacyIds)?legacyIds:[]));
  overrides=safeJSON(OVERRIDE_KEY,{})||{};
  questionCache=new Map();
 
