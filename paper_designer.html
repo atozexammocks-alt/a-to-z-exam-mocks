@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A to Z Exam Mocks — Paper Designer</title>
+<script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#060911;color:#f8fafc}
+button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;flex-direction:column}
+.top{min-height:58px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:9px;padding:9px 13px;flex-wrap:wrap}
+.brand{font-weight:900;color:#38bdf8}.spacer{flex:1}.btn{border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:7px;padding:8px 11px;font-size:11px;font-weight:800;cursor:pointer}.btn:hover{border-color:#38bdf8}.btn.blue{background:#2563eb;border-color:#3b82f6;color:#fff}.btn.green{background:#059669;border-color:#10b981;color:#fff}
+.stats{display:flex;gap:7px;flex-wrap:wrap;padding:9px 13px;background:#090d16;border-bottom:1px solid #1e293b}.stat{background:#0f172a;border:1px solid #334155;border-radius:9px;padding:7px 12px;min-width:115px}.stat span{display:block;color:#64748b;font-size:9px;font-weight:800;text-transform:uppercase}.stat b{font-size:15px;color:#fff}
+.layout{display:grid;grid-template-columns:300px minmax(0,1fr);gap:10px;padding:10px;flex:1;min-height:0}.panel{background:#0b1120;border:1px solid #1e293b;border-radius:10px;overflow:hidden}.head{padding:10px 12px;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;gap:7px}.head strong{font-size:12px;color:#38bdf8}.body{padding:10px}.scroll{max-height:calc(100vh - 170px);overflow:auto}
+.section{border:1px solid #334155;background:#080d17;border-radius:10px;padding:10px;margin-bottom:9px}.section.active{border-color:#38bdf8}.section-title{display:flex;align-items:center;justify-content:space-between;gap:7px}.section-title b{font-size:12px}.section-meta{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}.badge{font-size:9px;border:1px solid #334155;border-radius:999px;padding:4px 7px;color:#cbd5e1;background:#0f172a}.badge.green{color:#6ee7b7;border-color:#065f46}.field{width:100%;background:#060911;color:#fff;border:1px solid #334155;border-radius:7px;padding:7px;font-size:11px}.mini{font-size:9px;color:#64748b}.row{display:flex;gap:6px;align-items:center}.row>*{min-width:0}.section select{margin-top:6px}.section-actions{display:flex;gap:5px;margin-top:7px}.section-actions button{flex:1}
+.main{min-width:0;display:flex;flex-direction:column}.toolbar{padding:9px 10px;border-bottom:1px solid #1e293b;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.toolbar .note{font-size:10px;color:#64748b;margin-left:auto}.questions{padding:10px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;overflow:auto;max-height:calc(100vh - 170px);align-content:start}
+.card{background:#080d17;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.card.assigned{border-color:#065f46}.qtop{display:flex;gap:7px;align-items:center}.qtop b{font-size:10px;color:#94a3b8}.qtext{font-size:13px;line-height:1.65;margin-top:7px;white-space:pre-wrap;overflow-wrap:anywhere}.qimg{margin-top:7px;background:#fff;border-radius:7px;display:flex;justify-content:center;align-items:center;overflow:hidden}.qimg img{max-width:100%;max-height:280px;object-fit:contain}.opts{margin-top:7px;border-top:1px solid #1e293b;padding-top:7px;font-size:12px;line-height:1.55}.opt{display:grid;grid-template-columns:22px 1fr;gap:3px;margin:2px 0}.assign{margin-top:8px}.assign label{display:block;font-size:9px;color:#64748b;font-weight:800;margin-bottom:3px}.assign select{width:100%}.empty{text-align:center;color:#64748b;padding:45px 15px;grid-column:1/-1}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.74);z-index:50;display:none;align-items:center;justify-content:center;padding:14px}.modal.show{display:flex}.dialog{width:min(760px,96vw);max-height:92vh;overflow:auto;background:#0b1120;border:1px solid #334155;border-radius:14px;padding:15px;box-shadow:0 20px 80px rgba(0,0,0,.55)}.dialog h2{margin:0 0 12px;font-size:16px;color:#38bdf8}.formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.formgrid label{font-size:10px;color:#94a3b8;font-weight:800}.formgrid label.full{grid-column:1/-1}.formgrid input,.formgrid select,.formgrid textarea{margin-top:4px;width:100%}.check{display:flex;gap:7px;align-items:center;color:#cbd5e1;font-size:11px;margin-top:10px}.actions{display:flex;justify-content:flex-end;gap:7px;margin-top:13px}
+#toast{position:fixed;right:14px;bottom:14px;background:#0f172a;border:1px solid #334155;color:#e2e8f0;padding:9px 12px;border-radius:8px;font-size:11px;display:none;z-index:100}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.scroll,.questions{max-height:none}.questions{grid-template-columns:1fr}.stats{overflow:auto;flex-wrap:nowrap}.stat{min-width:105px}.formgrid{grid-template-columns:1fr}.formgrid label.full{grid-column:auto}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <button class="btn" onclick="goBack()">← Back</button>
+  <div class="brand">🎨 Paper Designer</div>
+  <div class="spacer"></div>
+  <button class="btn blue" onclick="openBranding()">🖨 Printout / Export Paper</button>
+</header>
+<div class="stats">
+  <div class="stat"><span>Total Questions</span><b id="totalQuestions">0</b></div>
+  <div class="stat"><span>Total Marks</span><b id="totalMarks">0</b></div>
+  <div class="stat"><span>Paper Sections</span><b id="totalSections">0</b></div>
+</div>
+<div class="layout">
+  <aside class="panel">
+    <div class="head"><strong>📑 Paper Sections</strong><button class="btn green" onclick="addSection()">＋ Add Section</button></div>
+    <div id="sections" class="body scroll"></div>
+  </aside>
+  <main class="panel main">
+    <div class="head"><strong>Question Pool</strong><span id="poolStatus" class="mini">Loading selected questions…</span></div>
+    <div class="toolbar">
+      <span class="note">Only questions selected in Test Builder appear here.</span>
+    </div>
+    <div id="questions" class="questions"></div>
+  </main>
+</div>
+</div>
+
+<div id="brandingModal" class="modal">
+ <div class="dialog">
+  <h2>🖨 Paper & Branding Details</h2>
+  <div class="formgrid">
+   <label>Institute / School Name<input id="schoolName" placeholder="e.g. Future Scholar"></label>
+   <label>Class / Course<input id="className" placeholder="e.g. Class XII"></label>
+   <label>Subject<input id="subjectName" placeholder="e.g. Physics"></label>
+   <label>Exam / Paper Title<input id="paperTitle" placeholder="e.g. Pre-Board Examination"></label>
+   <label>Academic Session<input id="sessionName" placeholder="e.g. 2026–27"></label>
+   <label>Time Allowed<input id="examTime" placeholder="e.g. 3 Hours"></label>
+   <label>Institute Logo URL<input id="logoUrl" placeholder="https://..."></label>
+   <label>Watermark Text<input id="watermarkText" value="A to Z Exam Mocks"></label>
+   <label class="full">Header / Instructions<textarea id="instructions" rows="3" placeholder="General instructions for students..."></textarea></label>
+  </div>
+  <label class="check"><input id="showLogo" type="checkbox" checked> Show institute logo</label>
+  <label class="check"><input id="showWatermark" type="checkbox"> Show watermark</label>
+  <label class="check"><input id="showAZBrand" type="checkbox" checked> Show A to Z Exam Mocks branding</label>
+  <label class="check"><input id="showFooter" type="checkbox" checked> Show branded footer</label>
+  <div class="actions"><button class="btn" onclick="closeBranding()">Cancel</button><button class="btn blue" onclick="printPaper()">Continue to Print</button></div>
+ </div>
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {getFirestore,collection,getDocs} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const app=initializeApp(firebaseConfig,"AZPaperDesignerStandalone");
+const auth=getAuth(app),db=getFirestore(app);
+let questions=[],sections=[],branding={};
+
+function safeJSON(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||"");return v??fallback}catch(e){return fallback}}
+function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+function cleanText(v){let s=String(v??"").trim();s=s.replace(/^\s*(?:question|ques|q)\s*[-.:]?\s*\d+\s*[.)\-:]?\s*/i,"");s=s.replace(/^\s*\d+\s*[.)\-:]?\s*/,"");return s.trim()}
+function optionsOf(q){
+ const v=q?.options??q?.choices??q?.answers;
+ if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(String).filter(x=>x.trim());
+ if(v&&typeof v==="object")return Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(String).filter(x=>x.trim());
+ if(typeof v==="string"&&v.trim()){try{const a=JSON.parse(v);if(Array.isArray(a))return a.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(String).filter(x=>x.trim())}catch(e){} return v.split(/\s*\|\s*|\r?\n/).map(x=>x.replace(/^\s*\([A-Ea-e]\)\s*/,"").replace(/^\s*[A-Ea-e][.)]\s*/,"").trim()).filter(Boolean)}
+ return ["A","B","C","D","E"].map(k=>q?.["option"+k]??q?.["option_"+k]??q?.["choice"+k]).map(x=>String(x??"")).filter(x=>x.trim())
+}
+function textOf(q){
+ for(const v of [q?.qText,q?.text,q?.questionText,q?.question_text,q?.content,q?.questionTextHtml,q?.prompt,q?.question]) if(typeof v==="string"&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim())) return cleanText(v);
+ return "";
+}
+function imageOf(q){
+ for(const k of ["questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image","question"]) {const v=q?.[k];if(typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim()}
+ return "";
+}
+function mathMarkup(v){
+ const x=String(v||"");if(!x)return "";if(/\\\(|\\\[/.test(x))return x;
+ if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\b/.test(x)||/(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x))return "\\("+x+"\\)";
+ return x;
+}
+function renderText(v){return esc(mathMarkup(v)).replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\r?\n/g,"<br>")}
+function typeset(){if(!window.MathJax?.typesetPromise)return;MathJax.startup?.promise?.then(()=>MathJax.typesetPromise([document.getElementById("questions")]).catch(()=>{}))}
+function toast(s){const t=document.getElementById("toast");t.textContent=s;t.style.display="block";clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.style.display="none",2200)}
+
+function selectedIds(){
+ const url=new URLSearchParams(location.search).get("selected");
+ const ids=(url||"").split(",").map(x=>x.trim()).filter(Boolean);
+ if(ids.length)return ids;
+ return safeJSON("AZ_BUILDER_SELECTED_IDS",[]).map(String);
+}
+function normalizeSections(){
+ sections=sections.map((s,i)=>({id:String(s.id||("sec_"+Date.now()+"_"+i)),name:s.name||("Section "+String.fromCharCode(65+i)),type:s.type||"MCQ",marks:Number(s.marks)||1,questionIds:Array.isArray(s.questionIds)?s.questionIds.map(String):[]}));
+}
+function sectionTypes(){return ["MCQ","Very Short Answer","Short Answer","Long Answer","Assertion–Reason","Numerical","Case Study","Mixed"]}
+function addSection(){
+ const i=sections.length;sections.push({id:"sec_"+Date.now()+"_"+i,name:"Section "+String.fromCharCode(65+i),type:i===0?"MCQ":"Short Answer",marks:1,questionIds:[]});renderAll()
+}
+function removeSection(id){
+ const s=sections.find(x=>x.id===id);if(!s)return;
+ s.questionIds.forEach(qid=>{const q=questions.find(x=>x.id===qid);if(q)q._section=""});
+ sections=sections.filter(x=>x.id!==id);renderAll()
+}
+function sectionOf(qid){return sections.find(s=>s.questionIds.includes(String(qid)))}
+function assign(qid,sid){
+ sections.forEach(s=>s.questionIds=s.questionIds.filter(x=>x!==String(qid)));
+ if(sid){const s=sections.find(x=>x.id===sid);if(s)s.questionIds.push(String(qid))}
+ renderAll()
+}
+function sectionUpdate(id,key,val){const s=sections.find(x=>x.id===id);if(!s)return;s[key]=key==="marks"?Math.max(0,Number(val)||0):String(val);renderAll()}
+function sectionStats(s){return {count:s.questionIds.length,marks:s.questionIds.reduce((sum,id)=>sum+(Number(questions.find(q=>q.id===id)?.marks)||0),0)}}
+function renderSections(){
+ const el=document.getElementById("sections");
+ if(!sections.length){el.innerHTML='<div class="empty">No sections yet.<br><small>Click ＋ Add Section to start.</small></div>';return}
+ el.innerHTML=sections.map((s,i)=>{const st=sectionStats(s);return '<div class="section"><div class="section-title"><b>'+esc(s.name)+'</b><span class="badge green">'+st.count+' Q • '+st.marks+' marks</span></div><div class="section-meta"><span class="badge">'+esc(s.type)+'</span><span class="badge">Marks/Q: '+s.marks+'</span></div><input class="field" value="'+esc(s.name)+'" onchange="sectionUpdate(\''+esc(s.id)+'\',\'name\',this.value)" placeholder="Section name"><select class="field" onchange="sectionUpdate(\''+esc(s.id)+'\',\'type\',this.value)">'+sectionTypes().map(t=>'<option '+(t===s.type?'selected':'')+'>'+esc(t)+'</option>').join("")+'</select><div class="row" style="margin-top:6px"><input class="field" type="number" min="0" step="0.5" value="'+s.marks+'" onchange="sectionUpdate(\''+esc(s.id)+'\',\'marks\',this.value)" title="Default marks per question"></div><div class="section-actions"><button class="btn" onclick="removeSection(\''+esc(s.id)+'\')">Remove</button></div></div>'}).join("")
+}
+function renderQuestions(){
+ const el=document.getElementById("questions");
+ if(!questions.length){el.innerHTML='<div class="empty">No selected questions found.<br><small>Go back to Test Builder, select questions, then open Paper Designer.</small></div>';return}
+ el.innerHTML=questions.map((q,i)=>{const s=sectionOf(q.id),txt=textOf(q),img=imageOf(q),opts=optionsOf(q);return '<div class="card '+(s?'assigned':'')+'"><div class="qtop"><b>Q.'+(i+1)+'</b><span class="mini">'+esc(q.type||"Question")+'</span><span class="mini" style="margin-left:auto">'+(Number(q.marks)||0)+' marks</span></div>'+(txt?'<div class="qtext">'+renderText(txt)+'</div>':'')+(img?'<div class="qimg"><img src="'+esc(img)+'" alt="Question"></div>':'')+(opts.length?'<div class="opts">'+opts.map((o,j)=>'<div class="opt"><b>'+String.fromCharCode(65+j)+'.</b><span>'+renderText(o)+'</span></div>').join("")+'</div>':'')+'<div class="assign"><label>Paper Section</label><select class="field" onchange="assign(\''+esc(q.id)+'\',this.value)"><option value="">Not assigned</option>'+sections.map(x=>'<option value="'+esc(x.id)+'" '+(s?.id===x.id?'selected':'')+'>'+esc(x.name)+' — '+esc(x.type)+'</option>').join("")+'</select></div></div>'}).join("");
+ typeset()
+}
+function renderAll(){normalizeSections();renderSections();renderQuestions();updateTotals();saveState()}
+function updateTotals(){
+ const qm=questions.reduce((a,q)=>a+(Number(q.marks)||0),0);
+ document.getElementById("totalQuestions").textContent=questions.length;
+ document.getElementById("totalMarks").textContent=qm;
+ document.getElementById("totalSections").textContent=sections.length;
+ document.getElementById("poolStatus").textContent=questions.length+" selected question"+(questions.length===1?"":"s");
+}
+function saveState(){try{localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections))}catch(e){}}
+function loadState(){
+ const old=safeJSON("AZ_PAPER_DESIGN_SECTIONS",null);
+ if(Array.isArray(old)&&old.length){sections=old;return}
+ sections=[]
+}
+async function loadQuestions(){
+ const ids=selectedIds();
+ if(!ids.length){document.getElementById("poolStatus").textContent="No Builder selection";renderAll();return}
+ const handoff=safeJSON("AZ_BUILDER_SELECTED_QUESTIONS",[]);
+ const compact=new Map((Array.isArray(handoff)?handoff:[]).map(q=>[String(q?.id||q?.qid||q?.questionId||""),q]));
+ try{await signInAnonymously(auth);const snap=await getDocs(collection(db,"questions"));const map=new Map(snap.docs.map(d=>[String(d.id),{id:d.id,...d.data()}]));questions=ids.map(id=>map.get(String(id))||compact.get(String(id))).filter(Boolean)}
+ catch(e){console.warn("Paper Designer Firebase load:",e);questions=ids.map(id=>compact.get(String(id))).filter(Boolean)}
+ document.getElementById("poolStatus").textContent=questions.length+" / "+ids.length+" selected questions loaded";
+ if(!sections.length)addSection();else renderAll()
+}
+function goBack(){location.href="builder.html"}
+function openBranding(){
+ if(!questions.length){alert("No selected questions available.");return}
+ const old=safeJSON("AZ_PAPER_BRANDING",{})||{};
+ ["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions"].forEach(k=>{if(old[k]!==undefined)document.getElementById(k).value=old[k]});
+ ["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>{if(old[k]!==undefined)document.getElementById(k).checked=old[k]});
+ document.getElementById("brandingModal").classList.add("show")
+}
+function closeBranding(){document.getElementById("brandingModal").classList.remove("show")}
+function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions"].forEach(k=>o[k]=document.getElementById(k).value.trim());["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>o[k]=document.getElementById(k).checked);return o}
+function printPaper(){
+ branding=readBranding();localStorage.setItem("AZ_PAPER_BRANDING",JSON.stringify(branding));localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections));
+ closeBranding();
+ const ordered=[];sections.forEach(s=>s.questionIds.forEach(id=>{const q=questions.find(x=>x.id===id);if(q)ordered.push({q,s})}));
+ questions.forEach(q=>{if(!ordered.some(x=>x.q.id===q.id))ordered.push({q,s:null})});
+ const w=window.open("","_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
+ w.document.open();w.document.write(buildPrintHtml(ordered));w.document.close()
+ setTimeout(()=>{try{w.focus();w.print()}catch(e){}},700)
+}
+function buildPrintHtml(items){
+ const b=branding;const escP=esc;
+ const sectionsHtml=sections.map(s=>{const qs=s.questionIds.map(id=>questions.find(q=>q.id===id)).filter(Boolean);if(!qs.length)return "";return '<section class="psec"><h2>'+escP(s.name)+' <span>('+qs.length+' Questions • '+sectionStats(s).marks+' Marks)</span></h2>'+qs.map((q,i)=>printQ(q,i+1)).join("")+'</section>'}).join("");
+ const un=questions.filter(q=>!sectionOf(q.id));const unHtml=un.length?'<section class="psec"><h2>Unassigned Questions</h2>'+un.map((q,i)=>printQ(q,i+1)).join("")+'</section>':"";
+ const logo=b.showLogo&&b.logoUrl?'<img class="logo" src="'+escP(b.logoUrl)+'">':"";
+ const wm=b.showWatermark?'<div class="watermark">'+escP(b.watermarkText||"A to Z Exam Mocks")+'</div>':"";
+ const footer=b.showFooter?'<footer>'+(b.showAZBrand?"A to Z Exam Mocks • ":"")+'Question Paper</footer>':"";
+ return '<!doctype html><html><head><meta charset="utf-8"><title>'+escP(b.paperTitle||"Question Paper")+'</title><style>@page{size:A4;margin:15mm}body{font-family:Arial,sans-serif;color:#111;font-size:13px;line-height:1.5}.header{text-align:center;border-bottom:2px solid #111;padding-bottom:9px;margin-bottom:10px;position:relative}.logo{position:absolute;left:0;top:0;width:58px;height:58px;object-fit:contain}.school{font-size:18px;font-weight:800}.title{font-size:17px;font-weight:800}.meta{font-size:11px;margin-top:3px}.instructions{margin:8px 0;padding:7px;border:1px solid #999;white-space:pre-wrap}.watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;transform:rotate(-30deg);font-size:55px;color:#000;opacity:.06;pointer-events:none}.psec{break-before:auto}.psec h2{font-size:15px;border-bottom:1px solid #555;padding-bottom:3px;margin:14px 0 8px}.psec h2 span{font-size:10px;font-weight:normal}.q{break-inside:avoid;margin:0 0 9px}.qline{display:grid;grid-template-columns:27px 1fr;gap:2px}.qtext{white-space:pre-wrap}.qimg{margin:5px auto;text-align:center}.qimg img{max-width:90%;max-height:180px;object-fit:contain}.opts{margin:4px 0 0 27px;display:grid;grid-template-columns:1fr 1fr;gap:2px 15px}.opt{display:grid;grid-template-columns:19px 1fr;gap:2px}.marks{float:right;font-size:10px}.psec{page-break-inside:auto}footer{margin-top:18px;border-top:1px solid #888;padding-top:4px;text-align:center;font-size:9px}@media print{.watermark{display:flex}}</style><script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};<\/script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"><\/script></head><body><div class="watermark">'+(b.showWatermark?escP(b.watermarkText||"A to Z Exam Mocks"):"")+'</div><div class="header">'+logo+'<div class="school">'+escP(b.schoolName)+'</div><div class="title">'+escP(b.paperTitle)+'</div><div class="meta">'+escP(b.className)+(b.subjectName?" • "+escP(b.subjectName):"")+(b.sessionName?" • Session "+escP(b.sessionName):"")+(b.examTime?" • Time: "+escP(b.examTime):"")+' • Max Marks: '+questions.reduce((a,q)=>a+(Number(q.marks)||0),0)+'</div></div>'+(b.instructions?'<div class="instructions"><b>Instructions:</b><br>'+escP(b.instructions)+'</div>':"")+sectionsHtml+unHtml+footer+'<script>window.addEventListener("load",()=>setTimeout(()=>{if(window.MathJax)MathJax.typesetPromise().then(()=>setTimeout(()=>window.print(),250));},250));<\/script></body></html>'
+}
+function printQ(q,n){
+ const txt=textOf(q),img=imageOf(q),opts=optionsOf(q);
+ return '<div class="q"><div class="qline"><b>'+n+'.</b><div><span class="qtext">'+renderText(txt)+'</span><span class="marks">['+(Number(q.marks)||0)+']</span></div></div>'+(img?'<div class="qimg"><img src="'+esc(img)+'"></div>':"")+(opts.length?'<div class="opts">'+opts.map((o,i)=>'<div class="opt"><b>'+String.fromCharCode(65+i)+'.</b><span>'+renderText(o)+'</span></div>').join("")+'</div>':"")+'</div>'
+}
+window.addSection=addSection;window.removeSection=removeSection;window.sectionUpdate=sectionUpdate;window.assign=assign;window.openBranding=openBranding;window.closeBranding=closeBranding;window.printPaper=printPaper;window.goBack=goBack;
+loadState();loadQuestions();
+</script>
+</body>
+</html>
