@@ -164,16 +164,12 @@ function isCentral(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.librar
 function isGroup(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.group===true||x==="group"||x.includes("group")}
 function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="group")return isGroup(q);return !isCentral(q)&&!isGroup(q)}
 function renderMath(html){
- let s=String(html??"");
- const saved=[];
- s=s.replace(/\\\(([\\s\\S]*?)\\\)|\\\[([\\s\\S]*?)\\\]|\\$\\$([\\s\\S]*?)\\$\\$|\\$([^$]+)\\$/g,m=>{saved.push(m);return "@@MATH"+(saved.length-1)+"@@";});
- s=s.replace(/\n/g,"<br>");
- s=s.replace(/(^|<br>)([^<]*?\\(?:frac|dfrac|tfrac)\\\{[^{}]*\\\}\\\{[^{}]*\\\}[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
- s=s.replace(/(^|<br>)([^<]*?\\(?:sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega)[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
- s=s.replace(/(^|<br>)([^<]*?[A-Za-z](?:\\)?[_^](?:\\\{[^}]*\\\}|[A-Za-z0-9]+)[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
- s=s.replace(/@@MATH(\\d+)@@/g,(_,i)=>saved[Number(i)]);
+ let s=String(html??"").replace(/\n/g,"<br>");
+ s=s.replace(/(^|[ <br>])((?:\\(?:frac|dfrac|tfrac|sqrt|bar|vec|hat|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)\b)[^<br>]*?)(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
+ s=s.replace(/(^|[ <br>])((?:[A-Za-z]+[_^][A-Za-z0-9{}\\]+|[A-Za-z]+\s*=[^<br>]+))(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
  return s;
 }
+
 function typeset(){if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise().catch(()=>{});}
 
 window.setGlobalQuestionFont=function(v){window.paperSettings.fontSize=Math.max(10,Math.min(30,Number(v)||14));renderQuestions();};
@@ -404,12 +400,28 @@ function questionHTML(q,num){
  const img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),edit=window.textEdits[String(q.id)]||{};
  const style='font-size:'+Number(edit.fontSize||window.paperSettings.fontSize||14)+'px;font-weight:'+Number(edit.weight||window.paperSettings.weight||400)+';text-align:'+String(edit.align||'left')+';line-height:'+Number(edit.lineHeight||1.55)+';';
  return '<div class="paper-q"><div class="paper-question-line"><span class="paper-q-num"><b>'+num+'.</b></span>'+(txt?'<span class="paper-text" style="'+style+'">'+renderMath(esc(txt))+'</span>':'')+'</div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!edit.hideOptions?'<div class="paper-options" style="'+style+'">'+opts.map((o,i)=>'<span><b>'+String.fromCharCode(65+i)+'.</b> '+renderMath(esc(o))+'</span>').join("")+'</div>':'')+'</div>';
+}function printQuestionHTML(q,num){
+ const img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),edit=window.textEdits[String(q.id)]||{};
+ const style='font-size:'+Number(edit.fontSize||window.paperSettings.fontSize||14)+'px;font-weight:'+Number(edit.weight||window.paperSettings.weight||400)+';text-align:'+String(edit.align||'left')+';line-height:'+Number(edit.lineHeight||1.55)+';';
+ return '<div class="paper-q"><div class="paper-question-line"><span class="paper-q-num"><b>'+num+'.</b></span>'+(txt?'<span class="paper-text" style="'+style+'">'+printMath(esc(txt))+'</span>':'')+'</div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!edit.hideOptions?'<div class="paper-options" style="'+style+'">'+opts.map((o,i)=>'<span><b>'+String.fromCharCode(65+i)+'.</b> '+printMath(esc(o))+'</span>').join("")+'</div>':'')+'</div>';
+}
+
+function printMath(html){
+ let s=String(html??"");
+ const saved=[];
+ s=s.replace(/\\\(([\\s\\S]*?)\\\)|\\\[([\\s\\S]*?)\\\]|\\$\\$([\\s\\S]*?)\\$\\$|\\$([^$]+)\\$/g,m=>{saved.push(m);return "@@MATH"+(saved.length-1)+"@@";});
+ s=s.replace(/\n/g,"<br>");
+ s=s.replace(/(^|<br>)([^<]*?\\(?:frac|dfrac|tfrac)\\\{[^{}]*\\\}\\\{[^{}]*\\\}[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
+ s=s.replace(/(^|<br>)([^<]*?\\(?:sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega)[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
+ s=s.replace(/(^|<br>)([^<]*?[A-Za-z](?:\\)?[_^](?:\{[^}]*\}|[A-Za-z0-9]+)[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
+ s=s.replace(/@@MATH(\d+)@@/g,(_,i)=>saved[Number(i)]);
+ return s;
 }
 function paperMarkup(layout){
  ensurePaperFields();
  const qs=selectedQuestions();const title=esc(document.getElementById("paperTitle").value||"Physics Question Paper"),school=esc(document.getElementById("schoolName").value||""),logo=String(document.getElementById("logoUrl").value||"").trim();
  let n=0,body="";
- qs.forEach(q=>body+=questionHTML(q,++n));
+ qs.forEach(q=>body+=printQuestionHTML(q,++n));
  const logoHtml=logo?'<img class="logo" src="'+esc(logo)+'">':"";
  return '<!doctype html><html><head><meta charset="utf-8"><title>'+title+'</title><script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};<\/script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"><\/script><style>@page{size:A4;margin:16mm}body{font-family:Arial,sans-serif;color:#111;font-size:13px;line-height:1.55}.paper-content{column-count:1;column-gap:28px;column-fill:balance}.paper-q{display:block;width:auto;margin:0 0 13px;break-inside:avoid;page-break-inside:avoid}.paper-question-line{display:block}.paper-q-num{display:inline-block;min-width:24px;vertical-align:top}.paper-text{display:inline;white-space:pre-wrap;overflow-wrap:anywhere}.paper-img{margin:7px auto;text-align:center;width:100%;height:190px;display:flex;align-items:center;justify-content:center;overflow:hidden}.paper-img img{width:92%;height:175px;max-width:92%;max-height:175px;object-fit:contain;display:block}.paper-options{margin:6px 0 0 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 14px}.paper-options span{display:block;margin:0}.paper-options b{font-weight:700}header{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;position:relative}.logo{position:absolute;left:0;top:0;width:70px;height:70px;object-fit:contain}.school{font-size:18px;font-weight:900}.title{font-size:16px;font-weight:800}.layout-two .paper-img{height:180px}.layout-two .paper-img img{width:92%;max-width:92%;height:165px;max-height:165px}.layout-one .paper-img{height:210px}.layout-one .paper-img img{width:82%;max-width:82%;height:195px;max-height:195px}.two{column-count:2;column-gap:28px;column-fill:balance}.footer{margin-top:25px;border-top:1px solid #777;padding-top:6px;text-align:center;font-size:10px}</style></head><body><header>'+logoHtml+'<div class="school">'+school+'</div><div class="title">'+title+'</div></header><main class="paper-content '+(layout==="two"?"layout-two":"layout-one")+'" style="'+(layout==="two"?"column-count:2;column-gap:28px;column-fill:balance;":"column-count:1;column-fill:balance;")+'">'+body+'</main><div class="footer">A to Z Exam Mocks</div><script>window.onload=()=>window.MathJax?.typesetPromise?.();<\/script></body></html>';
 }
