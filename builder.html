@@ -96,20 +96,14 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {getFirestore,collection,getDocs,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app),auth=getAuth(app);
+window.builderAuthReady=signInAnonymously(auth).catch(e=>{console.warn("Anonymous auth:",e);return null;});
 window.builderDB=db;
-window.builderAuthReady=signInAnonymously(auth).catch(e=>{console.warn("Anonymous auth unavailable:",e);return null;});
-window.builderAuthState=new Promise(resolve=>{
- let done=false;
- const finish=user=>{if(done)return;done=true;try{unsub&&unsub();}catch(e){}resolve(user||null);};
- const unsub=onAuthStateChanged(auth,finish);
- setTimeout(()=>finish(auth.currentUser||null),6000);
-});
 
 window.builderData=[];
 window.builderMode="private";
@@ -145,28 +139,18 @@ function renderMath(html){return String(html??"").replace(/\n/g,"<br>");}
 function typeset(){if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise().catch(()=>{});}
 
 window.loadQuestions=async function(){
- const status=document.getElementById("status"),box=document.getElementById("questions");
- status.textContent="Connecting to Library…";
- box.innerHTML='<div class="empty">Connecting to Library…</div>';
+ const status=document.getElementById("status");status.textContent="Loading Library questions…";
  try{
-  const authUser=await window.builderAuthState;
-  if(!authUser) console.warn("Builder auth user unavailable; attempting Library read anyway.");
-  status.textContent="Reading Library questions…";
-  const snap=await Promise.race([
-   getDocs(collection(db,"questions")),
-   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Library read timed out after 12 seconds.")),12000))
-  ]);
+  await window.builderAuthReady;
+  let snap;
+  try{snap=await getDocs(collection(db,"questions"))}
+  catch(e){await new Promise(r=>setTimeout(r,700));await window.builderAuthReady;snap=await getDocs(collection(db,"questions"))}
   window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
-  status.textContent="Library loaded • "+window.builderData.length+" questions";
+  status.textContent="Library connected • "+window.builderData.length+" total questions";
   renderTree();renderQuestions();renderSelected();
  }catch(e){
-  console.error("Builder Library load failed:",e);
-  const code=e?.code||"";
-  const msg=code==="permission-denied"
-    ? "Firebase permission denied. Check Anonymous Authentication / Firestore rules."
-    : (e?.message||"Library read failed");
-  status.textContent="Library load failed";
-  box.innerHTML='<div class="empty"><b>Library could not be loaded.</b><br><small>'+esc(msg)+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Try Again</button></div>';
+  console.error(e);status.textContent="Firebase error: "+(e?.code||e?.message||"read failed");
+  document.getElementById("questions").innerHTML='<div class="empty">Could not read Library questions.<br><small>'+esc(e?.message||"Firebase error")+'</small></div>';
  }
 };
 
