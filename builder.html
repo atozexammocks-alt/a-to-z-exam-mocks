@@ -251,33 +251,15 @@ window.resetTextEdit=function(){
  renderSelected();
 };
 
-window.previewImage=function(src){const url=decodeURIComponent(src);const w=window.open("");if(w){w.document.write('<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+esc(url)+'" style="max-width:98%;max-height:98vh;object-fit:contain;background:white">
-<!-- Local, non-Firebase Text Editor: changes live only in this Builder window -->
-<div id="textEditorBackdrop" class="text-editor-backdrop" onclick="if(event.target===this)closeTextEditor()">
-  <div class="text-editor">
-    <h3>✏️ Edit Question Text — Paper Only</h3>
-    <div class="print-note">Changes made here are temporary. They are NOT saved to the Library or Firebase and affect only this Test Builder window/paper.</div>
-    <textarea id="textEditorMain" placeholder="Question text…"></textarea>
-    <div class="editor-grid">
-      <label>Font Size<select id="textEditorFontSize"><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="15">15 px</option><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select></label>
-      <label>Weight<select id="textEditorWeight"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700">Bold</option><option value="800">Extra Bold</option></select></label>
-      <label>Alignment<select id="textEditorAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option><option value="justify">Justify</option></select></label>
-      <label>Line Spacing<select id="textEditorLine"><option value="1.35">Compact</option><option value="1.55">Normal</option><option value="1.8">Open</option><option value="2">Very Open</option></select></label>
-    </div>
-    <div class="editor-options">
-      <label class="editor-check"><input id="textEditorHideOptions" type="checkbox"> Hide options for this paper</label>
-      <div id="textEditorOptions"></div>
-    </div>
-    <div class="editor-actions">
-      <button class="btn" onclick="closeTextEditor()">Cancel</button>
-      <button class="btn red" onclick="resetTextEdit()">Reset This Question</button>
-      <button class="btn primary" onclick="saveTextEdit()">✓ Apply to This Paper</button>
-    </div>
-  </div>
-</div>
-</body>');w.document.close()}};
-
-window.expandedFolders
+window.previewImage=function(src){
+ const url=decodeURIComponent(src);
+ const w=window.open("");
+ if(w){
+  w.document.open();
+  w.document.write('<!doctype html><html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+esc(url)+'" style="max-width:98%;max-height:98vh;object-fit:contain;background:white"></body></html>');
+  w.document.close();
+ }
+};
 
 window.expandedFolders=window.expandedFolders||new Set();
 
@@ -408,5 +390,28 @@ document.addEventListener("DOMContentLoaded",()=>{
  loadQuestions();
 });
 </script>
+<!-- Local, non-Firebase Text Editor: changes live only in this Builder window -->
+<div id="textEditorBackdrop" class="text-editor-backdrop" onclick="if(event.target===this)closeTextEditor()">
+  <div class="text-editor">
+    <h3>✏️ Edit Question Text — Paper Only</h3>
+    <div class="print-note">Changes made here are temporary. They are NOT saved to the Library or Firebase and affect only this Test Builder window/paper.</div>
+    <textarea id="textEditorMain" placeholder="Question text…"></textarea>
+    <div class="editor-grid">
+      <label>Font Size<select id="textEditorFontSize"><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="15">15 px</option><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select></label>
+      <label>Weight<select id="textEditorWeight"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700">Bold</option><option value="800">Extra Bold</option></select></label>
+      <label>Alignment<select id="textEditorAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option><option value="justify">Justify</option></select></label>
+      <label>Line Spacing<select id="textEditorLine"><option value="1.35">Compact</option><option value="1.55">Normal</option><option value="1.8">Open</option><option value="2">Very Open</option></select></label>
+    </div>
+    <div class="editor-options">
+      <label class="editor-check"><input id="textEditorHideOptions" type="checkbox"> Hide options for this paper</label>
+      <div id="textEditorOptions"></div>
+    </div>
+    <div class="editor-actions">
+      <button class="btn" onclick="closeTextEditor()">Cancel</button>
+      <button class="btn red" onclick="resetTextEdit()">Reset This Question</button>
+      <button class="btn primary" onclick="saveTextEdit()">✓ Apply to This Paper</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
