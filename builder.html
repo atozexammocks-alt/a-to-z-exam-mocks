@@ -96,18 +96,20 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {getAuth,signInAnonymously,onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {getFirestore,collection,getDocs,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app),auth=getAuth(app);
-window.builderAuthReady=signInAnonymously(auth).catch(e=>{console.warn("Anonymous auth:",e);return null;});
-window.builderAuthSettled=Promise.race([
- window.builderAuthReady,
- new Promise(resolve=>setTimeout(()=>resolve("timeout"),5000))
-]);
 window.builderDB=db;
+window.builderAuthReady=signInAnonymously(auth).catch(e=>{console.warn("Anonymous auth unavailable:",e);return null;});
+window.builderAuthState=new Promise(resolve=>{
+ let done=false;
+ const finish=user=>{if(done)return;done=true;try{unsub&&unsub();}catch(e){}resolve(user||null);};
+ const unsub=onAuthStateChanged(auth,finish);
+ setTimeout(()=>finish(auth.currentUser||null),6000);
+});
 
 window.builderData=[];
 window.builderMode="private";
@@ -147,30 +149,22 @@ window.loadQuestions=async function(){
  status.textContent="Connecting to Library…";
  box.innerHTML='<div class="empty">Connecting to Library…</div>';
  try{
-  const authResult=await window.builderAuthSettled;
-  if(authResult==="timeout") console.warn("Anonymous auth did not settle within 5s; trying Firestore read directly.");
+  const authUser=await window.builderAuthState;
+  if(!authUser) console.warn("Builder auth user unavailable; attempting Library read anyway.");
   status.textContent="Reading Library questions…";
-  let snap;
-  try{
-   snap=await Promise.race([
-    getDocs(collection(db,"questions")),
-    new Promise((_,reject)=>setTimeout(()=>reject(new Error("Library read timed out after 15 seconds. Check Firebase connection/rules.")),15000))
-   ]);
-  }catch(e){
-   console.warn("First Library read failed:",e);
-   status.textContent="Retrying Library read…";
-   await new Promise(r=>setTimeout(r,500));
-   snap=await Promise.race([
-    getDocs(collection(db,"questions")),
-    new Promise((_,reject)=>setTimeout(()=>reject(new Error("Library read timed out. Firebase did not return the questions collection.")),15000))
-   ]);
-  }
+  const snap=await Promise.race([
+   getDocs(collection(db,"questions")),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Library read timed out after 12 seconds.")),12000))
+  ]);
   window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
   status.textContent="Library loaded • "+window.builderData.length+" questions";
   renderTree();renderQuestions();renderSelected();
  }catch(e){
   console.error("Builder Library load failed:",e);
-  const msg=e?.code==="permission-denied" ? "Firebase permission denied. Anonymous authentication/rules need checking." : (e?.message||"Library read failed");
+  const code=e?.code||"";
+  const msg=code==="permission-denied"
+    ? "Firebase permission denied. Check Anonymous Authentication / Firestore rules."
+    : (e?.message||"Library read failed");
   status.textContent="Library load failed";
   box.innerHTML='<div class="empty"><b>Library could not be loaded.</b><br><small>'+esc(msg)+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Try Again</button></div>';
  }
