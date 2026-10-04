@@ -45,14 +45,15 @@ html,body{height:100%;min-height:0}
 .az-paper-section{margin:16px 0 18px}
 .az-paper-section-title{font-size:14px;font-weight:900;text-align:center;border-top:1.5px solid #111;border-bottom:1.5px solid #111;padding:5px 4px;margin-bottom:10px;text-transform:uppercase}
 .az-paper-question{font-size:13px;margin-bottom:12px;page-break-inside:avoid}
-.az-paper-question-text{font-weight:700;line-height:1.55;white-space:normal;overflow-wrap:normal;word-break:normal}
-.az-paper-options{font-weight:600;line-height:1.5;margin-top:3px;white-space:normal;overflow-wrap:normal;word-break:normal}
+.az-paper-question-text{white-space:normal;overflow-wrap:normal;word-break:normal;font-weight:700;line-height:1.55;white-space:normal;overflow-wrap:normal;word-break:normal}
+.az-paper-options{white-space:normal;overflow-wrap:normal;word-break:normal;font-weight:600;line-height:1.5;margin-top:3px;white-space:normal;overflow-wrap:normal;word-break:normal}
 .az-paper-question-image{display:block;max-width:100%;height:auto;margin:7px auto;page-break-inside:avoid}
 @media print{
  .az-paper-watermark{color:rgba(15,23,42,.045)!important}
  .az-paper-bottom-mark{color:rgba(15,23,42,.18)!important}
  #printPreviewContent{padding-bottom:28px!important}
 }
+mjx-container{white-space:nowrap!important}
 </style>
 <script>
 window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};
@@ -258,23 +259,30 @@ function builderImageOf(q){
  }
  return '';
 }
-function renderMath(html){
- const x=String(html??"");
+function libraryMathMarkup(v){
+ var x=String(v||"");
  if(!x)return "";
  if(/\\\(|\\\[/.test(x)) return x;
  if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\b/.test(x)
    || /(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)){
    return "\\("+x+"\\)";
  }
- return x.replace(/\n/g,"<br>");
+ return x;
 }
-function renderDesignerMath(v){ return renderMath(esc(String(v??""))); }
+function renderLibraryText(v){
+ var x=libraryMathMarkup(v);
+ return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+}
+function renderDesignerMath(v){ return renderLibraryText(v); }
 function typesetDesignerMath(){
  if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
  if(MathJax.startup&&MathJax.startup.promise){
-  MathJax.startup.promise.then(function(){MathJax.typesetPromise([document.getElementById('questionsCanvasContainer')]).catch(function(){});}).catch(function(){});
+  MathJax.startup.promise.then(function(){
+   MathJax.typesetPromise([document.getElementById('questionsCanvasContainer')]).catch(function(){});
+  }).catch(function(){});
  }else MathJax.typesetPromise([document.getElementById('questionsCanvasContainer')]).catch(function(){});
 }
+
 function textStyleFor(q){
  const e=q?._builderEdit||{};
  return 'font-size:'+Number(e.fontSize||14)+'px;font-weight:'+Number(e.weight||400)+';text-align:'+String(e.align||'left')+';line-height:'+Number(e.lineHeight||1.65)+';';
