@@ -57,21 +57,23 @@ mjx-container{white-space:nowrap!important}.mjx-container[display="true"]{displa
 <body>
 <div class="toolbar">
 <b>🖨 Paper Preview</b>
-<label>Font <select id="fontFamily"><option>Times New Roman</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Cambria</option><option>Garamond</option><option>Verdana</option></select></label><label>Q Font <input id="qSize" type="number" min="8" max="30" value="14"></label>
-<label>Option <input id="oSize" type="number" min="8" max="26" value="13"></label>
-<label>Title <input id="titleSize" type="number" min="10" max="30" value="17"></label>
-<label>Header <input id="schoolSize" type="number" min="10" max="30" value="18"></label>
-<label>Subtitle <input id="subSize" type="number" min="8" max="24" value="13"></label>
-<label>Line <input id="lineW" type="number" min="0" max="8" value="2"></label>
-<label>Q Gap <input id="qGap" type="number" min="0" max="30" value="10"></label>
-<label>Columns <select id="cols"><option value="1">1</option><option value="2">2</option></select></label>
-<label>Image <input id="imgH" type="number" min="60" max="280" value="160"></label><button type="button" onclick="toggleFormat('bold')"><b>B</b></button><button type="button" onclick="toggleFormat('italic')"><i>I</i></button><button type="button" onclick="toggleFormat('underline')"><u>U</u></button><label>Question Border <select id="qBorder"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom Line</option><option value="left">Left Line</option></select></label><label>Section Line <select id="sectionBorder"><option value="bottom">Bottom</option><option value="box">Box</option><option value="none">None</option></select></label><label>Section Font <select id="sectionFont"><option>Times New Roman</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Cambria</option><option>Garamond</option><option>Verdana</option></select></label><label>Section Size <input id="sectionSize" type="number" min="8" max="30" value="15"></label><button type="button" onclick="sectionFormat('bold')"><b>Section B</b></button><button type="button" onclick="sectionFormat('italic')"><i>Section I</i></button><button type="button" onclick="sectionFormat('underline')"><u>Section U</u></button>
+<label>Font <select id="fontFamily"><option>Times New Roman</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Cambria</option><option>Garamond</option><option>Verdana</option></select></label>
+<label>Font Size <input id="qSize" type="number" min="8" max="30" value="14"></label>
+<button type="button" onclick="toggleFormat('bold')"><b>B</b></button>
+<button type="button" onclick="toggleFormat('italic')"><i>I</i></button>
+<button type="button" onclick="toggleFormat('underline')"><u>U</u></button>
+<label>Question Border <select id="qBorder"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom Line</option><option value="left">Left Line</option></select></label>
+<label>Section Border <select id="sectionBorder"><option value="bottom">Bottom</option><option value="box">Box</option><option value="none">None</option></select></label>
+<label>Section Font <select id="sectionFont"><option>Times New Roman</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Cambria</option><option>Garamond</option><option>Verdana</option></select></label>
+<label>Section Size <input id="sectionSize" type="number" min="8" max="30" value="15"></label>
+<button type="button" onclick="sectionFormat('bold')"><b>Section B</b></button>
+<button type="button" onclick="sectionFormat('italic')"><i>Section I</i></button>
+<button type="button" onclick="sectionFormat('underline')"><u>Section U</u></button>
 <button class="green" onclick="apply()">Apply</button>
 <button onclick="window.print()">Print</button>
 <button class="gray" onclick="window.close()">Close</button>
-<span class="hint">Preview-only • Library/Firebase is not modified</span>
-</div>
-<div id="paper" class="paper"><div class="empty">Loading paper…</div></div>
+<span class="hint">Select a question/section in the paper, then change only its formatting.</span>
+</div><div id="paper" class="paper"><div class="empty">Loading paper…</div></div>
 
 <script>
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -123,6 +125,7 @@ let data={questions:[],sections:[],title:'Physics Question Paper',school:'',logo
 let selectedSectionId=null;
 let sectionStyles={};
 function qHtml(q,n){
+
  const id=String(q.id||'');
  const edit=data.textEdits[id]||{};
  const txt=cleanQ(edit.text!==undefined?edit.text:textOf(q));
@@ -163,30 +166,33 @@ function build(){
  if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([paper]).catch(console.warn);
 }
 function selectSection(id){selectedSectionId=String(id);const st=sectionStyles[selectedSectionId]||{};const sf=document.getElementById('sectionFont');const ss=document.getElementById('sectionSize');if(sf)sf.value=st.font||'Times New Roman';if(ss)ss.value=st.size||15;build()}
-function sectionFormat(kind){if(!selectedSectionId){alert('Click a section heading first.');return;}const st=sectionStyles[selectedSectionId]||{};if(kind==='bold')st.weight=st.weight===700?400:700;if(kind==='italic')st.italic=!st.italic;if(kind==='underline')st.underline=!st.underline;sectionStyles[selectedSectionId]=st;build()}
+function sectionFormat(kind){
+ if(!selectedSectionId){alert('Click a section heading first.');return;}
+ const st=sectionStyles[selectedSectionId]||{};
+ if(kind==='bold')st.weight=st.weight===700?400:700;
+ if(kind==='italic')st.italic=!st.italic;
+ if(kind==='underline')st.underline=!st.underline;
+ sectionStyles[selectedSectionId]=st;build();
+}
 function toggleFormat(kind){if(selectedSectionId){sectionFormat(kind);return;}const r=document.documentElement.style;if(kind==='bold')r.setProperty('--preview-weight','700');if(kind==='italic')r.setProperty('--preview-style','italic');if(kind==='underline')r.setProperty('--preview-decoration','underline');build()}
 function apply(){
  const r=document.documentElement.style;
  const font=document.getElementById('fontFamily')?.value||'Times New Roman';
- const q=document.getElementById('qSize')?.value||14;
- const o=document.getElementById('oSize')?.value||13;
- const title=document.getElementById('titleSize')?.value||17;
- const school=document.getElementById('schoolSize')?.value||18;
- const sub=document.getElementById('subSize')?.value||13;
- const line=document.getElementById('lineW')?.value||2;
- const gap=document.getElementById('qGap')?.value||10;
- const img=document.getElementById('imgH')?.value||160;
- r.setProperty('--q',q+'px');r.setProperty('--paper-font',font);r.setProperty('--opt',o+'px');
- r.setProperty('--title',title+'px');r.setProperty('--school',school+'px');r.setProperty('--subtitle',sub+'px');
- r.setProperty('--line',line+'px');r.setProperty('--gap',gap+'px');r.setProperty('--img',img+'px');r.setProperty('--imgbox',(Number(img)+10)+'px');
- data.layout=(document.getElementById('cols')?.value==='2')?'two':'one';
- document.documentElement.style.setProperty('--qborder','0px');
+ const size=document.getElementById('qSize')?.value||14;
+ r.setProperty('--paper-font',font);
+ r.setProperty('--q',size+'px');
+ r.setProperty('--opt',size+'px');
+ r.setProperty('--title',size+'px');
+ r.setProperty('--school',size+'px');
+ r.setProperty('--subtitle',size+'px');
+ r.setProperty('--line','2px');
+ r.setProperty('--gap','10px');
+ r.setProperty('--img','160px');
+ r.setProperty('--imgbox','170px');
+ data.layout='one';
  const qb=document.getElementById('qBorder')?.value||'none';
- if(qb==='box')r.setProperty('--qborder','1px');
- if(qb==='bottom')r.setProperty('--qborder','1px');
- if(qb==='left')r.setProperty('--qborder','3px');
+ r.setProperty('--qborder',qb==='none'?'0px':qb==='left'?'3px':'1px');
  r.setProperty('--qpad',qb==='box'?'6px':qb==='left'?'0 0 0 7px':'0');
- document.getElementById('content')?.classList.toggle('two',data.layout==='two');
  build();
  if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([document.getElementById('paper')]).catch(()=>{});
 }
