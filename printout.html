@@ -103,16 +103,6 @@ function loadStored(){
  }catch(e){}
  return false
 }
-function openPrintSession(id){
- return new Promise((resolve,reject)=>{
-  try{
-   const req=indexedDB.open("AZExamPrintSessions",1);
-   req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("sessions"))db.createObjectStore("sessions",{keyPath:"id"})};
-   req.onsuccess=()=>{const db=req.result;const tx=db.transaction("sessions","readonly");const get=tx.objectStore("sessions").get(id);get.onsuccess=()=>{const v=get.result||null;db.close();resolve(v)};get.onerror=()=>{db.close();reject(get.error)}};
-   req.onerror=()=>reject(req.error);
-  }catch(e){reject(e)}
- });
-}
 function printIdsFromAnySource(){
  try{
   const u=(new URLSearchParams(location.search).get("selected")||"").split(",").map(x=>x.trim()).filter(Boolean);
@@ -156,7 +146,15 @@ import {getFirestore,collection,getDocs} from "https://www.gstatic.com/firebasej
 const AZCFG={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 try{
  const app=initializeApp(AZCFG,"AZPrintoutDirect");const auth=getAuth(app),db=getFirestore(app);
- async function directLoad(){
+ function openPrintSession(id){
+ return new Promise((resolve,reject)=>{
+  const req=indexedDB.open("AZExamPrintSessions",1);
+  req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("sessions"))db.createObjectStore("sessions",{keyPath:"id"})};
+  req.onsuccess=()=>{const db=req.result;const tx=db.transaction("sessions","readonly");const get=tx.objectStore("sessions").get(id);get.onsuccess=()=>{const v=get.result||null;db.close();resolve(v)};get.onerror=()=>{db.close();reject(get.error)}};
+  req.onerror=()=>reject(req.error);
+ });
+}
+async function directLoad(){
   if(window.__AZ_DIRECT_PRINT_LOADED)return;
   const sessionId=new URLSearchParams(location.search).get("session");
   if(sessionId){
