@@ -127,19 +127,17 @@ import {getFirestore,collection,getDocs,addDoc} from "https://www.gstatic.com/fi
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app),auth=getAuth(app);
-window.builderAuthReady=null;
+window.builderAuthReady=signInAnonymously(auth).catch(e=>{
+  console.warn("Anonymous session unavailable; continuing like Library:",e);
+  return null;
+});
 window.ensureBuilderAuth=async function(){
   if(auth.currentUser) return auth.currentUser;
-  if(!window.builderAuthReady){
-    window.builderAuthReady=signInAnonymously(auth);
-  }
   try{
     const cred=await window.builderAuthReady;
-    if(cred?.user) return cred.user;
-    return auth.currentUser||null;
+    return cred?.user||auth.currentUser||null;
   }catch(e){
-    window.builderAuthReady=null;
-    throw e;
+    return auth.currentUser||null;
   }
 };
 window.builderDB=db;
