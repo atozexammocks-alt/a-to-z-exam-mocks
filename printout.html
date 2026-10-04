@@ -34,7 +34,7 @@ body{min-height:100vh}
 .paper-q{display:block;break-inside:avoid;page-break-inside:avoid;width:100%;margin:0 0 var(--gap,10px);font-size:var(--q,14px);line-height:var(--qline,1.5)}
 .question-line{display:grid;grid-template-columns:25px minmax(0,1fr);column-gap:3px;align-items:start}
 .qnum{font-weight:700}
-.qtext{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.qtext{min-width:0;white-space:normal;overflow-wrap:anywhere}
 .image-box{margin:6px auto;width:100%;height:var(--imgbox,170px);display:flex;align-items:center;justify-content:center;overflow:hidden}
 .image-box img{display:block;width:auto;max-width:96%;height:auto;max-height:var(--img,160px);object-fit:contain}
 .options{margin:5px 0 0 25px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:18px;row-gap:5px;width:calc(100% - 25px);min-width:0}
@@ -48,6 +48,7 @@ body{min-height:100vh}
  .paper{width:auto;min-height:auto;margin:0;box-shadow:none;padding:0}
  .content.two{column-count:2}
 }
+mjx-container{white-space:nowrap!important}.mjx-container[display="true"]{display:block!important}
 </style>
 </head>
 <body>
@@ -105,9 +106,10 @@ function libraryMathMarkup(v){
  return x;
 }
 function renderMath(v){
- const x=libraryMathMarkup(v);
+ var x=libraryMathMarkup(v);
  return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
 }
+
 let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
 function qHtml(q,n){
  const id=String(q.id||'');
@@ -120,9 +122,9 @@ function qHtml(q,n){
  const weight=Number(edit.weight||400);
  const line=Number(edit.lineHeight||1.5);
  const style='font-size:'+fs+'px;font-weight:'+weight+';line-height:'+line+';text-align:'+(edit.align||'left')+';';
- return '<div class="paper-q" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(esc(txt))+'</span></div>'+
+ return '<div class="paper-q" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(txt)+'</span></div>'+
  (img?'<div class="image-box"><img src="'+esc(img)+'"></div>':'')+
- (opts.length&&!hide?'<div class="options">'+opts.map((o,i)=>'<div class="option-item"><b>'+String.fromCharCode(65+i)+'.</b><span class="option-text">'+renderMath(esc(o))+'</span></div>').join('')+'</div>':'')+
+ (opts.length&&!hide?'<div class="options">'+opts.map((o,i)=>'<div class="option-item"><b>'+String.fromCharCode(65+i)+'.</b><span class="option-text">'+renderMath(o)+'</span></div>').join('')+'</div>':'')+
  '</div>';
 }
 function build(){
