@@ -23,18 +23,18 @@ body{min-height:100vh}
 .toolbar button.gray{background:#374151}
 .toolbar button.green{background:#059669}
 .hint{font-size:10px;color:#cbd5e1;margin-left:auto}
-.paper{width:210mm;min-height:297mm;margin:18px auto;padding:16mm;background:#fff;box-shadow:0 3px 18px #0003}
+.paper{width:210mm;min-height:297mm;margin:18px auto;padding:16mm;background:#fff;box-shadow:0 3px 18px #0003;position:relative;overflow:hidden}
 .header{text-align:center;border-bottom:var(--line,2px) solid #111;padding-bottom:10px;margin-bottom:14px;position:relative;padding-top:8px;min-height:92px}
 .logo{position:absolute;left:0;top:6px;width:64px;height:64px;object-fit:contain;object-position:center;z-index:2}
 .header-main{padding-left:78px;padding-right:6px;min-height:72px}
-.watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;color:#64748b;opacity:.10;font-size:72px;font-weight:900;transform:rotate(-32deg);white-space:nowrap}
+.watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden;color:#64748b;opacity:.10;font-size:72px;font-weight:900;transform:rotate(-32deg);white-space:nowrap}
 .paper>.header,.paper>.content,.paper>.footer{position:relative;z-index:1}
 .school{font-size:var(--school,18px);font-weight:800;line-height:1.25}
 .title{font-size:var(--title,17px);font-weight:800;line-height:1.3}
 .subtitle{font-size:var(--subtitle,13px);margin-top:3px}
 .content{column-count:1;column-gap:24px;column-fill:balance}
 .content.two{column-count:2}
-.paper-q{display:block;break-inside:avoid;page-break-inside:avoid;width:100%;margin:0 0 var(--gap,10px);font-size:var(--q,14px);line-height:var(--qline,1.5);border:var(--qborder,0) solid #888;padding:var(--qpad,0);border-radius:4px}.paper-q.border-bottom{border-width:0 0 1px}.paper-q.border-left{border-width:0 0 0 3px;padding-left:7px}
+.paper-q.selected{outline:2px solid #2563eb;outline-offset:2px}.section-head.selected{outline:2px solid #2563eb;outline-offset:2px}.paper-q{display:block;break-inside:avoid;page-break-inside:avoid;width:100%;margin:0 0 var(--gap,10px);font-size:var(--q,14px);line-height:var(--qline,1.5);border:var(--qborder,0) solid #888;padding:var(--qpad,0);border-radius:4px}.paper-q.border-bottom{border-width:0 0 1px}.paper-q.border-left{border-width:0 0 0 3px;padding-left:7px}
 .question-line{display:grid;grid-template-columns:25px minmax(0,1fr);column-gap:3px;align-items:start}
 .qnum{font-weight:700}
 .qtext{min-width:0;white-space:normal;overflow-wrap:anywhere}
@@ -59,7 +59,7 @@ mjx-container{white-space:nowrap!important}.mjx-container[display="true"]{displa
 <b>🖨 Paper Preview</b>
 <label>Font <select id="fontFamily"><option>Times New Roman</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Cambria</option><option>Garamond</option><option>Verdana</option></select></label>
 <label>Font Size <input id="qSize" type="number" min="8" max="30" value="14"></label>
-<button type="button" onclick="toggleFormat('bold')"><b>B</b></button>
+<button type="button" onclick="toggleFormat('bold')"><b>B</b></button><button type="button" class="gray" onclick="selectAllQuestions()">Select All Questions</button><button type="button" class="gray" onclick="setSelectionMode('questions')">Select Questions</button><button type="button" class="gray" onclick="setSelectionMode('sections')">Select Sections</button><button type="button" class="gray" onclick="clearSelection()">Clear Selection</button>
 <button type="button" onclick="toggleFormat('italic')"><i>I</i></button>
 <button type="button" onclick="toggleFormat('underline')"><u>U</u></button>
 <label>Question Border <select id="qBorder"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom Line</option><option value="left">Left Line</option></select></label>
@@ -124,6 +124,9 @@ function renderMath(v){
 let data={questions:[],sections:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one',branding:{},fontFamily:'Times New Roman'};
 let selectedSectionId=null;
 let selectedQuestionId=null;
+let selectedQuestionIds=new Set();
+let selectedSectionIds=new Set();
+let selectionMode='questions';
 let sectionStyles={};
 let questionStyles={};
 function qHtml(q,n){
@@ -145,7 +148,7 @@ function qHtml(q,n){
  const finalUnderline=qs.underline?'underline':'none';
  const style='font-family:'+finalFont+';font-size:'+finalSize+'px;font-weight:'+finalWeight+';font-style:'+finalItalic+';text-decoration:'+finalUnderline+';line-height:'+line+';text-align:'+(edit.align||'left')+';';
  const border=document.getElementById('qBorder')?.value||'none';
- const cls='paper-q '+(border==='bottom'?'border-bottom':border==='left'?'border-left':'');
+ const cls='paper-q '+(selectedQuestionIds.has(id)?'selected ':'')+(border==='bottom'?'border-bottom':border==='left'?'border-left':'');
  return '<div class="'+cls+'" data-question-id="'+esc(id)+'" onclick="selectQuestion(\''+esc(id)+'\')" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(txt)+'</span></div>'+
  (img?'<div class="image-box"><img src="'+esc(img)+'"></div>':'')+
  (opts.length&&!hide?'<div class="options">'+opts.map((o,i)=>'<div class="option-item"><b>'+String.fromCharCode(65+i)+'.</b><span class="option-text">'+renderMath(o)+'</span></div>').join('')+'</div>':'')+
@@ -166,51 +169,17 @@ function build(){
  html+='<main id="content" class="content '+(data.layout==='two'?'two':'')+'">';
  if(Array.isArray(data.sections)&&data.sections.length){
  let number=0;
- data.sections.forEach(s=>{const ids=Array.isArray(s.questionIds)?s.questionIds.map(String):[];const qs=ids.map(id=>data.questions.find(q=>String(q.id)===id)).filter(Boolean);if(!qs.length)return;const sb=document.getElementById('sectionBorder')?.value||'bottom';const st=sectionStyles[String(s.id)]||{};const active=selectedSectionId===String(s.id);const sstyle='font-family:'+esc(st.font||document.getElementById('sectionFont')?.value||'Times New Roman')+';font-size:'+Number(st.size||document.getElementById('sectionSize')?.value||15)+'px;font-weight:'+Number(st.weight||700)+';font-style:'+(st.italic?'italic':'normal')+';text-decoration:'+(st.underline?'underline':'none')+';'+(active?'outline:2px solid #2563eb;outline-offset:2px;':'');html+='<div class="section-head '+sb+'" data-section-id="'+esc(s.id)+'" onclick="selectSection(''+esc(s.id)+'')" style="'+sstyle+'">'+esc(s.name||'Section')+' <span style="font-size:11px;font-weight:400">('+qs.length+' Questions • '+(Number(s.marks)||0)+' Marks/Q)</span></div>';qs.forEach(q=>{number++;html+=qHtml(q,number)})});
+ data.sections.forEach(s=>{const ids=Array.isArray(s.questionIds)?s.questionIds.map(String):[];const qs=ids.map(id=>data.questions.find(q=>String(q.id)===id)).filter(Boolean);if(!qs.length)return;const sb=document.getElementById('sectionBorder')?.value||'bottom';const st=sectionStyles[String(s.id)]||{};const active=selectedSectionIds.has(String(s.id));const sstyle='font-family:'+esc(st.font||document.getElementById('sectionFont')?.value||'Times New Roman')+';font-size:'+Number(st.size||document.getElementById('sectionSize')?.value||15)+'px;font-weight:'+Number(st.weight||700)+';font-style:'+(st.italic?'italic':'normal')+';text-decoration:'+(st.underline?'underline':'none')+';'+(active?'outline:2px solid #2563eb;outline-offset:2px;':'');html+='<div class="section-head '+sb+'" data-section-id="'+esc(s.id)+'" onclick="selectSection(''+esc(s.id)+'')" style="'+sstyle+'">'+esc(s.name||'Section')+' <span style="font-size:11px;font-weight:400">('+qs.length+' Questions • '+(Number(s.marks)||0)+' Marks/Q)</span></div>';qs.forEach(q=>{number++;html+=qHtml(q,number)})});
  const assigned=new Set(data.sections.flatMap(s=>Array.isArray(s.questionIds)?s.questionIds.map(String):[]));data.questions.filter(q=>!assigned.has(String(q.id))).forEach(q=>{number++;html+=qHtml(q,number)});
 }else data.questions.forEach((q,i)=>html+=qHtml(q,i+1));
  html+='</main>'+(showFooter?'<div class="footer">'+(showAZ?'A to Z Exam Mocks • ':'')+'Question Paper</div>':'');
  paper.innerHTML=html;
  if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([paper]).catch(console.warn);
 }
-function selectQuestion(id){selectedQuestionId=String(id);selectedSectionId=null;const st=questionStyles[selectedQuestionId]||{};const f=document.getElementById('fontFamily');const s=document.getElementById('qSize');if(f)f.value=st.font||'Times New Roman';if(s)s.value=st.size||14;build()}
-function selectSection(id){selectedSectionId=String(id);const st=sectionStyles[selectedSectionId]||{};const sf=document.getElementById('sectionFont');const ss=document.getElementById('sectionSize');if(sf)sf.value=st.font||'Times New Roman';if(ss)ss.value=st.size||15;build()}
-function sectionFormat(kind){
- if(!selectedSectionId){alert('Click a section heading first.');return;}
- const st=sectionStyles[selectedSectionId]||{};
- if(kind==='bold')st.weight=st.weight===700?400:700;
- if(kind==='italic')st.italic=!st.italic;
- if(kind==='underline')st.underline=!st.underline;
- sectionStyles[selectedSectionId]=st;build();
-}
-function toggleFormat(kind){if(selectedQuestionId){const st=questionStyles[selectedQuestionId]||{};if(kind==='bold')st.weight=st.weight===700?400:700;if(kind==='italic')st.italic=!st.italic;if(kind==='underline')st.underline=!st.underline;questionStyles[selectedQuestionId]=st;build();return;}if(selectedSectionId){sectionFormat(kind);return;}const r=document.documentElement.style;if(kind==='bold')r.setProperty('--preview-weight','700');if(kind==='italic')r.setProperty('--preview-style','italic');if(kind==='underline')r.setProperty('--preview-decoration','underline');build()}
-function apply(){
- const r=document.documentElement.style;
- const font=document.getElementById('fontFamily')?.value||'Times New Roman';
- const size=document.getElementById('qSize')?.value||14;
- if(selectedQuestionId){questionStyles[selectedQuestionId]={...(questionStyles[selectedQuestionId]||{}),font,size:Number(size)||14};}
- if(selectedSectionId){sectionStyles[selectedSectionId]={...(sectionStyles[selectedSectionId]||{}),font,size:Number(size)||15};}
- r.setProperty('--paper-font',font);
- r.setProperty('--q',size+'px');
- r.setProperty('--opt',size+'px');
- r.setProperty('--title',size+'px');
- r.setProperty('--school',size+'px');
- r.setProperty('--subtitle',size+'px');
- r.setProperty('--line','2px');
- r.setProperty('--gap','10px');
- r.setProperty('--img','160px');
- r.setProperty('--imgbox','170px');
- data.layout='one';
- const qb=document.getElementById('qBorder')?.value||'none';
- r.setProperty('--qborder',qb==='none'?'0px':qb==='left'?'3px':'1px');
- r.setProperty('--qpad',qb==='box'?'6px':qb==='left'?'0 0 0 7px':'0');
- build();
- if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([document.getElementById('paper')]).catch(()=>{});
-}
-function receivePayload(payload){
+function setSelectionMode(mode){selectionMode=mode;selectedQuestionId=null;selectedSectionId=null;if(mode==='questions')selectedSectionIds.clear();if(mode==='sections')selectedQuestionIds.clear();build()}function selectAllQuestions(){selectionMode='questions';selectedQuestionIds=new Set(data.questions.map(q=>String(q.id)));selectedQuestionId=null;selectedSectionId=null;selectedSectionIds.clear();build()}function clearSelection(){selectedQuestionIds.clear();selectedSectionIds.clear();selectedQuestionId=null;selectedSectionId=null;build()}function selectQuestion(id){if(selectionMode!=='questions')return;const sid=String(id);if(selectedQuestionIds.has(sid))selectedQuestionIds.delete(sid);else selectedQuestionIds.add(sid);selectedQuestionId=selectedQuestionIds.size===1?sid:null;selectedSectionId=null;const st=questionStyles[sid]||{};const f=document.getElementById('fontFamily'),s=document.getElementById('qSize');if(f)f.value=st.font||'Times New Roman';if(s)s.value=st.size||14;build()}function selectSection(id){if(selectionMode!=='sections')return;const sid=String(id);if(selectedSectionIds.has(sid))selectedSectionIds.delete(sid);else selectedSectionIds.add(sid);selectedSectionId=selectedSectionIds.size===1?sid:null;selectedQuestionId=null;selectedQuestionIds.clear();const st=sectionStyles[sid]||{};const sf=document.getElementById('sectionFont'),ss=document.getElementById('sectionSize');if(sf)sf.value=st.font||'Times New Roman';if(ss)ss.value=st.size||15;build()}function sectionFormat(kind){if(!selectedSectionIds.size){alert('Choose Select Sections, then click section headings.');return}selectedSectionIds.forEach(id=>{const st=sectionStyles[id]||{};if(kind==='bold')st.weight=st.weight===700?400:700;if(kind==='italic')st.italic=!st.italic;if(kind==='underline')st.underline=!st.underline;sectionStyles[id]=st});build()}function toggleFormat(kind){if(selectedQuestionIds.size){selectedQuestionIds.forEach(id=>{const st=questionStyles[id]||{};if(kind==='bold')st.weight=st.weight===700?400:700;if(kind==='italic')st.italic=!st.italic;if(kind==='underline')st.underline=!st.underline;questionStyles[id]=st});build();return}if(selectedSectionIds.size){sectionFormat(kind);return}alert('Select question(s) or section(s) first.')}function apply(){if(selectedQuestionIds.size){const font=document.getElementById('fontFamily')?.value||'Times New Roman';const size=Number(document.getElementById('qSize')?.value||14);selectedQuestionIds.forEach(id=>questionStyles[id]={...(questionStyles[id]||{}),font,size})}if(selectedSectionIds.size){const font=document.getElementById('sectionFont')?.value||'Times New Roman';const size=Number(document.getElementById('sectionSize')?.value||15);selectedSectionIds.forEach(id=>sectionStyles[id]={...(sectionStyles[id]||{}),font,size})}const qb=document.getElementById('qBorder')?.value||'none';const r=document.documentElement.style;r.setProperty('--qborder',qb==='none'?'0px':qb==='left'?'3px':'1px');r.setProperty('--qpad',qb==='box'?'6px':qb==='left'?'0 0 0 7px':'0');build()}function receivePayload(payload){
  if(!payload||!Array.isArray(payload.questions))return;
  data=Object.assign(data,payload);data.branding=payload.branding||data.branding||{};data.sections=Array.isArray(payload.sections)?payload.sections:[];data.fontFamily=payload.fontFamily||data.branding.fontFamily||'Times New Roman';data.school=data.branding.schoolName||payload.school||data.school;data.title=data.branding.paperTitle||payload.title||data.title;data.logo=data.branding.logoUrl||payload.logo||data.logo;
- fontFamily.value=data.fontFamily||'Times New Roman';fontFamily.value=data.fontFamily||'Times New Roman';document.getElementById('fontFamily').value=data.fontFamily||'Times New Roman';document.getElementById('qSize').value=data.qSize||14;document.getElementById('oSize').value=data.oSize||13;document.getElementById('titleSize').value=data.titleSize||17;document.getElementById('schoolSize').value=data.schoolSize||18;document.getElementById('subSize').value=data.subSize||13;document.getElementById('lineW').value=data.lineW||2;document.getElementById('qGap').value=data.qGap||10;document.getElementById('cols').value=data.layout==='two'?'2':'1';document.getElementById('imgH').value=data.imgH||160;document.getElementById('sectionFont').value='Times New Roman';document.getElementById('sectionSize').value=15;
+ document.getElementById('fontFamily').value=data.fontFamily||'Times New Roman';document.getElementById('qSize').value=data.qSize||14;document.getElementById('sectionFont').value='Times New Roman';document.getElementById('sectionSize').value=15;
  build();
 }
 window.addEventListener('message',e=>{
