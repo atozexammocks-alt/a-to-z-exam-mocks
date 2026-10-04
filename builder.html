@@ -191,19 +191,8 @@ function isGroup(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryT
 function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="group")return isGroup(q);return !isCentral(q)&&!isGroup(q)}
 function renderMath(html){
  let s=String(html??"").replace(/\n/g,"<br>");
-
- // Preserve already-delimited TeX exactly as it came from the Library.
- s=s.replace(/(^|[ <br>])(\\\([^<br]*\\\)|\\\[[^<br]*\\\]|\$\$[^<br]*\$\$|\$[^<br]*\$)/g,"$1$2");
-
- // Convert only clear LaTeX fragments. Keep command + subscript/superscript
- // together (e.g. \\psi_0, \\psi^2, \\mathrm{F}_1) so MathJax never
- // receives a dangling underscore/caret outside math mode.
- s=s.replace(/(^|[ <br>])((?:\\(?:frac|dfrac|tfrac|sqrt|bar|vec|hat|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)(?:\s*[_^]\s*(?:\{[^{}]*\}|[A-Za-z0-9]+))?(?:\s*\{[^{}]*\}){0,2}))/g,"$1\\($2\\)");
-
- // Plain symbols such as F_1 or x^2 are also promoted as one complete
- // fragment, never as separate pieces.
- s=s.replace(/(^|[ <br>])([A-Za-z][A-Za-z0-9]*)\s*([_^])\s*(\{[^{}]*\}|[A-Za-z0-9]+)/g,"$1\\($2$3$4\\)");
-
+ s=s.replace(/(^|[ <br>])((?:\\(?:frac|dfrac|tfrac|sqrt|bar|vec|hat|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)\b)[^<br>]*?)(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
+ s=s.replace(/(^|[ <br>])((?:[A-Za-z]+[_^][A-Za-z0-9{}\\]+|[A-Za-z]+\s*=[^<br>]+))(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
  return s;
 }
 function typeset(){if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise().catch(()=>{});}
