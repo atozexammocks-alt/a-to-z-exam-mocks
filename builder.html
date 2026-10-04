@@ -192,13 +192,24 @@ function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="grou
 function renderMath(html){
  const raw=String(html??"").replace(/\r\n?/g,"\n");
  return raw.split("\n").map(line=>{
+  if(!line.trim()) return "";
   const t=line.trim();
-  if(!t)return "";
-  if(/^(?:\\\(|\\\[|\$\$|\$)/.test(t))return line;
-  const hasCommand=/\\[A-Za-z]+/.test(t);
-  const hasIndex=/[A-Za-z0-9}]\s*[_^]\s*(?:[A-Za-z0-9{]|\\)/.test(t);
-  if(hasCommand||hasIndex)return "\\("+t+"\\)";
-  return line;
+  if(/^(?:\\\(|\\\[|\$\$|\$)/.test(t)) return line;
+
+  // Keep ordinary prose as HTML/text. Only explicit TeX fragments are
+  // promoted to MathJax, so sentences are never swallowed by math mode.
+  const mark="___MATHJAX_FRAGMENT___";
+  const parts=[];
+  const save=m=>{parts.push(m);return mark+(parts.length-1)+"___";};
+  let out=line;
+
+  out=out.replace(/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|mathbf|mathrm|sin|cos|tan|cot|sec|csc|log|ln|exp|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)(?:\{[^{}]*\}(?:\{[^{}]*\})?|\b)/g,save);
+  out=out.replace(/[A-Za-z0-9)]\s*[_^]\s*(?:\{[^{}]*\}|[A-Za-z0-9+\-()]+)/g,save);
+
+  if(parts.length){
+   out=out.replace(/___MATHJAX_FRAGMENT___(\d+)___/g,(_,i)=>"\\("+parts[Number(i)]+"\\)");
+  }
+  return out;
  }).join("<br>");
 }
 
