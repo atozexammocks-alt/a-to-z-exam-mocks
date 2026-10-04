@@ -403,7 +403,7 @@ function questionHTML(q,num){
 }function printQuestionHTML(q,num){
  const img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),edit=window.textEdits[String(q.id)]||{};
  const style='font-size:'+Number(edit.fontSize||window.paperSettings.fontSize||14)+'px;font-weight:'+Number(edit.weight||window.paperSettings.weight||400)+';text-align:'+String(edit.align||'left')+';line-height:'+Number(edit.lineHeight||1.55)+';';
- return '<div class="paper-q"><div class="paper-question-line"><span class="paper-q-num"><b>'+num+'.</b></span>'+(txt?'<span class="paper-text" style="'+style+'">'+printMath(esc(txt))+'</span>':'')+'</div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!edit.hideOptions?'<div class="paper-options" style="'+style+'">'+opts.map((o,i)=>'<span><b>'+String.fromCharCode(65+i)+'.</b> '+printMath(esc(o))+'</span>').join("")+'</div>':'')+'</div>';
+ return '<div class="paper-q"><div class="paper-question-line"><span class="paper-q-num"><b>'+num+'.</b></span>'+(txt?'<span class="paper-text" style="'+style+'">'+renderMath(esc(txt))+'</span>':'')+'</div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!edit.hideOptions?'<div class="paper-options" style="'+style+'">'+opts.map((o,i)=>'<span><b>'+String.fromCharCode(65+i)+'.</b> '+renderMath(esc(o))+'</span>').join("")+'</div>':'')+'</div>';
 }
 
 function printMath(html){
