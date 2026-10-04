@@ -132,9 +132,12 @@ function removeSection(id){
 }
 function sectionOf(qid){return sections.find(s=>s.questionIds.includes(String(qid)))}
 function assign(qid,sid){
+ const sc=document.getElementById("questions");
+ const scrollTop=sc?sc.scrollTop:0;
  sections.forEach(s=>s.questionIds=s.questionIds.filter(x=>x!==String(qid)));
  if(sid){const s=sections.find(x=>x.id===sid);if(s)s.questionIds.push(String(qid))}
- renderAll()
+ renderAll();
+ requestAnimationFrame(()=>{const box=document.getElementById("questions");if(box)box.scrollTop=scrollTop;});
 }
 function sectionUpdate(id,key,val){const s=sections.find(x=>x.id===id);if(!s)return;s[key]=key==="marks"?Math.max(0,Number(val)||0):String(val);renderAll()}
 function sectionStats(s){return {count:s.questionIds.length,marks:s.questionIds.reduce((sum,id)=>sum+(Number(questions.find(q=>q.id===id)?.marks)||0),0)}}
@@ -151,9 +154,20 @@ function renderQuestions(){
 }
 function renderAll(){normalizeSections();renderSections();renderQuestions();updateTotals();saveState()}
 function updateTotals(){
- const qm=questions.reduce((a,q)=>a+(Number(q.marks)||0),0);
+ const assigned=new Set();
+ let total=0;
+ sections.forEach(s=>{
+  const perQuestion=Number(s.marks)||0;
+  s.questionIds.forEach(id=>{
+   const q=questions.find(x=>String(x.id)===String(id));
+   if(q){assigned.add(String(id));total+=perQuestion;}
+  });
+ });
+ questions.forEach(q=>{
+  if(!assigned.has(String(q.id))) total+=Number(q.marks)||0;
+ });
  document.getElementById("totalQuestions").textContent=questions.length;
- document.getElementById("totalMarks").textContent=qm;
+ document.getElementById("totalMarks").textContent=total;
  document.getElementById("totalSections").textContent=sections.length;
  document.getElementById("poolStatus").textContent=questions.length+" selected question"+(questions.length===1?"":"s");
 }
