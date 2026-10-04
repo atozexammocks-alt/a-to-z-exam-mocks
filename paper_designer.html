@@ -14,8 +14,20 @@ async function loadFromBuilder(){
    if(q?.id!==undefined) questionCache.set(String(q.id),q);
    if(q?.qid!==undefined) questionCache.set(String(q.qid),q);
   });
-  // Exact Builder handoff is authoritative for this paper; render it immediately.
-  // This removes the unnecessary Firestore/IndexedDB wait from the Customize flow.
+  // Exact Builder handoff is authoritative for this paper.
+  // Build the pool immediately from these records; do not wait for Firebase/IndexedDB.
+  const handoffIds=handedOff.map(q=>String(q?.id||q?.qid||q?.questionId||'')).filter(Boolean);
+  allQuestions=handoffIds.map(id=>normalizeQuestion(questionCache.get(id),id)).filter(q=>q&&q.id);
+  const paperEdits=safeJSON('AZ_PAPER_DESIGN_EDITS',{})||{};
+  allQuestions=allQuestions.map(q=>{
+   const e=paperEdits[String(q.id)];if(!e)return q;
+   return Object.assign({},q,{text:e.text!==undefined?String(e.text):q.text,options:Array.isArray(e.options)?e.options.map(cleanOptionText).filter(Boolean).join('\\n'):q.options,image:e.image!==undefined?String(e.image):q.image});
+  });
+  const blueprint=safeJSON(BLUEPRINT_KEY,null);
+  testPaper={title:blueprint?.title||localStorage.getItem('AZ_BUILDER_PAPER_TITLE')||'Question Paper',sections:[]};
+  activeSectionId=null;
+  saveState();
+  return allQuestions.length>0;
  }
 
  // Primary source: the same Firestore "questions" collection used by Test Builder.
