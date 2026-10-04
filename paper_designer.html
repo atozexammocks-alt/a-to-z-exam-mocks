@@ -278,7 +278,7 @@ function renderLibraryText(v){
  // whenever it found one symbol; that is what caused symbols/words to split or
  // appear as SQRT/MU/EPSILON-style source in Paper Designer.
  const parts=[];
- const token=/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|epsilon|varepsilon|rho|tau|phi|varphi|psi|eta|kappa|nu|xi|zeta|left|right|mathbf|mathrm|text|hbar|cdot|times|pm|mp|leq|geq|neq|infty)(?:\s*\{(?:[^{}]|\{[^{}]*\})*\}|\s*[A-Za-z0-9]+)?(?:[_^]\s*(?:\{[^{}]*\}|[A-Za-z0-9]+))*/g;
+ const token=/\\(?:frac|dfrac|tfrac)\s*\{(?:[^{}]|\{[^{}]*\})*\}\s*\{(?:[^{}]|\{[^{}]*\})*\}|\\(?:sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|epsilon|varepsilon|rho|tau|phi|varphi|psi|eta|kappa|nu|xi|zeta|left|right|mathbf|mathrm|text|hbar|cdot|times|pm|mp|leq|geq|neq|infty)(?:\s*\{(?:[^{}]|\{[^{}]*\})*\}|\s*[A-Za-z0-9]+)?(?:[_^]\s*(?:\{[^{}]*\}|[A-Za-z0-9]+))*/g;
  let last=0,m;
  while((m=token.exec(x))){
    if(m.index>last) parts.push({t:x.slice(last,m.index),math:false});
