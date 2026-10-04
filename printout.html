@@ -95,10 +95,18 @@ function cleanQ(v){
 }
 function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim();}
 function renderMath(s){
- let x=String(s??'').replace(/\n/g,'<br>');
- x=x.replace(/(^|[ <br>])((?:\\(?:frac|dfrac|tfrac|sqrt|bar|vec|hat|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)\b)[^<br>]*?)(?=<br>|$|[.,;:!?])/g,'$1\\($2\\)');
- x=x.replace(/(^|[ <br>])((?:[A-Za-z]+[_^][A-Za-z0-9{}\\]+|[A-Za-z]+\s*=[^<br>]+))(?=<br>|$|[.,;:!?])/g,'$1\\($2\\)');
- return x;
+ let x=String(s??'').replace(/\r\n?/g,'\n');
+ const lines=x.split('\n');
+ return lines.map(line=>{
+   const t=line.trim();
+   if(!t)return '';
+   if(/^\\\(|^\\\[|^\$\$|^\$/.test(t)) return line;
+   const hasTeX=/\\[A-Za-z]+|[A-Za-z0-9}]\s*[_^]\s*(?:[A-Za-z0-9{]|\\)/.test(t);
+   if(hasTeX){
+     return line.replace(t,'\\('+t+'\\)');
+   }
+   return line;
+ }).join('<br>');
 }
 let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
 function qHtml(q,n){
