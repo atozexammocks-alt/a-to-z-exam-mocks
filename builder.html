@@ -329,7 +329,7 @@ window.folderRowClick=function(path,hasChildren){
 function renderSelected(){
  const list=document.getElementById("selectedList"),ids=[...window.selected],items=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
  document.getElementById("selectedCount").textContent="("+items.length+")";
- list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(textOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
+ list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(displayTextOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
 }
 window.selectedToSections=function(){if(!window.selected.size)return alert("Select questions first.");if(!window.sections.length)addSection();alert(window.selected.size+" question(s) are ready for the paper. Use Print.");renderSelected()};
 window.addSection=function(){const n=window.sections.length+1;window.sections.push({name:"Section "+String.fromCharCode(64+n),type:"MCQ",marks:1});renderSections()};
@@ -347,8 +347,9 @@ function ensurePaperFields(){
 }
 function typeOf(q){return String(q.type??q.questionType??q.qType??"MCQ").toUpperCase()}
 function questionHTML(q,num){
- const img=imageOf(q),txt=textOf(q),opts=optionsOf(q);
- return '<div class="paper-q"><div class="paper-q-num"><b>'+num+'.</b></div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(txt?'<div class="paper-text">'+renderMath(esc(txt))+'</div>':'')+(opts.length?'<div class="paper-options">'+opts.map((o,i)=>'<span><b>('+String.fromCharCode(97+i)+')</b> '+renderMath(esc(o))+'</span>').join(" &nbsp;&nbsp; ")+'</div>':'')+'</div>';
+ const img=imageOf(q),txt=displayTextOf(q),opts=displayOptionsOf(q),edit=window.textEdits[String(q.id)]||{};
+ const style='font-size:'+Number(edit.fontSize||13)+'px;font-weight:'+Number(edit.weight||400)+';text-align:'+String(edit.align||'left')+';line-height:'+Number(edit.lineHeight||1.55)+';';
+ return '<div class="paper-q"><div class="paper-q-num"><b>'+num+'.</b></div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(txt?'<div class="paper-text" style="'+style+'">'+renderMath(esc(txt))+'</div>':'')+(opts.length&&!edit.hideOptions?'<div class="paper-options" style="'+style+'">'+opts.map((o,i)=>'<span><b>('+String.fromCharCode(97+i)+')</b> '+renderMath(esc(o))+'</span>').join(" &nbsp;&nbsp; ")+'</div>':'')+'</div>';
 }
 function paperMarkup(layout){
  ensurePaperFields();
