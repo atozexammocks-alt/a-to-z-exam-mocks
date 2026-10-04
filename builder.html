@@ -1,1 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>A to Z Exam Mocks — Test Builder</title>
+<script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#060911;color:#f8fafc}
+button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:column}.top{height:58px;flex:0 0 58px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:10px;padding:0 14px}.brand{font-weight:900;color:#38bdf8;white-space:nowrap}.top .spacer{flex:1}.pill{font-size:11px;color:#cbd5e1;background:#0f172a;border:1px solid #334155;border-radius:999px;padding:6px 10px}.btn{border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:7px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer}.btn:hover{border-color:#38bdf8}.btn.primary{background:#059669;border-color:#10b981;color:#fff}.btn.blue{background:#2563eb;border-color:#3b82f6;color:#fff}.btn.purple{background:#7c3aed;border-color:#8b5cf6;color:#fff}.btn.red{background:#991b1b;border-color:#ef4444;color:#fff}.modebar{display:flex;gap:8px;align-items:center;padding:9px 12px;background:#090d16;border-bottom:1px solid #1e293b;flex-wrap:wrap}.mode{padding:7px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:900;cursor:pointer}.mode.active{background:#059669;border-color:#10b981;color:#fff}.status{margin-left:auto;font-size:11px;color:#64748b}.workspace{flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr) 300px;gap:10px;padding:10px}.panel{min-height:0;background:#0b1120;border:1px solid #1e293b;border-radius:10px;overflow:hidden}.panelhead{padding:10px 12px;border-bottom:1px solid #1e293b;font-size:12px;font-weight:900;color:#38bdf8;display:flex;align-items:center;justify-content:space-between;gap:8px}.tree{overflow:auto;height:calc(100% - 43px);padding:8px}.tree-row{display:flex;align-items:center;gap:5px;padding:6px 7px;border-radius:6px;color:#cbd5e1;font-size:11px;cursor:pointer}.tree-row:hover{background:#0f172a}.tree-row.active{background:rgba(56,189,248,.12);color:#fff}.count{margin-left:auto;color:#64748b;font-size:10px}.main{min-width:0;display:flex;flex-direction:column;overflow:hidden}.toolbar{padding:9px;border-bottom:1px solid #1e293b;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.search{flex:1;min-width:150px;background:#060911;border:1px solid #334155;color:#fff;border-radius:7px;padding:8px 10px;font-size:11px}.questions{padding:10px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-content:start}.card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.card.selected{border-color:#10b981;box-shadow:0 0 0 1px rgba(16,185,129,.25)}.qhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.qhead input{width:16px;height:16px}.qtitle{font-size:10px;color:#94a3b8;font-weight:900;text-transform:uppercase;flex:1}.qbody{font-size:14px;line-height:1.65;color:#f8fafc;white-space:pre-wrap;overflow-wrap:anywhere}.qimg{background:#fff;border-radius:7px;border:1px solid #e2e8f0;margin:7px 0;display:flex;justify-content:center;align-items:center;overflow:hidden;cursor:pointer}.qimg img{max-width:100%;max-height:420px;object-fit:contain;display:block}.opts{border-top:1px solid #1e293b;margin-top:8px;padding-top:8px;color:#cbd5e1;font-size:12px;line-height:1.7}.empty{padding:35px;text-align:center;color:#64748b;grid-column:1/-1}.right{overflow:auto}.rightbody{padding:10px;display:flex;flex-direction:column;gap:10px}.box{border:1px solid #1e293b;border-radius:9px;padding:10px;background:#080d17}.box h4{margin:0 0 8px;font-size:11px;color:#38bdf8}.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}.field{width:100%;background:#060911;color:#fff;border:1px solid #334155;border-radius:6px;padding:7px;font-size:11px}.section{border:1px solid #334155;border-radius:8px;padding:8px;margin-bottom:7px}.section strong{font-size:11px}.section small{color:#64748b}.section .field{margin-top:6px}.section-actions{display:flex;gap:5px;margin-top:6px}.selected-list{max-height:210px;overflow:auto}.selitem{padding:6px;border-bottom:1px solid #172033;font-size:10px;color:#cbd5e1}.print-note{font-size:10px;color:#64748b;line-height:1.5}
+@media(max-width:1050px){.workspace{grid-template-columns:220px minmax(0,1fr)}.right{display:none}.questions{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.top{height:auto;min-height:56px;flex-wrap:wrap;padding:8px}.top .spacer{display:none}.status{margin-left:0;width:100%}.workspace{grid-template-columns:1fr;padding:6px}.panel.left{display:none}.questions{grid-template-columns:1fr}.modebar{overflow:auto;flex-wrap:nowrap}.mode{white-space:nowrap}}
+@media print{
+ body{background:#fff;color:#000}.no-print{display:none!important}.print-area{display:block!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top no-print">
+  <a href="teacher.html" class="btn">🏠 Dashboard</a>
+  <div class="brand">📝 Test Builder</div>
+  <div class="spacer"></div>
+  <div id="userPill" class="pill">Loading…</div>
+  <button class="btn" onclick="loadQuestions()">↻ Reload</button>
+  <button class="btn primary" onclick="printPaper('one')">🖨 One Column</button>
+  <button class="btn blue" onclick="printPaper('two')">📰 Two Column</button>
+  <button class="btn purple" onclick="printPaper('board')">🎓 Board Style</button>
+</header>
+<div class="modebar no-print">
+  <button class="mode active" data-mode="private" onclick="setMode('private')">🔒 Private</button>
+  <button class="mode" data-mode="central" onclick="setMode('central')">🌐 Central</button>
+  <button class="mode" data-mode="group" onclick="setMode('group')">🤝 Group</button>
+  <button class="btn" onclick="selectAllVisible()">☑ Select All Visible</button>
+  <button class="btn" onclick="clearSelection()">Clear</button>
+  <span id="status" class="status">Connecting to Library…</span>
+</div>
+<div class="workspace no-print">
+  <aside class="panel left">
+    <div class="panelhead">📁 Library Folders <span id="folderCount"></span></div>
+    <div id="tree" class="tree"></div>
+  </aside>
+  <main class="panel main">
+    <div class="toolbar">
+      <input id="search" class="search" placeholder="Search questions, chapter, topic, folder…" oninput="renderQuestions()">
+      <select id="typeFilter" class="field" style="width:130px" onchange="renderQuestions()">
+        <option value="ALL">All Types</option><option value="MCQ">MCQ</option><option value="NUMERICAL">Numerical</option><option value="SHORT">Short</option><option value="LONG">Long</option>
+      </select>
+      <button class="btn" onclick="selectedToSections()">➜ Add Selected</button>
+    </div>
+    <div id="questions" class="questions"><div class="empty">Loading Library questions…</div></div>
+  </main>
+  <aside class="panel right">
+    <div class="panelhead">⚙ Paper Designer</div>
+    <div class="rightbody">
+      <div class="box">
+        <h4>Paper Details</h4>
+        <input id="paperTitle" class="field" value="Physics Question Paper" placeholder="Paper title">
+        <div style="height:6px"></div>
+        <input id="schoolName" class="field" placeholder="School / Institute name">
+        <div style="height:6px"></div>
+        <input id="logoUrl" class="field" placeholder="Logo URL (optional)">
+      </div>
+      <div class="box">
+        <h4>Question Type</h4>
+        <select id="defaultType" class="field">
+          <option>MCQ</option><option>NUMERICAL</option><option>SHORT</option><option>LONG</option><option>MIXED</option>
+        </select>
+      </div>
+      <div class="box">
+        <h4>Sections</h4>
+        <div id="sections"></div>
+        <button class="btn primary" onclick="addSection()">＋ Add Section</button>
+      </div>
+      <div class="box">
+        <h4>Selected Questions <span id="selectedCount">(0)</span></h4>
+        <div id="selectedList" class="selected-list"></div>
+      </div>
+      <div class="box">
+        <h4>Actions</h4>
+        <div class="row">
+          <button class="btn primary" onclick="printPaper('one')">One Column</button>
+          <button class="btn blue" onclick="printPaper('two')">Two Column</button>
+          <button class="btn purple" onclick="printPaper('board')">Board Style</button>
+          <button class="btn" onclick="saveBlueprint()">💾 Save Blueprint</button>
+        </div>
+        <div class="print-note" style="margin-top:8px">Questions are read directly from the same Firebase <b>questions</b> collection used by Library. Text, image, options and MathJax/LaTeX are preserved.</div>
+      </div>
+    </div>
+  </aside>
+</div>
+</div>
 
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {getFirestore,collection,getDocs} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app),auth=getAuth(app);
+window.builderAuthReady=signInAnonymously(auth).catch(e=>{console.warn("Anonymous auth:",e);return null;});
+window.builderDB=db;
+
+window.builderData=[];
+window.builderMode="private";
+window.folderFilter="";
+window.selected=new Set();
+window.sections=[{name:"Section A",type:"MCQ",marks:1}];
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+function imageOf(q){
+ const keys=["question","questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image"];
+ for(const k of keys){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())===false)return v.trim();}
+ for(const k of keys){const v=q?.[k];if(typeof v==="string"&&/^((https?:\/\/)|(data:image\/)|(blob:))/i.test(v.trim()))return v.trim();}
+ return "";
+}
+function textOf(q){
+ const keys=["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"];
+ for(const k of keys){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim()))return v.trim();}
+ return "";
+}
+function optionsOf(q){
+ const v=q?.options??q?.choices??q?.answers;
+ if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).filter(x=>String(x).trim());
+ if(v&&typeof v==="object")return Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??""):x).filter(x=>String(x).trim());
+ return ["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??q?.[k]).filter(x=>String(x??"").trim());
+}
+function folderOf(q){
+ return String(q?.folderPath||q?.path||q?.libraryPath||q?.folder||q?.subject||q?.folderName||"").trim().replace(/\\/g,"/").split("/").map(x=>x.trim()).filter(Boolean).join(" / ");
+}
+function isCentral(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.central===true||q?.isCentral===true||x==="central"||x.includes("central")}
+function isGroup(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.group===true||x==="group"||x.includes("group")}
+function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="group")return isGroup(q);return !isCentral(q)&&!isGroup(q)}
+function renderMath(html){return String(html??"").replace(/\n/g,"<br>");}
+function typeset(){if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise().catch(()=>{});}
+
+window.loadQuestions=async function(){
+ const status=document.getElementById("status");status.textContent="Loading Library questions…";
+ try{
+  await window.builderAuthReady;
+  let snap;
+  try{snap=await getDocs(collection(db,"questions"))}
+  catch(e){await new Promise(r=>setTimeout(r,700));await window.builderAuthReady;snap=await getDocs(collection(db,"questions"))}
+  window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
+  status.textContent="Library connected • "+window.builderData.length+" total questions";
+  renderTree();renderQuestions();renderSelected();
+ }catch(e){
+  console.error(e);status.textContent="Firebase error: "+(e?.code||e?.message||"read failed");
+  document.getElementById("questions").innerHTML='<div class="empty">Could not read Library questions.<br><small>'+esc(e?.message||"Firebase error")+'</small></div>';
+ }
+};
+
+window.setMode=function(mode){
+ window.builderMode=mode;window.folderFilter="";
+ document.querySelectorAll(".mode").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
+ renderTree();renderQuestions();
+};
+window.selectAllVisible=function(){getVisible().forEach(q=>window.selected.add(String(q.id)));renderQuestions();renderSelected()};
+window.clearSelection=function(){window.selected.clear();renderQuestions();renderSelected()};
+function getModeQuestions(){return window.builderData.filter(q=>belongs(q,window.builderMode))}
+function getVisible(){
+ const term=(document.getElementById("search")?.value||"").trim().toLowerCase(),type=document.getElementById("typeFilter")?.value||"ALL";
+ return getModeQuestions().filter(q=>{
+  if(window.folderFilter&&folderOf(q)!==window.folderFilter)return false;
+  const qt=String(q.type??q.questionType??q.qType??"MCQ").toUpperCase();
+  if(type!=="ALL"&&qt!==type)return false;
+  if(!term)return true;
+  return (textOf(q)+" "+optionsOf(q).join(" ")+" "+folderOf(q)+" "+String(q.topic??q.chapter??q.unit??"")).toLowerCase().includes(term);
+ });
+}
+function renderQuestions(){
+ const box=document.getElementById("questions"),rows=getVisible();
+ document.getElementById("status").textContent="Library connected • "+window.builderData.length+" total • "+getModeQuestions().length+" in "+window.builderMode;
+ if(!rows.length){box.innerHTML='<div class="empty">No questions found in this Library view.</div>';return}
+ box.innerHTML=rows.map((q,i)=>{
+  const id=String(q.id),sel=window.selected.has(id),img=imageOf(q),txt=textOf(q),opts=optionsOf(q),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1;
+  return '<article class="card '+(sel?'selected':'')+'">'+
+   '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleQuestion(\''+esc(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div><button class="btn" onclick="removeSelection(\''+esc(id)+'\')">✕</button></div>'+
+   (img?'<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')"><img src="'+esc(img)+'" alt="Question"></div>':'')+
+   (txt?'<div class="qbody">'+renderMath(esc(txt))+'</div>':'')+
+   (opts.length?'<div class="opts">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderMath(esc(o))+'</div>').join("")+'</div>':'')+
+  '</article>';
+ }).join("");
+ typeset();
+}
+window.toggleQuestion=function(id){id=String(id);window.selected.has(id)?window.selected.delete(id):window.selected.add(id);renderQuestions();renderSelected()};
+window.removeSelection=function(id){window.selected.delete(String(id));renderQuestions();renderSelected()};
+window.previewImage=function(src){const url=decodeURIComponent(src);const w=window.open("");if(w){w.document.write('<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+esc(url)+'" style="max-width:98%;max-height:98vh;object-fit:contain;background:white"></body>')}};
+
+function renderTree(){
+ const root={name:"Library",path:"",children:{},count:0};
+ getModeQuestions().forEach(q=>{const p=folderOf(q),parts=p?p.split(" / "):[];root.count++;let n=root;let cur="";parts.forEach(part=>{cur=cur?cur+" / "+part:part;if(!n.children[part])n.children[part]={name:part,path:cur,children:{},count:0};n=n.children[part];n.count++})});
+ const html=['<div class="tree-row '+(!window.folderFilter?'active':'')+'" onclick="chooseFolder(\'\')">📚 All Questions <span class="count">'+root.count+'</span></div>'];
+ function walk(n,depth){Object.values(n.children).sort((a,b)=>a.name.localeCompare(b.name)).forEach(c=>{html.push('<div class="tree-row '+(window.folderFilter===c.path?'active':'')+'" style="padding-left:'+(7+depth*16)+'px" onclick="chooseFolder(\''+esc(c.path)+'\')">📁 '+esc(c.name)+' <span class="count">'+c.count+'</span></div>');walk(c,depth+1)})}
+ walk(root,0);document.getElementById("tree").innerHTML=html.join("");document.getElementById("folderCount").textContent=root.count;
+}
+window.chooseFolder=function(p){window.folderFilter=p;renderTree();renderQuestions()};
+function renderSelected(){
+ const list=document.getElementById("selectedList"),ids=[...window.selected],items=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
+ document.getElementById("selectedCount").textContent="("+items.length+")";
+ list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(textOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
+}
+window.selectedToSections=function(){if(!window.selected.size)return alert("Select questions first.");if(!window.sections.length)addSection();alert(window.selected.size+" question(s) are ready for the paper. Use Print.");renderSelected()};
+window.addSection=function(){const n=window.sections.length+1;window.sections.push({name:"Section "+String.fromCharCode(64+n),type:"MCQ",marks:1});renderSections()};
+function renderSections(){
+ document.getElementById("sections").innerHTML=window.sections.map((s,i)=>'<div class="section"><div class="row"><strong>'+esc(s.name)+'</strong><button class="btn red" style="margin-left:auto" onclick="deleteSection('+i+')">✕</button></div><input class="field" value="'+esc(s.name)+'" onchange="updateSection('+i+',\'name\',this.value)"><select class="field" onchange="updateSection('+i+',\'type\',this.value)"><option '+(s.type==="MCQ"?"selected":"")+'>MCQ</option><option '+(s.type==="NUMERICAL"?"selected":"")+'>NUMERICAL</option><option '+(s.type==="SHORT"?"selected":"")+'>SHORT</option><option '+(s.type==="LONG"?"selected":"")+'>LONG</option><option '+(s.type==="MIXED"?"selected":"")+'>MIXED</option></select><input class="field" type="number" min="0" value="'+esc(s.marks)+'" onchange="updateSection('+i+',\'marks\',this.value)"></div>').join("");
+}
+window.updateSection=function(i,k,v){if(window.sections[i])window.sections[i][k]=k==="marks"?Number(v):v};
+window.deleteSection=function(i){if(window.sections.length===1)return;window.sections.splice(i,1);renderSections()};
+
+function selectedQuestions(){return [...window.selected].map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean)}
+function typeOf(q){return String(q.type??q.questionType??q.qType??"MCQ").toUpperCase()}
+function questionHTML(q,num){
+ const img=imageOf(q),txt=textOf(q),opts=optionsOf(q);
+ return '<div class="paper-q"><div class="paper-q-num"><b>'+num+'.</b></div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(txt?'<div class="paper-text">'+renderMath(esc(txt))+'</div>':'')+(opts.length?'<div class="paper-options">'+opts.map((o,i)=>'<span><b>('+String.fromCharCode(97+i)+')</b> '+renderMath(esc(o))+'</span>').join(" &nbsp;&nbsp; ")+'</div>':'')+'</div>';
+}
+function paperMarkup(layout){
+ const qs=selectedQuestions();const title=esc(document.getElementById("paperTitle").value||"Physics Question Paper"),school=esc(document.getElementById("schoolName").value||""),logo=String(document.getElementById("logoUrl").value||"").trim();
+ let n=0,body="";
+ window.sections.forEach((s,si)=>{
+  const pool=qs.filter(q=>s.type==="MIXED"||typeOf(q)===s.type);
+  const use=pool.length?pool:si===0&&s.type==="MCQ"?qs:[];
+  if(!use.length)return;
+  body+='<section class="paper-section"><h2>'+esc(s.name)+' <small>'+(s.marks?esc(s.marks)+' mark each':'')+'</small></h2>';
+  use.forEach(q=>body+=questionHTML(q,++n));
+  body+='</section>';
+ });
+ if(!body)qs.forEach(q=>body+=questionHTML(q,++n));
+ const logoHtml=logo?'<img class="logo" src="'+esc(logo)+'">':"";
+ const col=layout==="two"?"columns:2;column-gap:28px;":"";
+ const board=layout==="board"?"font-family:Georgia,serif;":"";
+ return '<!doctype html><html><head><meta charset="utf-8"><title>'+title+'</title><script>window.MathJax={tex:{inlineMath:[["\\\\(","\\\\)"],["$","$"]],displayMath:[["\\\\[","\\\\]"],["$$","$$"]]},svg:{fontCache:"global"}};<\/script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"><\/script><style>@page{size:A4;margin:16mm}body{font-family:Arial,sans-serif;color:#111;font-size:13px;line-height:1.55}header{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;position:relative}.logo{position:absolute;left:0;top:0;width:70px;height:70px;object-fit:contain}.school{font-size:18px;font-weight:900}.title{font-size:16px;font-weight:800}.paper-section{margin:14px 0;break-inside:auto}h2{font-size:14px;border-bottom:1px solid #444;padding-bottom:4px}.paper-q{margin:0 0 13px;break-inside:avoid}.paper-q-num{display:inline}.paper-text{display:inline;white-space:pre-wrap;overflow-wrap:anywhere}.paper-img{margin:6px 0;text-align:center}.paper-img img{max-width:100%;max-height:360px;object-fit:contain}.paper-options{margin:5px 0 0 20px}.paper-options span{display:inline-block;margin-right:12px}.two{column-count:2;column-gap:28px}.board{font-family:Georgia,serif}.board header{border:2px solid #111;padding:12px}.board .paper-section h2{text-align:center}.footer{margin-top:25px;border-top:1px solid #777;padding-top:6px;text-align:center;font-size:10px}</style></head><body class="'+(layout==="two"?"two ":"")+(layout==="board"?"board":"")+'"><header>'+logoHtml+'<div class="school">'+school+'</div><div class="title">'+title+'</div></header>'+body+'<div class="footer">A to Z Exam Mocks</div><script>window.onload=()=>window.MathJax?.typesetPromise?.();<\/script></body></html>';
+}
+window.printPaper=function(layout){const html=paperMarkup(layout),w=window.open("","_blank");if(!w)return alert("Popup blocked. Allow popups for this site.");w.document.open();w.document.write(html);w.document.close();setTimeout(()=>w.print(),900)};
+window.saveBlueprint=function(){const data={title:document.getElementById("paperTitle").value,school:document.getElementById("schoolName").value,logo:document.getElementById("logoUrl").value,selected:[...window.selected],sections:window.sections,date:new Date().toISOString()};localStorage.setItem("AZ_TEST_BUILDER_BLUEPRINT",JSON.stringify(data));alert("Blueprint saved on this device.")};
+
+document.addEventListener("DOMContentLoaded",()=>{
+ const email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim();document.getElementById("userPill").textContent=email||"Teacher";
+ renderSections();loadQuestions();
+});
+</script>
+</body>
+</html>
