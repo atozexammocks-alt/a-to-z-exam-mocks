@@ -242,7 +242,7 @@ function renderQuestions(){
  if(!rows.length){box.innerHTML='<div class="empty">No questions found in this Library view.</div>';return}
  box.innerHTML=rows.map((q,i)=>{
   const id=String(q.id),sel=window.selected.has(id),img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1,edit=window.textEdits[id]||{},dupCount=questionKey(q)?(dups[questionKey(q)]||0):0;
-  return '<article class="card '+(sel?'selected':'')+'">'+
+  return '<article class="card '+(sel?'selected':'')+'" data-question-id="'+esc(id)+'">'+
    '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleQuestion(\''+esc(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div>'+(dupCount>1?'<span class="dup-tag">⚠ DUPLICATE ×'+dupCount+'</span>':'<span class="clean-tag">✓ CLEAN</span>')+(txt?'<button class="btn blue" onclick="openTextEditor(\''+encodeURIComponent(id)+'\')">✏️ Edit Text</button>':'')+'<button class="btn" onclick="removeSelection(\''+esc(id)+'\')">✕</button></div>'+
    (img?'<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')"><img src="'+esc(img)+'" alt="Question"></div>':'')+
    (txt?'<div class="qbody" style="'+textStyleOf(q)+'">'+renderMath(esc(txt))+'</div>':'')+
@@ -251,8 +251,24 @@ function renderQuestions(){
  }).join("");
  typeset();
 }
-window.toggleQuestion=function(id){id=String(id);window.selected.has(id)?window.selected.delete(id):window.selected.add(id);localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...window.selected]));renderQuestions();renderSelected()};
-window.removeSelection=function(id){window.selected.delete(String(id));renderQuestions();renderSelected()};
+window.toggleQuestion=function(id){
+ id=String(id);
+ if(window.selected.has(id)) window.selected.delete(id); else window.selected.add(id);
+ localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...window.selected]));
+ const card=document.querySelector('.card[data-question-id="'+CSS.escape(id)+'"]');
+ if(card) card.classList.toggle("selected",window.selected.has(id));
+ renderSelected();
+};
+window.removeSelection=function(id){
+ id=String(id);
+ window.selected.delete(id);
+ localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...window.selected]));
+ const card=document.querySelector('.card[data-question-id="'+CSS.escape(id)+'"]');
+ if(card) card.classList.remove("selected");
+ const cb=card?.querySelector('input[type="checkbox"]');
+ if(cb) cb.checked=false;
+ renderSelected();
+};
 
 window.openTextEditor=function(encodedId){
  const id=decodeURIComponent(String(encodedId||""));
@@ -508,6 +524,10 @@ window.goToPaperDesigner=function(){
  const ids=[...window.selected].map(String);
  if(!ids.length){alert("Please select at least one question first.");return;}
  localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify(ids));
+ try{
+  localStorage.setItem("AZ_BUILDER_TEXT_EDITS",JSON.stringify(window.textEdits||{}));
+  localStorage.setItem("AZ_BUILDER_PAPER_SETTINGS",JSON.stringify(window.paperSettings||{fontSize:14,weight:400}));
+ }catch(e){console.warn("Builder presentation state could not be saved:",e)}
  const url="paper_designer.html?selected="+encodeURIComponent(ids.join(","));
  location.href=url;
 };
