@@ -107,10 +107,23 @@ function libraryMathMarkup(v){
 }
 function renderMath(v){
  var x=String(v??"");
- // Never allow source/OCR Enter or <br> markers to split a question around physics symbols.
- x=x.replace(/<br\s*\/?>(?:\s*)/gi," ").replace(/\r?\n+/g," ");
- var math=libraryMathMarkup(x);
- return esc(math).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+ x=x.replace(/<br\s*\/?>(?:\s*)/gi," ").replace(/\r?\n+/g," ").replace(/\s{2,}/g," ").trim();
+
+ const parts=[];
+ const token=/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|epsilon|varepsilon|rho|tau|phi|varphi|psi|eta|kappa|nu|xi|zeta|left|right|mathbf|mathrm|text|hbar|cdot|times|pm|mp|leq|geq|neq|infty)(?:\s*\{(?:[^{}]|\{[^{}]*\})*\}|\s*[A-Za-z0-9]+)?(?:[_^]\s*(?:\{[^{}]*\}|[A-Za-z0-9]+))*/g;
+ let last=0,m;
+ while((m=token.exec(x))){
+   if(m.index>last) parts.push({t:x.slice(last,m.index),math:false});
+   parts.push({t:m[0],math:true});
+   last=token.lastIndex;
+ }
+ if(last<x.length) parts.push({t:x.slice(last),math:false});
+ if(!parts.length) return esc(x);
+
+ return parts.map(p=>p.math
+   ? "\\("+p.t+"\\)"
+   : esc(p.t)
+ ).join("");
 }
 
 let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
