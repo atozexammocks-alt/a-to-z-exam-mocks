@@ -101,7 +101,7 @@ function wrapSelectionStyle(styles){
 }
 function applyTextFormatting(){
  const family=document.getElementById('fontFamily').value,size=Number(document.getElementById('fontSize').value)||14;
- if(wrapSelectionStyle({fontFamily:family,fontSize:size+'px'})){build();return true}
+ if(wrapSelectionStyle({fontFamily:family,fontSize:size+'px'}))return true
  return false;
 }
 function receive(p){if(!p||!Array.isArray(p.questions))return;data=Object.assign(data,p);data.questions=p.questions||[];data.sections=Array.isArray(p.sections)?p.sections:[];data.branding=p.branding||{};data.title=data.branding.paperTitle||p.title||'Question Paper';data.school=data.branding.schoolName||p.school||'';data.logo=data.branding.logoUrl||p.logo||'';data.watermarkCount=Number(p.watermarkCount||data.branding.watermarkCount||1);build()}
@@ -114,7 +114,7 @@ function selectAllQuestions(){modeName='questions';qSel=new Set(data.questions.m
 function clearSel(){qSel.clear();sSel.clear();build()}
 function selectQ(id){if(modeName!=='questions')return;id=String(id);qSel.has(id)?qSel.delete(id):qSel.add(id);sSel.clear();build()}
 function selectS(id){if(modeName!=='sections')return;id=String(id);sSel.has(String(id))?sSel.delete(String(id)):sSel.add(String(id));qSel.clear();build()}
-function fmt(k){if(!qSel.size&&!sSel.size){if(k==='bold')wrapSelectionStyle({fontWeight:'700'});else if(k==='italic')wrapSelectionStyle({fontStyle:'italic'});else if(k==='underline')wrapSelectionStyle({textDecoration:'underline'});else return;build();return}if(qSel.size){qSel.forEach(id=>{const s=qStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;qStyle[id]=s});build()}else if(sSel.size){sSel.forEach(id=>{const s=sStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;sStyle[id]=s});build()}else alert('Select question(s) or section(s) first.')}
+function fmt(k){if(!qSel.size&&!sSel.size){if(k==='bold')wrapSelectionStyle({fontWeight:'700'});else if(k==='italic')wrapSelectionStyle({fontStyle:'italic'});else if(k==='underline')wrapSelectionStyle({textDecoration:'underline'});else return;return}if(qSel.size){qSel.forEach(id=>{const s=qStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;qStyle[id]=s});build()}else if(sSel.size){sSel.forEach(id=>{const s=sStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;sStyle[id]=s});build()}else alert('Select question(s) or section(s) first.')}
 function apply(){if(!qSel.size&&!sSel.size&&applyTextFormatting())return;if(qSel.size){const f=document.getElementById('fontFamily').value,sz=Number(document.getElementById('fontSize').value)||14;qSel.forEach(id=>qStyle[id]={...(qStyle[id]||{}),font:f,size:sz})}if(sSel.size){const f=document.getElementById('fontFamily').value,sz=Number(document.getElementById('fontSize').value)||15;sSel.forEach(id=>sStyle[id]={...(sStyle[id]||{}),font:f,size:sz})}build()}
 function setOpacity(v){document.documentElement.style.setProperty('--wm-opacity',String(Math.max(0,Math.min(100,Number(v)||0))/100));document.getElementById('wmVal').textContent=Math.max(0,Math.min(100,Number(v)||0))+'%'}
 function setCount(v){data.watermarkCount=Math.max(1,Math.min(6,Number(v)||1));build()}
