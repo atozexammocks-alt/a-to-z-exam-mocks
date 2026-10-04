@@ -29,6 +29,7 @@ button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;fle
   <button class="btn" onclick="goBack()">← Back</button>
   <div class="brand">🎨 Paper Designer</div>
   <div class="spacer"></div>
+  <button class="btn" onclick="openLibraryImport()">＋ Import Question from Library</button>
   <button class="btn blue" onclick="openBranding()">🖨 Printout / Export Paper</button>
 </header>
 <div class="stats">
@@ -63,10 +64,6 @@ button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;fle
    <label>Time Allowed<input id="examTime" placeholder="e.g. 3 Hours"></label>
    <label>Institute Logo<input id="logoFile" type="file" accept="image/*"><input id="logoUrl" placeholder="Or paste logo URL (https://...)" style="margin-top:6px"></label>
    <label>Paper Font Family<select id="fontFamily"><option value="Times New Roman">Times New Roman</option><option value="Arial">Arial</option><option value="Calibri">Calibri</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Cambria">Cambria</option><option value="Garamond">Garamond</option></select></label>
-   <label>Header Font Size<input id="headerFontSize" type="number" min="8" max="40" value="14"></label>
-   <label>Title Font Size<input id="titleFontSize" type="number" min="10" max="48" value="18"></label>
-   <label>Header Weight<select id="headerWeight"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700" selected>Bold</option></select></label>
-   <label>Title Weight<select id="titleWeight"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700" selected>Bold</option></select></label>
    <label>Watermark Text<input id="watermarkText" value="A to Z Exam Mocks"></label>
    <label class="full">Header / Instructions<textarea id="instructions" rows="3" placeholder="General instructions for students..."></textarea></label>
   </div></div>
@@ -78,6 +75,20 @@ button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;fle
  </div>
 </div>
 <div id="toast"></div>
+<div id="libraryImportModal" class="modal">
+ <div class="dialog" style="width:min(980px,97vw)">
+  <h2>＋ Import Question from Library</h2>
+  <div style="display:flex;gap:7px;margin-bottom:9px">
+   <input id="libraryImportSearch" class="field" placeholder="Search question text, folder, subject..." oninput="renderLibraryImport()">
+   <button class="btn" onclick="loadLibraryImport()">↻ Refresh</button>
+  </div>
+  <div id="libraryImportList" style="max-height:60vh;overflow:auto"></div>
+  <div class="actions">
+   <button class="btn" onclick="closeLibraryImport()">Cancel</button>
+   <button class="btn green" onclick="importSelectedLibraryQuestions()">Import Selected Questions</button>
+  </div>
+ </div>
+</div>
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -154,9 +165,32 @@ function renderSections(){
 }
 function renderQuestions(){
  const el=document.getElementById("questions");
- if(!questions.length){el.innerHTML='<div class="empty">No selected questions found.<br><small>Go back to Test Builder, select questions, then open Paper Designer.</small></div>';return}
- el.innerHTML=questions.map((q,i)=>{const s=sectionOf(q.id),txt=textOf(q),img=imageOf(q),opts=optionsOf(q);return '<div class="card '+(s?'assigned':'')+'"><div class="qtop"><b>Q.'+(i+1)+'</b><span class="mini">'+esc(q.type||"Question")+'</span><span class="mini" style="margin-left:auto">'+(Number(q.marks)||0)+' marks</span></div>'+(txt?'<div class="qtext">'+renderText(txt)+'</div>':'')+(img?'<div class="qimg"><img src="'+esc(img)+'" alt="Question"></div>':'')+(opts.length?'<div class="opts">'+opts.map((o,j)=>'<div class="opt"><b>'+String.fromCharCode(65+j)+'.</b><span>'+renderText(o)+'</span></div>').join("")+'</div>':'')+'<div class="assign"><label>Paper Section</label><select class="field" onchange="assign(\''+esc(q.id)+'\',this.value)"><option value="">Not assigned</option>'+sections.map(x=>'<option value="'+esc(x.id)+'" '+(s?.id===x.id?'selected':'')+'>'+esc(x.name)+' — '+esc(x.type)+'</option>').join("")+'</select></div></div>'}).join("");
+ if(!questions.length){el.innerHTML='<div class="empty">No selected questions found.<br><small>Use “＋ Import Question from Library” or go back to Test Builder.</small></div>';return}
+ const edits=safeJSON("AZ_PAPER_DESIGN_EDITS",{})||{};
+ el.innerHTML=questions.map((q,i)=>{
+  const id=String(q.id), ed=edits[id]||{};
+  const s=sectionOf(id),txt=ed.text!==undefined?ed.text:textOf(q),img=ed.image||imageOf(q),opts=Array.isArray(ed.options)?ed.options:optionsOf(q);
+  const visibleOpts=ed.hideOptions?[]:opts;
+  return '<div class="card '+(s?'assigned':'')+'"><div class="qtop"><b>Q.'+(i+1)+'</b><span class="mini">'+esc(q.type||"Question")+'</span><span class="mini" style="margin-left:auto">'+(Number(q.marks)||0)+' marks</span></div>'+
+   '<div class="row" style="margin-top:6px"><button class="btn" onclick="editQuestion(\''+esc(id)+'\')">✎ Edit Question</button><span class="mini">'+(ed.hideOptions?'Options Hidden':'Options Visible')+'</span></div>'+
+   (txt?'<div class="qtext">'+renderText(txt)+'</div>':'')+
+   (img?'<div class="qimg"><img src="'+esc(img)+'" alt="Question"></div>':'')+
+   (visibleOpts.length?'<div class="opts">'+visibleOpts.map((o,j)=>'<div class="opt"><b>'+String.fromCharCode(65+j)+'.</b><span>'+renderText(o)+'</span></div>').join("")+'</div>':'')+
+   '<div class="assign"><label>Paper Section</label><select class="field" onchange="assign(\''+esc(id)+'\',this.value)"><option value="">Not assigned</option>'+sections.map(x=>'<option value="'+esc(x.id)+'" '+(s?.id===x.id?'selected':'')+'>'+esc(x.name)+' — '+esc(x.type)+'</option>').join("")+'</select></div></div>'
+ }).join("");
  typeset()
+}
+function applyPaperEditorResults(){
+ const done=localStorage.getItem("AZ_PAPER_EDITOR_DONE");
+ const qid=localStorage.getItem("AZ_PAPER_EDITOR_QID");
+ if(done&&qid){
+  const all=safeJSON("AZ_PAPER_DESIGN_EDITS",{})||{};
+  const existing=all[String(qid)]||{};
+  const opts=(localStorage.getItem("AZ_PAPER_EDITOR_RESULT_OPTIONS")||"").split(/\\n/).filter(Boolean);
+  all[String(qid)]={...existing,text:localStorage.getItem("AZ_PAPER_EDITOR_RESULT_TEXT")??existing.text,image:localStorage.getItem("AZ_PAPER_EDITOR_RESULT_IMAGE")||existing.image,options:opts,hideOptions:localStorage.getItem("Temp_Editor_KeepOptions")==="false",updatedAt:new Date().toISOString()};
+  localStorage.setItem("AZ_PAPER_DESIGN_EDITS",JSON.stringify(all));
+  localStorage.removeItem("AZ_PAPER_EDITOR_DONE");localStorage.removeItem("AZ_PAPER_EDITOR_RESULT_IMAGE");localStorage.removeItem("AZ_PAPER_EDITOR_RESULT_TEXT");localStorage.removeItem("AZ_PAPER_EDITOR_RESULT_OPTIONS");
+ }
 }
 function renderAll(){normalizeSections();renderSections();renderQuestions();updateTotals();saveState()}
 function updateTotals(){
@@ -176,6 +210,72 @@ function updateTotals(){
  document.getElementById("totalMarks").textContent=total;
  document.getElementById("totalSections").textContent=sections.length;
  document.getElementById("poolStatus").textContent=questions.length+" selected question"+(questions.length===1?"":"s");
+}
+
+let libraryImportQuestions=[];
+async function loadLibraryImport(){
+ try{
+  await signInAnonymously(auth);
+  const snap=await getDocs(collection(db,"questions"));
+  libraryImportQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
+  renderLibraryImport();
+ }catch(e){console.error(e);document.getElementById("libraryImportList").innerHTML='<div class="empty">Unable to load Library questions.</div>'}
+}
+function openLibraryImport(){
+ document.getElementById("libraryImportModal").classList.add("show");
+ document.getElementById("libraryImportSearch").value="";
+ loadLibraryImport();
+}
+function closeLibraryImport(){document.getElementById("libraryImportModal").classList.remove("show")}
+function renderLibraryImport(){
+ const el=document.getElementById("libraryImportList"),term=(document.getElementById("libraryImportSearch").value||"").toLowerCase().trim();
+ const existing=new Set(questions.map(q=>String(q.id)));
+ const list=libraryImportQuestions.filter(q=>!existing.has(String(q.id))).filter(q=>{
+  if(!term)return true;
+  return [textOf(q),q.folder,q.folderPath,q.subject,q.type].some(v=>String(v||"").toLowerCase().includes(term));
+ }).slice(0,200);
+ if(!list.length){el.innerHTML='<div class="empty">No matching Library questions found.</div>';return}
+ el.innerHTML=list.map(q=>{
+  const opts=optionsOf(q); const img=imageOf(q); const txt=textOf(q);
+  return '<label style="display:flex;gap:9px;align-items:flex-start;padding:9px;border:1px solid #1e293b;border-radius:8px;margin-bottom:6px;background:#080d17;cursor:pointer">'+
+   '<input class="library-import-check" type="checkbox" value="'+esc(q.id)+'" style="margin-top:3px;width:17px;height:17px">'+
+   '<div style="min-width:0"><b style="font-size:11px">Q</b><span class="mini"> '+esc(q.type||"Question")+'</span>'+
+   (txt?'<div style="font-size:12px;line-height:1.5;margin-top:3px">'+renderText(txt)+'</div>':'')+
+   (img?'<div class="mini" style="margin-top:3px">🖼 Image question</div>':'')+
+   (opts.length?'<div class="mini" style="margin-top:3px">'+opts.length+' options</div>':'')+
+   '</div></label>'
+ }).join("");
+ typeset();
+}
+function importSelectedLibraryQuestions(){
+ const ids=[...document.querySelectorAll(".library-import-check:checked")].map(x=>String(x.value));
+ const map=new Map(libraryImportQuestions.map(q=>[String(q.id),q]));
+ const add=ids.map(id=>map.get(id)).filter(Boolean);
+ if(!add.length){alert("Select at least one Library question.");return}
+ const existing=new Set(questions.map(q=>String(q.id)));
+ questions.push(...add.filter(q=>!existing.has(String(q.id))));
+ renderAll(); closeLibraryImport(); toast("✔ "+add.length+" question"+(add.length===1?"":"s")+" imported from Library");
+}
+function textToEditorImage(q){
+ const text=(textOf(q)||"Question").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+ const opts=optionsOf(q).map((o,i)=>'<text x="60" dy="'+(i===0?36:28)+'">'+(String.fromCharCode(65+i)+". "+String(o).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"))+'</text>').join("");
+ const svg='<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700"><rect width="100%" height="100%" fill="white"/><text x="60" y="70" font-family="Arial" font-size="34" fill="black">'+text+'</text>'+opts+'</svg>';
+ return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+}
+function editQuestion(qid){
+ const q=questions.find(x=>String(x.id)===String(qid)); if(!q)return;
+ const ed=safeJSON("AZ_PAPER_DESIGN_EDITS",{})||{};
+ const current={...(ed[String(qid)]||{})};
+ const img=current.image||imageOf(q);
+ localStorage.setItem("AZ_PAPER_EDITOR_QID",String(qid));
+ localStorage.setItem("Temp_Editor_Image",img||textToEditorImage(q));
+ localStorage.setItem("Temp_Editor_Synced_Image",img||textToEditorImage(q));
+ localStorage.setItem("Temp_QText",current.text!==undefined?current.text:textOf(q));
+ const opts=Array.isArray(current.options)?current.options:optionsOf(q);
+ localStorage.setItem("Temp_Opt_A",opts[0]||"");localStorage.setItem("Temp_Opt_B",opts[1]||"");localStorage.setItem("Temp_Opt_C",opts[2]||"");localStorage.setItem("Temp_Opt_D",opts[3]||"");
+ localStorage.setItem("Temp_Editor_KeepOptions",current.hideOptions?'false':'true');
+ localStorage.setItem("AZ_PAPER_EDITOR_RETURN","paper_designer.html");
+ location.href="editor.html?paperMode=1&qid="+encodeURIComponent(qid);
 }
 function saveState(){try{localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections))}catch(e){}}
 function loadState(){
@@ -209,7 +309,7 @@ function openBranding(){
  document.getElementById("brandingModal").classList.add("show");updateBrandingPreview();bindBrandingPreview();const lf=document.getElementById("logoFile");if(lf&&!lf.dataset.bound){lf.dataset.bound="1";lf.addEventListener("change",()=>{const f=lf.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{document.getElementById("logoUrl").value=String(rd.result||"");updateBrandingPreview()};rd.readAsDataURL(f)})}
 }
 function closeBranding(){document.getElementById("brandingModal").classList.remove("show")}
-function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>o[k]=document.getElementById(k).value.trim());["headerFontSize","titleFontSize","headerWeight","titleWeight"].forEach(k=>o[k]=document.getElementById(k).value);["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>o[k]=document.getElementById(k).checked);return o}
+function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>o[k]=document.getElementById(k).value.trim());["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>o[k]=document.getElementById(k).checked);return o}
 function printPaper(){
  branding=readBranding();localStorage.setItem("AZ_PAPER_BRANDING",JSON.stringify(branding));localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections));
  closeBranding();
@@ -247,8 +347,8 @@ function printQ(q,n){
  const txt=textOf(q),img=imageOf(q),opts=optionsOf(q);
  return '<div class="q"><div class="qline"><b>'+n+'.</b><div><span class="qtext">'+renderText(txt)+'</span><span class="marks">['+(Number(q.marks)||0)+']</span></div></div>'+(img?'<div class="qimg"><img src="'+esc(img)+'"></div>':"")+(opts.length?'<div class="opts">'+opts.map((o,i)=>'<div class="opt"><b>'+String.fromCharCode(65+i)+'.</b><span>'+renderText(o)+'</span></div>').join("")+'</div>':"")+'</div>'
 }
-window.addSection=addSection;window.removeSection=removeSection;window.sectionUpdate=sectionUpdate;window.assign=assign;window.openBranding=openBranding;window.closeBranding=closeBranding;window.printPaper=printPaper;window.goBack=goBack;
-loadState();loadQuestions();
+window.addSection=addSection;window.removeSection=removeSection;window.sectionUpdate=sectionUpdate;window.assign=assign;window.editQuestion=editQuestion;window.openLibraryImport=openLibraryImport;window.closeLibraryImport=closeLibraryImport;window.loadLibraryImport=loadLibraryImport;window.renderLibraryImport=renderLibraryImport;window.importSelectedLibraryQuestions=importSelectedLibraryQuestions;window.openBranding=openBranding;window.closeBranding=closeBranding;window.printPaper=printPaper;window.goBack=goBack;
+loadState();applyPaperEditorResults();loadQuestions();
 </script>
 </body>
 </html>
