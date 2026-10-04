@@ -128,6 +128,37 @@ window.ensureBuilderAuth=async function(){
 };
 window.builderDB=db;
 
+const BUILDER_CACHE_DB='AZExamMocksBuilderCache';
+const BUILDER_CACHE_STORE='questions';
+let builderCacheDBPromise=null;
+async function openBuilderCache(){
+ if(builderCacheDBPromise)return builderCacheDBPromise;
+ builderCacheDBPromise=new Promise(resolve=>{
+  try{
+   const req=indexedDB.open(BUILDER_CACHE_DB,1);
+   req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(BUILDER_CACHE_STORE))db.createObjectStore(BUILDER_CACHE_STORE,{keyPath:'id'});};
+   req.onsuccess=()=>resolve(req.result);req.onerror=()=>resolve(null);
+  }catch(e){resolve(null)}
+ });
+ return builderCacheDBPromise;
+}
+async function readBuilderCache(){
+ const db=await openBuilderCache();if(!db)return[];
+ return new Promise(resolve=>{
+  try{
+   const tx=db.transaction(BUILDER_CACHE_STORE,'readonly'),r=tx.objectStore(BUILDER_CACHE_STORE).getAll();
+   r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>resolve([]);
+  }catch(e){resolve([])}
+ });
+}
+async function writeBuilderCache(rows){
+ const db=await openBuilderCache();if(!db)return;
+ try{
+  const tx=db.transaction(BUILDER_CACHE_STORE,'readwrite'),store=tx.objectStore(BUILDER_CACHE_STORE);
+  store.clear();
+  rows.forEach(q=>{if(q?.id!==undefined)store.put(q)});
+ }catch(e){console.warn("Builder cache write:",e)}
+}
 window.builderData=[];
 window.builderMode="private";
 window.folderFilter="";
@@ -191,30 +222,47 @@ window.setGlobalQuestionWeight=function(v){window.paperSettings.weight=Number(v)
 window.loadQuestions=async function(){
  const status=document.getElementById("status");
  const box=document.getElementById("questions");
- status.textContent="Connecting to Library…";
+ let cached=[];
+ try{cached=await readBuilderCache()}catch(e){}
+ if(cached.length && !window.builderData.length){
+  window.builderData=cached;
+  status.textContent="Library cache loaded • "+cached.length+" questions • syncing…";
+  renderTree();renderQuestions();renderSelected();
+ }
  let lastError=null;
- for(let attempt=1;attempt<=5;attempt++){
+ for(let attempt=1;attempt<=4;attempt++){
   try{
-   status.textContent=attempt===1?"Connecting to Library…":"Reconnecting to Library… ("+attempt+"/5)";
+   status.textContent=attempt===1
+    ? (cached.length?"Syncing Library…":"Connecting to Library…")
+    : "Reconnecting to Library… ("+attempt+"/4)";
    await window.ensureBuilderAuth();
    const snap=await getDocs(collection(db,"questions"));
-   window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
-   status.textContent="Library connected • "+window.builderData.length+" total questions";
+   const fresh=snap.docs.map(d=>({id:d.id,...d.data()}));
+   if(!fresh.length && cached.length){
+    console.warn("Firebase returned 0 questions; retaining cached Library data.");
+    status.textContent="Library sync returned 0 • showing cached "+cached.length+" questions";
+    renderTree();renderQuestions();renderSelected();
+    return;
+   }
+   window.builderData=fresh;
+   await writeBuilderCache(fresh);
+   status.textContent="Library connected • "+fresh.length+" total questions";
    renderTree();renderQuestions();renderSelected();
    return;
   }catch(e){
    lastError=e;
    console.warn("Library load attempt "+attempt,e);
    window.builderAuthReady=null;
-   if(attempt<5) await new Promise(r=>setTimeout(r,700*attempt));
+   if(attempt<4)await new Promise(r=>setTimeout(r,500*attempt));
   }
  }
- console.error("Library load failed after retries:",lastError);
- status.textContent="Library connection failed — tap Reload to retry";
  if(window.builderData.length){
-   renderTree();renderQuestions();renderSelected();
+  status.textContent="Library sync unavailable • showing "+window.builderData.length+" cached questions";
+  renderTree();renderQuestions();renderSelected();
  }else{
-   box.innerHTML='<div class="empty">Library connection failed.<br><small>'+esc(lastError?.code||lastError?.message||"Firebase error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry</button></div>';
+  console.error("Library load failed after retries:",lastError);
+  status.textContent="Library connection failed — tap Reload to retry";
+  box.innerHTML='<div class="empty">Library connection failed.<br><small>'+esc(lastError?.code||lastError?.message||"Firebase error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry</button></div>';
  }
 };
 
@@ -554,10 +602,16 @@ window.publishNow=async function(){if(!window.selected.size)return alert("Select
 
 window.saveBlueprint=function(){const data={title:document.getElementById("paperTitle").value,school:document.getElementById("schoolName").value,logo:document.getElementById("logoUrl").value,selected:[...window.selected],date:new Date().toISOString()};localStorage.setItem("AZ_TEST_BUILDER_BLUEPRINT",JSON.stringify(data));alert("Blueprint saved on this device.")};
 
-document.addEventListener("DOMContentLoaded",()=>{
- const email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim();document.getElementById("userPill").textContent=email||"Teacher";
- const gf=document.getElementById("globalQuestionFont"),gw=document.getElementById("globalQuestionWeight"); if(gf)gf.value=window.paperSettings.fontSize; if(gw)gw.value=String(window.paperSettings.weight);
- loadQuestions();
+document.addEventListener("DOMContentLoaded",async()=>{
+ const email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim();
+ document.getElementById("userPill").textContent=email||"Teacher";
+ const gf=document.getElementById("globalQuestionFont"),gw=document.getElementById("globalQuestionWeight");
+ if(gf)gf.value=window.paperSettings.fontSize;if(gw)gw.value=String(window.paperSettings.weight);
+ try{
+  const saved=safeJSON("AZ_BUILDER_SELECTED_IDS",[]);
+  if(Array.isArray(saved))window.selected=new Set(saved.map(String));
+ }catch(e){}
+ await loadQuestions();
 });
 </script>
 <!-- Local, non-Firebase Text Editor: changes live only in this Builder window -->
