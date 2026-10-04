@@ -106,7 +106,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import {getFirestore,collection,getDocs,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {getFirestore,collection,getDocs,addDoc,updateDoc,doc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig);
@@ -341,15 +341,29 @@ window.saveTextEdit=function(){
  const q=window.builderData.find(x=>String(x.id)===String(id));
  if(!q)return;
  const options=[...document.querySelectorAll("#textEditorOptions input[data-opt]")].map(x=>x.value).filter(x=>x.trim());
- window.textEdits[id]={
-  text:document.getElementById("textEditorMain").value,
-  fontSize:Number(document.getElementById("textEditorFontSize").value)||14,
-  weight:Number(document.getElementById("textEditorWeight").value)||400,
-  align:document.getElementById("textEditorAlign").value||"left",
-  lineHeight:Number(document.getElementById("textEditorLine").value)||1.65,
-  hideOptions:document.getElementById("textEditorHideOptions").checked,
-  options
- };
+ const editedText=document.getElementById("textEditorMain").value;
+ const editedFontSize=Number(document.getElementById("textEditorFontSize").value)||14;
+ const editedWeight=Number(document.getElementById("textEditorWeight").value)||400;
+ const editedAlign=document.getElementById("textEditorAlign").value||"left";
+ const editedLineHeight=Number(document.getElementById("textEditorLine").value)||1.65;
+ const editedHideOptions=document.getElementById("textEditorHideOptions").checked;
+ window.textEdits[id]={text:editedText,fontSize:editedFontSize,weight:editedWeight,align:editedAlign,lineHeight:editedLineHeight,hideOptions:editedHideOptions,options};
+ // Test Builder is the permanent editor: write the actual question/options back to Firestore.
+ try{
+  await window.ensureBuilderAuth();
+  const updates={options};
+  const textKeys=["qText","text","questionText","question_text","content","prompt"];
+  const existingTextKey=textKeys.find(k=>typeof q?.[k]==="string" && !/^data:image\\//i.test(q[k]));
+  updates[existingTextKey||"qText"]=editedText;
+  updates.hideOptions=editedHideOptions;
+  await updateDoc(doc(db,"questions",id),updates);
+  Object.assign(q,updates);
+  await writeBuilderCache(window.builderData);
+ }catch(err){
+  console.error("Permanent Builder text save failed:",err);
+  alert("Could not save this text change to the Library. Please try again.");
+  return;
+ }
  closeTextEditor();
  renderQuestions();
  renderSelected();
