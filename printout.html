@@ -48,7 +48,7 @@ body{min-height:100vh}
 <label>Watermark <input id="wmOpacity" type="range" min="0" max="100" value="22" oninput="setOpacity(this.value)"><span id="wmVal">22%</span></label>
 <label>Count <input id="wmCount" type="number" min="1" max="6" value="1" onchange="setCount(this.value)"></label>
 <label>Font <select id="fontFamily"><option>Times New Roman</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Cambria</option><option>Garamond</option><option>Verdana</option></select></label>
-<label>Size <input id="fontSize" type="number" min="8" max="30" value="14"></label>
+<label>Size <input id="fontSize" type="number" min="8" max="72" value="14"></label><button type="button" onclick="changeSelectedFontSize(-1)">A−</button><button type="button" onclick="changeSelectedFontSize(1)">A+</button>
 <button onclick="fmt('bold')"><b>B</b></button><button onclick="fmt('italic')"><i>I</i></button><button onclick="fmt('underline')"><u>U</u></button>
 <label>Q Border <select id="qBorder"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom</option><option value="left">Left</option></select></label>
 <label>Section <select id="sectionBorder"><option value="bottom">Bottom</option><option value="box">Box</option><option value="none">None</option></select></label>
@@ -95,8 +95,8 @@ function saveCurrentSelection(ev){
   const root=range.commonAncestorContainer?.parentElement?.closest?.('.paper');
   if(root)savedRange=range.cloneRange();
  }
- // Keep the browser's text selection alive while toolbar controls receive focus.
- if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.toolbar')&&sel&&sel.rangeCount&&!sel.isCollapsed)ev.preventDefault();
+ // Do not preventDefault here: inputs/selects/buttons must remain usable.
+ // The selected Range is already stored and will be restored by Apply/B/I/U.
 }
 document.addEventListener('input',e=>{
  const el=e.target.closest?.('[data-field]');
@@ -119,10 +119,17 @@ function wrapSelectionStyle(styles){
  sel.removeAllRanges();const nr=document.createRange();nr.selectNodeContents(span);sel.addRange(nr);savedRange=nr.cloneRange();return true;
 }
 function applyTextFormatting(){
- const family=document.getElementById('fontFamily').value,size=Number(document.getElementById('fontSize').value)||14;
- if(wrapSelectionStyle({fontFamily:family,fontSize:size+'px'}))return true
- return false;
+ const family=document.getElementById('fontFamily').value;
+ const size=Math.max(8,Math.min(72,Number(document.getElementById('fontSize').value)||14));
+ return wrapSelectionStyle({fontFamily:family,fontSize:size+'px'});
 }
+function changeSelectedFontSize(delta){
+ const current=Number(document.getElementById('fontSize').value)||14;
+ const next=Math.max(8,Math.min(72,current+Number(delta||0)));
+ document.getElementById('fontSize').value=next;
+ return applyTextFormatting();
+}
+
 function receive(p){if(!p||!Array.isArray(p.questions))return;data=Object.assign(data,p);data.questions=p.questions||[];data.sections=Array.isArray(p.sections)?p.sections:[];data.branding=p.branding||{};data.title=data.branding.paperTitle||p.title||'Question Paper';data.school=data.branding.schoolName||p.school||'';data.logo=data.branding.logoUrl||p.logo||'';data.watermarkCount=Number(p.watermarkCount||data.branding.watermarkCount||1);build()}
 function markLabel(m){const x=Number(m);if(!isFinite(x)||x<=0)return '';return '1 × '+x+' = '+x+' Mark'+(x===1?'':'s')}
 function sectionMarkLabel(s){const x=Number(s?.marks);if(!isFinite(x)||x<=0)return '';return x===1?'1 Mark Each':x+' Marks Each'}
