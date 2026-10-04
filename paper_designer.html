@@ -274,7 +274,7 @@ function renderLibraryText(v){
  // OCR/import data sometimes inserts Enter or <br> immediately before/after a LaTeX symbol.
  // Paper Designer must keep the question as one continuous line flow; MathJax decides only
  // how the symbol itself is rendered.
- x=x.replace(/<br\\s*\\/?>(?:\\s*)/gi," ").replace(/\\r?\\n+/g," ");
+ x=x.replace(/<br\s*\/?>(?:\s*)/gi," ").replace(/\r?\n+/g," ");
  var math=libraryMathMarkup(x);
  return esc(math).replace(/&lt;/g,"<").replace(/&gt;/g,">");
 }
