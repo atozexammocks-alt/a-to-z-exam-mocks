@@ -94,11 +94,19 @@ function cleanQ(v){
  return s.trim();
 }
 function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim();}
-function renderMath(s){
- let out=String(s??"").replace(/\r\n?/g,"\n");
- out=out.replace(/(^|[ <br>])((?:\\(?:frac|dfrac|tfrac|sqrt|bar|vec|hat|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)\b)[^<br>]*?)(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
- out=out.replace(/(^|[ <br>])((?:[A-Za-z]+[_^][A-Za-z0-9{}\\]+|[A-Za-z]+\s*=[^<br>]+))(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
- return out.replace(/\n/g,"<br>");
+function libraryMathMarkup(v){
+ var x=String(v||"");
+ if(!x)return "";
+ if(/\\\(|\\\[/.test(x)) return x;
+ if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\b/.test(x)
+   || /(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)){
+   return "\\("+x+"\\)";
+ }
+ return x;
+}
+function renderMath(v){
+ const x=libraryMathMarkup(v);
+ return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
 }
 let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
 function qHtml(q,n){
