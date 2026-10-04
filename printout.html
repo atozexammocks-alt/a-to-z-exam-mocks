@@ -106,8 +106,11 @@ function libraryMathMarkup(v){
  return x;
 }
 function renderMath(v){
- var x=libraryMathMarkup(v);
- return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+ var x=String(v??"");
+ // Never allow source/OCR Enter or <br> markers to split a question around physics symbols.
+ x=x.replace(/<br\\s*\\/?>(?:\\s*)/gi," ").replace(/\\r?\\n+/g," ");
+ var math=libraryMathMarkup(x);
+ return esc(math).replace(/&lt;/g,"<").replace(/&gt;/g,">");
 }
 
 let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
