@@ -502,10 +502,12 @@ window.printPaper=function(layout){
     qSize:Number(window.paperSettings?.fontSize||14),
     oSize:13,titleSize:17,schoolSize:18,subSize:13,lineW:2,qGap:10,imgH:160
   };
-  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload));}
-  catch(e){alert("Could not prepare the print paper in this browser.");return;}
-  const w=window.open("printout.html","_blank");
-  if(!w){alert("Popup blocked. Allow popups for the Print Preview.");}
+  const w=window.open("about:blank","_blank");
+  if(!w){alert("Popup blocked. Allow popups for the Print Preview.");return;}
+  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload},"*");}catch(e){console.warn("Print payload send failed",e)}};
+  w.addEventListener("load",send,{once:true});
+  w.location.href="printout.html";
+  setTimeout(send,1200);
 };
 
 window.goToPaperDesigner=function(){
