@@ -184,6 +184,7 @@ html,body{height:100%;min-height:0}
 </script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const AZ_FIREBASE_CONFIG = {
   apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
@@ -196,6 +197,8 @@ const AZ_FIREBASE_CONFIG = {
 try {
   const azApp = initializeApp(AZ_FIREBASE_CONFIG, "PaperDesignerApp");
   window.azPaperDesignerDb = getFirestore(azApp);
+  window.azPaperDesignerAuth = getAuth(azApp);
+  window.azPaperDesignerAuthReady = signInAnonymously(window.azPaperDesignerAuth).catch(e=>{console.warn("Paper Designer anonymous auth unavailable:",e);return null;});
   window.azPaperDesignerGetDocs = getDocs;
   window.azPaperDesignerCollection = collection;
 } catch(e) {
@@ -287,7 +290,16 @@ async function loadFromBuilder(){
  // Primary source: the same Firestore "questions" collection used by Test Builder.
  try{
   if(window.azPaperDesignerDb && window.azPaperDesignerGetDocs && window.azPaperDesignerCollection){
-   const snap=await window.azPaperDesignerGetDocs(window.azPaperDesignerCollection(window.azPaperDesignerDb,'questions'));
+   if(window.azPaperDesignerAuthReady) await window.azPaperDesignerAuthReady;
+   let snap;
+   try{
+    snap=await window.azPaperDesignerGetDocs(window.azPaperDesignerCollection(window.azPaperDesignerDb,'questions'));
+   }catch(firstError){
+    console.warn('Paper Designer first Firestore load failed; retrying:',firstError);
+    await new Promise(r=>setTimeout(r,700));
+    if(window.azPaperDesignerAuthReady) await window.azPaperDesignerAuthReady;
+    snap=await window.azPaperDesignerGetDocs(window.azPaperDesignerCollection(window.azPaperDesignerDb,'questions'));
+   }
    snap.docs.forEach(d=>{
     const q={id:d.id,...d.data()};
     questionCache.set(String(d.id),q);
