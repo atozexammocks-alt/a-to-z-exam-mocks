@@ -354,7 +354,8 @@ function cleanOptionText(v){
 function questionKey(q){
  const t=cleanQuestionText(displayTextOf(q)).toLowerCase().replace(/\s+/g," ").trim();
  const o=displayOptionsOf(q).map(cleanOptionText).join("|").toLowerCase().replace(/\s+/g," ").trim();
- if(!t&&!o)return "";\n return (t+"||"+o).replace(/[^a-z0-9|]+/g,"");
+ if(!t&&!o)return "";
+ return (t+"||"+o).replace(/[^a-z0-9|]+/g,"");
 }
 function duplicateCounts(){
  const counts={};
