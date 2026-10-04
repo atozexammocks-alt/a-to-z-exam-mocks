@@ -115,16 +115,13 @@ window.builderAuthReady=null;
 window.ensureBuilderAuth=async function(){
   if(auth.currentUser) return auth.currentUser;
   if(!window.builderAuthReady){
-    window.builderAuthReady=signInAnonymously(auth);
+    window.builderAuthReady=signInAnonymously(auth).catch(e=>{
+      console.warn("Anonymous auth unavailable; continuing like Library:",e);
+      return null;
+    });
   }
-  try{
-    const cred=await window.builderAuthReady;
-    if(cred?.user) return cred.user;
-    return auth.currentUser||null;
-  }catch(e){
-    window.builderAuthReady=null;
-    throw e;
-  }
+  const cred=await window.builderAuthReady;
+  return cred?.user||auth.currentUser||null;
 };
 window.builderDB=db;
 
@@ -235,7 +232,8 @@ window.loadQuestions=async function(){
    status.textContent=attempt===1
     ? (cached.length?"Syncing Library…":"Connecting to Library…")
     : "Reconnecting to Library… ("+attempt+"/4)";
-   await window.ensureBuilderAuth();
+   const authUser=await window.ensureBuilderAuth();
+   if(!authUser) console.warn("Builder has no anonymous auth user; attempting the same Firestore read path used by Library.");
    const snap=await getDocs(collection(db,"questions"));
    const fresh=snap.docs.map(d=>({id:d.id,...d.data()}));
    if(!fresh.length && cached.length){
