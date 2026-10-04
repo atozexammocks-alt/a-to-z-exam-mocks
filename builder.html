@@ -190,10 +190,14 @@ function isCentral(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.librar
 function isGroup(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.group===true||x==="group"||x.includes("group")}
 function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="group")return isGroup(q);return !isCentral(q)&&!isGroup(q)}
 function renderMath(html){
- let s=String(html??"").replace(/\n/g,"<br>");
- s=s.replace(/(^|[ <br>])((?:\\(?:frac|dfrac|tfrac|sqrt|bar|vec|hat|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)\b)[^<br>]*?)(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
- s=s.replace(/(^|[ <br>])((?:[A-Za-z]+[_^][A-Za-z0-9{}\\]+|[A-Za-z]+\s*=[^<br>]+))(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
- return s;
+ let x=String(html??"").replace(/\r\n?/g,"\n");
+ return x.split("\n").map(line=>{
+  const t=line.trim();
+  if(!t)return "";
+  if(/^\\\(|^\\\[|^\$\$|^\$/.test(t)) return line;
+  const hasTeX=/\\[A-Za-z]+|[A-Za-z0-9}]\s*[_^]\s*(?:[A-Za-z0-9{]|\\)/.test(t);
+  return hasTeX ? line.replace(t,"\\("+t+"\\)") : line;
+ }).join("<br>");
 }
 
 function typeset(){if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise().catch(()=>{});}
