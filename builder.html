@@ -489,7 +489,24 @@ window.openPaperPreview=function(layout){
  '<script>function apply(){const r=document.documentElement.style;r.setProperty("--q-size",qSize.value+"px");r.setProperty("--option-size",oSize.value+"px");r.setProperty("--title-size",titleSize.value+"px");r.setProperty("--school-size",schoolSize.value+"px");r.setProperty("--subtitle-size",subSize.value+"px");r.setProperty("--header-line",lineW.value+"px");r.setProperty("--q-gap",qGap.value+"px");r.setProperty("--img-height",imgH.value+"px");r.setProperty("--img-box",(Number(imgH.value)+10)+"px");document.body.classList.toggle("two",cols.value==="2");if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([document.querySelector(".paper")]).catch(()=>{})}window.addEventListener("load",()=>{if(window.MathJax?.startup?.promise)window.MathJax.startup.promise.then(()=>window.MathJax.typesetPromise?.([document.querySelector(".paper")])).catch(()=>{});else window.MathJax?.typesetPromise?.([document.querySelector(".paper")])});<\\/script></body></html>';
  w.document.open();w.document.write(html);w.document.close();
 };
-window.printPaper=function(layout){window.openPaperPreview(layout);};
+window.printPaper=function(layout){
+  const qs=selectedQuestions();
+  if(!qs.length){alert("Select questions first.");return;}
+  const payload={
+    questions:qs,
+    title:(document.getElementById("paperTitle")?.value||"Physics Question Paper").trim(),
+    school:(document.getElementById("schoolName")?.value||"").trim(),
+    logo:(document.getElementById("logoUrl")?.value||"").trim(),
+    textEdits:window.textEdits||{},
+    layout:layout==="two"?"two":"one",
+    qSize:Number(window.paperSettings?.fontSize||14),
+    oSize:13,titleSize:17,schoolSize:18,subSize:13,lineW:2,qGap:10,imgH:160
+  };
+  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload));}
+  catch(e){alert("Could not prepare the print paper in this browser.");return;}
+  const w=window.open("printout.html","_blank");
+  if(!w){alert("Popup blocked. Allow popups for the Print Preview.");}
+};
 
 window.goToPaperDesigner=function(){
  const ids=[...window.selected].join(",");
