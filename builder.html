@@ -11,6 +11,19 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#060911;color:#f8fafc}
 button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:column}.top{height:58px;flex:0 0 58px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:10px;padding:0 14px}.brand{font-weight:900;color:#38bdf8;white-space:nowrap}.top .spacer{flex:1}.pill{font-size:11px;color:#cbd5e1;background:#0f172a;border:1px solid #334155;border-radius:999px;padding:6px 10px}.btn{border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:7px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer}.btn:hover{border-color:#38bdf8}.btn.primary{background:#059669;border-color:#10b981;color:#fff}.btn.blue{background:#2563eb;border-color:#3b82f6;color:#fff}.btn.purple{background:#7c3aed;border-color:#8b5cf6;color:#fff}.btn.red{background:#991b1b;border-color:#ef4444;color:#fff}.modebar{display:flex;gap:8px;align-items:center;padding:9px 12px;background:#090d16;border-bottom:1px solid #1e293b;flex-wrap:wrap}.mode{padding:7px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:900;cursor:pointer}.mode.active{background:#059669;border-color:#10b981;color:#fff}.status{margin-left:auto;font-size:11px;color:#64748b}.workspace{flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr) 300px;gap:10px;padding:10px}.panel{min-height:0;background:#0b1120;border:1px solid #1e293b;border-radius:10px;overflow:hidden}.panelhead{padding:10px 12px;border-bottom:1px solid #1e293b;font-size:12px;font-weight:900;color:#38bdf8;display:flex;align-items:center;justify-content:space-between;gap:8px}.tree{overflow:auto;height:calc(100% - 43px);padding:8px}.tree-row{display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;color:#cbd5e1;font-size:11px;cursor:pointer;min-width:0}.tree-toggle{width:18px;height:18px;padding:0;border:0;background:transparent;color:#94a3b8;font-size:13px;line-height:18px;cursor:pointer;flex:0 0 18px}.tree-toggle:hover{color:#fff}.empty-toggle{font-size:9px;color:#475569;text-align:center}.tree-row:hover{background:#0f172a}.tree-row.active{background:rgba(56,189,248,.12);color:#fff}.count{margin-left:auto;color:#64748b;font-size:10px}.main{min-width:0;display:flex;flex-direction:column;overflow:hidden}.toolbar{padding:9px;border-bottom:1px solid #1e293b;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.search{flex:1;min-width:150px;background:#060911;border:1px solid #334155;color:#fff;border-radius:7px;padding:8px 10px;font-size:11px}.questions{padding:10px;overflow:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-content:start}.card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.card.selected{border-color:#10b981;box-shadow:0 0 0 1px rgba(16,185,129,.25)}.qhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.qhead input{width:16px;height:16px}.qtitle{font-size:10px;color:#94a3b8;font-weight:900;text-transform:uppercase;flex:1}.qbody{font-size:14px;line-height:1.65;color:#f8fafc;white-space:pre-wrap;overflow-wrap:anywhere}.qimg{background:#fff;border-radius:7px;border:1px solid #e2e8f0;margin:7px 0;display:flex;justify-content:center;align-items:center;overflow:hidden;cursor:pointer}.qimg img{max-width:100%;max-height:420px;object-fit:contain;display:block}.opts{border-top:1px solid #1e293b;margin-top:8px;padding-top:8px;color:#cbd5e1;font-size:12px;line-height:1.7}.empty{padding:35px;text-align:center;color:#64748b;grid-column:1/-1}.right{overflow:auto}.rightbody{padding:10px;display:flex;flex-direction:column;gap:10px}.box{border:1px solid #1e293b;border-radius:9px;padding:10px;background:#080d17}.box h4{margin:0 0 8px;font-size:11px;color:#38bdf8}.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}.field{width:100%;background:#060911;color:#fff;border:1px solid #334155;border-radius:6px;padding:7px;font-size:11px}.section{border:1px solid #334155;border-radius:8px;padding:8px;margin-bottom:7px}.section strong{font-size:11px}.section small{color:#64748b}.section .field{margin-top:6px}.section-actions{display:flex;gap:5px;margin-top:6px}.selected-list{max-height:210px;overflow:auto}.selitem{padding:6px;border-bottom:1px solid #172033;font-size:10px;color:#cbd5e1}.print-note{font-size:10px;color:#64748b;line-height:1.5}
+.text-editor-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9999;display:none;align-items:center;justify-content:center;padding:14px}
+.text-editor{width:min(760px,96vw);max-height:92vh;overflow:auto;background:#0b1120;border:1px solid #334155;border-radius:14px;box-shadow:0 20px 70px rgba(0,0,0,.55);padding:14px}
+.text-editor h3{margin:0 0 10px;color:#38bdf8;font-size:14px}
+.text-editor textarea{width:100%;min-height:190px;resize:vertical;background:#060911;color:#fff;border:1px solid #334155;border-radius:8px;padding:10px;font:14px/1.6 inherit}
+.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+.editor-grid label{font-size:10px;color:#94a3b8;font-weight:800}
+.editor-grid select,.editor-grid input{width:100%;margin-top:4px;background:#060911;color:#fff;border:1px solid #334155;border-radius:7px;padding:7px;font-size:11px}
+.editor-options{margin-top:10px;border-top:1px solid #1e293b;padding-top:10px}
+.editor-option{display:grid;grid-template-columns:28px 1fr;gap:7px;align-items:center;margin:6px 0}
+.editor-option input[type=text]{width:100%;background:#060911;color:#fff;border:1px solid #334155;border-radius:7px;padding:7px;font-size:11px}
+.editor-check{display:flex;gap:7px;align-items:center;color:#cbd5e1;font-size:11px;margin-top:9px}
+.editor-actions{display:flex;justify-content:flex-end;gap:7px;margin-top:12px}
+@media(max-width:600px){.editor-grid{grid-template-columns:1fr}.text-editor{padding:11px}}
 @media(max-width:1050px){.workspace{grid-template-columns:220px minmax(0,1fr)}.right{display:none}.questions{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.top{height:auto;min-height:56px;flex-wrap:wrap;padding:8px}.top .spacer{display:none}.status{margin-left:0;width:100%}.workspace{grid-template-columns:1fr;padding:6px}.panel.left{display:block;max-height:220px}.panel.left .tree{max-height:170px}.questions{grid-template-columns:1fr}.modebar{overflow:auto;flex-wrap:nowrap}.mode{white-space:nowrap}}
 @media print{
@@ -88,6 +101,8 @@ window.builderData=[];
 window.builderMode="private";
 window.folderFilter="";
 window.selected=new Set();
+window.textEdits=window.textEdits||{};
+window.activeTextEditId=null;
 window.sections=[{name:"Section A",type:"MCQ",marks:1}];
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
@@ -101,6 +116,18 @@ function textOf(q){
  const keys=["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"];
  for(const k of keys){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim()))return v.trim();}
  return "";
+}
+function displayTextOf(q){
+ const e=window.textEdits[String(q?.id)];
+ return e && typeof e.text==="string" ? e.text : textOf(q);
+}
+function displayOptionsOf(q){
+ const e=window.textEdits[String(q?.id)];
+ return e && Array.isArray(e.options) ? e.options : optionsOf(q);
+}
+function textStyleOf(q){
+ const e=window.textEdits[String(q?.id)]||{};
+ return 'font-size:'+Number(e.fontSize||14)+'px;font-weight:'+Number(e.weight||400)+';text-align:'+String(e.align||'left')+';line-height:'+Number(e.lineHeight||1.65)+';';
 }
 function optionsOf(q){
  const v=q?.options??q?.choices??q?.answers;
@@ -148,7 +175,7 @@ function getVisible(){
   const qt=String(q.type??q.questionType??q.qType??"MCQ").toUpperCase();
   if(type!=="ALL"&&qt!==type)return false;
   if(!term)return true;
-  return (textOf(q)+" "+optionsOf(q).join(" ")+" "+folderOf(q)+" "+String(q.topic??q.chapter??q.unit??"")).toLowerCase().includes(term);
+  return (displayTextOf(q)+" "+displayOptionsOf(q).join(" ")+" "+folderOf(q)+" "+String(q.topic??q.chapter??q.unit??"")).toLowerCase().includes(term);
  });
 }
 function renderQuestions(){
@@ -156,19 +183,87 @@ function renderQuestions(){
  document.getElementById("status").textContent="Library connected • "+window.builderData.length+" total • "+getModeQuestions().length+" in "+window.builderMode;
  if(!rows.length){box.innerHTML='<div class="empty">No questions found in this Library view.</div>';return}
  box.innerHTML=rows.map((q,i)=>{
-  const id=String(q.id),sel=window.selected.has(id),img=imageOf(q),txt=textOf(q),opts=optionsOf(q),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1;
+  const id=String(q.id),sel=window.selected.has(id),img=imageOf(q),txt=displayTextOf(q),opts=displayOptionsOf(q),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1,edit=window.textEdits[id]||{};
   return '<article class="card '+(sel?'selected':'')+'">'+
-   '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleQuestion(\''+esc(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div><button class="btn" onclick="removeSelection(\''+esc(id)+'\')">✕</button></div>'+
+   '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleQuestion(\''+esc(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div>'+(txt?'<button class="btn blue" onclick="openTextEditor(\''+encodeURIComponent(id)+'\')">✏️ Edit Text</button>':'')+'<button class="btn" onclick="removeSelection(\''+esc(id)+'\')">✕</button></div>'+
    (img?'<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')"><img src="'+esc(img)+'" alt="Question"></div>':'')+
-   (txt?'<div class="qbody">'+renderMath(esc(txt))+'</div>':'')+
-   (opts.length?'<div class="opts">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderMath(esc(o))+'</div>').join("")+'</div>':'')+
+   (txt?'<div class="qbody" style="'+textStyleOf(q)+'">'+renderMath(esc(txt))+'</div>':'')+
+   (opts.length && !((window.textEdits[id]||{}).hideOptions)?'<div class="opts">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderMath(esc(o))+'</div>').join("")+'</div>':'')+
   '</article>';
  }).join("");
  typeset();
 }
 window.toggleQuestion=function(id){id=String(id);window.selected.has(id)?window.selected.delete(id):window.selected.add(id);renderQuestions();renderSelected()};
 window.removeSelection=function(id){window.selected.delete(String(id));renderQuestions();renderSelected()};
-window.previewImage=function(src){const url=decodeURIComponent(src);const w=window.open("");if(w){w.document.write('<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+esc(url)+'" style="max-width:98%;max-height:98vh;object-fit:contain;background:white"></body>')}};
+
+window.openTextEditor=function(encodedId){
+ const id=decodeURIComponent(String(encodedId||""));
+ const q=window.builderData.find(x=>String(x.id)===id);
+ if(!q)return;
+ const existing=window.textEdits[id]||{};
+ const opts=displayOptionsOf(q);
+ window.activeTextEditId=id;
+ document.getElementById("textEditorMain").value=existing.text!==undefined?existing.text:textOf(q);
+ document.getElementById("textEditorFontSize").value=String(existing.fontSize||14);
+ document.getElementById("textEditorWeight").value=String(existing.weight||400);
+ document.getElementById("textEditorAlign").value=String(existing.align||"left");
+ document.getElementById("textEditorLine").value=String(existing.lineHeight||1.65);
+ document.getElementById("textEditorHideOptions").checked=existing.hideOptions===true;
+ document.getElementById("textEditorOptions").innerHTML=opts.map((o,i)=>'<div class="editor-option"><b>'+String.fromCharCode(65+i)+'.</b><input type="text" data-opt="'+i+'" value="'+esc(o)+'"></div>').join("");
+ document.getElementById("textEditorBackdrop").style.display="flex";
+};
+window.closeTextEditor=function(){document.getElementById("textEditorBackdrop").style.display="none";window.activeTextEditId=null;};
+window.saveTextEdit=function(){
+ const id=window.activeTextEditId;
+ if(!id)return;
+ const q=window.builderData.find(x=>String(x.id)===String(id));
+ if(!q)return;
+ const options=[...document.querySelectorAll("#textEditorOptions input[data-opt]")].map(x=>x.value).filter(x=>x.trim());
+ window.textEdits[id]={
+  text:document.getElementById("textEditorMain").value,
+  fontSize:Number(document.getElementById("textEditorFontSize").value)||14,
+  weight:Number(document.getElementById("textEditorWeight").value)||400,
+  align:document.getElementById("textEditorAlign").value||"left",
+  lineHeight:Number(document.getElementById("textEditorLine").value)||1.65,
+  hideOptions:document.getElementById("textEditorHideOptions").checked,
+  options
+ };
+ closeTextEditor();
+ renderQuestions();
+ renderSelected();
+};
+window.resetTextEdit=function(){
+ const id=window.activeTextEditId;
+ if(id)delete window.textEdits[String(id)];
+ closeTextEditor();
+ renderQuestions();
+ renderSelected();
+};
+
+window.previewImage=function(src){const url=decodeURIComponent(src);const w=window.open("");if(w){w.document.write('<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+esc(url)+'" style="max-width:98%;max-height:98vh;object-fit:contain;background:white"><!-- Local, non-Firebase Text Editor: changes live only in this Builder window -->
+<div id="textEditorBackdrop" class="text-editor-backdrop" onclick="if(event.target===this)closeTextEditor()">
+  <div class="text-editor">
+    <h3>✏️ Edit Question Text — Paper Only</h3>
+    <div class="print-note">Changes made here are temporary. They are NOT saved to the Library or Firebase and affect only this Test Builder window/paper.</div>
+    <textarea id="textEditorMain" placeholder="Question text…"></textarea>
+    <div class="editor-grid">
+      <label>Font Size<select id="textEditorFontSize"><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="15">15 px</option><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select></label>
+      <label>Weight<select id="textEditorWeight"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700">Bold</option><option value="800">Extra Bold</option></select></label>
+      <label>Alignment<select id="textEditorAlign"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option><option value="justify">Justify</option></select></label>
+      <label>Line Spacing<select id="textEditorLine"><option value="1.35">Compact</option><option value="1.55">Normal</option><option value="1.8">Open</option><option value="2">Very Open</option></select></label>
+    </div>
+    <div class="editor-options">
+      <label class="editor-check"><input id="textEditorHideOptions" type="checkbox"> Hide options for this paper</label>
+      <div id="textEditorOptions"></div>
+    </div>
+    <div class="editor-actions">
+      <button class="btn" onclick="closeTextEditor()">Cancel</button>
+      <button class="btn red" onclick="resetTextEdit()">Reset This Question</button>
+      <button class="btn primary" onclick="saveTextEdit()">✓ Apply to This Paper</button>
+    </div>
+  </div>
+</div>
+</body>')}};
 
 window.expandedFolders=window.expandedFolders||new Set();
 
@@ -212,6 +307,12 @@ window.toggleFolder=function(path){
  path=String(path);
  if(window.expandedFolders.has(path)) window.expandedFolders.delete(path);
  else window.expandedFolders.add(path);
+ renderTree();
+};
+window.chooseFolder=function(path){
+ path=String(path||"");
+ window.folderFilter=path;
+ renderQuestions();
  renderTree();
 };
 window.folderRowClick=function(path,hasChildren){
