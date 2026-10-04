@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A to Z Exam Mocks — Paper Print Preview</title>
+<script>
+window.MathJax={
+  tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},
+  svg:{fontCache:'global'}
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#dbe2ea;color:#111;font-family:Arial,sans-serif}
+body{min-height:100vh}
+.toolbar{position:sticky;top:0;z-index:20;background:#111827;color:#fff;padding:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 12px #0004}
+.toolbar b{font-size:13px;margin-right:5px}
+.toolbar label{font-size:11px;font-weight:700;display:flex;gap:5px;align-items:center}
+.toolbar input,.toolbar select{width:72px;padding:6px;border:1px solid #64748b;border-radius:5px;background:#fff;color:#111}
+.toolbar button{padding:7px 11px;border-radius:6px;border:1px solid #64748b;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}
+.toolbar button.gray{background:#374151}
+.toolbar button.green{background:#059669}
+.hint{font-size:10px;color:#cbd5e1;margin-left:auto}
+.paper{width:210mm;min-height:297mm;margin:18px auto;padding:16mm;background:#fff;box-shadow:0 3px 18px #0003}
+.header{text-align:center;border-bottom:var(--line,2px) solid #111;padding-bottom:10px;margin-bottom:14px;position:relative}
+.logo{position:absolute;left:0;top:0;width:60px;height:60px;object-fit:contain}
+.school{font-size:var(--school,18px);font-weight:800;line-height:1.25}
+.title{font-size:var(--title,17px);font-weight:800;line-height:1.3}
+.subtitle{font-size:var(--subtitle,13px);margin-top:3px}
+.content{column-count:1;column-gap:24px;column-fill:balance}
+.content.two{column-count:2}
+.paper-q{display:block;break-inside:avoid;page-break-inside:avoid;width:100%;margin:0 0 var(--gap,10px);font-size:var(--q,14px);line-height:var(--qline,1.5)}
+.question-line{display:grid;grid-template-columns:25px minmax(0,1fr);column-gap:3px;align-items:start}
+.qnum{font-weight:700}
+.qtext{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.image-box{margin:6px auto;width:100%;height:var(--imgbox,170px);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.image-box img{display:block;width:auto;max-width:96%;height:auto;max-height:var(--img,160px);object-fit:contain}
+.options{margin:5px 0 0 25px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:16px;row-gap:3px}
+.options span{display:grid;grid-template-columns:20px minmax(0,1fr);column-gap:3px;align-items:start;min-width:0;font-size:var(--opt,13px);line-height:1.4}
+.footer{text-align:center;border-top:1px solid #777;margin-top:18px;padding-top:5px;font-size:10px}
+.empty{padding:60px;text-align:center;color:#64748b}
+@media print{
+ body{background:#fff}
+ .toolbar{display:none!important}
+ .paper{width:auto;min-height:auto;margin:0;box-shadow:none;padding:0}
+ .content.two{column-count:2}
+}
+</style>
+</head>
+<body>
+<div class="toolbar">
+<b>🖨 Paper Preview</b>
+<label>Q Font <input id="qSize" type="number" min="8" max="30" value="14"></label>
+<label>Option <input id="oSize" type="number" min="8" max="26" value="13"></label>
+<label>Title <input id="titleSize" type="number" min="10" max="30" value="17"></label>
+<label>Header <input id="schoolSize" type="number" min="10" max="30" value="18"></label>
+<label>Subtitle <input id="subSize" type="number" min="8" max="24" value="13"></label>
+<label>Line <input id="lineW" type="number" min="0" max="8" value="2"></label>
+<label>Q Gap <input id="qGap" type="number" min="0" max="30" value="10"></label>
+<label>Columns <select id="cols"><option value="1">1</option><option value="2">2</option></select></label>
+<label>Image <input id="imgH" type="number" min="60" max="280" value="160"></label>
+<button class="green" onclick="apply()">Apply</button>
+<button onclick="window.print()">Print</button>
+<button class="gray" onclick="window.close()">Close</button>
+<span class="hint">Preview-only • Library/Firebase is not modified</span>
+</div>
+<div id="paper" class="paper"><div class="empty">Loading paper…</div></div>
+
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function textOf(q){
+ const keys=['qText','text','questionText','question_text','content','questionTextHtml','prompt','question'];
+ for(const k of keys){const v=q?.[k];if(typeof v==='string'&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim()))return v.trim();}
+ return '';
+}
+function imageOf(q){
+ const keys=['questionImage','image','img','imageData','croppedImage','questionImageData','imageUrl','imageURL','diagram','imageSrc','src','base64Image','question'];
+ for(const k of keys){const v=q?.[k];if(typeof v==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim();}
+ return '';
+}
+function optionsOf(q){
+ const v=q?.options??q?.choices??q?.answers;
+ if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x).filter(x=>String(x).trim());
+ if(v&&typeof v==='object')return Object.values(v).map(x=>typeof x==='object'?(x.text??x.value??''):x).filter(x=>String(x).trim());
+ return ['A','B','C','D'].map(k=>q?.['option'+k]??q?.['opt'+k]??q?.[k]).filter(x=>String(x??'').trim());
+}
+function cleanQ(v){
+ let s=String(v??'').trim();
+ s=s.replace(/^\s*(?:question|ques|q)\s*[-.:]?\s*\d+\s*[.)\-:]?\s*/i,'');
+ s=s.replace(/^\s*\d+\s*[.)\-:]?\s*/,'');
+ return s.trim();
+}
+function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim();}
+function renderMath(s){
+ let x=String(s??'').replace(/\n/g,'<br>');
+ x=x.replace(/(^|[ <br>])((?:\\(?:frac|dfrac|tfrac|sqrt|bar|vec|hat|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)\b)[^<br>]*?)(?=<br>|$|[.,;:!?])/g,'$1\\($2\\)');
+ x=x.replace(/(^|[ <br>])((?:[A-Za-z]+[_^][A-Za-z0-9{}\\]+|[A-Za-z]+\s*=[^<br>]+))(?=<br>|$|[.,;:!?])/g,'$1\\($2\\)');
+ return x;
+}
+let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
+function qHtml(q,n){
+ const id=String(q.id||'');
+ const edit=data.textEdits[id]||{};
+ const txt=cleanQ(edit.text!==undefined?edit.text:textOf(q));
+ const opts=(Array.isArray(edit.options)?edit.options:optionsOf(q)).map(cleanOpt).filter(Boolean);
+ const img=imageOf(q);
+ const hide=edit.hideOptions===true;
+ const fs=Number(edit.fontSize||document.getElementById('qSize').value||14);
+ const weight=Number(edit.weight||400);
+ const line=Number(edit.lineHeight||1.5);
+ const style='font-size:'+fs+'px;font-weight:'+weight+';line-height:'+line+';text-align:'+(edit.align||'left')+';';
+ return '<div class="paper-q" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(esc(txt))+'</span></div>'+
+ (img?'<div class="image-box"><img src="'+esc(img)+'"></div>':'')+
+ (opts.length&&!hide?'<div class="options">'+opts.map((o,i)=>'<span><b>'+String.fromCharCode(65+i)+'.</b><span>'+renderMath(esc(o))+'</span></span>').join('')+'</div>':'')+
+ '</div>';
+}
+function build(){
+ const paper=document.getElementById('paper');
+ let html='<header class="header">'+(data.logo?'<img class="logo" src="'+esc(data.logo)+'">':'')+
+ (data.school?'<div class="school">'+esc(data.school)+'</div>':'')+
+ '<div class="title">'+esc(data.title||'Physics Question Paper')+'</div><div class="subtitle">A to Z Exam Mocks</div></header>';
+ html+='<main id="content" class="content '+(data.layout==='two'?'two':'')+'">';
+ data.questions.forEach((q,i)=>html+=qHtml(q,i+1));
+ html+='</main><div class="footer">A to Z Exam Mocks</div>';
+ paper.innerHTML=html;
+ if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([paper]).catch(console.warn);
+}
+function apply(){
+ const r=document.documentElement.style;
+ r.setProperty('--q',qSize.value+'px');
+ r.setProperty('--opt',oSize.value+'px');
+ r.setProperty('--title',titleSize.value+'px');
+ r.setProperty('--school',schoolSize.value+'px');
+ r.setProperty('--subtitle',subSize.value+'px');
+ r.setProperty('--line',lineW.value+'px');
+ r.setProperty('--gap',qGap.value+'px');
+ r.setProperty('--img',imgH.value+'px');
+ r.setProperty('--imgbox',(Number(imgH.value)+10)+'px');
+ data.layout=cols.value==='2'?'two':'one';
+ document.getElementById('content')?.classList.toggle('two',data.layout==='two');
+ if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([document.getElementById('paper')]).catch(()=>{});
+}
+try{
+ const raw=localStorage.getItem('AZ_PRINT_PAYLOAD');
+ if(raw)data=JSON.parse(raw)||data;
+}catch(e){}
+qSize.value=data.qSize||14;oSize.value=data.oSize||13;titleSize.value=data.titleSize||17;schoolSize.value=data.schoolSize||18;subSize.value=data.subSize||13;lineW.value=data.lineW||2;qGap.value=data.qGap||10;cols.value=data.layout==='two'?'2':'1';imgH.value=data.imgH||160;
+build();
+</script>
+</body>
+</html>
