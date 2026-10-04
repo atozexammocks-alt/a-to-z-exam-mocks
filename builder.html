@@ -167,10 +167,10 @@ function renderMath(html){
  let s=String(html??"");
  const saved=[];
  s=s.replace(/\\\(([\\s\\S]*?)\\\)|\\\[([\\s\\S]*?)\\\]|\\$\\$([\\s\\S]*?)\\$\\$|\\$([^$]+)\\$/g,m=>{saved.push(m);return "@@MATH"+(saved.length-1)+"@@";});
- s=s.replace(/\\n/g,"<br>");
- s=s.replace(/(^|<br>)([^<]*?\\\\(?:frac|dfrac|tfrac)\\\{[^{}]*\\\}\\\{[^{}]*\\\}[^<]*)(?=<br>|$)/g,"$1\\\\($2\\\\)");
- s=s.replace(/(^|<br>)([^<]*?\\\\(?:sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega)[^<]*)(?=<br>|$)/g,"$1\\\\($2\\\\)");
- s=s.replace(/(^|<br>)([^<]*?[A-Za-z](?:\\\\)?[_^](?:\\\{[^}]*\\\}|[A-Za-z0-9]+)[^<]*)(?=<br>|$)/g,"$1\\\\($2\\\\)");
+ s=s.replace(/\n/g,"<br>");
+ s=s.replace(/(^|<br>)([^<]*?\\(?:frac|dfrac|tfrac)\\\{[^{}]*\\\}\\\{[^{}]*\\\}[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
+ s=s.replace(/(^|<br>)([^<]*?\\(?:sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega)[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
+ s=s.replace(/(^|<br>)([^<]*?[A-Za-z](?:\\)?[_^](?:\\\{[^}]*\\\}|[A-Za-z0-9]+)[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
  s=s.replace(/@@MATH(\\d+)@@/g,(_,i)=>saved[Number(i)]);
  return s;
 }
