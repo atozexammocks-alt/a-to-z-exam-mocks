@@ -19,7 +19,6 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 </style>
 </head>
 <body>
-<div id="customModal" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;z-index:99999;padding:14px"><div style="width:min(760px,100%);max-height:92vh;overflow:auto;background:#0b1120;border:1px solid #38bdf8;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:#38bdf8">🎨 Customize Your Paper</b><button class="btn red" onclick="closeCustomize()">✕</button></div><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:12px"><label>Institute / School<input id="cInstitute" class="field"></label><label>Exam Name<input id="cExam" class="field"></label><label>Paper Title<input id="cTitle" class="field" value="Physics Question Paper"></label><label>Logo URL<input id="cLogo" class="field"></label><label>Total Marks<input id="cMarks" class="field" type="number"></label><label>Time (minutes)<input id="cTime" class="field" type="number" value="180"></label><label>Question Font (px)<input id="cFont" class="field" type="number" value="15"></label><label>Question Weight<select id="cWeight" class="field"><option value="700">Bold</option><option value="600">Semi Bold</option><option value="400">Normal</option></select></label><label>Layout<select id="cLayout" class="field"><option value="one">One Column</option><option value="two">Two Column</option></select></label><label>A2Z Branding<select id="cBrand" class="field"><option value="yes">Yes</option><option value="no">No</option></select></label><label>Watermark<select id="cWatermark" class="field"><option value="no">No</option><option value="yes">Yes</option></select></label><label>Watermark Text<input id="cWatermarkText" class="field" value="A TO Z EXAM MOCKS"></label></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn primary" onclick="previewCustomized()">👁 Preview</button><button class="btn blue" onclick="printCustomized()">🖨 Print</button><button class="btn" onclick="closeCustomize()">Cancel</button></div></div></div>
 <div class="app">
 <header class="top no-print">
   <a href="teacher.html" class="btn">🏠 Dashboard</a>
@@ -27,7 +26,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
   <div class="spacer"></div>
   <div id="userPill" class="pill">Loading…</div>
   <button class="btn" onclick="loadQuestions()">↻ Reload</button>
-  <button class="btn blue" onclick="openCustomize()">🎨 Customize Your Paper</button>
+  <button class="btn blue" onclick="goToPaperDesigner()">🎨 Customize Your Paper</button>
   <button class="btn purple" onclick="publishNow()">🚀 Publish Now</button>
 </header>
 <div class="modebar no-print">
@@ -61,7 +60,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
         <div id="selectedList" class="selected-list"></div>
       </div>
       <div class="box">
-        <h4>Actions</h4>
+        <h4>Print Out</h4>
         <div class="row">
           <button class="btn primary" onclick="printPaper('one')">One Column</button>
           <button class="btn blue" onclick="printPaper('two')">Two Column</button>
@@ -194,11 +193,11 @@ function renderTree(){
    const hasChildren=Object.keys(node.children).length>0;
    const open=window.expandedFolders.has(node.path);
    html.push(
-    '<div class="tree-row '+(window.folderFilter===node.path?'active':'')+'" style="padding-left:'+(6+depth*16)+'px">'+
+    '<div class="tree-row '+(window.folderFilter===node.path?'active':'')+'" style="padding-left:'+(6+depth*16)+'px" onclick="folderRowClick(\''+esc(node.path)+'\','+hasChildren+')">'+
       (hasChildren
-       ? '<button class="tree-toggle" onclick="event.stopPropagation();toggleFolder(\''+esc(node.path)+'\')" aria-label="'+(open?'Collapse':'Expand')+'">'+(open?'▾':'▸')+'</button>'
+       ? '<span class="tree-toggle">'+(open?'▾':'▸')+'</span>'
        : '<span class="tree-toggle empty-toggle">•</span>')+
-      '<span onclick="chooseFolder(\''+esc(node.path)+'\')" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📁 '+esc(node.name)+'</span>'+
+      '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📁 '+esc(node.name)+'</span>'+
       '<span class="count">'+node.count+'</span>'+
     '</div>'
    );
@@ -215,7 +214,17 @@ window.toggleFolder=function(path){
  else window.expandedFolders.add(path);
  renderTree();
 };
-window.chooseFolder=function(p){window.folderFilter=p;renderQuestions();renderTree()};
+window.folderRowClick=function(path,hasChildren){
+ path=String(path);
+ if(hasChildren && !window.expandedFolders.has(path)){
+   window.expandedFolders.add(path);
+   renderTree();
+   return;
+ }
+ window.folderFilter=path;
+ renderQuestions();
+ renderTree();
+};
 function renderSelected(){
  const list=document.getElementById("selectedList"),ids=[...window.selected],items=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
  document.getElementById("selectedCount").textContent="("+items.length+")";
@@ -251,7 +260,12 @@ function paperMarkup(layout){
  return '<!doctype html><html><head><meta charset="utf-8"><title>'+title+'</title><script>window.MathJax={tex:{inlineMath:[["\\\\(","\\\\)"],["$","$"]],displayMath:[["\\\\[","\\\\]"],["$$","$$"]]},svg:{fontCache:"global"}};<\/script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"><\/script><style>@page{size:A4;margin:16mm}body{font-family:Arial,sans-serif;color:#111;font-size:13px;line-height:1.55}header{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;position:relative}.logo{position:absolute;left:0;top:0;width:70px;height:70px;object-fit:contain}.school{font-size:18px;font-weight:900}.title{font-size:16px;font-weight:800}.paper-section{margin:14px 0;break-inside:auto}h2{font-size:14px;border-bottom:1px solid #444;padding-bottom:4px}.paper-q{margin:0 0 13px;break-inside:avoid}.paper-q-num{display:inline}.paper-text{display:inline;white-space:pre-wrap;overflow-wrap:anywhere}.paper-img{margin:6px 0;text-align:center}.paper-img img{max-width:100%;max-height:360px;object-fit:contain}.paper-options{margin:5px 0 0 20px}.paper-options span{display:inline-block;margin-right:12px}.two{column-count:2;column-gap:28px}.footer{margin-top:25px;border-top:1px solid #777;padding-top:6px;text-align:center;font-size:10px}</style></head><body class="'+(layout==="two"?"two ":"")+'"><header>'+logoHtml+'<div class="school">'+school+'</div><div class="title">'+title+'</div></header>'+body+'<div class="footer">A to Z Exam Mocks</div><script>window.onload=()=>window.MathJax?.typesetPromise?.();<\/script></body></html>';
 }
 window.printPaper=function(layout){const html=paperMarkup(layout),w=window.open("","_blank");if(!w)return alert("Popup blocked. Allow popups for this site.");w.document.open();w.document.write(html);w.document.close();setTimeout(()=>w.print(),900)};
-window.openCustomize=function(){document.getElementById("customModal").style.display="flex"};
+window.goToPaperDesigner=function(){
+ const ids=[...window.selected].join(",");
+ const url="paper_designer.html"+(ids?("?selected="+encodeURIComponent(ids)):"");
+ location.href=url;
+};
+window.openCustomize=function(){window.goToPaperDesigner()};
 window.closeCustomize=function(){document.getElementById("customModal").style.display="none"};
 function customHtml(){
  const layout=document.getElementById("cLayout").value, font=document.getElementById("cFont").value||15, weight=document.getElementById("cWeight").value||700;
