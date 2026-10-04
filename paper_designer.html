@@ -62,7 +62,11 @@ button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;fle
    <label>Academic Session<input id="sessionName" placeholder="e.g. 2026–27"></label>
    <label>Time Allowed<input id="examTime" placeholder="e.g. 3 Hours"></label>
    <label>Institute Logo<input id="logoFile" type="file" accept="image/*"><input id="logoUrl" placeholder="Or paste logo URL (https://...)" style="margin-top:6px"></label>
-   <label>Font Family<select id="fontFamily"><option value="Times New Roman">Times New Roman</option><option value="Arial">Arial</option><option value="Calibri">Calibri</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Cambria">Cambria</option><option value="Garamond">Garamond</option></select></label>
+   <label>Paper Font Family<select id="fontFamily"><option value="Times New Roman">Times New Roman</option><option value="Arial">Arial</option><option value="Calibri">Calibri</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Cambria">Cambria</option><option value="Garamond">Garamond</option></select></label>
+   <label>Header Font Size<input id="headerFontSize" type="number" min="8" max="40" value="14"></label>
+   <label>Title Font Size<input id="titleFontSize" type="number" min="10" max="48" value="18"></label>
+   <label>Header Weight<select id="headerWeight"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700" selected>Bold</option></select></label>
+   <label>Title Weight<select id="titleWeight"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700" selected>Bold</option></select></label>
    <label>Watermark Text<input id="watermarkText" value="A to Z Exam Mocks"></label>
    <label class="full">Header / Instructions<textarea id="instructions" rows="3" placeholder="General instructions for students..."></textarea></label>
   </div></div>
@@ -205,7 +209,7 @@ function openBranding(){
  document.getElementById("brandingModal").classList.add("show");updateBrandingPreview();bindBrandingPreview();const lf=document.getElementById("logoFile");if(lf&&!lf.dataset.bound){lf.dataset.bound="1";lf.addEventListener("change",()=>{const f=lf.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{document.getElementById("logoUrl").value=String(rd.result||"");updateBrandingPreview()};rd.readAsDataURL(f)})}
 }
 function closeBranding(){document.getElementById("brandingModal").classList.remove("show")}
-function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>o[k]=document.getElementById(k).value.trim());["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>o[k]=document.getElementById(k).checked);return o}
+function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>o[k]=document.getElementById(k).value.trim());["headerFontSize","titleFontSize","headerWeight","titleWeight"].forEach(k=>o[k]=document.getElementById(k).value);["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>o[k]=document.getElementById(k).checked);return o}
 function printPaper(){
  branding=readBranding();localStorage.setItem("AZ_PAPER_BRANDING",JSON.stringify(branding));localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections));
  closeBranding();
