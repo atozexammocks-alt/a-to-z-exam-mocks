@@ -128,17 +128,13 @@ const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app),auth=getAuth(app);
 window.builderAuthReady=signInAnonymously(auth).catch(e=>{
-  console.warn("Anonymous session unavailable; continuing like Library:",e);
+  console.warn("Anonymous session unavailable:",e);
   return null;
 });
 window.ensureBuilderAuth=async function(){
   if(auth.currentUser) return auth.currentUser;
-  try{
-    const cred=await window.builderAuthReady;
-    return cred?.user||auth.currentUser||null;
-  }catch(e){
-    return auth.currentUser||null;
-  }
+  try{ const cred=await window.builderAuthReady; return cred?.user||auth.currentUser||null; }
+  catch(e){ return auth.currentUser||null; }
 };
 window.builderDB=db;
 
@@ -203,32 +199,18 @@ window.setGlobalQuestionFont=function(v){window.paperSettings.fontSize=Math.max(
 window.setGlobalQuestionWeight=function(v){window.paperSettings.weight=Number(v)||400;renderQuestions();};
 
 window.loadQuestions=async function(){
- const status=document.getElementById("status");
- const box=document.getElementById("questions");
+ const status=document.getElementById("status"),box=document.getElementById("questions");
  status.textContent="Connecting to Library…";
- let lastError=null;
- for(let attempt=1;attempt<=5;attempt++){
-  try{
-   status.textContent=attempt===1?"Connecting to Library…":"Reconnecting to Library… ("+attempt+"/5)";
-   await window.ensureBuilderAuth();
-   const snap=await getDocs(collection(db,"questions"));
-   window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
-   status.textContent="Library connected • "+window.builderData.length+" total questions";
-   renderTree();renderQuestions();renderSelected();
-   return;
-  }catch(e){
-   lastError=e;
-   console.warn("Library load attempt "+attempt,e);
-   window.builderAuthReady=null;
-   if(attempt<5) await new Promise(r=>setTimeout(r,700*attempt));
-  }
- }
- console.error("Library load failed after retries:",lastError);
- status.textContent="Library connection failed — tap Reload to retry";
- if(window.builderData.length){
-   renderTree();renderQuestions();renderSelected();
- }else{
-   box.innerHTML='<div class="empty">Library connection failed.<br><small>'+esc(lastError?.code||lastError?.message||"Firebase error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry</button></div>';
+ try{
+  await window.builderAuthReady;
+  const snap=await getDocs(collection(db,"questions"));
+  window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
+  status.textContent="Library connected • "+window.builderData.length+" total questions";
+  renderTree();renderQuestions();renderSelected();
+ }catch(e){
+  console.error("Builder Library load failed:",e);
+  status.textContent="Library connection failed";
+  box.innerHTML='<div class="empty">Could not load Library questions.<br><small>'+esc(e?.code||e?.message||"Firebase error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry</button></div>';
  }
 };
 
