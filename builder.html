@@ -431,28 +431,35 @@ function paperMarkup(layout){
  const logoHtml=logo?'<img class="logo" src="'+esc(logo)+'">':"";
  return '<!doctype html><html><head><meta charset="utf-8"><title>'+title+'</title><script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};<\/script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"><\/script><style>@page{size:A4;margin:16mm}body{font-family:Arial,sans-serif;color:#111;font-size:13px;line-height:1.55}.paper-content{column-count:1;column-gap:28px;column-fill:balance}.paper-q{display:block;width:auto;margin:0 0 13px;break-inside:avoid;page-break-inside:avoid}.paper-question-line{display:block}.paper-q-num{display:inline-block;min-width:24px;vertical-align:top}.paper-text{display:inline;white-space:pre-wrap;overflow-wrap:anywhere}.paper-img{margin:7px auto;text-align:center;width:100%;height:190px;display:flex;align-items:center;justify-content:center;overflow:hidden}.paper-img img{width:92%;height:175px;max-width:92%;max-height:175px;object-fit:contain;display:block}.paper-options{margin:6px 0 0 24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 14px}.paper-options span{display:block;margin:0}.paper-options b{font-weight:700}header{text-align:center;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px;position:relative}.logo{position:absolute;left:0;top:0;width:70px;height:70px;object-fit:contain}.school{font-size:18px;font-weight:900}.title{font-size:16px;font-weight:800}.layout-two .paper-img{height:180px}.layout-two .paper-img img{width:92%;max-width:92%;height:165px;max-height:165px}.layout-one .paper-img{height:210px}.layout-one .paper-img img{width:82%;max-width:82%;height:195px;max-height:195px}.two{column-count:2;column-gap:28px;column-fill:balance}.footer{margin-top:25px;border-top:1px solid #777;padding-top:6px;text-align:center;font-size:10px}</style></head><body><header>'+logoHtml+'<div class="school">'+school+'</div><div class="title">'+title+'</div></header><main class="paper-content '+(layout==="two"?"layout-two":"layout-one")+'" style="'+(layout==="two"?"column-count:2;column-gap:28px;column-fill:balance;":"column-count:1;column-fill:balance;")+'">'+body+'</main><div class="footer">A to Z Exam Mocks</div><script>window.onload=()=>window.MathJax?.typesetPromise?.();<\/script></body></html>';
 }
-window.printPaper=function(layout){
- const html=paperMarkup(layout),w=window.open("","_blank");
- if(!w)return alert("Popup blocked. Allow popups for this site.");
- w.document.open();w.document.write(html);w.document.close();
- const printReady=async()=>{
-   try{
-     if(w.document.fonts?.ready) await w.document.fonts.ready;
-     const imgs=[...w.document.images];
-     await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=r;img.onerror=r;})));
-     for(let i=0;i<80;i++){
-       if(w.MathJax?.startup?.promise) break;
-       await new Promise(r=>setTimeout(r,100));
-     }
-     if(w.MathJax?.startup?.promise){
-       await w.MathJax.startup.promise;
-       await w.MathJax.typesetPromise([w.document.querySelector(".paper-content")]);
-     }
-     await new Promise(r=>setTimeout(r,500));
-   }catch(e){console.warn("Print MathJax preparation:",e)}
-   w.focus();w.print();
- };
- setTimeout(printReady,300);
+window.printPaper=async function(layout){
+ const html=paperMarkup(layout);
+ const probe=document.createElement("div");
+ probe.id="__printMathProbe";
+ probe.style.cssText="position:fixed;left:-100000px;top:0;width:794px;background:#fff;color:#111;z-index:-1;";
+ const parsed=new DOMParser().parseFromString(html,"text/html");
+ probe.innerHTML=parsed.body.innerHTML;
+ document.body.appendChild(probe);
+ try{
+   if(window.MathJax?.typesetPromise){
+     await window.MathJax.typesetPromise([probe]);
+   }else if(window.MathJax?.startup?.promise){
+     await window.MathJax.startup.promise;
+     await window.MathJax.typesetPromise([probe]);
+   }else{
+     await new Promise(r=>setTimeout(r,800));
+     if(window.MathJax?.typesetPromise) await window.MathJax.typesetPromise([probe]);
+   }
+ }catch(e){console.warn("Main-page MathJax print:",e)}
+ const w=window.open("","_blank");
+ if(!w){probe.remove();return alert("Popup blocked. Allow popups for this site.");}
+ const css=parsed.head.querySelector("style")?.outerHTML||"";
+ const body=probe.innerHTML;
+ w.document.open();
+ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Physics Question Paper</title>'+css+'</head><body>'+body+'</body></html>');
+ w.document.close();
+ probe.remove();
+ await new Promise(r=>setTimeout(r,400));
+ w.focus();w.print();
 };
 
 window.goToPaperDesigner=function(){
