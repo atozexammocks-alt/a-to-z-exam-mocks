@@ -25,7 +25,7 @@ body{min-height:100vh}
 .header-main{padding:0 5px 0 72px}.school{font-size:18px;font-weight:800}.title{font-size:17px;font-weight:800;margin-top:2px}
 .meta{font-size:12px;margin-top:5px;display:flex;justify-content:space-between;text-align:left}.meta .right{text-align:right}
 .content{position:relative;z-index:2}.question{break-inside:avoid;page-break-inside:avoid;margin:0 0 10px;padding:2px 0;line-height:1.5}
-.question.selected{outline:2px solid #2563eb;outline-offset:2px}.qline{display:grid;grid-template-columns:28px minmax(0,1fr);gap:3px}
+.question.selected{outline:2px solid #2563eb;outline-offset:2px}.qbox{border:1px solid #888;padding:6px;border-radius:4px}.qbottom{border-bottom:1px solid #888}.qleft{border-left:3px solid #888;padding-left:7px}.qline{display:grid;grid-template-columns:28px minmax(0,1fr);gap:3px}
 .qnum{font-weight:700}.qtext{min-width:0;overflow-wrap:anywhere}
 .options{margin:5px 0 0 31px;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}.option{display:grid;grid-template-columns:22px minmax(0,1fr);gap:3px;min-width:0;overflow-wrap:anywhere}
 .qimage{margin:7px auto;text-align:center}.qimage img{max-width:96%;max-height:180px;object-fit:contain}
@@ -68,7 +68,16 @@ function imageOf(q){for(const k of ['questionImage','image','img','imageData','c
 function optionsOf(q){let v=q?.options??q?.choices??q?.answerOptions;if(typeof v==='string'){try{v=JSON.parse(v)}catch(e){v=v.split(/\\s*\\|\\s*/)}}if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):String(x)).filter(x=>String(x).trim());return['A','B','C','D'].map(k=>q?.['option'+k]??q?.['option_'+k]??q?.['choice'+k]).filter(x=>String(x??'').trim())}
 function cleanQ(v){let s=String(v??'').trim();s=s.replace(/^\\s*(?:question|ques|q)\\s*[-.:]?\\s*\\d+\\s*[.)\\-:]?\\s*/i,'');s=s.replace(/^\\s*\\d+\\s*[.)\\-:]?\\s*/,'');return s.trim()}
 function cleanOpt(v){return String(v??'').trim().replace(/^(?:\\s*(?:\\([A-Da-d]\\)|[A-Da-d][.)])\\s*)+/,'').trim()}
-function mathMarkup(v){let x=String(v||'');if(!x)return'';if(/\\(\\|\\[/.test(x))return x;if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)||/(?:[A-Za-z0-9}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9}])_\\{[^}]+\\}/.test(x))return '\\\\('+x+'\\\\)';return x}
+function mathMarkup(v){
+ var x=String(v||'');
+ if(!x)return "";
+ if(/\\\(|\\\[/.test(x)) return x;
+ if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\b/.test(x)
+   || /(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)){
+   return "\\("+x+"\\)";
+ }
+ return x;
+}
 function render(v){return esc(mathMarkup(v)).replace(/&lt;/g,'<').replace(/&gt;/g,'>')}
 let data={questions:[],sections:[],branding:{},title:'Question Paper',school:'',logo:'',layout:'one',watermarkCount:1};
 let qSel=new Set(),sSel=new Set(),modeName='questions',qStyle={},sStyle={};
