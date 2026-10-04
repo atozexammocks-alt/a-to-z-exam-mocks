@@ -210,7 +210,8 @@ function printPaper(){
  const payload={questions:questions,sections:sections,branding:branding,fontFamily:branding.fontFamily||"Times New Roman",textEdits:{},title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:(branding.showLogo?branding.logoUrl:"")||"",layout:"one",qSize:14,oSize:13,titleSize:18,schoolSize:20,subSize:13,lineW:2,qGap:10,imgH:160};
  window.__AZ_PRINT_PAYLOAD=payload;
  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage skipped:",e)}
- const w=window.open("printout.html","_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
+ const selectedQuery=questions.map(q=>String(q.id)).filter(Boolean).join(",");
+ const w=window.open("printout.html?selected="+encodeURIComponent(selectedQuery),"_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){console.warn("Print payload send failed",e)}};
  w.addEventListener("load",send,{once:true});setTimeout(send,200);setTimeout(send,800);setTimeout(send,1600)
 }
