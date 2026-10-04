@@ -523,8 +523,10 @@ window.printPaper=function(layout){
 window.goToPaperDesigner=function(){
  const ids=[...window.selected].map(String);
  if(!ids.length){alert("Please select at least one question first.");return;}
+ const selectedObjects=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
  localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify(ids));
  try{
+  localStorage.setItem("AZ_BUILDER_SELECTED_QUESTIONS",JSON.stringify(selectedObjects));
   localStorage.setItem("AZ_BUILDER_TEXT_EDITS",JSON.stringify(window.textEdits||{}));
   localStorage.setItem("AZ_BUILDER_PAPER_SETTINGS",JSON.stringify(window.paperSettings||{fontSize:14,weight:400}));
  }catch(e){console.warn("Builder presentation state could not be saved:",e)}
