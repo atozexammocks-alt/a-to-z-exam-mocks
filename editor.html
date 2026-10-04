@@ -932,6 +932,7 @@
           text:document.getElementById('fallback-qtext').value.trim(),
           options:vals,
           image:finalUrl,
+          hideOptions:!document.getElementById('editor-keep-options-toggle').checked,
           marks:undefined,
           updatedAt:new Date().toISOString()
         };
