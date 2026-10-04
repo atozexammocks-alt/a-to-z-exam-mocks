@@ -115,8 +115,7 @@ function renderMath(s){
    out=out.replace(/___MATHJAX_FRAGMENT___(\d+)___/g,(_,i)=>'\\('+parts[Number(i)]+'\\)');
   }
   return out;
- }).
-join('<br>');
+ }).join('<br>');
 }
 
 let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
