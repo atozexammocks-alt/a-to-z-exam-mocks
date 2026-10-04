@@ -381,6 +381,7 @@ async function loadFromBuilder(){
 
  // Exact hand-off from Builder: preserve the same selected question records.
  const handedOff=safeJSON('AZ_BUILDER_SELECTED_QUESTIONS',[]);
+ // A compact hand-off is optional. IDs in AZ_BUILDER_SELECTED_IDS/query-string are authoritative.
  if(Array.isArray(handedOff)&&handedOff.length){
   handedOff.forEach(q=>{
    if(q?.id!==undefined) questionCache.set(String(q.id),q);
