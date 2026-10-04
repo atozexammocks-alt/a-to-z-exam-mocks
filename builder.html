@@ -572,12 +572,24 @@ window.goToPaperDesigner=function(){
  const ids=[...window.selected].map(String);
  if(!ids.length){alert("Please select at least one question first.");return;}
  const selectedObjects=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
+ // IDs are the authoritative hand-off. Keep the hand-off payload small so a large
+ // base64 image cannot exceed localStorage quota and cancel the whole transfer.
  localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify(ids));
  try{
-  localStorage.setItem("AZ_BUILDER_SELECTED_QUESTIONS",JSON.stringify(selectedObjects));
+  const compact=selectedObjects.map(q=>{
+   const copy={...q};
+   ["image","img","imageData","questionImageData","croppedImage","croppedImageData","base64Image","question"].forEach(k=>{
+    if(typeof copy[k]==="string" && copy[k].length>180000) delete copy[k];
+   });
+   return copy;
+  });
+  localStorage.setItem("AZ_BUILDER_SELECTED_QUESTIONS",JSON.stringify(compact));
   localStorage.setItem("AZ_BUILDER_TEXT_EDITS",JSON.stringify(window.textEdits||{}));
   localStorage.setItem("AZ_BUILDER_PAPER_SETTINGS",JSON.stringify(window.paperSettings||{fontSize:14,weight:400}));
- }catch(e){console.warn("Builder presentation state could not be saved:",e)}
+ }catch(e){
+  console.warn("Compact Builder handoff could not be saved; IDs remain authoritative:",e);
+  try{localStorage.removeItem("AZ_BUILDER_SELECTED_QUESTIONS")}catch(_){}
+ }
  const url="paper_designer.html?selected="+encodeURIComponent(ids.join(","));
  location.href=url;
 };
