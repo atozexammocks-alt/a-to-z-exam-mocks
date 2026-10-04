@@ -93,9 +93,28 @@ function fmt(k){if(qSel.size){qSel.forEach(id=>{const s=qStyle[id]||{};if(k==='b
 function apply(){if(qSel.size){const f=document.getElementById('fontFamily').value,sz=Number(document.getElementById('fontSize').value)||14;qSel.forEach(id=>qStyle[id]={...(qStyle[id]||{}),font:f,size:sz})}if(sSel.size){const f=document.getElementById('fontFamily').value,sz=Number(document.getElementById('fontSize').value)||15;sSel.forEach(id=>sStyle[id]={...(sStyle[id]||{}),font:f,size:sz})}build()}
 function setOpacity(v){document.documentElement.style.setProperty('--wm-opacity',String(Math.max(0,Math.min(100,Number(v)||0))/100));document.getElementById('wmVal').textContent=Math.max(0,Math.min(100,Number(v)||0))+'%'}
 function setCount(v){data.watermarkCount=Math.max(1,Math.min(6,Number(v)||1));build()}
-function loadStored(){try{const x=JSON.parse(localStorage.getItem('AZ_PRINT_PAYLOAD')||'null');if(x?.questions?.length){receive(x);return true}}catch(e){}return false}
+function loadStored(){
+ try{
+  if(window.opener&&window.opener.__AZ_PRINT_PAYLOAD&&Array.isArray(window.opener.__AZ_PRINT_PAYLOAD.questions)&&window.opener.__AZ_PRINT_PAYLOAD.questions.length){receive(window.opener.__AZ_PRINT_PAYLOAD);return true}
+ }catch(e){}
+ try{
+  const x=JSON.parse(localStorage.getItem('AZ_PRINT_PAYLOAD')||'null');
+  if(x?.questions?.length){receive(x);return true}
+ }catch(e){}
+ return false
+}
 window.addEventListener('message',e=>{if(e.data?.type==='AZ_PRINT_PAYLOAD')receive(e.data.payload)});
-window.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(!data.questions.length)loadStored();if(!data.questions.length)document.getElementById('paper').innerHTML='<div class="empty">No questions received.<br><small>Return to Paper Designer and use Print / Export again.</small></div>'},120)});
+window.addEventListener('DOMContentLoaded',()=>{
+ let tries=0;
+ const boot=()=>{
+  tries++;
+  if(!data.questions.length)loadStored();
+  if(data.questions.length)return;
+  if(tries<8){setTimeout(boot,250);return}
+  document.getElementById('paper').innerHTML='<div class="empty">No questions received.<br><small>Return to Paper Designer and use Print / Export again.</small></div>';
+ };
+ boot();
+});
 </script>
 </body>
 </html>
