@@ -333,7 +333,7 @@ window.openTextEditor=function(encodedId){
  document.getElementById("textEditorBackdrop").style.display="flex";
 };
 window.closeTextEditor=function(){document.getElementById("textEditorBackdrop").style.display="none";window.activeTextEditId=null;};
-window.saveTextEdit=function(){
+window.saveTextEdit=async function(){
  const id=window.activeTextEditId;
  if(!id)return;
  const q=window.builderData.find(x=>String(x.id)===String(id));
