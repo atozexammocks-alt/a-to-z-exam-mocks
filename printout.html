@@ -31,7 +31,7 @@ body{min-height:100vh}
 .subtitle{font-size:var(--subtitle,13px);margin-top:3px}
 .content{column-count:1;column-gap:24px;column-fill:balance}
 .content.two{column-count:2}
-.paper-q{display:block;break-inside:avoid;page-break-inside:avoid;width:100%;margin:0 0 var(--gap,10px);font-size:var(--q,14px);line-height:var(--qline,1.5)}
+.paper-q{display:block;break-inside:avoid;page-break-inside:avoid;width:100%;margin:0 0 var(--gap,10px);font-size:var(--q,14px);line-height:var(--qline,1.5);border:var(--qborder,0) solid #888;padding:var(--qpad,0);border-radius:4px}.paper-q.border-bottom{border-width:0 0 1px}.paper-q.border-left{border-width:0 0 0 3px;padding-left:7px}
 .question-line{display:grid;grid-template-columns:25px minmax(0,1fr);column-gap:3px;align-items:start}
 .qnum{font-weight:700}
 .qtext{min-width:0;white-space:normal;overflow-wrap:anywhere}
@@ -40,7 +40,7 @@ body{min-height:100vh}
 .options{margin:5px 0 0 25px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:18px;row-gap:5px;width:calc(100% - 25px);min-width:0}
 .option-item{display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:5px;align-items:start;min-width:0;width:100%;font-size:var(--opt,13px);line-height:1.4;white-space:normal;word-break:normal;overflow-wrap:break-word}
 .option-item .option-text{min-width:0;width:100%;white-space:normal;word-break:normal;overflow-wrap:break-word}
-.footer{text-align:center;border-top:1px solid #777;margin-top:18px;padding-top:5px;font-size:10px}
+.section-head{font-size:15px;font-weight:800;margin:12px 0 8px;padding:6px 8px;border-bottom:1px solid #555}.section-head.box{border:1px solid #555}.section-head.none{border:0}.footer{text-align:center;border-top:1px solid #777;margin-top:18px;padding-top:5px;font-size:10px}
 .empty{padding:60px;text-align:center;color:#64748b}
 @media print{
  body{background:#fff}
@@ -54,7 +54,7 @@ mjx-container{white-space:nowrap!important}.mjx-container[display="true"]{displa
 <body>
 <div class="toolbar">
 <b>🖨 Paper Preview</b>
-<label>Q Font <input id="qSize" type="number" min="8" max="30" value="14"></label>
+<label>Font <select id="fontFamily"><option>Times New Roman</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Cambria</option><option>Garamond</option><option>Verdana</option></select></label><label>Q Font <input id="qSize" type="number" min="8" max="30" value="14"></label>
 <label>Option <input id="oSize" type="number" min="8" max="26" value="13"></label>
 <label>Title <input id="titleSize" type="number" min="10" max="30" value="17"></label>
 <label>Header <input id="schoolSize" type="number" min="10" max="30" value="18"></label>
@@ -62,7 +62,7 @@ mjx-container{white-space:nowrap!important}.mjx-container[display="true"]{displa
 <label>Line <input id="lineW" type="number" min="0" max="8" value="2"></label>
 <label>Q Gap <input id="qGap" type="number" min="0" max="30" value="10"></label>
 <label>Columns <select id="cols"><option value="1">1</option><option value="2">2</option></select></label>
-<label>Image <input id="imgH" type="number" min="60" max="280" value="160"></label>
+<label>Image <input id="imgH" type="number" min="60" max="280" value="160"></label><button type="button" onclick="toggleFormat('bold')"><b>B</b></button><button type="button" onclick="toggleFormat('italic')"><i>I</i></button><button type="button" onclick="toggleFormat('underline')"><u>U</u></button><label>Question Border <select id="qBorder"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom Line</option><option value="left">Left Line</option></select></label><label>Section Line <select id="sectionBorder"><option value="bottom">Bottom</option><option value="box">Box</option><option value="none">None</option></select></label>
 <button class="green" onclick="apply()">Apply</button>
 <button onclick="window.print()">Print</button>
 <button class="gray" onclick="window.close()">Close</button>
@@ -78,8 +78,8 @@ function textOf(q){
  return '';
 }
 function imageOf(q){
- const keys=['questionImage','image','img','imageData','croppedImage','questionImageData','imageUrl','imageURL','diagram','imageSrc','src','base64Image','question'];
- for(const k of keys){const v=q?.[k];if(typeof v==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim();}
+ const keys=['questionImage','image','img','imageData','croppedImage','croppedImageData','questionImageData','base64Image','imageUrl','imageURL','diagram','imageSrc','src','question'];
+ for(const k of keys){const v=q?.[k];if(typeof v==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim();if(v&&typeof v==='object'){for(const kk of ['data','url','src','image','dataUrl','base64']){const z=v[kk];if(typeof z==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(z.trim()))return z.trim();}}}
  return '';
 }
 function optionsOf(q){
@@ -116,7 +116,7 @@ function renderMath(v){
  return x;
 }
 
-let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one',branding:{}};
+let data={questions:[],sections:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one',branding:{},fontFamily:'Times New Roman'};
 function qHtml(q,n){
  const id=String(q.id||'');
  const edit=data.textEdits[id]||{};
@@ -128,7 +128,9 @@ function qHtml(q,n){
  const weight=Number(edit.weight||400);
  const line=Number(edit.lineHeight||1.5);
  const style='font-size:'+fs+'px;font-weight:'+weight+';line-height:'+line+';text-align:'+(edit.align||'left')+';';
- return '<div class="paper-q" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(txt)+'</span></div>'+
+ const border=document.getElementById('qBorder')?.value||'none';
+ const cls='paper-q '+(border==='bottom'?'border-bottom':border==='left'?'border-left':'');
+ return '<div class="'+cls+'" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(txt)+'</span></div>'+
  (img?'<div class="image-box"><img src="'+esc(img)+'"></div>':'')+
  (opts.length&&!hide?'<div class="options">'+opts.map((o,i)=>'<div class="option-item"><b>'+String.fromCharCode(65+i)+'.</b><span class="option-text">'+renderMath(o)+'</span></div>').join('')+'</div>':'')+
  '</div>';
@@ -140,19 +142,25 @@ function build(){
  const showFooter=b.showFooter!==false;
  const showLogo=b.showLogo!==false && !!(b.logoUrl||data.logo);
  const logoSrc=b.logoUrl||data.logo||'';
+ document.documentElement.style.setProperty('--paper-font',b.fontFamily||data.fontFamily||'Times New Roman');
  const wm=b.showWatermark?'<div class="watermark">'+esc(b.watermarkText||'A to Z Exam Mocks')+'</div>':'';
  let html=wm+'<header class="header">'+(showLogo?'<img class="logo" src="'+esc(logoSrc)+'">':'')+
  (data.school||b.schoolName?'<div class="school">'+esc(data.school||b.schoolName)+'</div>':'')+
- '<div class="title">'+esc(data.title||b.paperTitle||'Physics Question Paper')+'</div><div class="subtitle">'+esc([b.className,b.subjectName,b.sessionName,b.examTime].filter(Boolean).join(' • ')|| (showAZ?'A to Z Exam Mocks':''))+'</div></header>';
+ '<div class="title">'+esc(data.title||b.paperTitle||'Physics Question Paper')+'</div><div class="subtitle"><span style="float:left;text-align:left">Class: '+esc(b.className||'—')+'<br>Subject: '+esc(b.subjectName||'—')+'</span><span style="float:right;text-align:right">Session: '+esc(b.sessionName||'—')+'<br>Time: '+esc(b.examTime||'—')+'</span><span style="display:block;clear:both;text-align:center">'+(showAZ?'A to Z Exam Mocks':'')+'</span></div></header>';
  html+='<main id="content" class="content '+(data.layout==='two'?'two':'')+'">';
- data.questions.forEach((q,i)=>html+=qHtml(q,i+1));
+ if(Array.isArray(data.sections)&&data.sections.length){
+ let number=0;
+ data.sections.forEach(s=>{const ids=Array.isArray(s.questionIds)?s.questionIds.map(String):[];const qs=ids.map(id=>data.questions.find(q=>String(q.id)===id)).filter(Boolean);if(!qs.length)return;const sb=document.getElementById('sectionBorder')?.value||'bottom';html+='<div class="section-head '+sb+'">'+esc(s.name||'Section')+' <span style="font-size:11px;font-weight:400">('+qs.length+' Questions • '+(Number(s.marks)||0)+' Marks/Q)</span></div>';qs.forEach(q=>{number++;html+=qHtml(q,number)})});
+ const assigned=new Set(data.sections.flatMap(s=>Array.isArray(s.questionIds)?s.questionIds.map(String):[]));data.questions.filter(q=>!assigned.has(String(q.id))).forEach(q=>{number++;html+=qHtml(q,number)});
+}else data.questions.forEach((q,i)=>html+=qHtml(q,i+1));
  html+='</main>'+(showFooter?'<div class="footer">'+(showAZ?'A to Z Exam Mocks • ':'')+'Question Paper</div>':'');
  paper.innerHTML=html;
  if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([paper]).catch(console.warn);
 }
+function toggleFormat(kind){document.body.dataset.format=kind;const r=document.documentElement.style;if(kind==='bold')r.setProperty('--preview-weight','700');if(kind==='italic')r.setProperty('--preview-style','italic');if(kind==='underline')r.setProperty('--preview-decoration','underline');build()}
 function apply(){
  const r=document.documentElement.style;
- r.setProperty('--q',qSize.value+'px');
+ r.setProperty('--q',qSize.value+'px');r.setProperty('--paper-font',fontFamily.value||'Times New Roman');
  r.setProperty('--opt',oSize.value+'px');
  r.setProperty('--title',titleSize.value+'px');
  r.setProperty('--school',schoolSize.value+'px');
@@ -167,8 +175,8 @@ function apply(){
 }
 function receivePayload(payload){
  if(!payload||!Array.isArray(payload.questions))return;
- data=Object.assign(data,payload);data.branding=payload.branding||data.branding||{};data.school=data.branding.schoolName||payload.school||data.school;data.title=data.branding.paperTitle||payload.title||data.title;data.logo=data.branding.logoUrl||payload.logo||data.logo;
- qSize.value=data.qSize||14;oSize.value=data.oSize||13;titleSize.value=data.titleSize||17;schoolSize.value=data.schoolSize||18;subSize.value=data.subSize||13;lineW.value=data.lineW||2;qGap.value=data.qGap||10;cols.value=data.layout==='two'?'2':'1';imgH.value=data.imgH||160;
+ data=Object.assign(data,payload);data.branding=payload.branding||data.branding||{};data.sections=Array.isArray(payload.sections)?payload.sections:[];data.fontFamily=payload.fontFamily||data.branding.fontFamily||'Times New Roman';data.school=data.branding.schoolName||payload.school||data.school;data.title=data.branding.paperTitle||payload.title||data.title;data.logo=data.branding.logoUrl||payload.logo||data.logo;
+ fontFamily.value=data.fontFamily||'Times New Roman';fontFamily.value=data.fontFamily||'Times New Roman';qSize.value=data.qSize||14;oSize.value=data.oSize||13;titleSize.value=data.titleSize||17;schoolSize.value=data.schoolSize||18;subSize.value=data.subSize||13;lineW.value=data.lineW||2;qGap.value=data.qGap||10;cols.value=data.layout==='two'?'2':'1';imgH.value=data.imgH||160;
  build();
 }
 window.addEventListener('message',e=>{
