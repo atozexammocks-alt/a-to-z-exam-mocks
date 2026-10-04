@@ -260,7 +260,7 @@ function loadState(){
  // Always start a fresh paper design. Previous section layout must never carry forward.
  sections=[];
  try{localStorage.removeItem("AZ_PAPER_DESIGN_SECTIONS")}catch(e){}
- try{sessionStorage.removeItem("AZ_PAPER_DESIGN_EDITS")}catch(e){}
+ try{if(!localStorage.getItem("AZ_PAPER_EDITOR_DONE"))sessionStorage.removeItem("AZ_PAPER_DESIGN_EDITS")}catch(e){}
 }
 async function loadQuestions(){
  const ids=selectedIds();
