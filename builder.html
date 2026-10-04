@@ -198,19 +198,47 @@ function typeset(){if(window.MathJax?.typesetPromise)window.MathJax.typesetPromi
 window.setGlobalQuestionFont=function(v){window.paperSettings.fontSize=Math.max(10,Math.min(30,Number(v)||14));renderQuestions();};
 window.setGlobalQuestionWeight=function(v){window.paperSettings.weight=Number(v)||400;renderQuestions();};
 
+async function loadQuestionsDirect(){
+ const url="https://firestore.googleapis.com/v1/projects/physicsvault-80a10/databases/(default)/documents/questions?key="+encodeURIComponent("AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0")+"&pageSize=1000";
+ const res=await fetch(url,{cache:"no-store"});
+ if(!res.ok) throw new Error("Firestore REST "+res.status+": "+(await res.text()).slice(0,240));
+ const data=await res.json();
+ const val=v=>{
+  if(!v||typeof v!=="object")return v;
+  if("stringValue" in v)return v.stringValue;
+  if("integerValue" in v)return Number(v.integerValue);
+  if("doubleValue" in v)return Number(v.doubleValue);
+  if("booleanValue" in v)return v.booleanValue;
+  if("timestampValue" in v)return v.timestampValue;
+  if("nullValue" in v)return null;
+  if("arrayValue" in v)return (v.arrayValue.values||[]).map(val);
+  if("mapValue" in v)return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,x])=>[k,val(x)]));
+  return v;
+ };
+ window.builderData=(data.documents||[]).map(d=>{
+  const id=String(d.name||"").split("/").pop();
+  return {id,...Object.fromEntries(Object.entries(d.fields||{}).map(([k,v])=>[k,val(v)]))};
+ });
+ return window.builderData;
+}
 window.loadQuestions=async function(){
  const status=document.getElementById("status"),box=document.getElementById("questions");
- status.textContent="Connecting to Library…";
+ status.textContent="Loading directly from Firebase…";
  try{
-  await window.builderAuthReady;
-  const snap=await getDocs(collection(db,"questions"));
-  window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
-  status.textContent="Library connected • "+window.builderData.length+" total questions";
+  try{await window.builderAuthReady}catch(_){}
+  try{
+   const snap=await getDocs(collection(db,"questions"));
+   window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
+  }catch(firebaseErr){
+   console.warn("SDK read failed; using direct Firestore REST:",firebaseErr);
+   await loadQuestionsDirect();
+  }
+  status.textContent="Firebase connected • "+window.builderData.length+" questions";
   renderTree();renderQuestions();renderSelected();
  }catch(e){
-  console.error("Builder Library load failed:",e);
-  status.textContent="Library connection failed";
-  box.innerHTML='<div class="empty">Could not load Library questions.<br><small>'+esc(e?.code||e?.message||"Firebase error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry</button></div>';
+  console.error("Direct Firebase load failed:",e);
+  status.textContent="Firebase loading failed";
+  box.innerHTML='<div class="empty"><b>Firebase could not load the questions.</b><br><small>'+esc(e?.message||"Unknown Firebase error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry Firebase</button></div>';
  }
 };
 
