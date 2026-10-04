@@ -411,12 +411,18 @@ function printMath(html){
  const saved=[];
  s=s.replace(/\\\(([\\s\\S]*?)\\\)|\\\[([\\s\\S]*?)\\\]|\\$\\$([\\s\\S]*?)\\$\\$|\\$([^$]+)\\$/g,m=>{saved.push(m);return "@@MATH"+(saved.length-1)+"@@";});
  s=s.replace(/\n/g,"<br>");
- s=s.replace(/(^|<br>)([^<]*?\\(?:frac|dfrac|tfrac)\\\{[^{}]*\\\}\\\{[^{}]*\\\}[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
- s=s.replace(/(^|<br>)([^<]*?\\(?:sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega)[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
- s=s.replace(/(^|<br>)([^<]*?[A-Za-z](?:\\)?[_^](?:\{[^}]*\}|[A-Za-z0-9]+)[^<]*)(?=<br>|$)/g,"$1\\($2\\)");
+ s=s.split("<br>").map(line=>{
+   if(!line.trim()) return line;
+   if(line.includes("@@MATH")) return line;
+   const hasLatex=/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega)\b/.test(line);
+   const hasPower=/[A-Za-z0-9)\]]\s*[_^]\s*(?:\{[^}]+\}|[A-Za-z0-9+\-()]+)/.test(line);
+   const hasEquation=/[A-Za-z0-9)\]]\s*=\s*[A-Za-z0-9(\\]/.test(line);
+   return (hasLatex||hasPower||hasEquation) ? "\\("+line+"\\)" : line;
+ }).join("<br>");
  s=s.replace(/@@MATH(\d+)@@/g,(_,i)=>saved[Number(i)]);
  return s;
 }
+
 function paperMarkup(layout){
  ensurePaperFields();
  const qs=selectedQuestions();const title=esc(document.getElementById("paperTitle").value||"Physics Question Paper"),school=esc(document.getElementById("schoolName").value||""),logo=String(document.getElementById("logoUrl").value||"").trim();
@@ -434,17 +440,21 @@ window.printPaper=function(layout){
      if(w.document.fonts?.ready) await w.document.fonts.ready;
      const imgs=[...w.document.images];
      await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=r;img.onerror=r;})));
-     for(let i=0;i<40;i++){
-       if(w.MathJax?.typesetPromise) break;
-       await new Promise(r=>setTimeout(r,150));
+     for(let i=0;i<80;i++){
+       if(w.MathJax?.startup?.promise) break;
+       await new Promise(r=>setTimeout(r,100));
      }
-     if(w.MathJax?.typesetPromise) await w.MathJax.typesetPromise();
-     await new Promise(r=>setTimeout(r,250));
-   }catch(e){console.warn("Print preparation:",e)}
+     if(w.MathJax?.startup?.promise){
+       await w.MathJax.startup.promise;
+       await w.MathJax.typesetPromise([w.document.querySelector(".paper-content")]);
+     }
+     await new Promise(r=>setTimeout(r,500));
+   }catch(e){console.warn("Print MathJax preparation:",e)}
    w.focus();w.print();
  };
- setTimeout(printReady,150);
+ setTimeout(printReady,300);
 };
+
 window.goToPaperDesigner=function(){
  const ids=[...window.selected].join(",");
  const url="paper_designer.html"+(ids?("?selected="+encodeURIComponent(ids)):"");
