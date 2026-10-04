@@ -71,7 +71,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
   <div class="spacer"></div>
   <div id="userPill" class="pill">Loading…</div>
   <button class="btn" onclick="loadQuestions()">↻ Reload</button>
-  <button class="btn blue" onclick="goToPaperDesigner()">🎨 Customize Your Paper</button>
+  <button id="customizePaperBtn" class="btn blue" onclick="goToPaperDesigner()" disabled title="Select at least one question first">🎨 Customize Your Paper</button>
   <button class="btn purple" onclick="publishNow()">🚀 Publish Now</button>
 </header>
 <div class="modebar no-print">
@@ -223,8 +223,8 @@ window.setMode=function(mode){
  document.querySelectorAll(".mode").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
  renderTree();renderQuestions();
 };
-window.selectAllVisible=function(){getVisible().forEach(q=>window.selected.add(String(q.id)));renderQuestions();renderSelected()};
-window.clearSelection=function(){window.selected.clear();renderQuestions();renderSelected()};
+window.selectAllVisible=function(){getVisible().forEach(q=>window.selected.add(String(q.id)));localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...window.selected]));renderQuestions();renderSelected()};
+window.clearSelection=function(){window.selected.clear();localStorage.setItem("AZ_BUILDER_SELECTED_IDS","[]");renderQuestions();renderSelected()};
 function getModeQuestions(){return window.builderData.filter(q=>belongs(q,window.builderMode))}
 function getVisible(){
  const term=(document.getElementById("search")?.value||"").trim().toLowerCase(),type=document.getElementById("typeFilter")?.value||"ALL";
@@ -251,7 +251,7 @@ function renderQuestions(){
  }).join("");
  typeset();
 }
-window.toggleQuestion=function(id){id=String(id);window.selected.has(id)?window.selected.delete(id):window.selected.add(id);renderQuestions();renderSelected()};
+window.toggleQuestion=function(id){id=String(id);window.selected.has(id)?window.selected.delete(id):window.selected.add(id);localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...window.selected]));renderQuestions();renderSelected()};
 window.removeSelection=function(id){window.selected.delete(String(id));renderQuestions();renderSelected()};
 
 window.openTextEditor=function(encodedId){
@@ -375,6 +375,7 @@ function renderSelected(){
  const count=items.length;
  const top=document.getElementById("selectedCountTop");
  if(top) top.textContent=String(count);
+ const customize=document.getElementById("customizePaperBtn"); if(customize){customize.disabled=count===0;customize.title=count?"Open Paper Designer with "+count+" selected question(s)":"Select at least one question first";customize.style.opacity=count?"1":"0.55";customize.style.cursor=count?"pointer":"not-allowed";}
  const legacy=document.getElementById("selectedCount");
  if(legacy) legacy.textContent="("+count+")";
  const list=document.getElementById("selectedList");
@@ -504,8 +505,10 @@ window.printPaper=function(layout){
 };
 
 window.goToPaperDesigner=function(){
- const ids=[...window.selected].join(",");
- const url="paper_designer.html"+(ids?("?selected="+encodeURIComponent(ids)):"");
+ const ids=[...window.selected].map(String);
+ if(!ids.length){alert("Please select at least one question first.");return;}
+ localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify(ids));
+ const url="paper_designer.html?selected="+encodeURIComponent(ids.join(","));
  location.href=url;
 };
 window.openCustomize=function(){window.goToPaperDesigner()};
