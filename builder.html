@@ -190,13 +190,15 @@ function isCentral(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.librar
 function isGroup(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.group===true||x==="group"||x.includes("group")}
 function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="group")return isGroup(q);return !isCentral(q)&&!isGroup(q)}
 function renderMath(html){
- let x=String(html??"").replace(/\r\n?/g,"\n");
- return x.split("\n").map(line=>{
+ const raw=String(html??"").replace(/\r\n?/g,"\n");
+ return raw.split("\n").map(line=>{
   const t=line.trim();
   if(!t)return "";
-  if(/^\\\(|^\\\[|^\$\$|^\$/.test(t)) return line;
-  const hasTeX=/\\[A-Za-z]+|[A-Za-z0-9}]\s*[_^]\s*(?:[A-Za-z0-9{]|\\)/.test(t);
-  return hasTeX ? line.replace(t,"\\("+t+"\\)") : line;
+  if(/^(?:\\\(|\\\[|\$\$|\$)/.test(t))return line;
+  const hasCommand=/\\[A-Za-z]+/.test(t);
+  const hasIndex=/[A-Za-z0-9}]\s*[_^]\s*(?:[A-Za-z0-9{]|\\)/.test(t);
+  if(hasCommand||hasIndex)return "\\("+t+"\\)";
+  return line;
  }).join("<br>");
 }
 
