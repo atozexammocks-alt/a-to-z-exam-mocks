@@ -194,7 +194,7 @@ function renderQuestions(){
  document.getElementById("status").textContent="Library connected • "+window.builderData.length+" total • "+getModeQuestions().length+" in "+window.builderMode+" • duplicates tagged";
  if(!rows.length){box.innerHTML='<div class="empty">No questions found in this Library view.</div>';return}
  box.innerHTML=rows.map((q,i)=>{
-  const id=String(q.id),sel=window.selected.has(id),img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1,edit=window.textEdits[id]||{},dupCount=dups[questionKey(q)]||0;
+  const id=String(q.id),sel=window.selected.has(id),img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1,edit=window.textEdits[id]||{},dupCount=questionKey(q)?(dups[questionKey(q)]||0):0;
   return '<article class="card '+(sel?'selected':'')+'">'+
    '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleQuestion(\''+esc(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div>'+(dupCount>1?'<span class="dup-tag">⚠ DUPLICATE ×'+dupCount+'</span>':'<span class="clean-tag">✓ CLEAN</span>')+(txt?'<button class="btn blue" onclick="openTextEditor(\''+encodeURIComponent(id)+'\')">✏️ Edit Text</button>':'')+'<button class="btn" onclick="removeSelection(\''+esc(id)+'\')">✕</button></div>'+
    (img?'<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')"><img src="'+esc(img)+'" alt="Question"></div>':'')+
@@ -343,8 +343,10 @@ function ensurePaperFields(){
 }
 function typeOf(q){return String(q.type??q.questionType??q.qType??"MCQ").toUpperCase()}
 function cleanQuestionText(v){
- const s=String(v??"").trim();
- return s.replace(/^\s*(?:(?:question|ques|q)\s*)?\d+\s*[.)\-:]*\s*/i,"").trim();
+ let s=String(v??"").trim();
+ s=s.replace(/^\s*(?:question|ques|q)\s*[-.:]?\s*\d+\s*[.)\-:]?\s*/i,"");
+ s=s.replace(/^\s*\d+\s*[.)\-:]?\s*/,"");
+ return s.trim();
 }
 function cleanOptionText(v){
  return String(v??"").trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,"").trim();
@@ -352,7 +354,7 @@ function cleanOptionText(v){
 function questionKey(q){
  const t=cleanQuestionText(displayTextOf(q)).toLowerCase().replace(/\s+/g," ").trim();
  const o=displayOptionsOf(q).map(cleanOptionText).join("|").toLowerCase().replace(/\s+/g," ").trim();
- return (t+"||"+o).replace(/[^a-z0-9|]+/g,"");
+ if(!t&&!o)return "";\n return (t+"||"+o).replace(/[^a-z0-9|]+/g,"");
 }
 function duplicateCounts(){
  const counts={};
