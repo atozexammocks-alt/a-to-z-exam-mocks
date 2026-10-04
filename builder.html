@@ -1,375 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>A to Z Exam Mocks - Test Builder Studio</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>A to Z Exam Mocks — Test Builder</title>
+<link rel="icon" href="./icon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},svg:{fontCache:'global'}};
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#060911;color:#f8fafc}
+button,input,select{font:inherit}button{cursor:pointer}
+body{display:flex;flex-direction:column;overflow:hidden}
+#navbar{height:58px;flex:0 0 58px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:10px}
+.brand{display:flex;align-items:center;gap:8px;color:#38bdf8;text-decoration:none;font-weight:800;white-space:nowrap}.brand img{width:34px;height:34px;object-fit:contain}
+.navtabs{display:flex;align-items:center;gap:6px}.navbtn,.libtab,.toolbtn{border:1px solid #334155;background:#0f172a;color:#cbd5e1;border-radius:7px;padding:7px 11px;font-size:11px;font-weight:750}
+.navbtn:hover,.libtab:hover,.toolbtn:hover{border-color:#38bdf8;color:#fff}.libtabs{display:flex;gap:5px;align-items:center;flex:1;justify-content:center}.libtab.active{background:#2563eb;border-color:#38bdf8;color:#fff}
+#status{position:absolute;left:16px;top:61px;font-size:9px;color:#64748b;z-index:2;pointer-events:none}
+#folderbar{height:46px;flex:0 0 46px;background:#090d16;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:7px;padding:6px 12px;overflow-x:auto}
+.chip{white-space:nowrap;border:1px solid #334155;background:#0f172a;color:#cbd5e1;border-radius:18px;padding:5px 11px;font-size:11px;font-weight:700}.chip.active{background:#0284c7;border-color:#38bdf8;color:#fff}
+#layout{min-height:0;flex:1;display:grid;grid-template-columns:250px minmax(0,1fr) 315px}
+#tree{min-width:0;background:#090d16;border-right:1px solid #1e293b;overflow:auto;padding:8px}.tree-title{padding:6px 8px;color:#94a3b8;font-size:10px;font-weight:800;text-transform:uppercase;display:flex;justify-content:space-between}
+.treebtn{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;border:1px solid transparent;background:transparent;color:#cbd5e1;border-radius:6px;padding:7px 8px;font-size:11px;font-weight:700}.treebtn:hover{background:#0f172a;border-color:#334155}.treebtn.active{background:#2563eb;color:#fff}.treechildren{padding-left:13px}.twisty{width:18px;display:inline-block;color:#64748b}.treeleft{display:flex;align-items:center;min-width:0;gap:3px}.treename{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#main{min-width:0;min-height:0;display:flex;flex-direction:column}
+#topbar{min-height:48px;background:#0b1120;border-bottom:1px solid #1e293b;padding:7px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+#filtertitle{font-size:12px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#count{color:#10b981}
+#grid{min-height:0;flex:1;overflow:auto;padding:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start}
+.card{background:#0b1120;border:1px solid #1e293b;border-radius:9px;padding:10px;min-width:0;cursor:pointer}.card.selected{border-color:#10b981;box-shadow:0 0 0 1px #10b98133}.cardhead{display:flex;justify-content:space-between;align-items:center;color:#94a3b8;font-size:10px;font-weight:800}.actions{display:flex;gap:5px;align-items:center}.eye{width:28px;height:26px;border:1px solid #3b82f6;background:#1e3a8a;color:#bfdbfe;border-radius:5px}.qtext{font-size:12px;line-height:1.5;color:#f8fafc;white-space:pre-wrap;margin-top:7px;max-height:105px;overflow:hidden}.qimg{height:110px;margin-top:7px;background:#fff;border-radius:5px;display:flex;align-items:center;justify-content:center;overflow:hidden}.qimg img{max-width:100%;max-height:100%;object-fit:contain}
+#controls{background:#0b1120;border-left:1px solid #1e293b;padding:12px;overflow:auto}.box{background:#060911;border:1px solid #1e293b;border-radius:8px;padding:10px;margin-bottom:10px}.box label{display:block;color:#94a3b8;font-size:10px;font-weight:750;margin:0 0 4px}.box input,.box select{width:100%;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:6px;padding:7px;font-size:11px;margin-bottom:8px}.twocol{display:grid;grid-template-columns:1fr 1fr;gap:7px}.publish{width:100%;border:0;border-radius:8px;background:#10b981;color:#fff;padding:11px;font-size:13px;font-weight:850}.publish:hover{background:#059669}.selectedcount{color:#10b981;font-size:10px;font-weight:800}
+#empty{grid-column:1/-1;padding:50px 15px;text-align:center;color:#64748b}
+#toast{position:fixed;right:18px;bottom:18px;background:#10b981;color:#fff;padding:10px 14px;border-radius:8px;font-size:12px;font-weight:800;display:none;z-index:99999}
+#loading{position:fixed;inset:0;background:#060911dd;display:none;align-items:center;justify-content:center;z-index:99998}.loaderbox{background:#0b1120;border:1px solid #334155;border-radius:12px;padding:22px;text-align:center}.spin{width:34px;height:34px;border:4px solid #334155;border-top-color:#38bdf8;border-radius:50%;animation:spin .8s linear infinite;margin:auto auto 10px}@keyframes spin{to{transform:rotate(360deg)}}
+.modal{position:fixed;inset:0;background:#000c;display:none;align-items:center;justify-content:center;padding:15px;z-index:99990}.modalbox{width:min(950px,96vw);max-height:92vh;background:#0b1120;border:2px solid #38bdf8;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}.preview{background:#fff;color:#111;border-radius:7px;padding:18px;overflow:auto;min-height:160px}.preview img{max-width:100%;height:auto;display:block;margin:auto}
+@media(max-width:900px){#layout{grid-template-columns:190px minmax(0,1fr)}#controls{display:none}#grid{grid-template-columns:1fr}.libtabs{justify-content:flex-start;overflow:auto}.brand span{display:none}}
+@media(max-width:650px){#navbar{height:54px;flex-basis:54px;padding:0 8px}.navbtn{font-size:0;padding:7px}.navbtn:first-child:before{content:'🏠';font-size:14px}.libtab{padding:6px 8px}#folderbar{height:42px;flex-basis:42px}#layout{grid-template-columns:1fr}#tree{display:none}#topbar{padding:6px 8px}.toolbtn{padding:7px 9px}}
+</style>
+</head>
+<body>
+<header id="navbar">
+<a class="brand" href="teacher.html"><img id="brandlogo" src="./icon.png"><span>A to Z Exam Mocks</span></a>
+<div class="libtabs">
+<button class="libtab active" data-mode="private" onclick="setMode('private')">🔒 Private</button>
+<button class="libtab" data-mode="central" onclick="setMode('central')">🏛 Central</button>
+<button class="libtab" data-mode="group" onclick="setMode('group')">👥 Group</button>
+</div>
+<div class="navtabs"><a class="navbtn" href="teacher.html">🏠 Dashboard</a></div>
+</header>
+<div id="status">Starting Firebase…</div>
+<div id="folderbar"></div>
+<div id="layout">
+<aside id="tree"><div class="tree-title"><span>Books & Sections</span><span id="treecount">0 Qs</span></div><div id="treebody"></div></aside>
+<main id="main">
+<div id="topbar"><div id="filtertitle">All Books & Sections (<span id="count">0</span> Questions)</div><button class="toolbtn" onclick="selectVisible()">Select / Deselect Visible</button></div>
+<div id="grid"></div>
+</main>
+<aside id="controls">
+<div class="box">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="color:#38bdf8;font-size:14px">Publish Mock Test</b><span id="selectedcount" class="selectedcount">0 Selected</span></div>
+<label>Test Title</label><input id="test-title" value="Practice Test 1">
+<div class="twocol"><div><label>Time (min)</label><input id="test-time" type="number" value="60"></div><div><label>Total Marks</label><input id="test-marks" type="number" value="100"></div></div>
+<label>Price (₹) — 0 = Free</label><input id="test-price" type="number" min="0" value="0">
+<button class="toolbtn" style="width:100%;margin-bottom:7px;background:#7c3aed;color:#fff" onclick="openBlueprint()">📋 Paper Pattern / Blueprint</button>
+<button class="toolbtn" style="width:100%;margin-bottom:7px;background:#0284c7;color:#fff" onclick="printSelected()">🖨️ Print / PDF</button>
+<button class="publish" onclick="publishTest()">🚀 Publish Test</button>
+</div>
+<div class="box"><b style="font-size:11px;color:#94a3b8">Selection</b><div style="font-size:10px;color:#64748b;margin-top:5px">Selected questions are kept in LocalStorage for Paper Designer.</div></div>
+</aside>
+</div>
+<div id="toast"></div>
+<div id="loading"><div class="loaderbox"><div class="spin"></div><b>Loading questions…</b><div id="loadmsg" style="font-size:10px;color:#94a3b8;margin-top:5px">Connecting to Firebase</div></div></div>
+<div id="previewModal" class="modal"><div class="modalbox"><div style="display:flex;justify-content:space-between;align-items:center"><b style="color:#38bdf8">👁 Full Question</b><button class="toolbtn" onclick="closePreview()">✕ Close</button></div><div id="previewBody" class="preview"></div></div></div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
-      authDomain: "physicsvault-80a10.firebaseapp.com",
-      projectId: "physicsvault-80a10",
-      storageBucket: "physicsvault-80a10.firebasestorage.app",
-      messagingSenderId: "1043166507399",
-      appId: "1:1043166507399:web:634efdac6f109273d42322"
-    };
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {getFirestore,collection,getDocs,doc,getDoc,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    window.db = getFirestore(app);
-    window.auth = getAuth(app);
-    window.signInAnonymously = signInAnonymously;
-    window.builderAuthReady = signInAnonymously(window.auth).catch(e => { console.warn("Builder auth unavailable:", e); return null; });
-    window.addDoc = addDoc; window.collection = collection; window.getDocs = getDocs; 
-    window.setDoc = setDoc; window.getDoc = getDoc; window.doc = doc; window.deleteDoc = deleteDoc; window.updateDoc = updateDoc;
+const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+let mode="private",allQuestions=[],visible=[],selected=new Set(),mainFilter="ALL",sectionFilter="ALL",treeData={},openNodes=new Set();
+const email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
+const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+const path=v=>String(v??"").replace(/\\/g,"/").split("/").map(x=>x.trim()).filter(Boolean).join(" / ");
+function qPath(q){return path(q.folderPath||q.path||q.libraryPath||((q.folder||q.subject||q.folderName||"")+(q.subfolder||q.subFolder||q.topicPath?"/"+(q.subfolder||q.subFolder||q.topicPath):"")));}
+function qText(q){return q.qText||q.questionText||q.text||q.questionTextHtml||q.prompt||"";}
+function qImage(q){const vals=[q.questionImage,q.image,q.img,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image];return vals.map(v=>String(v||"").trim()).find(v=>/^data:image\\//i.test(v)||/^https?:\\/\\//i.test(v))||"";}
+function libraryMode(q){const lm=String(q.libraryMode||q.targetLibrary||q.libraryType||"").toLowerCase();if(q.central===true||q.isCentral===true||lm==="central"||lm.includes("central"))return"central";if(q.group===true||lm==="group"||lm.includes("group"))return"group";return"private";}
+function math(v){let s=String(v??"");s=s.replace(/\\b(?:SQRT|sqrt)\\s*\\(\\s*([^()]+)\\s*\\)/g,"\\\\sqrt{$1}");s=s.replace(/\\b(?:SQRT|sqrt)\\s+([A-Za-z0-9.+-]+)/g,"\\\\sqrt{$1}");return esc(s).replace(/\\n/g,"<br>");}
+async function start(){
+ document.getElementById("brandlogo").src=localStorage.getItem("ExamVault_Logo_URL")||"./icon.png";
+ document.getElementById("loading").style.display="flex";
+ try{
+   try{await signInAnonymously(auth)}catch(e){console.warn("Anonymous auth:",e)}
+   const snap=await getDocs(collection(db,"questions"));
+   allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
+   document.getElementById("status").textContent="Firebase connected • "+allQuestions.length+" total questions";
+   await loadFolderConfig();
+   applyMode();
+ }catch(e){
+   console.error(e);
+   document.getElementById("status").textContent="Firebase error: "+(e.code||e.message||e);
+   render();
+ }finally{document.getElementById("loading").style.display="none"}
+}
+async function loadFolderConfig(){
+ try{
+   let p="",id="";
+   if(mode==="private"){p="folder_configs_private";id=(email()||"").replace(/[^a-zA-Z0-9]/g,"_")}
+   if(mode==="central"){p="folder_configs_central";id="global_central_tree"}
+   if(mode==="group"){p="folder_configs_group";id=(email()||"").replace(/[^a-zA-Z0-9]/g,"_")+"_group"}
+   if(!p)return;
+   const s=await getDoc(doc(db,p,id)); if(!s.exists())return;
+   const d=s.data()||{}; const roots=Array.isArray(d.libraryTree)?d.libraryTree:[];
+   if(roots.length) roots.forEach(r=>mergeTree(r.name,r.children||[]));
+   else if(Array.isArray(d.mainFolders)) d.mainFolders.forEach(r=>mergeTree(r,(d.subFolders&&d.subFolders[r])||[]));
+ }catch(e){console.warn("Folder config unavailable:",e)}
+}
+function mergeTree(root,children){
+ if(!root)return; const r=String(root).trim(); if(!r)return;
+ treeData[r]=treeData[r]||{};
+ (children||[]).forEach(c=>{const n=typeof c==="string"?c:c.name;if(n)treeData[r][String(n).trim()]=treeData[r][String(n).trim()]||{}})
+}
+function rebuildTreeFromQuestions(){
+ allQuestions.filter(q=>libraryMode(q)===mode).forEach(q=>{const p=qPath(q);if(!p)return;const a=p.split(" / ");const r=a.shift();if(!r)return;treeData[r]=treeData[r]||{};let node=treeData[r];a.forEach(x=>{node[x]=node[x]||{};node=node[x]})});
+}
+function applyMode(){
+ mode=mode||"private"; mainFilter="ALL";sectionFilter="ALL";treeData={};
+ loadFolderConfig().finally(()=>{rebuildTreeFromQuestions();visible=allQuestions.filter(q=>libraryMode(q)===mode);if(mode==="private"&&!visible.length&&allQuestions.length)visible=allQuestions.slice();selected=new Set([...selected].filter(id=>visible.some(q=>q.id===id)));render()});
+ document.querySelectorAll(".libtab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
+}
+window.setMode=function(m){mode=m;applyMode()};
+function folderMatch(q,target){const a=qPath(q),b=path(target);return !!a&&!!b&&(a===b||a.startsWith(b+" / "))}
 
-    let activeBuilderLibraryMode = 'private'; // 'private', 'central', 'group'
-    let libraryTree = [];
-    let mainFolders = [];
-    let subFolders = {};
-    let cloudVault = [], selectedIds = [];
-    let activeBuilderMain = 'ALL', activeBuilderSub = 'ALL';
-    let adminPlatformSharePercent = 10;
-    let cachedFilteredList = [];
-    let currentPrintType = 'qp';
-    let previewQuestionId = null;
-
-    const teacherEmailKey = () => (window.currentTeacherEmail || localStorage.getItem('ExamVault_Teacher_Email') || '').trim().toLowerCase();
-    const teacherDocId = email => (email || '').replace(/[^a-zA-Z0-9]/g, '_');
-
-    window.switchBuilderLibraryMode = async function(mode) {
-      activeBuilderLibraryMode = mode;
-      activeBuilderMain = 'ALL';
-      activeBuilderSub = 'ALL';
-
-      document.querySelectorAll('.nav-inline-tab').forEach(t => t.classList.remove('active'));
-      document.getElementById(`nav-lib-tab-${mode}`)?.classList.add('active');
-
-      await loadLibraryState();
-      await initBuilderStudio();
-    };
-
-    window.loadLibraryState = async function() {
-      try {
-        const email = teacherEmailKey();
-        let docRefPath = "", docId = "";
-
-        if (activeBuilderLibraryMode === 'private') {
-          docRefPath = "folder_configs_private";
-          docId = teacherDocId(email);
-        } else if (activeBuilderLibraryMode === 'central') {
-          docRefPath = "folder_configs_central";
-          docId = "global_central_tree";
-        } else if (activeBuilderLibraryMode === 'group') {
-          docRefPath = "folder_configs_group";
-          docId = teacherDocId(email) + "_group";
-        }
-
-        const ref = window.doc(window.db, docRefPath, docId);
-        const snap = await window.getDoc(ref);
-        const data = snap.exists() ? snap.data() : {};
-        libraryTree = legacyTreeFromConfig(data);
-        mainFolders = libraryTree.map(n => String(n.name || '').trim()).filter(Boolean);
-        subFolders = {};
-
-        const collect = (nodes, root, rel = []) => {
-          (nodes || []).forEach(n => {
-            const name = String(n.name || '').trim(); if(!name) return;
-            const next = rel.concat(name);
-            subFolders[root] = subFolders[root] || [];
-            subFolders[root].push(next.join(' / '));
-            collect(n.children || [], root, next);
-          });
-        };
-        libraryTree.forEach(root => collect(root.children || [], String(root.name || '').trim(), []));
-        if(data.platformSharePercent) adminPlatformSharePercent = data.platformSharePercent;
-      } catch(e) { console.error('Library load failed:', e); }
-    };
-
-    function normalizeFolderPath(v){return String(v||'').replace(/\\/g,'/').split('/').map(x=>x.trim()).filter(Boolean).join(' / ');}
-    function getQuestionFolderPath(q){
-      if(!q) return '';
-      const explicit=normalizeFolderPath(q.folderPath||q.path||q.libraryPath||'');
-      if(explicit) return explicit;
-      const root=normalizeFolderPath(q.folder||q.subject||q.folderName||'');
-      const sub=normalizeFolderPath(q.subfolder||q.subFolder||q.topicPath||'');
-      return sub ? (root ? root+' / '+sub : sub) : root;
-    }
-    function legacyTreeFromConfig(data){
-      if(Array.isArray(data?.libraryTree) && data.libraryTree.length) return data.libraryTree;
-      const mains=Array.isArray(data?.mainFolders)?data.mainFolders:[];
-      const subs=data?.subFolders && typeof data.subFolders==='object'?data.subFolders:{};
-      return mains.map(name=>({name:String(name).trim(),children:(Array.isArray(subs[name])?subs[name]:[]).map(s=>({name:String(s).trim(),children:[]}))})).filter(n=>n.name);
-    }
-    function questionImage(q){const vals=[q.questionImage,q.image,q.img,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image,q.question];return vals.map(v=>String(v||'').trim()).find(v=>/^data:image\//i.test(v)||/^https?:\/\//i.test(v))||'';}
-    
-    function normalizeMathSource(v){
-      let s=String(v??'');
-      s=s.replace(/\\b(?:SQRT|sqrt)\s*\(\s*([^()]+)\s*\)/g, '\\\\sqrt{$1}');
-      s=s.replace(/\\b(?:SQRT|sqrt)\s+([A-Za-z0-9.+-]+)/g, '\\\\sqrt{$1}');
-      return s;
-    }
-    function builderMathHtml(v){return builderEscape(normalizeMathSource(v)).replace(/\\n/g,'<br>');}
-    function folderMatchesQuestion(q,target){const a=normalizeFolderPath(getQuestionFolderPath(q)),b=normalizeFolderPath(target);if(!a||!b)return false;if(a===b||a.startsWith(b+' / '))return true;const parts=b.split(' / ');const leaf=parts[parts.length-1];return parts.length>1 && a===leaf;}
-
-    window.initBuilderStudio = async function() {
-      const status=document.getElementById('builder-load-status');
-      if(status) status.textContent='Connecting to Firestore questions collection...';
-      const tabsCont = document.getElementById('navbar-inline-tabs');
-      if (tabsCont && !tabsCont.innerHTML) {
-        tabsCont.innerHTML = `
-          <button class="nav-inline-tab active" id="nav-lib-tab-private" onclick="window.switchBuilderLibraryMode('private')"><i class="fa-solid fa-lock"></i> Private</button>
-          <button class="nav-inline-tab" id="nav-lib-tab-central" onclick="window.switchBuilderLibraryMode('central')"><i class="fa-solid fa-landmark"></i> Central</button>
-          <button class="nav-inline-tab" id="nav-lib-tab-group" onclick="window.switchBuilderLibraryMode('group')"><i class="fa-solid fa-users"></i> Group</button>
-        `;
-      }
-
-      try {
-        if(window.builderAuthReady) await window.builderAuthReady;
-        if(!window.auth?.currentUser){
-          try { await window.signInAnonymously?.(window.auth); } catch(_){}
-        }
-        const snap=await window.getDocs(window.collection(window.db,'questions'));
-        const allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
-        
-        const isCentralQuestion = q =>
-          q?.central === true || q?.isCentral === true ||
-          String(q?.libraryMode || '').trim().toLowerCase() === 'central' ||
-          String(q?.targetLibrary || '').trim().toLowerCase() === 'central';
-        
-        const isGroupQuestion = q =>
-          q?.group === true ||
-          String(q?.libraryMode || '').trim().toLowerCase() === 'group' ||
-          String(q?.targetLibrary || '').trim().toLowerCase() === 'group';
-
-        if(activeBuilderLibraryMode === 'central') {
-          cloudVault = allQuestions.filter(q => isCentralQuestion(q));
-        } else if(activeBuilderLibraryMode === 'group') {
-          cloudVault = allQuestions.filter(q => isGroupQuestion(q));
-        } else {
-          cloudVault = allQuestions.filter(q => !isCentralQuestion(q) && !isGroupQuestion(q));
-          if(allQuestions.length && !cloudVault.length) cloudVault = allQuestions.slice();
-        }
-
-        if(status) {
-          status.textContent = `Firebase connected • ${allQuestions.length} total • ${cloudVault.length} visible • ${activeBuilderLibraryMode}`;
-          status.dataset.loaded = '1';
-        }
-        selectedIds=selectedIds.filter(id=>cloudVault.some(q=>q.id===id));
-        localStorage.setItem('AZ_BUILDER_SELECTED_IDS',JSON.stringify(selectedIds));
-        
-        cloudVault.forEach(q=>{
-          const path=normalizeFolderPath(getQuestionFolderPath(q));
-          if(!path)return;
-          const parts=path.split(' / ');
-          const root=parts[0];
-          if(!mainFolders.includes(root))mainFolders.push(root);
-          if(parts.length>1){
-            subFolders[root]=subFolders[root]||[];
-            const rel=parts.slice(1).join(' / ');
-            if(!subFolders[root].includes(rel))subFolders[root].push(rel);
-          }
-        });
-      } catch(e){
-        console.error('Question vault load failed:',e);
-        cloudVault=[];
-        if(status) status.textContent='Firebase load error: '+(e?.message||e);
-      }
-
-      try { renderFilteredQuestions(); } catch(e){}
-      try { renderMainFoldersRow(); renderBuilderSidebarTopics(); } catch(e){}
-      try { updateRevenueSplit(); } catch(e){}
-    };
-
-    function renderMainFoldersRow() {
-      const rowEl = document.getElementById('main-folders-row');
-      if (!rowEl) return;
-      rowEl.innerHTML = '';
-
-      const allBtn = document.createElement('button');
-      allBtn.className = `main-folder-chip ${activeBuilderMain === 'ALL' ? 'active' : ''}`;
-      allBtn.innerHTML = `<i class="fa-solid fa-folder-open"></i> All Folders`;
-      allBtn.onclick = () => { activeBuilderMain = 'ALL'; activeBuilderSub = 'ALL'; renderMainFoldersRow(); renderBuilderSidebarTopics(); renderFilteredQuestions(); };
-      rowEl.appendChild(allBtn);
-
-      mainFolders.forEach(main => {
-        const btn = document.createElement('button');
-        btn.className = `main-folder-chip ${activeBuilderMain === main ? 'active' : ''}`;
-        btn.innerHTML = `<i class="fa-solid fa-folder"></i> ${main}`;
-        btn.onclick = () => { activeBuilderMain = main; activeBuilderSub = 'ALL'; renderMainFoldersRow(); renderBuilderSidebarTopics(); renderFilteredQuestions(); };
-        rowEl.appendChild(btn);
-      });
-    }
-
-    function renderBuilderSidebarTopics() {
-      const listEl = document.getElementById('builder-topics-list');
-      if (!listEl) return;
-      listEl.innerHTML = '';
-
-      let availableSubs = [];
-      if (activeBuilderMain === 'ALL') {
-        Object.values(subFolders).forEach(arr => availableSubs.push(...arr));
-      } else {
-        availableSubs = subFolders[activeBuilderMain] || [];
-      }
-
-      const allSubBtn = document.createElement('button');
-      allSubBtn.className = `nav-item-btn ${activeBuilderSub === 'ALL' ? 'active' : ''}`;
-      allSubBtn.innerHTML = `<span><i class="fa-solid fa-layer-group"></i> All Sections</span><span>${cloudVault.length}</span>`;
-      allSubBtn.onclick = () => { activeBuilderSub = 'ALL'; renderBuilderSidebarTopics(); renderFilteredQuestions(); };
-      listEl.appendChild(allSubBtn);
-
-      availableSubs.forEach(fullSub => {
-        const subName = fullSub.split(" / ").pop();
-        const count = cloudVault.filter(q => folderMatchesQuestion(q, fullSub)).length;
-        const subBtn = document.createElement('button');
-        subBtn.className = `nav-item-btn ${activeBuilderSub === fullSub ? 'active' : ''}`;
-        subBtn.innerHTML = `<span>↳ ${subName}</span><span>${count}</span>`;
-        subBtn.onclick = () => { activeBuilderSub = fullSub; renderBuilderSidebarTopics(); renderFilteredQuestions(); };
-        listEl.appendChild(subBtn);
-      });
-
-      document.getElementById('total-vault-count-badge').textContent = cloudVault.length + " Qs";
-      if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
-        window.MathJax.typesetPromise().catch(() => {});
-      }
-    }
-
-    function builderEscape(v){ return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-    
-    function renderFilteredQuestions() {
-      const grid = document.getElementById('question-card-grid');
-      if (!grid) return;
-      grid.innerHTML = '';
-
-      let list = Array.isArray(cloudVault) ? cloudVault.slice() : [];
-      if(activeBuilderMain!=='ALL'){const root=normalizeFolderPath(activeBuilderMain);list=list.filter(q=>folderMatchesQuestion(q,root));}
-      if(activeBuilderSub!=='ALL'){const target=normalizeFolderPath(activeBuilderSub);list=list.filter(q=>folderMatchesQuestion(q,target));}
-      cachedFilteredList = list;
-
-      const crumb=document.getElementById('crumb-bank-name');
-      const badge=document.getElementById('filtered-count-badge');
-      if(crumb) crumb.textContent = activeBuilderSub === 'ALL' ? (activeBuilderMain === 'ALL' ? 'All Books & Sections' : activeBuilderMain) : activeBuilderSub;
-      if(badge) badge.textContent = list.length;
-
-      if (!list.length) {
-        grid.innerHTML = `<div style="grid-column:1/-1; padding:40px; text-align:center; color:#64748b;">No questions available in this section.</div>`;
-        return;
-      }
-
-      list.forEach((q, idx) => {
-        const isSel = selectedIds.includes(q.id);
-        const card = document.createElement('div');
-        card.className = `q-visual-card ${isSel ? 'selected' : ''}`;
-        const qTextVal = q.qText || q.questionText || q.text || '';
-        card.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; font-weight:800; color:#94a3b8;">
-            <span>Q${idx+1}${q.qNo && String(q.qNo)!==String(idx+1) ? ' <small style="font-weight:700;color:#64748b;">(Source '+builderEscape(q.qNo)+')</small>' : ''}</span>
-            <div class="q-card-actions">
-              ${qTextVal || questionImage(q) ? `<button type="button" class="q-eye-btn" title="Full view" onclick="event.stopPropagation(); window.previewQuestion('${q.id}')"><i class="fa-solid fa-eye"></i></button>` : ''}
-              <input type="checkbox" ${isSel ? 'checked' : ''} onchange="event.stopPropagation(); window.toggleSelectQ('${q.id}')" style="width:16px; height:16px; accent-color:#10b981; cursor:pointer;">
-            </div>
-          </div>
-          ${questionImage(q) ? `<div class="q-img-holder"><img src="${builderEscape(questionImage(q))}" alt="Question image"></div>` : ''}
-          ${qTextVal ? `<div class="q-builder-text" style="font-size:12px; color:#f8fafc; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical;">${builderMathHtml(qTextVal)}</div>` : ''}
-        `;
-        card.onclick = (e) => { if(e.target.tagName !== 'INPUT') window.toggleSelectQ(q.id); };
-        grid.appendChild(card);
-      });
-
-      if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
-        window.MathJax.typesetPromise([grid]).catch(() => {});
-      }
-    }
-
-    window.toggleSelectQ = function(id) {
-      if (selectedIds.includes(id)) {
-        selectedIds = selectedIds.filter(i => i !== id);
-      } else {
-        selectedIds.push(id);
-      }
-      localStorage.setItem('AZ_BUILDER_SELECTED_IDS', JSON.stringify(selectedIds));
-      renderFilteredQuestions();
-      document.getElementById('assembler-count-right').textContent = selectedIds.length + " Selected";
-    };
-
-    window.toggleSelectAllVisible = function() {
-      const allIds = cachedFilteredList.map(q => q.id);
-      const allSelected = allIds.every(id => selectedIds.includes(id));
-      if (allSelected) {
-        selectedIds = selectedIds.filter(id => !allIds.includes(id));
-      } else {
-        allIds.forEach(id => { if (!selectedIds.includes(id)) selectedIds.push(id); });
-      }
-      localStorage.setItem('AZ_BUILDER_SELECTED_IDS', JSON.stringify(selectedIds));
-      renderFilteredQuestions();
-      document.getElementById('assembler-count-right').textContent = selectedIds.length + " Selected";
-    };
-
-    window.updateRevenueSplit = function() {
-      const price = parseFloat(document.getElementById('test-price')?.value || 0);
-      const adminShare = (price * adminPlatformSharePercent) / 100;
-      const teacherShare = price - adminShare;
-      document.getElementById('split-price').textContent = '₹' + price;
-      document.getElementById('admin-share-label').textContent = adminPlatformSharePercent;
-      document.getElementById('split-panel').textContent = '₹' + adminShare.toFixed(1);
-      document.getElementById('split-teacher').textContent = '₹' + teacherShare.toFixed(1);
-    };
-
-    window.publishOnlineMockTest = async function() {
-      if (selectedIds.length === 0) return alert("कृपया टेस्ट पब्लिश करने के लिए कम से कम एक प्रश्न चुनें!");
-      const title = document.getElementById('test-title').value.trim() || "Mock Test";
-      document.getElementById('loading-overlay').style.display = 'flex';
-
-      try {
-        const testObj = {
-          title: title,
-          timeMinutes: parseInt(document.getElementById('test-time').value) || 60,
-          totalMarks: parseInt(document.getElementById('test-marks').value) || 100,
-          price: parseFloat(document.getElementById('test-price').value) || 0,
-          questionIds: selectedIds,
-          creatorEmail: teacherEmailKey(),
-          libraryMode: activeBuilderLibraryMode,
-          folderPath: activeBuilderSub !== 'ALL' ? activeBuilderSub : (activeBuilderMain !== 'ALL' ? activeBuilderMain : ''),
-          rules: { noReturn: !!document.getElementById('rule-no-return')?.checked, minTimerLock: !!document.getElementById('rule-min-timer')?.checked },
-          createdAt: new Date().toISOString()
-        };
-        await window.addDoc(window.collection(window.db, "published_tests"), testObj);
-        document.getElementById('loading-overlay').style.display = 'none';
-        showToast("🚀 Test Published Successfully!");
-        setTimeout(() => { window.location.href = 'public_tests.html'; }, 1500);
-      } catch (err) {
-        document.getElementById('loading-overlay').style.display = 'none';
-        alert("पब्लिश करने में विफल: " + err.message);
-      }
-    };
-
-    window.openPrintModal = function(type) {
-      if (selectedIds.length === 0) return alert("कृपया प्रिंट के लिए प्रश्न चुनें!");
-      currentPrintType = type;
-      document.getElementById('print-modal-overlay').style.display = 'flex';
-    };
-
-    window.previewQuestion = function(id) {
-      const q = cloudVault.find(x => x.id === id);
-      if (!q) return;
-      previewQuestionId = id;
-      const body = document.getElementById('question-preview-body');
-      const title = document.getElementById('question-preview-title');
-      if (title) title.textContent = `👁️ Full Question View — Q${q.qNo || ''}`;
-      const qTextVal = q.qText || q.questionText || q.text || '';
-      if (body) {
-        body.innerHTML = `
-          <div style="width:100%;">
-            ${qTextVal ? `<div class="question-preview-text">${builderMathHtml(qTextVal)}</div>` : ''}
-            ${questionImage(q) ? `<img src="${builderEscape(questionImage(q))}" alt="Full Question Image">` : ''}
-          </div>`;
-      }
-      document.getElementById('question-preview-overlay').style.display = 'flex';
-      if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') window.MathJax.typesetPromise([body]).catch(()=
+function render(){
+ renderFolderBar();renderTree();renderCards();
+ document.getElementById("selectedcount").textContent=selected.size+" Selected";
+ document.getElementById("treecount").textContent=visible.length+" Qs";
+}
+function renderFolderBar(){
+ const el=document.getElementById("folderbar");el.innerHTML="";
+ const b=document.createElement("button");b.className="chip "+(mainFilter==="ALL"?"active":"");b.textContent="All Folders";b.onclick=()=>{mainFilter="ALL";sectionFilter="ALL";render()};el.appendChild(b);
+ Object.keys(treeData).sort().forEach(r=>{const x=document.createElement("button");x.className="chip "+(mainFilter===r?"active":"");x.textContent="📁 "+r;x.onclick=()=>{mainFilter=r;sectionFilter="ALL";render()};el.appendChild(x)});
+}
+function renderTree(){
+ const el=document.getElementById("treebody");el.innerHTML="";
+ const all=document.createElement("button");all.className="treebtn "+(sectionFilter==="ALL"&&mainFilter==="ALL"?"active":"");all.innerHTML='<span class="treeleft">📚 <span class="treename">All Questions</span></span><span>'+visible.length+'</span>';all.onclick=()=>{mainFilter="ALL";sectionFilter="ALL";render()};el.appendChild(all);
+ Object.keys(treeData).sort().forEach(root=>{
+   const rootWrap=document.createElement("div");
+   const rootBtn=document.createElement("button");rootBtn.className="treebtn "+(mainFilter===root&&sectionFilter==="ALL"?"active":"");
+   const has=Object.keys(treeData[root]).length>0; const open=openNodes.has(root);
+   rootBtn.innerHTML='<span class="treeleft"><span class="twisty">'+(has?(open?"▾":"▸"):"")+'</span>📁 <span class="treename">'+esc(root)+'</span></span><span>'+visible.filter(q=>folderMatch(q,root)).length+'</span>';
+   rootBtn.onclick=()=>{mainFilter=root;sectionFilter="ALL";if(has)openNodes.has(root)?openNodes.delete(root):openNodes.add(root);render()};
+   rootWrap.appendChild(rootBtn);
+   if(open){const kids=document.createElement("div");kids.className="treechildren";Object.keys(treeData[root]).sort().forEach(sec=>{const btn=document.createElement("button");btn.className="treebtn "+(sectionFilter===root+" / "+sec?"active":"");btn.innerHTML='<span class="treeleft">↳ <span class="treename">'+esc(sec)+'</span></span><span>'+visible.filter(q=>folderMatch(q,root+" / "+sec)).length+'</span>';btn.onclick=()=>{mainFilter=root;sectionFilter=root+" / "+sec;render()};kids.appendChild(btn)});rootWrap.appendChild(kids)}
+   el.appendChild(rootWrap);
+ });
+}
+function filtered(){
+ let list=visible.slice();if(mainFilter!=="ALL")list=list.filter(q=>folderMatch(q,mainFilter));if(sectionFilter!=="ALL")list=list.filter(q=>folderMatch(q,sectionFilter));return list
+}
+function renderCards(){
+ const grid=document.getElementById("grid"),list=filtered();grid.innerHTML="";
+ document.getElementById("count").textContent=list.length;
+ document.getElementById("filtertitle").innerHTML=esc(sectionFilter!=="ALL"?sectionFilter:(mainFilter!=="ALL"?mainFilter:"All Books & Sections"))+' (<span id="count">'+list.length+'</span> Questions)';
+ if(!list.length){grid.innerHTML='<div id="empty">No questions in this view.<br><small>Firebase questions: '+visible.length+'</small></div>';return}
+ list.forEach((q,i)=>{
+   const card=document.createElement("div");card.className="card "+(selected.has(q.id)?"selected":"");
+   const txt=qText(q),img=qImage(q);
+   card.innerHTML='<div class="cardhead"><span>Q'+(i+1)+(q.qNo&&String(q.qNo)!==String(i+1)?' <small>(Source '+esc(q.qNo)+')</small>':'')+'</span><span class="actions">'+(txt||img?'<button class="eye" type="button">👁</button>':'')+'<input type="checkbox" '+(selected.has(q.id)?"checked":"")+'></span></div>'+(img?'<div class="qimg"><img src="'+esc(img)+'"></div>':'')+(txt?'<div class="qtext">'+math(txt)+'</div>':'<div class="qtext" style="color:#64748b">Image question</div>');
+   card.querySelector("input").onclick=e=>{e.stopPropagation();toggle(q.id)};const eye=card.querySelector(".eye");if(eye)eye.onclick=e=>{e.stopPropagation();preview(q.id)};card.onclick=()=>toggle(q.id);grid.appendChild(card)
+ });
+ if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([grid]).catch(()=>{});
+}
+function toggle(id){selected.has(id)?selected.delete(id):selected.add(id);localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...selected]));renderCards();document.getElementById("selectedcount").textContent=selected.size+" Selected"}
+window.selectVisible=function(){const ids=filtered().map(q=>q.id),all=ids.length&&ids.every(id=>selected.has(id));ids.forEach(id=>all?selected.delete(id):selected.add(id));localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...selected]));render()};
+window.openBlueprint=function(){if(!selected.size)return alert("Please select at least one question.");localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...selected]));window.location.href="paper_designer.html"};
+window.printSelected=function(){if(!selected.size)return alert("Please select at least one question.");const qs=allQuestions.filter(q=>selected.has(q.id));const w=window.open("","_blank");if(!w)return;w.document.write("<html><head><title>Question Paper</title><style>body{font-family:Arial;padding:25px}.q{margin-bottom:18px}.opts{margin-top:6px}</style></head><body><h2>A to Z Exam Mocks</h2>");qs.forEach((q,i)=>{w.document.write('<div class="q"><b>Q'+(i+1)+'.</b> '+esc(qText(q)));const opts=q.options||q.choices||[];if(Array.isArray(opts)&&opts.length)w.document.write('<div class="opts">'+opts.map((o,j)=>'('+String.fromCharCode(65+j)+') '+esc(typeof o==="string"?o:(o.text||o.value||""))).join("<br>")+"</div>");w.document.write("</div>")});w.document.write("</body></html>");w.document.close();setTimeout(()=>w.print(),400)}
+window.preview=function(id){const q=allQuestions.find(x=>x.id===id);if(!q)return;const body=document.getElementById("previewBody");body.innerHTML=(qText(q)?'<div style="white-space:pre-wrap;line-height:1.6;margin-bottom:12px">'+math(qText(q))+'</div>':'')+(qImage(q)?'<img src="'+esc(qImage(q))+'">':'');document.getElementById("previewModal").style.display="flex";if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([body]).catch(()=>{})};
+window.closePreview=function(){document.getElementById("previewModal").style.display="none"};
+window.publishTest=async function(){
+ if(!selected.size)return alert("Please select at least one question.");
+ const title=(document.getElementById("test-title").value||"Mock Test").trim();
+ document.getElementById("loading").style.display="flex";document.getElementById("loadmsg").textContent="Publishing test…";
+ try{
+   await addDoc(collection(db,"published_tests"),{title,timeMinutes:Number(document.getElementById("test-time").value)||60,totalMarks:Number(document.getElementById("test-marks").value)||100,price:Number(document.getElementById("test-price").value)||0,questionIds:[...selected],creatorEmail:email(),libraryMode:mode,folderPath:sectionFilter!=="ALL"?sectionFilter:(mainFilter!=="ALL"?mainFilter:""),createdAt:new Date().toISOString()});
+   toast("🚀 Test Published Successfully");setTimeout(()=>location.href="public_tests.html",900);
+ }catch(e){alert("Publish failed: "+(e.code||e.message||e))}finally{document.getElementById("loading").style.display="none"}
+};
+function toast(s){const t=document.getElementById("toast");t.textContent=s;t.style.display="block";setTimeout(()=>t.style.display="none",2200)}
+const saved=JSON.parse(localStorage.getItem("AZ_BUILDER_SELECTED_IDS")||"[]");selected=new Set(Array.isArray(saved)?saved:[]);
+start();
+</script>
+</body>
+</html>
