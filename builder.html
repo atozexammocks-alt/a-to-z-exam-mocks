@@ -10,12 +10,9 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#060911;color:#f8fafc}
-button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:column}.top{height:58px;flex:0 0 58px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:10px;padding:0 14px}.brand{font-weight:900;color:#38bdf8;white-space:nowrap}.top .spacer{flex:1}.pill{font-size:11px;color:#cbd5e1;background:#0f172a;border:1px solid #334155;border-radius:999px;padding:6px 10px}.btn{border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:7px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer}.btn:hover{border-color:#38bdf8}.btn.primary{background:#059669;border-color:#10b981;color:#fff}.btn.blue{background:#2563eb;border-color:#3b82f6;color:#fff}.btn.purple{background:#7c3aed;border-color:#8b5cf6;color:#fff}.btn.red{background:#991b1b;border-color:#ef4444;color:#fff}.modebar{display:flex;gap:8px;align-items:center;padding:9px 12px;background:#090d16;border-bottom:1px solid #1e293b;flex-wrap:wrap}.mode{padding:7px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:900;cursor:pointer}.mode.active{background:#059669;border-color:#10b981;color:#fff}.status{margin-left:auto;font-size:11px;color:#64748b}.workspace{flex:1;min-height:0;min-width:0;width:100%;display:grid;overflow:hidden;grid-template-columns:260px minmax(0,1fr);gap:10px;padding:10px}.panel{min-height:0;background:#0b1120;border:1px solid #1e293b;border-radius:10px;overflow:hidden}.panelhead{padding:10px 12px;border-bottom:1px solid #1e293b;font-size:12px;font-weight:900;color:#38bdf8;display:flex;align-items:center;justify-content:space-between;gap:8px}.tree{overflow:auto;height:calc(100% - 43px);padding:8px}.tree-row{display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;color:#cbd5e1;font-size:11px;cursor:pointer;min-width:0}.tree-toggle{width:18px;height:18px;padding:0;border:0;background:transparent;color:#94a3b8;font-size:13px;line-height:18px;cursor:pointer;flex:0 0 18px}.tree-toggle:hover{color:#fff}.empty-toggle{font-size:9px;color:#475569;text-align:center}.tree-row:hover{background:#0f172a}.tree-row.active{background:rgba(56,189,248,.12);color:#fff}.count{margin-left:auto;color:#64748b;font-size:10px}.main{min-width:0;display:flex;flex-direction:column;overflow:hidden}.toolbar{padding:9px;border-bottom:1px solid #1e293b;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.search{flex:1;min-width:150px;background:#060911;border:1px solid #334155;color:#fff;border-radius:7px;padding:8px 10px;font-size:11px}.questions{padding:10px;overflow-y:auto;overflow-x:hidden;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-content:start}.card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.card.selected{border-color:#10b981;box-shadow:0 0 0 1px rgba(16,185,129,.25)}.qhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.qhead input{width:16px;height:16px}.qtitle{font-size:10px;color:#94a3b8;font-weight:900;text-transform:uppercase;flex:1}.qbody{font-size:14px;line-height:1.65;color:#f8fafc;white-space:pre-wrap;overflow-wrap:anywhere}.qimg{background:#fff;border-radius:7px;border:1px solid #e2e8f0;margin:7px 0;display:flex;justify-content:center;align-items:center;overflow:hidden;cursor:pointer}.qimg img{max-width:100%;max-height:420px;object-fit:contain;display:block}.opts{border-top:1px solid #1e293b;margin-top:8px;padding-top:8px;color:#cbd5e1;font-size:inherit;line-height:inherit;overflow-wrap:anywhere}.dup-tag{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.5);color:#fbbf24;font-size:9px;font-weight:900;white-space:nowrap}.clean-tag{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:#6ee7b7;font-size:9px;font-weight:900;white-space:nowrap}.empty{padding:35px;text-align:center;color:#64748b;grid-column:1/-1}.right{display:none}.rightbody{padding:10px;display:flex;flex-direction:column;gap:10px}.box{border:1px solid #1e293b;border-radius:9px;padding:10px;background:#080d17}.box h4{margin:0 0 8px;font-size:11px;color:#38bdf8}.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}.field{width:100%;background:#060911;color:#fff;border:1px solid #334155;border-radius:6px;padding:7px;font-size:11px}.section{border:1px solid #334155;border-radius:8px;padding:8px;margin-bottom:7px}.section strong{font-size:11px}.section small{color:#64748b}.section .field{margin-top:6px}.section-actions{display:flex;gap:5px;margin-top:6px}.selected-list{max-height:210px;overflow:auto}.selitem{padding:6px;border-bottom:1px solid #172033;font-size:10px;color:#cbd5e1}.print-note{font-size:10px;color:#64748b;line-height:1.5}
+button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:column}.top{height:58px;flex:0 0 58px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:10px;padding:0 14px}.brand{font-weight:900;color:#38bdf8;white-space:nowrap}.top .spacer{flex:1}.pill{font-size:11px;color:#cbd5e1;background:#0f172a;border:1px solid #334155;border-radius:999px;padding:6px 10px}.btn{border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:7px;padding:7px 10px;font-size:11px;font-weight:800;cursor:pointer}.btn:hover{border-color:#38bdf8}.btn.primary{background:#059669;border-color:#10b981;color:#fff}.btn.blue{background:#2563eb;border-color:#3b82f6;color:#fff}.btn.purple{background:#7c3aed;border-color:#8b5cf6;color:#fff}.btn.red{background:#991b1b;border-color:#ef4444;color:#fff}.modebar{display:flex;gap:8px;align-items:center;padding:9px 12px;background:#090d16;border-bottom:1px solid #1e293b;flex-wrap:wrap}.mode{padding:7px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:900;cursor:pointer}.mode.active{background:#059669;border-color:#10b981;color:#fff}.status{margin-left:auto;font-size:11px;color:#64748b}.workspace{flex:1;min-height:0;min-width:0;width:100%;display:grid;overflow:hidden;grid-template-columns:260px minmax(0,1fr) 300px;gap:10px;padding:10px}.panel{min-height:0;background:#0b1120;border:1px solid #1e293b;border-radius:10px;overflow:hidden}.panelhead{padding:10px 12px;border-bottom:1px solid #1e293b;font-size:12px;font-weight:900;color:#38bdf8;display:flex;align-items:center;justify-content:space-between;gap:8px}.tree{overflow:auto;height:calc(100% - 43px);padding:8px}.tree-row{display:flex;align-items:center;gap:5px;padding:5px 6px;border-radius:6px;color:#cbd5e1;font-size:11px;cursor:pointer;min-width:0}.tree-toggle{width:18px;height:18px;padding:0;border:0;background:transparent;color:#94a3b8;font-size:13px;line-height:18px;cursor:pointer;flex:0 0 18px}.tree-toggle:hover{color:#fff}.empty-toggle{font-size:9px;color:#475569;text-align:center}.tree-row:hover{background:#0f172a}.tree-row.active{background:rgba(56,189,248,.12);color:#fff}.count{margin-left:auto;color:#64748b;font-size:10px}.main{min-width:0;display:flex;flex-direction:column;overflow:hidden}.toolbar{padding:9px;border-bottom:1px solid #1e293b;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.search{flex:1;min-width:150px;background:#060911;border:1px solid #334155;color:#fff;border-radius:7px;padding:8px 10px;font-size:11px}.questions{padding:10px;overflow-y:auto;overflow-x:hidden;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-content:start}.card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:10px;min-width:0}.card.selected{border-color:#10b981;box-shadow:0 0 0 1px rgba(16,185,129,.25)}.qhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}.qhead input{width:16px;height:16px}.qtitle{font-size:10px;color:#94a3b8;font-weight:900;text-transform:uppercase;flex:1}.qbody{font-size:14px;line-height:1.65;color:#f8fafc;white-space:pre-wrap;overflow-wrap:anywhere}.qimg{background:#fff;border-radius:7px;border:1px solid #e2e8f0;margin:7px 0;display:flex;justify-content:center;align-items:center;overflow:hidden;cursor:pointer}.qimg img{max-width:100%;max-height:420px;object-fit:contain;display:block}.opts{border-top:1px solid #1e293b;margin-top:8px;padding-top:8px;color:#cbd5e1;font-size:inherit;line-height:inherit;overflow-wrap:anywhere}.dup-tag{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.5);color:#fbbf24;font-size:9px;font-weight:900;white-space:nowrap}.clean-tag{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:#6ee7b7;font-size:9px;font-weight:900;white-space:nowrap}.empty{padding:35px;text-align:center;color:#64748b;grid-column:1/-1}.right{overflow:auto}.rightbody{padding:10px;display:flex;flex-direction:column;gap:10px}.box{border:1px solid #1e293b;border-radius:9px;padding:10px;background:#080d17}.box h4{margin:0 0 8px;font-size:11px;color:#38bdf8}.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.row>*{min-width:0}.field{width:100%;background:#060911;color:#fff;border:1px solid #334155;border-radius:6px;padding:7px;font-size:11px}.section{border:1px solid #334155;border-radius:8px;padding:8px;margin-bottom:7px}.section strong{font-size:11px}.section small{color:#64748b}.section .field{margin-top:6px}.section-actions{display:flex;gap:5px;margin-top:6px}.selected-list{max-height:210px;overflow:auto}.selitem{padding:6px;border-bottom:1px solid #172033;font-size:10px;color:#cbd5e1}.print-note{font-size:10px;color:#64748b;line-height:1.5}
 .paper-font-control{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}.paper-font-control label{font-size:10px;color:#94a3b8;font-weight:800}.paper-font-control input{width:72px;background:#060911;color:#fff;border:1px solid #334155;border-radius:6px;padding:6px;font-size:11px}
 .paper-q-preview{font-size:14px}
-.selection-summary{position:absolute;right:14px;bottom:10px;display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid #334155;border-radius:999px;background:#0f172a;color:#cbd5e1;font-size:11px;font-weight:800}
-.selection-summary strong{min-width:22px;text-align:center;color:#fff;background:#059669;border-radius:999px;padding:2px 7px}
-.modebar{position:relative;padding-right:170px}
 .print-stage{display:none}
 @media print{
   @page{size:A4;margin:16mm}
@@ -71,7 +68,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
   <div class="spacer"></div>
   <div id="userPill" class="pill">Loading…</div>
   <button class="btn" onclick="loadQuestions()">↻ Reload</button>
-  <button id="customizePaperBtn" class="btn blue" onclick="goToPaperDesigner()" disabled title="Select at least one question first">🎨 Customize Your Paper</button>
+  <button class="btn blue" onclick="goToPaperDesigner()">🎨 Customize Your Paper</button>
   <button class="btn purple" onclick="publishNow()">🚀 Publish Now</button>
 </header>
 <div class="modebar no-print">
@@ -93,69 +90,60 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
       <select id="typeFilter" class="field" style="width:130px" onchange="renderQuestions()">
         <option value="ALL">All Types</option><option value="MCQ">MCQ</option><option value="NUMERICAL">Numerical</option><option value="SHORT">Short</option><option value="LONG">Long</option>
       </select>
+      <button class="btn" onclick="selectedToSections()">➜ Add Selected</button>
     </div>
     <div id="questions" class="questions"><div class="empty">Loading Library questions…</div></div>
   </main>
-  <div id="selectionSummary" class="selection-summary" aria-live="polite">
-    <span>Selected Questions</span>
-    <strong id="selectedCountTop">0</strong>
-  </div>
+  <aside class="panel right">
+    <div class="panelhead">⚙ Paper Designer</div>
+    <div class="rightbody">
+      <div class="box">
+        <h4>Selected Questions <span id="selectedCount">(0)</span></h4>
+        <div id="selectedList" class="selected-list"></div>
+      </div>
+      <div class="box">
+        <h4>Print Out</h4>
+        <div class="row">
+          <button class="btn primary" onclick="printPaper('one')">One Column</button>
+          <button class="btn blue" onclick="printPaper('two')">Two Column</button>
+          <button class="btn" onclick="saveBlueprint()">💾 Save Blueprint</button>
+        </div>
+        <div class="paper-font-control">
+          <label>Question Font <input id="globalQuestionFont" type="number" min="10" max="30" value="14" onchange="setGlobalQuestionFont(this.value)"></label>
+          <label>Weight <select id="globalQuestionWeight" class="field" style="width:100px;padding:6px" onchange="setGlobalQuestionWeight(this.value)"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700">Bold</option></select></label>
+          <span class="print-note">Applies to text questions and printed paper.</span>
+        </div>        <div class="print-note" style="margin-top:8px">Questions are read directly from the same Firebase <b>questions</b> collection used by Library. Text, image, options and MathJax/LaTeX are preserved.</div>
+      </div>
+    </div>
+  </aside>
 </div>
 </div>
 
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import {getFirestore,collection,getDocs,addDoc,updateDoc,doc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {getFirestore,collection,getDocs,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app),auth=getAuth(app);
 window.builderAuthReady=null;
 window.ensureBuilderAuth=async function(){
   if(auth.currentUser) return auth.currentUser;
   if(!window.builderAuthReady){
-    window.builderAuthReady=signInAnonymously(auth).catch(e=>{
-      console.warn("Anonymous auth unavailable; continuing like Library:",e);
-      return null;
-    });
+    window.builderAuthReady=signInAnonymously(auth);
   }
-  const cred=await window.builderAuthReady;
-  return cred?.user||auth.currentUser||null;
+  try{
+    const cred=await window.builderAuthReady;
+    if(cred?.user) return cred.user;
+    return auth.currentUser||null;
+  }catch(e){
+    window.builderAuthReady=null;
+    throw e;
+  }
 };
 window.builderDB=db;
 
-const BUILDER_CACHE_DB='AZExamMocksBuilderCache';
-const BUILDER_CACHE_STORE='questions';
-let builderCacheDBPromise=null;
-async function openBuilderCache(){
- if(builderCacheDBPromise)return builderCacheDBPromise;
- builderCacheDBPromise=new Promise(resolve=>{
-  try{
-   const req=indexedDB.open(BUILDER_CACHE_DB,1);
-   req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(BUILDER_CACHE_STORE))db.createObjectStore(BUILDER_CACHE_STORE,{keyPath:'id'});};
-   req.onsuccess=()=>resolve(req.result);req.onerror=()=>resolve(null);
-  }catch(e){resolve(null)}
- });
- return builderCacheDBPromise;
-}
-async function readBuilderCache(){
- const db=await openBuilderCache();if(!db)return[];
- return new Promise(resolve=>{
-  try{
-   const tx=db.transaction(BUILDER_CACHE_STORE,'readonly'),r=tx.objectStore(BUILDER_CACHE_STORE).getAll();
-   r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>resolve([]);
-  }catch(e){resolve([])}
- });
-}
-async function writeBuilderCache(rows){
- const db=await openBuilderCache();if(!db)return;
- try{
-  const tx=db.transaction(BUILDER_CACHE_STORE,'readwrite'),store=tx.objectStore(BUILDER_CACHE_STORE);
-  store.clear();
-  rows.forEach(q=>{if(q?.id!==undefined)store.put(q)});
- }catch(e){console.warn("Builder cache write:",e)}
-}
 window.builderData=[];
 window.builderMode="private";
 window.folderFilter="";
@@ -219,48 +207,30 @@ window.setGlobalQuestionWeight=function(v){window.paperSettings.weight=Number(v)
 window.loadQuestions=async function(){
  const status=document.getElementById("status");
  const box=document.getElementById("questions");
- let cached=[];
- try{cached=await readBuilderCache()}catch(e){}
- if(cached.length && !window.builderData.length){
-  window.builderData=cached;
-  status.textContent="Library cache loaded • "+cached.length+" questions • syncing…";
-  renderTree();renderQuestions();renderSelected();
- }
+ status.textContent="Connecting to Library…";
  let lastError=null;
- for(let attempt=1;attempt<=4;attempt++){
+ for(let attempt=1;attempt<=5;attempt++){
   try{
-   status.textContent=attempt===1
-    ? (cached.length?"Syncing Library…":"Connecting to Library…")
-    : "Reconnecting to Library… ("+attempt+"/4)";
-   const authUser=await window.ensureBuilderAuth();
-   if(!authUser) console.warn("Builder has no anonymous auth user; attempting the same Firestore read path used by Library.");
+   status.textContent=attempt===1?"Connecting to Library…":"Reconnecting to Library… ("+attempt+"/5)";
+   await window.ensureBuilderAuth();
    const snap=await getDocs(collection(db,"questions"));
-   const fresh=snap.docs.map(d=>({id:d.id,...d.data()}));
-   if(!fresh.length && cached.length){
-    console.warn("Firebase returned 0 questions; retaining cached Library data.");
-    status.textContent="Library sync returned 0 • showing cached "+cached.length+" questions";
-    renderTree();renderQuestions();renderSelected();
-    return;
-   }
-   window.builderData=fresh;
-   await writeBuilderCache(fresh);
-   status.textContent="Library connected • "+fresh.length+" total questions";
+   window.builderData=snap.docs.map(d=>({id:d.id,...d.data()}));
+   status.textContent="Library connected • "+window.builderData.length+" total questions";
    renderTree();renderQuestions();renderSelected();
    return;
   }catch(e){
    lastError=e;
    console.warn("Library load attempt "+attempt,e);
    window.builderAuthReady=null;
-   if(attempt<4)await new Promise(r=>setTimeout(r,500*attempt));
+   if(attempt<5) await new Promise(r=>setTimeout(r,700*attempt));
   }
  }
+ console.error("Library load failed after retries:",lastError);
+ status.textContent="Library connection failed — tap Reload to retry";
  if(window.builderData.length){
-  status.textContent="Library sync unavailable • showing "+window.builderData.length+" cached questions";
-  renderTree();renderQuestions();renderSelected();
+   renderTree();renderQuestions();renderSelected();
  }else{
-  console.error("Library load failed after retries:",lastError);
-  status.textContent="Library connection failed — tap Reload to retry";
-  box.innerHTML='<div class="empty">Library connection failed.<br><small>'+esc(lastError?.code||lastError?.message||"Firebase error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry</button></div>';
+   box.innerHTML='<div class="empty">Library connection failed.<br><small>'+esc(lastError?.code||lastError?.message||"Firebase error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry</button></div>';
  }
 };
 
@@ -269,8 +239,8 @@ window.setMode=function(mode){
  document.querySelectorAll(".mode").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
  renderTree();renderQuestions();
 };
-window.selectAllVisible=function(){getVisible().forEach(q=>window.selected.add(String(q.id)));localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...window.selected]));renderQuestions();renderSelected()};
-window.clearSelection=function(){window.selected.clear();localStorage.setItem("AZ_BUILDER_SELECTED_IDS","[]");renderQuestions();renderSelected()};
+window.selectAllVisible=function(){getVisible().forEach(q=>window.selected.add(String(q.id)));renderQuestions();renderSelected()};
+window.clearSelection=function(){window.selected.clear();renderQuestions();renderSelected()};
 function getModeQuestions(){return window.builderData.filter(q=>belongs(q,window.builderMode))}
 function getVisible(){
  const term=(document.getElementById("search")?.value||"").trim().toLowerCase(),type=document.getElementById("typeFilter")?.value||"ALL";
@@ -288,7 +258,7 @@ function renderQuestions(){
  if(!rows.length){box.innerHTML='<div class="empty">No questions found in this Library view.</div>';return}
  box.innerHTML=rows.map((q,i)=>{
   const id=String(q.id),sel=window.selected.has(id),img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1,edit=window.textEdits[id]||{},dupCount=questionKey(q)?(dups[questionKey(q)]||0):0;
-  return '<article class="card '+(sel?'selected':'')+'" data-question-id="'+esc(id)+'">'+
+  return '<article class="card '+(sel?'selected':'')+'">'+
    '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleQuestion(\''+esc(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div>'+(dupCount>1?'<span class="dup-tag">⚠ DUPLICATE ×'+dupCount+'</span>':'<span class="clean-tag">✓ CLEAN</span>')+(txt?'<button class="btn blue" onclick="openTextEditor(\''+encodeURIComponent(id)+'\')">✏️ Edit Text</button>':'')+'<button class="btn" onclick="removeSelection(\''+esc(id)+'\')">✕</button></div>'+
    (img?'<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')"><img src="'+esc(img)+'" alt="Question"></div>':'')+
    (txt?'<div class="qbody" style="'+textStyleOf(q)+'">'+renderMath(esc(txt))+'</div>':'')+
@@ -297,24 +267,8 @@ function renderQuestions(){
  }).join("");
  typeset();
 }
-window.toggleQuestion=function(id){
- id=String(id);
- if(window.selected.has(id)) window.selected.delete(id); else window.selected.add(id);
- localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...window.selected]));
- const card=document.querySelector('.card[data-question-id="'+CSS.escape(id)+'"]');
- if(card) card.classList.toggle("selected",window.selected.has(id));
- renderSelected();
-};
-window.removeSelection=function(id){
- id=String(id);
- window.selected.delete(id);
- localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify([...window.selected]));
- const card=document.querySelector('.card[data-question-id="'+CSS.escape(id)+'"]');
- if(card) card.classList.remove("selected");
- const cb=card?.querySelector('input[type="checkbox"]');
- if(cb) cb.checked=false;
- renderSelected();
-};
+window.toggleQuestion=function(id){id=String(id);window.selected.has(id)?window.selected.delete(id):window.selected.add(id);renderQuestions();renderSelected()};
+window.removeSelection=function(id){window.selected.delete(String(id));renderQuestions();renderSelected()};
 
 window.openTextEditor=function(encodedId){
  const id=decodeURIComponent(String(encodedId||""));
@@ -333,35 +287,21 @@ window.openTextEditor=function(encodedId){
  document.getElementById("textEditorBackdrop").style.display="flex";
 };
 window.closeTextEditor=function(){document.getElementById("textEditorBackdrop").style.display="none";window.activeTextEditId=null;};
-window.saveTextEdit=async function(){
+window.saveTextEdit=function(){
  const id=window.activeTextEditId;
  if(!id)return;
  const q=window.builderData.find(x=>String(x.id)===String(id));
  if(!q)return;
  const options=[...document.querySelectorAll("#textEditorOptions input[data-opt]")].map(x=>x.value).filter(x=>x.trim());
- const editedText=document.getElementById("textEditorMain").value;
- const editedFontSize=Number(document.getElementById("textEditorFontSize").value)||14;
- const editedWeight=Number(document.getElementById("textEditorWeight").value)||400;
- const editedAlign=document.getElementById("textEditorAlign").value||"left";
- const editedLineHeight=Number(document.getElementById("textEditorLine").value)||1.65;
- const editedHideOptions=document.getElementById("textEditorHideOptions").checked;
- window.textEdits[id]={text:editedText,fontSize:editedFontSize,weight:editedWeight,align:editedAlign,lineHeight:editedLineHeight,hideOptions:editedHideOptions,options};
- // Test Builder is the permanent editor: write the actual question/options back to Firestore.
- try{
-  await window.ensureBuilderAuth();
-  const updates={options};
-  const textKeys=["qText","text","questionText","question_text","content","prompt"];
-  const existingTextKey=textKeys.find(k=>typeof q?.[k]==="string" && !/^data:image\\//i.test(q[k]));
-  updates[existingTextKey||"qText"]=editedText;
-  updates.hideOptions=editedHideOptions;
-  await updateDoc(doc(db,"questions",id),updates);
-  Object.assign(q,updates);
-  await writeBuilderCache(window.builderData);
- }catch(err){
-  console.error("Permanent Builder text save failed:",err);
-  alert("Could not save this text change to the Library. Please try again.");
-  return;
- }
+ window.textEdits[id]={
+  text:document.getElementById("textEditorMain").value,
+  fontSize:Number(document.getElementById("textEditorFontSize").value)||14,
+  weight:Number(document.getElementById("textEditorWeight").value)||400,
+  align:document.getElementById("textEditorAlign").value||"left",
+  lineHeight:Number(document.getElementById("textEditorLine").value)||1.65,
+  hideOptions:document.getElementById("textEditorHideOptions").checked,
+  options
+ };
  closeTextEditor();
  renderQuestions();
  renderSelected();
@@ -446,16 +386,9 @@ window.folderRowClick=function(path,hasChildren){
  renderTree();
 };
 function renderSelected(){
- const ids=[...window.selected];
- const items=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
- const count=items.length;
- const top=document.getElementById("selectedCountTop");
- if(top) top.textContent=String(count);
- const customize=document.getElementById("customizePaperBtn"); if(customize){customize.disabled=count===0;customize.title=count?"Open Paper Designer with "+count+" selected question(s)":"Select at least one question first";customize.style.opacity=count?"1":"0.55";customize.style.cursor=count?"pointer":"not-allowed";}
- const legacy=document.getElementById("selectedCount");
- if(legacy) legacy.textContent="("+count+")";
- const list=document.getElementById("selectedList");
- if(list) list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(displayTextOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
+ const list=document.getElementById("selectedList"),ids=[...window.selected],items=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
+ document.getElementById("selectedCount").textContent="("+items.length+")";
+ list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(displayTextOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
 }
 window.selectedToSections=function(){if(!window.selected.size)return alert("Select questions first.");if(!window.sections.length)addSection();alert(window.selected.size+" question(s) are ready for the paper. Use Print.");renderSelected()};
 window.addSection=function(){const n=window.sections.length+1;window.sections.push({name:"Section "+String.fromCharCode(64+n),type:"MCQ",marks:1});renderSections()};
@@ -581,28 +514,8 @@ window.printPaper=function(layout){
 };
 
 window.goToPaperDesigner=function(){
- const ids=[...window.selected].map(String);
- if(!ids.length){alert("Please select at least one question first.");return;}
- const selectedObjects=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
- // IDs are the authoritative hand-off. Keep the hand-off payload small so a large
- // base64 image cannot exceed localStorage quota and cancel the whole transfer.
- localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify(ids));
- try{
-  const compact=selectedObjects.map(q=>{
-   const copy={...q};
-   ["image","img","imageData","questionImageData","croppedImage","croppedImageData","base64Image","question"].forEach(k=>{
-    if(typeof copy[k]==="string" && copy[k].length>180000) delete copy[k];
-   });
-   return copy;
-  });
-  localStorage.setItem("AZ_BUILDER_SELECTED_QUESTIONS",JSON.stringify(compact));
-  localStorage.setItem("AZ_BUILDER_TEXT_EDITS",JSON.stringify(window.textEdits||{}));
-  localStorage.setItem("AZ_BUILDER_PAPER_SETTINGS",JSON.stringify(window.paperSettings||{fontSize:14,weight:400}));
- }catch(e){
-  console.warn("Compact Builder handoff could not be saved; IDs remain authoritative:",e);
-  try{localStorage.removeItem("AZ_BUILDER_SELECTED_QUESTIONS")}catch(_){}
- }
- const url="paper_designer.html?selected="+encodeURIComponent(ids.join(","));
+ const ids=[...window.selected].join(",");
+ const url="paper_designer.html"+(ids?("?selected="+encodeURIComponent(ids)):"");
  location.href=url;
 };
 window.openCustomize=function(){window.goToPaperDesigner()};
@@ -622,20 +535,14 @@ function customHtml(){
 }
 window.previewCustomized=function(){const w=window.open("","_blank");if(!w)return alert("Allow popups for preview.");w.document.open();w.document.write(customHtml());w.document.close()};
 window.printCustomized=function(){const w=window.open("","_blank");if(!w)return alert("Allow popups for printing.");w.document.open();w.document.write(customHtml());w.document.close();setTimeout(()=>w.print(),900)};
-window.publishNow=async function(){if(!window.selected.size)return alert("Select questions first.");try{const titleEl=document.getElementById("paperTitle");const title=(titleEl?.value||"Physics Test").trim()||"Physics Test";const ref=await addDoc(collection(db,"published_tests"),{title,questionIds:[...window.selected],createdBy:(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase(),createdAt:new Date().toISOString(),price:0});const link=location.origin+"/test_player.html?id="+ref.id;try{await navigator.clipboard.writeText(link)}catch(e){}alert("✔ Test Published!\n\nStudent link:\n"+link)}catch(e){alert("Publish failed: "+(e?.message||e))}};
+window.publishNow=async function(){if(!window.selected.size)return alert("Select questions first.");try{const ref=await addDoc(collection(db,"published_tests"),{title:document.getElementById("paperTitle").value||"Physics Test",questionIds:[...window.selected],createdBy:(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase(),createdAt:new Date().toISOString(),price:0});const link=location.origin+"/test_player.html?id="+ref.id;try{await navigator.clipboard.writeText(link)}catch(e){}alert("✔ Test Published!\n\nStudent link:\n"+link)}catch(e){alert("Publish failed: "+(e?.message||e))}};
 
 window.saveBlueprint=function(){const data={title:document.getElementById("paperTitle").value,school:document.getElementById("schoolName").value,logo:document.getElementById("logoUrl").value,selected:[...window.selected],date:new Date().toISOString()};localStorage.setItem("AZ_TEST_BUILDER_BLUEPRINT",JSON.stringify(data));alert("Blueprint saved on this device.")};
 
-document.addEventListener("DOMContentLoaded",async()=>{
- const email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim();
- document.getElementById("userPill").textContent=email||"Teacher";
- const gf=document.getElementById("globalQuestionFont"),gw=document.getElementById("globalQuestionWeight");
- if(gf)gf.value=window.paperSettings.fontSize;if(gw)gw.value=String(window.paperSettings.weight);
- try{
-  const saved=safeJSON("AZ_BUILDER_SELECTED_IDS",[]);
-  if(Array.isArray(saved))window.selected=new Set(saved.map(String));
- }catch(e){}
- await loadQuestions();
+document.addEventListener("DOMContentLoaded",()=>{
+ const email=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim();document.getElementById("userPill").textContent=email||"Teacher";
+ const gf=document.getElementById("globalQuestionFont"),gw=document.getElementById("globalQuestionWeight"); if(gf)gf.value=window.paperSettings.fontSize; if(gw)gw.value=String(window.paperSettings.weight);
+ loadQuestions();
 });
 </script>
 <!-- Local, non-Firebase Text Editor: changes live only in this Builder window -->
