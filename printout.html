@@ -123,7 +123,9 @@ function renderMath(v){
 
 let data={questions:[],sections:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one',branding:{},fontFamily:'Times New Roman'};
 let selectedSectionId=null;
+let selectedQuestionId=null;
 let sectionStyles={};
+let questionStyles={};
 function qHtml(q,n){
 
  const id=String(q.id||'');
@@ -135,10 +137,16 @@ function qHtml(q,n){
  const fs=Number(edit.fontSize||document.getElementById('qSize').value||14);
  const weight=Number(edit.weight||400);
  const line=Number(edit.lineHeight||1.5);
- const style='font-size:'+fs+'px;font-weight:'+weight+';line-height:'+line+';text-align:'+(edit.align||'left')+';';
+ const qs=questionStyles[id]||{};
+ const finalFont=qs.font||document.getElementById('fontFamily')?.value||'Times New Roman';
+ const finalSize=Number(qs.size||fs||14);
+ const finalWeight=Number(qs.weight||weight||400);
+ const finalItalic=qs.italic?'italic':'normal';
+ const finalUnderline=qs.underline?'underline':'none';
+ const style='font-family:'+finalFont+';font-size:'+finalSize+'px;font-weight:'+finalWeight+';font-style:'+finalItalic+';text-decoration:'+finalUnderline+';line-height:'+line+';text-align:'+(edit.align||'left')+';';
  const border=document.getElementById('qBorder')?.value||'none';
  const cls='paper-q '+(border==='bottom'?'border-bottom':border==='left'?'border-left':'');
- return '<div class="'+cls+'" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(txt)+'</span></div>'+
+ return '<div class="'+cls+'" data-question-id="'+esc(id)+'" onclick="selectQuestion(\''+esc(id)+'\')" style="'+style+'"><div class="question-line"><span class="qnum">'+n+'.</span><span class="qtext" style="'+style+'">'+renderMath(txt)+'</span></div>'+
  (img?'<div class="image-box"><img src="'+esc(img)+'"></div>':'')+
  (opts.length&&!hide?'<div class="options">'+opts.map((o,i)=>'<div class="option-item"><b>'+String.fromCharCode(65+i)+'.</b><span class="option-text">'+renderMath(o)+'</span></div>').join('')+'</div>':'')+
  '</div>';
@@ -165,6 +173,7 @@ function build(){
  paper.innerHTML=html;
  if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([paper]).catch(console.warn);
 }
+function selectQuestion(id){selectedQuestionId=String(id);selectedSectionId=null;const st=questionStyles[selectedQuestionId]||{};const f=document.getElementById('fontFamily');const s=document.getElementById('qSize');if(f)f.value=st.font||'Times New Roman';if(s)s.value=st.size||14;build()}
 function selectSection(id){selectedSectionId=String(id);const st=sectionStyles[selectedSectionId]||{};const sf=document.getElementById('sectionFont');const ss=document.getElementById('sectionSize');if(sf)sf.value=st.font||'Times New Roman';if(ss)ss.value=st.size||15;build()}
 function sectionFormat(kind){
  if(!selectedSectionId){alert('Click a section heading first.');return;}
@@ -174,11 +183,13 @@ function sectionFormat(kind){
  if(kind==='underline')st.underline=!st.underline;
  sectionStyles[selectedSectionId]=st;build();
 }
-function toggleFormat(kind){if(selectedSectionId){sectionFormat(kind);return;}const r=document.documentElement.style;if(kind==='bold')r.setProperty('--preview-weight','700');if(kind==='italic')r.setProperty('--preview-style','italic');if(kind==='underline')r.setProperty('--preview-decoration','underline');build()}
+function toggleFormat(kind){if(selectedQuestionId){const st=questionStyles[selectedQuestionId]||{};if(kind==='bold')st.weight=st.weight===700?400:700;if(kind==='italic')st.italic=!st.italic;if(kind==='underline')st.underline=!st.underline;questionStyles[selectedQuestionId]=st;build();return;}if(selectedSectionId){sectionFormat(kind);return;}const r=document.documentElement.style;if(kind==='bold')r.setProperty('--preview-weight','700');if(kind==='italic')r.setProperty('--preview-style','italic');if(kind==='underline')r.setProperty('--preview-decoration','underline');build()}
 function apply(){
  const r=document.documentElement.style;
  const font=document.getElementById('fontFamily')?.value||'Times New Roman';
  const size=document.getElementById('qSize')?.value||14;
+ if(selectedQuestionId){questionStyles[selectedQuestionId]={...(questionStyles[selectedQuestionId]||{}),font,size:Number(size)||14};}
+ if(selectedSectionId){sectionStyles[selectedSectionId]={...(sectionStyles[selectedSectionId]||{}),font,size:Number(size)||15};}
  r.setProperty('--paper-font',font);
  r.setProperty('--q',size+'px');
  r.setProperty('--opt',size+'px');
