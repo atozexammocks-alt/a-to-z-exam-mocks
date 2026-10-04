@@ -211,6 +211,7 @@ function printPaper(){
  window.__AZ_PRINT_PAYLOAD=payload;
  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage skipped:",e)}
  const selectedQuery=questions.map(q=>String(q.id)).filter(Boolean).join(",");
+ try{localStorage.setItem("AZ_PRINT_SELECTED_IDS",JSON.stringify(questions.map(q=>String(q.id)).filter(Boolean)));localStorage.setItem("AZ_PRINT_SECTIONS",JSON.stringify(sections))}catch(e){console.warn("Print session storage skipped:",e)}
  const w=window.open("printout.html?selected="+encodeURIComponent(selectedQuery),"_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){console.warn("Print payload send failed",e)}};
  w.addEventListener("load",send,{once:true});setTimeout(send,200);setTimeout(send,800);setTimeout(send,1600)
