@@ -83,7 +83,12 @@ const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
 // IMPORTANT: builder must create the same anonymous Firebase session as Library.
 window.db=db;
 window.auth=auth;
-window.teacherAuthReady=signInAnonymously(auth).catch(e=>{console.error("Anonymous auth failed:",e);throw e;});
+window.collection=collection;
+window.getDocs=getDocs;
+window.getDoc=getDoc;
+window.doc=doc;
+window.addDoc=addDoc;
+window.teacherAuthReady=signInAnonymously(window.auth).catch(e=>{console.warn("Anonymous session unavailable:",e);return null;});
 let mode="private",allQuestions=[],visible=[],selected=new Set(),mainFilter="ALL",sectionFilter="ALL",treeData={},openNodes=new Set();
 const email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
 const esc=v=>String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
@@ -121,8 +126,8 @@ async function start(){
  document.getElementById("loading").style.display="flex";
  try{
    // Wait until anonymous authentication is complete, exactly like Library.
-   await window.teacherAuthReady;
-   const snap=await getDocs(collection(db,"questions"));
+   if(window.teacherAuthReady) await window.teacherAuthReady;
+   const snap=await window.getDocs(window.collection(window.db,"questions"));
    allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
    document.getElementById("status").textContent="Firebase connected • "+allQuestions.length+" total questions";
    await loadFolderConfig();
