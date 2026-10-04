@@ -925,13 +925,23 @@
       }
 
       if (new URLSearchParams(window.location.search).get('paperMode') === '1') {
+        const paperQid=localStorage.getItem('AZ_PAPER_EDITOR_QID')||new URLSearchParams(window.location.search).get('qid')||'';
+        const vals=[document.getElementById('fallback-opta').value,document.getElementById('fallback-optb').value,document.getElementById('fallback-optc').value,document.getElementById('fallback-optd').value].filter(Boolean);
+        const paperEdits=JSON.parse(localStorage.getItem('AZ_PAPER_DESIGN_EDITS')||'{}');
+        paperEdits[String(paperQid)]={
+          text:document.getElementById('fallback-qtext').value.trim(),
+          options:vals,
+          image:finalUrl,
+          marks:undefined,
+          updatedAt:new Date().toISOString()
+        };
+        localStorage.setItem('AZ_PAPER_DESIGN_EDITS',JSON.stringify(paperEdits));
         localStorage.setItem('AZ_PAPER_EDITOR_DONE','1');
         localStorage.setItem('AZ_PAPER_EDITOR_RESULT_IMAGE', finalUrl);
         localStorage.setItem('AZ_PAPER_EDITOR_RESULT_TEXT', document.getElementById('fallback-qtext').value.trim());
-        const vals=[document.getElementById('fallback-opta').value,document.getElementById('fallback-optb').value,document.getElementById('fallback-optc').value,document.getElementById('fallback-optd').value].filter(Boolean);
         localStorage.setItem('AZ_PAPER_EDITOR_RESULT_OPTIONS', vals.join('\\n'));
         showToast("✔ Paper-only changes saved. Library unchanged.");
-        setTimeout(()=>{ window.location.href='paper_designer.html'; },800);
+        setTimeout(()=>{ window.location.href='paper_designer.html'; },500);
         return;
       }
       showToast("✔ Saved & Synced Successfully! Returning...");
