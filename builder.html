@@ -122,7 +122,7 @@
 
     window.initBuilderStudio = async function() {
       const status=document.getElementById('builder-load-status');
-      if(status) status.textContent='Loading questions from Firebase…';
+      if(status) status.textContent='Connecting to the same Firestore questions collection used by Library…';
       const tabsCont = document.getElementById('navbar-inline-tabs');
       if (tabsCont && !tabsCont.innerHTML) {
         tabsCont.innerHTML = `
@@ -185,14 +185,25 @@
         if(status) status.textContent='Firebase load error: '+(e?.code||e?.message||e);
       }
 
+      // Render the question grid FIRST. Folder/sidebar UI must never be able to
+      // prevent Firebase questions from appearing in Test Builder.
+      try {
+        renderFilteredQuestions();
+      } catch(renderError) {
+        console.error('[Builder] question grid render error:', renderError);
+        if(status) status.textContent='Question grid render error: '+(renderError?.message||renderError);
+      }
       try {
         renderMainFoldersRow();
         renderBuilderSidebarTopics();
-        renderFilteredQuestions();
+      } catch(renderError) {
+        console.error('[Builder] sidebar render error:', renderError);
+        if(status && status.dataset.loaded === '1') status.textContent += ' • Sidebar warning: ' + (renderError?.message||renderError);
+      }
+      try {
         updateRevenueSplit();
       } catch(renderError) {
-        console.error('[Builder] render error:', renderError);
-        if(status) status.textContent='Builder render error: '+(renderError?.message||renderError);
+        console.error('[Builder] controls render error:', renderError);
       }
     };
 
