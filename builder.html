@@ -164,9 +164,13 @@ function isCentral(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.librar
 function isGroup(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.group===true||x==="group"||x.includes("group")}
 function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="group")return isGroup(q);return !isCentral(q)&&!isGroup(q)}
 function renderMath(html){
- let s=String(html??"").replace(/\n/g,"<br>");
- s=s.replace(/(^|[ <br>])((?:\\(?:frac|dfrac|tfrac|sqrt|bar|vec|hat|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)\b)[^<br>]*?)(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
- s=s.replace(/(^|[ <br>])((?:[A-Za-z]+[_^][A-Za-z0-9{}\\]+|[A-Za-z]+\\s*=[^<br>]+))(?=<br>|$|[.,;:!?])/g,"$1\\($2\\)");
+ let s=String(html??"");
+ // Preserve existing MathJax delimiters. Only wrap raw LaTeX/math fragments.
+ s=s.replace(/\\\\\((.*?)\\\\\)/gs,"$1").replace(/\\\\\[(.*?)\\\\\]/gs,"$1");
+ s=s.replace(/(^|<br>)([^<]*?\\\\(?:frac|dfrac|tfrac)\\\\\{[^{}]*\\\\\}\\\\\{[^{}]*\\\\\}[^<]*)(?=<br>|$)/g,"$1\\\\($2\\\\)");
+ s=s.replace(/(^|<br>)([^<]*?\\\\(?:sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar)[^<]*)(?=<br>|$)/g,"$1\\\\($2\\\\)");
+ s=s.replace(/(^|<br>)([^<]*?(?:[A-Za-z]\\\\?[A-Za-z]?[_^](?:\\\\\\{[^}]*\\\\}|[A-Za-z0-9]+)|\\\\(?:pm|times|cdot|le|ge|ne|infty|degree|Omega|Delta|hbar))[^<]*)(?=<br>|$)/g,"$1\\\\($2\\\\)");
+ s=s.replace(/\\n/g,"<br>");
  return s;
 }
 function typeset(){if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise().catch(()=>{});}
