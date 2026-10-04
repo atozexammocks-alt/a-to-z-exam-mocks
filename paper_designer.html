@@ -270,8 +270,13 @@ function libraryMathMarkup(v){
  return x;
 }
 function renderLibraryText(v){
- var x=libraryMathMarkup(v);
- return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+ var x=String(v??"");
+ // OCR/import data sometimes inserts Enter or <br> immediately before/after a LaTeX symbol.
+ // Paper Designer must keep the question as one continuous line flow; MathJax decides only
+ // how the symbol itself is rendered.
+ x=x.replace(/<br\\s*\\/?>(?:\\s*)/gi," ").replace(/\\r?\\n+/g," ");
+ var math=libraryMathMarkup(x);
+ return esc(math).replace(/&lt;/g,"<").replace(/&gt;/g,">");
 }
 function renderDesignerMath(v){ return renderLibraryText(v); }
 function typesetDesignerMath(){
