@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A to Z Exam Mocks — Printout</title>
+<script>
+window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]'],['$$','$$']]},svg:{fontCache:'global'}};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#dbe2ea;color:#111;font-family:Arial,sans-serif}
+body{min-height:100vh}
+.toolbar{position:sticky;top:0;z-index:50;background:#111827;color:#fff;padding:8px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px #0004}
+.toolbar label{font-size:11px;font-weight:700;display:flex;gap:4px;align-items:center}
+.toolbar input,.toolbar select{padding:5px;border:1px solid #64748b;border-radius:5px;background:#fff;color:#111}
+.toolbar input[type=number]{width:55px}.toolbar input[type=range]{width:95px}
+.toolbar button{padding:6px 9px;border:1px solid #64748b;border-radius:5px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}
+.toolbar button.gray{background:#374151}.toolbar button.green{background:#059669}
+.toolbar .spacer{flex:1}.hint{font-size:10px;color:#cbd5e1}
+.paper{position:relative;width:210mm;min-height:297mm;margin:18px auto;padding:15mm;background:#fff;box-shadow:0 3px 18px #0003;overflow:hidden}
+.header{position:relative;z-index:2;text-align:center;border-bottom:2px solid #111;padding:8px 6px 10px;margin-bottom:14px;min-height:88px}
+.logo{position:absolute;left:0;top:3px;width:62px;height:62px;object-fit:contain}
+.header-main{padding:0 5px 0 72px}.school{font-size:18px;font-weight:800}.title{font-size:17px;font-weight:800;margin-top:2px}
+.meta{font-size:12px;margin-top:5px;display:flex;justify-content:space-between;text-align:left}.meta .right{text-align:right}
+.content{position:relative;z-index:2}.question{break-inside:avoid;page-break-inside:avoid;margin:0 0 10px;padding:2px 0;line-height:1.5}
+.question.selected{outline:2px solid #2563eb;outline-offset:2px}.qline{display:grid;grid-template-columns:28px minmax(0,1fr);gap:3px}
+.qnum{font-weight:700}.qtext{min-width:0;overflow-wrap:anywhere}
+.options{margin:5px 0 0 31px;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}.option{display:grid;grid-template-columns:22px minmax(0,1fr);gap:3px;min-width:0;overflow-wrap:anywhere}
+.qimage{margin:7px auto;text-align:center}.qimage img{max-width:96%;max-height:180px;object-fit:contain}
+.section{position:relative;z-index:2;text-align:center;font-weight:800;font-size:15px;margin:14px 0 10px;padding:6px 8px;border-bottom:1px solid #555;break-inside:avoid}
+.section.box{border:1px solid #555}.section.none{border:0}.section.selected{outline:2px solid #2563eb;outline-offset:2px}
+.footer{position:relative;z-index:2;text-align:center;border-top:1px solid #777;margin-top:18px;padding-top:5px;font-size:10px}
+.watermark-layer{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden}
+.watermark{position:absolute;left:-20%;width:140%;text-align:center;color:#64748b;font-size:58px;font-weight:900;opacity:var(--wm-opacity,.22);transform:rotate(-32deg);white-space:nowrap}
+.w0{top:7%}.w1{top:27%}.w2{top:47%}.w3{top:67%}.w4{top:87%}.w5{top:107%}
+.empty{padding:80px 20px;text-align:center;color:#64748b;font-size:16px}
+@media(max-width:900px){.paper{width:100%;margin:8px auto;padding:10mm}.toolbar{position:sticky}.meta{font-size:10px}}
+@media print{
+ html,body{background:#fff}.toolbar{display:none!important}.paper{width:auto;min-height:auto;margin:0;padding:0;box-shadow:none}.question.selected,.section.selected{outline:none}.watermark{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<div class="toolbar">
+<b>🖨 Print Preview</b>
+<label>Watermark <input id="wmOpacity" type="range" min="0" max="100" value="22" oninput="setOpacity(this.value)"><span id="wmVal">22%</span></label>
+<label>Count <input id="wmCount" type="number" min="1" max="6" value="1" onchange="setCount(this.value)"></label>
+<label>Font <select id="fontFamily"><option>Times New Roman</option><option>Arial</option><option>Calibri</option><option>Georgia</option><option>Cambria</option><option>Garamond</option><option>Verdana</option></select></label>
+<label>Size <input id="fontSize" type="number" min="8" max="30" value="14"></label>
+<button onclick="fmt('bold')"><b>B</b></button><button onclick="fmt('italic')"><i>I</i></button><button onclick="fmt('underline')"><u>U</u></button>
+<label>Q Border <select id="qBorder"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom</option><option value="left">Left</option></select></label>
+<label>Section <select id="sectionBorder"><option value="bottom">Bottom</option><option value="box">Box</option><option value="none">None</option></select></label>
+<button class="gray" onclick="selectAllQuestions()">Select All Questions</button>
+<button class="gray" onclick="mode('questions')">Select Questions</button>
+<button class="gray" onclick="mode('sections')">Select Sections</button>
+<button class="gray" onclick="clearSel()">Clear</button>
+<button class="green" onclick="apply()">Apply</button>
+<button onclick="window.print()">Print</button><button class="gray" onclick="window.close()">Close</button>
+<span class="spacer"></span><span class="hint">Select questions/sections, then Apply formatting.</span>
+</div>
+<div id="paper" class="paper"><div class="empty">Loading paper…</div></div>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function textOf(q){for(const k of ['qText','text','questionText','question_text','content','questionTextHtml','prompt','question']){const v=q?.[k];if(typeof v==='string'&&v.trim()&&!/^(data:image\\/|https?:\\/\\/|blob:)/i.test(v.trim()))return v.trim()}return''}
+function imageOf(q){for(const k of ['questionImage','image','img','imageData','croppedImage','croppedImageData','questionImageData','base64Image','imageUrl','imageURL','diagram','imageSrc','src','question']){const v=q?.[k];if(typeof v==='string'&&/^(https?:\\/\\/|data:image\\/|blob:)/i.test(v.trim()))return v.trim();if(v&&typeof v==='object')for(const kk of ['data','url','src','image','dataUrl','base64']){const z=v[kk];if(typeof z==='string'&&/^(https?:\\/\\/|data:image\\/|blob:)/i.test(z.trim()))return z.trim()}}return''}
+function optionsOf(q){let v=q?.options??q?.choices??q?.answerOptions;if(typeof v==='string'){try{v=JSON.parse(v)}catch(e){v=v.split(/\\s*\\|\\s*/)}}if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):String(x)).filter(x=>String(x).trim());return['A','B','C','D'].map(k=>q?.['option'+k]??q?.['option_'+k]??q?.['choice'+k]).filter(x=>String(x??'').trim())}
+function cleanQ(v){let s=String(v??'').trim();s=s.replace(/^\\s*(?:question|ques|q)\\s*[-.:]?\\s*\\d+\\s*[.)\\-:]?\\s*/i,'');s=s.replace(/^\\s*\\d+\\s*[.)\\-:]?\\s*/,'');return s.trim()}
+function cleanOpt(v){return String(v??'').trim().replace(/^(?:\\s*(?:\\([A-Da-d]\\)|[A-Da-d][.)])\\s*)+/,'').trim()}
+function mathMarkup(v){let x=String(v||'');if(!x)return'';if(/\\(\\|\\[/.test(x))return x;if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)||/(?:[A-Za-z0-9}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9}])_\\{[^}]+\\}/.test(x))return '\\\\('+x+'\\\\)';return x}
+function render(v){return esc(mathMarkup(v)).replace(/&lt;/g,'<').replace(/&gt;/g,'>')}
+let data={questions:[],sections:[],branding:{},title:'Question Paper',school:'',logo:'',layout:'one',watermarkCount:1};
+let qSel=new Set(),sSel=new Set(),modeName='questions',qStyle={},sStyle={};
+function receive(p){if(!p||!Array.isArray(p.questions))return;data=Object.assign(data,p);data.questions=p.questions||[];data.sections=Array.isArray(p.sections)?p.sections:[];data.branding=p.branding||{};data.title=data.branding.paperTitle||p.title||'Question Paper';data.school=data.branding.schoolName||p.school||'';data.logo=data.branding.logoUrl||p.logo||'';data.watermarkCount=Number(p.watermarkCount||data.branding.watermarkCount||1);build()}
+function questionHTML(q,n){const id=String(q.id||'');const e=data.textEdits?.[id]||{};const text=cleanQ(e.text!==undefined?e.text:textOf(q));const opts=(Array.isArray(e.options)?e.options:optionsOf(q)).map(cleanOpt).filter(Boolean);const img=imageOf(q);const st=qStyle[id]||{};const font=st.font||e.fontFamily||data.branding.fontFamily||'Times New Roman';const size=st.size||e.fontSize||14;const weight=st.weight||e.weight||400;const italic=st.italic?'italic':'normal';const under=st.underline?'underline':'none';const border=document.getElementById('qBorder').value;const cls='question '+(qSel.has(id)?'selected ':'')+(border==='box'?'qbox':border==='bottom'?'qbottom':border==='left'?'qleft':'');const style='font-family:'+esc(font)+';font-size:'+Number(size)+'px;font-weight:'+Number(weight)+';font-style:'+italic+';text-decoration:'+under+';';return '<div class="'+cls+'" data-q="'+esc(id)+'" onclick="selectQ(\\''+esc(id)+'\\')" style="'+style+'"><div class="qline"><span class="qnum">'+n+'.</span><span class="qtext">'+render(text)+'</span></div>'+(img?'<div class="qimage"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!e.hideOptions?'<div class="options">'+opts.map((o,i)=>'<div class="option"><b>'+String.fromCharCode(65+i)+'.</b><span>'+render(o)+'</span></div>').join('')+'</div>':'')+'</div>'}
+function build(){const p=document.getElementById('paper');const b=data.branding||{};document.documentElement.style.setProperty('--wm-opacity',String((Number(document.getElementById('wmOpacity').value)||22)/100));let wm='';if(b.showWatermark!==false){const count=Math.max(1,Math.min(6,Number(data.watermarkCount||1)));const t=esc(b.watermarkText||b.watermark||'A to Z Exam Mocks');for(let i=0;i<count;i++)wm+='<div class="watermark w'+i+'">'+t+'</div>'}const logo=(b.showLogo&&b.logoUrl)||data.logo?'<img class="logo" src="'+esc((b.showLogo&&b.logoUrl)||data.logo)+'">':'';let h='<div class="watermark-layer">'+wm+'</div><header class="header">'+logo+'<div class="header-main">'+(data.school?'<div class="school">'+esc(data.school)+'</div>':'')+'<div class="title">'+esc(data.title)+'</div><div class="meta"><div><b>Class:</b> '+esc(b.className||'—')+'<br><b>Subject:</b> '+esc(b.subjectName||'—')+'</div><div class="right"><b>Session:</b> '+esc(b.sessionName||'—')+'<br><b>Time:</b> '+esc(b.examTime||'—')+'</div></div></div></header><main class="content">';let n=0;if(data.sections.length){const assigned=new Set();for(const s of data.sections){const ids=Array.isArray(s.questionIds)?s.questionIds.map(String):[];const qs=ids.map(id=>data.questions.find(q=>String(q.id)===id)).filter(Boolean);qs.forEach(q=>assigned.add(String(q.id)));if(!qs.length)continue;const sb=document.getElementById('sectionBorder').value;const ss=sStyle[String(s.id)]||{};const st='font-family:'+esc(ss.font||'Times New Roman')+';font-size:'+Number(ss.size||15)+'px;font-weight:'+Number(ss.weight||700)+';font-style:'+(ss.italic?'italic':'normal')+';text-decoration:'+(ss.underline?'underline':'none')+';';h+='<div class="section '+sb+' '+(sSel.has(String(s.id))?'selected':'')+'" data-s="'+esc(s.id)+'" onclick="selectS(\\''+esc(s.id)+'\\')" style="'+st+'">'+esc(s.name||'Section')+' <span style="font-size:11px;font-weight:400">('+qs.length+' Questions)</span></div>';qs.forEach(q=>{n++;h+=questionHTML(q,n)})}data.questions.filter(q=>!assigned.has(String(q.id))).forEach(q=>{n++;h+=questionHTML(q,n)})}else data.questions.forEach(q=>{n++;h+=questionHTML(q,n)});h+='</main>'+(b.showFooter!==false?'<div class="footer">'+(b.showAZBrand!==false?'A to Z Exam Mocks • ':'')+'Question Paper</div>':'');p.innerHTML=h;if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([p]).catch(()=>{})}
+function mode(m){modeName=m;qSel.clear();sSel.clear();build()}
+function selectAllQuestions(){modeName='questions';qSel=new Set(data.questions.map(q=>String(q.id)));sSel.clear();build()}
+function clearSel(){qSel.clear();sSel.clear();build()}
+function selectQ(id){if(modeName!=='questions')return;id=String(id);qSel.has(id)?qSel.delete(id):qSel.add(id);sSel.clear();build()}
+function selectS(id){if(modeName!=='sections')return;id=String(id);sSel.has(String(id))?sSel.delete(String(id)):sSel.add(String(id));qSel.clear();build()}
+function fmt(k){if(qSel.size){qSel.forEach(id=>{const s=qStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;qStyle[id]=s});build()}else if(sSel.size){sSel.forEach(id=>{const s=sStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;sStyle[id]=s});build()}else alert('Select question(s) or section(s) first.')}
+function apply(){if(qSel.size){const f=document.getElementById('fontFamily').value,sz=Number(document.getElementById('fontSize').value)||14;qSel.forEach(id=>qStyle[id]={...(qStyle[id]||{}),font:f,size:sz})}if(sSel.size){const f=document.getElementById('fontFamily').value,sz=Number(document.getElementById('fontSize').value)||15;sSel.forEach(id=>sStyle[id]={...(sStyle[id]||{}),font:f,size:sz})}build()}
+function setOpacity(v){document.documentElement.style.setProperty('--wm-opacity',String(Math.max(0,Math.min(100,Number(v)||0))/100));document.getElementById('wmVal').textContent=Math.max(0,Math.min(100,Number(v)||0))+'%'}
+function setCount(v){data.watermarkCount=Math.max(1,Math.min(6,Number(v)||1));build()}
+function loadStored(){try{const x=JSON.parse(localStorage.getItem('AZ_PRINT_PAYLOAD')||'null');if(x?.questions?.length){receive(x);return true}}catch(e){}return false}
+window.addEventListener('message',e=>{if(e.data?.type==='AZ_PRINT_PAYLOAD')receive(e.data.payload)});
+window.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{if(!data.questions.length)loadStored();if(!data.questions.length)document.getElementById('paper').innerHTML='<div class="empty">No questions received.<br><small>Return to Paper Designer and use Print / Export again.</small></div>'},120)});
+</script>
+</body>
+</html>
