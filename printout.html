@@ -188,7 +188,23 @@ function apply(){if(selectedQuestionIds.size){const font=document.getElementById
 window.addEventListener('message',e=>{
  if(e.data?.type==='AZ_PRINT_PAYLOAD') receivePayload(e.data.payload);
 });
-qSize.value=data.qSize||14;oSize.value=data.oSize||13;titleSize.value=data.titleSize||17;schoolSize.value=data.schoolSize||18;subSize.value=data.subSize||13;lineW.value=data.lineW||2;qGap.value=data.qGap||10;cols.value=data.layout==='two'?'2':'1';imgH.value=data.imgH||160;
+function loadStoredPrintPayload(){
+ try{
+  const raw=localStorage.getItem("AZ_PRINT_PAYLOAD");
+  if(!raw)return false;
+  const payload=JSON.parse(raw);
+  if(payload&&Array.isArray(payload.questions)&&payload.questions.length){
+   receivePayload(payload);
+   return true;
+  }
+ }catch(e){console.warn("Stored print payload read failed:",e)}
+ return false;
+}
+window.addEventListener("DOMContentLoaded",function(){
+ setTimeout(function(){
+  if(!data.questions.length) loadStoredPrintPayload();
+ },80);
+});
 build();
 </script>
 </body>
