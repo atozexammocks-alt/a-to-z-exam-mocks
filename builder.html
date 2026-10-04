@@ -46,7 +46,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 <button class="libtab" data-mode="central" onclick="setMode('central')">🏛 Central</button>
 <button class="libtab" data-mode="group" onclick="setMode('group')">👥 Group</button>
 </div>
-<div class="navtabs"><a class="navbtn" href="teacher.html">🏠 Dashboard</a><a class="navbtn" href="builder.html" style="background:#2563eb;color:#fff;border-color:#38bdf8">🛠️ Test Builder</a></div>
+<div class="navtabs"><a class="navbtn" href="teacher.html">🏠 Dashboard</a></div>
 </header>
 <div id="status">Starting Firebase…</div>
 <div id="folderbar"></div>
@@ -119,7 +119,25 @@ function qImage(q){
  }
  return "";
 }
-function libraryMode(q){const lm=String(q.libraryMode||q.targetLibrary||q.libraryType||"").toLowerCase();if(q.central===true||q.isCentral===true||lm==="central"||lm.includes("central"))return"central";if(q.group===true||lm==="group"||lm.includes("group"))return"group";return"private";}
+function isCentralQuestion(q){
+ const lm=String(q?.libraryMode||q?.targetLibrary||q?.libraryType||"").trim().toLowerCase();
+ return q?.central===true || q?.isCentral===true || lm==="central" || lm.includes("central");
+}
+function isGroupQuestion(q){
+ const lm=String(q?.libraryMode||q?.targetLibrary||q?.libraryType||"").trim().toLowerCase();
+ return q?.group===true || lm==="group" || lm.includes("group");
+}
+function belongsToLibraryMode(q,m){
+ const central=isCentralQuestion(q), group=isGroupQuestion(q);
+ if(m==="central") return central;
+ if(m==="group") return group;
+ return !central && !group;
+}
+function libraryMode(q){
+ if(isCentralQuestion(q)) return "central";
+ if(isGroupQuestion(q)) return "group";
+ return "private";
+}
 function math(v){let s=String(v??"");s=s.replace(/\\b(?:SQRT|sqrt)\\s*\\(\\s*([^()]+)\\s*\\)/g,"\\\\sqrt{$1}");s=s.replace(/\\b(?:SQRT|sqrt)\\s+([A-Za-z0-9.+-]+)/g,"\\\\sqrt{$1}");return esc(s).replace(/\\n/g,"<br>");}
 async function start(){
  document.getElementById("brandlogo").src=localStorage.getItem("ExamVault_Logo_URL")||"./icon.png";
@@ -130,8 +148,7 @@ async function start(){
    const snap=await window.getDocs(window.collection(window.db,"questions"));
    allQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));
    document.getElementById("status").textContent="Firebase connected • "+allQuestions.length+" total questions";
-   await loadFolderConfig();
-   applyMode();
+   await applyMode();
  }catch(e){
    console.error(e);
    document.getElementById("status").textContent="Firebase error: "+(e.code||e.message||e);
@@ -157,14 +174,23 @@ function mergeTree(root,children){
  (children||[]).forEach(c=>{const n=typeof c==="string"?c:c.name;if(n)treeData[r][String(n).trim()]=treeData[r][String(n).trim()]||{}})
 }
 function rebuildTreeFromQuestions(){
- allQuestions.filter(q=>libraryMode(q)===mode).forEach(q=>{const p=qPath(q);if(!p)return;const a=p.split(" / ");const r=a.shift();if(!r)return;treeData[r]=treeData[r]||{};let node=treeData[r];a.forEach(x=>{node[x]=node[x]||{};node=node[x]})});
+ allQuestions.filter(q=>belongsToLibraryMode(q,mode)).forEach(q=>{const p=qPath(q);if(!p)return;const a=p.split(" / ");const r=a.shift();if(!r)return;treeData[r]=treeData[r]||{};let node=treeData[r];a.forEach(x=>{node[x]=node[x]||{};node=node[x]})});
 }
-function applyMode(){
+async function applyMode(){
  mode=mode||"private"; mainFilter="ALL";sectionFilter="ALL";treeData={};
- loadFolderConfig().finally(()=>{rebuildTreeFromQuestions();visible=allQuestions.filter(q=>libraryMode(q)===mode);if(mode==="private"&&!visible.length&&allQuestions.length)visible=allQuestions.slice();selected=new Set([...selected].filter(id=>visible.some(q=>q.id===id)));render()});
  document.querySelectorAll(".libtab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
+ // Match Library exactly: Private = not explicitly Central/Group.
+ visible=allQuestions.filter(q=>belongsToLibraryMode(q,mode));
+ document.getElementById("status").textContent="Firebase connected • "+allQuestions.length+" total • "+visible.length+" in "+mode+" library";
+ selected=new Set([...selected].filter(id=>visible.some(q=>q.id===id)));
+ rebuildTreeFromQuestions();
+ render();
+ // Folder configuration is optional; it must never block question rendering.
+ await loadFolderConfig();
+ rebuildTreeFromQuestions();
+ render();
 }
-window.setMode=function(m){mode=m;applyMode()};
+window.setMode=function(m){mode=m;applyMode().catch(e=>{console.error(e);document.getElementById("status").textContent="Builder error: "+(e.code||e.message||e);});};
 function folderMatch(q,target){const a=qPath(q),b=path(target);return !!a&&!!b&&(a===b||a.startsWith(b+" / "))}
 
 function render(){
