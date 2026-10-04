@@ -106,27 +106,17 @@ function libraryMathMarkup(v){
  return x;
 }
 function renderMath(v){
- var x=String(v??"");
- x=x.replace(/<br\s*\/?>(?:\s*)/gi," ").replace(/\r?\n+/g," ").replace(/\s{2,}/g," ").trim();
-
- const parts=[];
- const token=/\\(?:frac|dfrac|tfrac)\s*\{(?:[^{}]|\{[^{}]*\})*\}\s*\{(?:[^{}]|\{[^{}]*\})*\}|\\(?:sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|epsilon|varepsilon|rho|tau|phi|varphi|psi|eta|kappa|nu|xi|zeta|left|right|mathbf|mathrm|text|hbar|cdot|times|pm|mp|leq|geq|neq|infty)(?:\s*\{(?:[^{}]|\{[^{}]*\})*\}|\s*[A-Za-z0-9]+)?(?:[_^]\s*(?:\{[^{}]*\}|[A-Za-z0-9]+))*/g;
- let last=0,m;
- while((m=token.exec(x))){
-   if(m.index>last) parts.push({t:x.slice(last,m.index),math:false});
-   parts.push({t:m[0],math:true});
-   last=token.lastIndex;
+ var x=String(v||"");
+ if(!x)return "";
+ if(/\\\\\(|\\\\\[/.test(x)) return x;
+ if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
+   || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
+   return "\\\\("+x+"\\\\)";
  }
- if(last<x.length) parts.push({t:x.slice(last),math:false});
- if(!parts.length) return esc(x);
-
- return parts.map(p=>p.math
-   ? "\\("+p.t+"\\)"
-   : esc(p.t)
- ).join("");
+ return x;
 }
 
-let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one'};
+let data={questions:[],title:'Physics Question Paper',school:'',logo:'',textEdits:{},layout:'one',branding:{}};
 function qHtml(q,n){
  const id=String(q.id||'');
  const edit=data.textEdits[id]||{};
@@ -145,12 +135,18 @@ function qHtml(q,n){
 }
 function build(){
  const paper=document.getElementById('paper');
- let html='<header class="header">'+(data.logo?'<img class="logo" src="'+esc(data.logo)+'">':'')+
- (data.school?'<div class="school">'+esc(data.school)+'</div>':'')+
- '<div class="title">'+esc(data.title||'Physics Question Paper')+'</div><div class="subtitle">A to Z Exam Mocks</div></header>';
+ const b=data.branding||{};
+ const showAZ=b.showAZBrand!==false;
+ const showFooter=b.showFooter!==false;
+ const showLogo=b.showLogo!==false && !!(b.logoUrl||data.logo);
+ const logoSrc=b.logoUrl||data.logo||'';
+ const wm=b.showWatermark?'<div class="watermark">'+esc(b.watermarkText||'A to Z Exam Mocks')+'</div>':'';
+ let html=wm+'<header class="header">'+(showLogo?'<img class="logo" src="'+esc(logoSrc)+'">':'')+
+ (data.school||b.schoolName?'<div class="school">'+esc(data.school||b.schoolName)+'</div>':'')+
+ '<div class="title">'+esc(data.title||b.paperTitle||'Physics Question Paper')+'</div><div class="subtitle">'+esc([b.className,b.subjectName,b.sessionName,b.examTime].filter(Boolean).join(' • ')|| (showAZ?'A to Z Exam Mocks':''))+'</div></header>';
  html+='<main id="content" class="content '+(data.layout==='two'?'two':'')+'">';
  data.questions.forEach((q,i)=>html+=qHtml(q,i+1));
- html+='</main><div class="footer">A to Z Exam Mocks</div>';
+ html+='</main>'+(showFooter?'<div class="footer">'+(showAZ?'A to Z Exam Mocks • ':'')+'Question Paper</div>':'');
  paper.innerHTML=html;
  if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([paper]).catch(console.warn);
 }
@@ -171,7 +167,7 @@ function apply(){
 }
 function receivePayload(payload){
  if(!payload||!Array.isArray(payload.questions))return;
- data=Object.assign(data,payload);
+ data=Object.assign(data,payload);data.branding=payload.branding||data.branding||{};data.school=data.branding.schoolName||payload.school||data.school;data.title=data.branding.paperTitle||payload.title||data.title;data.logo=data.branding.logoUrl||payload.logo||data.logo;
  qSize.value=data.qSize||14;oSize.value=data.oSize||13;titleSize.value=data.titleSize||17;schoolSize.value=data.schoolSize||18;subSize.value=data.subSize||13;lineW.value=data.lineW||2;qGap.value=data.qGap||10;cols.value=data.layout==='two'?'2':'1';imgH.value=data.imgH||160;
  build();
 }
