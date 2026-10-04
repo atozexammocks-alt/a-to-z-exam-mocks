@@ -267,18 +267,13 @@ function builderMathMarkup(v){
  return x;
 }
 function renderDesignerMath(v){
- const raw=String(v??'');
- if(!raw)return '';
- let s=esc(raw).replace(/\r?\n/g,'<br>');
- const cmd=/(\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|sin|cos|tan|cot|sec|csc|log|ln|exp|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|hbar)(?:\{[^{}]*\}(?:\{[^{}]*\})?))/g;
- s=s.replace(cmd,'\\($1\\)');
- s=s.replace(/(^|[\s,;:()=+\-])((?:[A-Za-z]+|[A-Za-z]+[0-9]+)[_\^](?:\{[^}]+\}|[A-Za-z0-9]+))(?=$|[\s,;:()=+\-])/g,'$1\\($2\\)');
- return s;
+ const x=builderMathMarkup(v);
+ return esc(x).replace(/&lt;/g,'<').replace(/&gt;/g,'>');
 }
 function typesetDesignerMath(){
  if(!window.MathJax||typeof MathJax.typesetPromise!=='function')return;
  const run=()=>MathJax.typesetPromise([document.getElementById('questionsCanvasContainer')]).catch(()=>{});
- if(MathJax.startup?.promise) MathJax.startup.promise.then(run).catch(()=>{}); else run();
+ if(MathJax.startup&&MathJax.startup.promise) MathJax.startup.promise.then(run).catch(()=>{}); else run();
 }
 function textStyleFor(q){
  const e=q?._builderEdit||{};
