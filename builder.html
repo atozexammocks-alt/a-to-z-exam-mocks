@@ -251,7 +251,8 @@ window.resetTextEdit=function(){
  renderSelected();
 };
 
-window.previewImage=function(src){const url=decodeURIComponent(src);const w=window.open("");if(w){w.document.write('<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+esc(url)+'" style="max-width:98%;max-height:98vh;object-fit:contain;background:white"><!-- Local, non-Firebase Text Editor: changes live only in this Builder window -->
+window.previewImage=function(src){const url=decodeURIComponent(src);const w=window.open("");if(w){w.document.write('<body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+esc(url)+'" style="max-width:98%;max-height:98vh;object-fit:contain;background:white">
+<!-- Local, non-Firebase Text Editor: changes live only in this Builder window -->
 <div id="textEditorBackdrop" class="text-editor-backdrop" onclick="if(event.target===this)closeTextEditor()">
   <div class="text-editor">
     <h3>✏️ Edit Question Text — Paper Only</h3>
@@ -274,7 +275,9 @@ window.previewImage=function(src){const url=decodeURIComponent(src);const w=wind
     </div>
   </div>
 </div>
-</body>')}};
+</body>');w.document.close()}};
+
+window.expandedFolders
 
 window.expandedFolders=window.expandedFolders||new Set();
 
