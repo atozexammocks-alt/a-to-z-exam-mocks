@@ -58,7 +58,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 @media print{
  body{background:#fff;color:#000}.no-print{display:none!important}.print-area{display:block!important}
 }
-</style>
+.selected-reader{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:1000;background:#0b1120;border:1px solid #10b981;color:#fff;border-radius:999px;padding:9px 18px;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:12px;font-weight:900;pointer-events:none}.selected-reader strong{color:#34d399;font-size:15px;margin:0 3px}@media(max-width:700px){.selected-reader{bottom:10px;max-width:calc(100vw - 20px);white-space:nowrap}}</style>
 </head>
 <body>
 <div class="app">
@@ -79,6 +79,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
   <button class="btn" onclick="clearSelection()">Clear</button>
   <span id="status" class="status">Connecting to Library…</span>
 </div>
+<div id="selectedReader" class="selected-reader no-print">Selected Questions: <strong id="selectedReaderCount">0</strong></div>
 <div class="workspace no-print">
   <aside class="panel left">
     <div class="panelhead">📁 Library Folders <span id="folderCount"></span></div>
@@ -382,8 +383,10 @@ window.folderRowClick=function(path,hasChildren){
 };
 function renderSelected(){
  const list=document.getElementById("selectedList"),ids=[...window.selected],items=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
- document.getElementById("selectedCount").textContent="("+items.length+")";
- list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(displayTextOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
+ const count=items.length;
+ const sideCount=document.getElementById("selectedCount"); if(sideCount)sideCount.textContent="("+count+")";
+ const readerCount=document.getElementById("selectedReaderCount"); if(readerCount)readerCount.textContent=String(count);
+ if(list)list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(displayTextOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
 }
 window.selectedToSections=function(){if(!window.selected.size)return alert("Select questions first.");if(!window.sections.length)addSection();alert(window.selected.size+" question(s) are ready for the paper. Use Print.");renderSelected()};
 window.addSection=function(){const n=window.sections.length+1;window.sections.push({name:"Section "+String.fromCharCode(64+n),type:"MCQ",marks:1});renderSections()};
