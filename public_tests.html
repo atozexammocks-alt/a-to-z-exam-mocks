@@ -7,153 +7,27 @@
   <script>
 window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};
 function libraryMathMarkup(v){
- var x=String(v||""); if(!x)return "";
- if(/\\\\\(|\\\\\[/.test(x))return x;
- if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)||/(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x))return "\\("+x+"\\)";
- return x;
-}
-function renderLibraryText(v){
- var x=libraryMathMarkup(v);
- return String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/&amp;(lt|gt);/g,"&$1;").replace(/\\\\/g,"\\\\");
-}
-function typesetLibraryMath(){
- if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
- if(MathJax.startup&&MathJax.startup.promise)MathJax.startup.promise.then(function(){MathJax.typesetPromise([document.getElementById("preview-modal-body")]).catch(function(){});}).catch(function(){});
-}
-</script>
-<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
-  
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, getDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
-      authDomain: "physicsvault-80a10.firebaseapp.com",
-      projectId: "physicsvault-80a10",
-      storageBucket: "physicsvault-80a10.firebasestorage.app",
-      messagingSenderId: "1043166507399",
-      appId: "1:1043166507399:web:634efdac6f109273d42322"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    window.db = getFirestore(app);
-    window.collection = collection; window.getDocs = getDocs; window.getDoc = getDoc; window.doc = doc; window.deleteDoc = deleteDoc;
-
-    window.onload = async () => {
-      const savedEmail = localStorage.getItem('ExamVault_Teacher_Email');
-      if (savedEmail) {
-        document.getElementById('current-user-tag').textContent = savedEmail;
-        await loadPublishedTests();
-      } else {
-        alert("Please login from Teacher Library first!");
-        window.location.href = 'teacher.html';
+      var x=String(v||"");
+      if(!x)return "";
+      if(/\\\\\(|\\\\\[/.test(x)) return x;
+      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
+        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
+        return "\\("+x+"\\)";
       }
-    };
-  </script>
-
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { display: flex; flex-direction: column; height: 100vh; background: #060911; color: #f8fafc; overflow: hidden; }
-
-    #toast-msg {
-      position: fixed; bottom: 24px; right: 24px; background: #10b981; color: #ffffff;
-      padding: 12px 20px; border-radius: 8px; font-weight: 800; font-size: 13px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none; z-index: 100000;
+      return x;
     }
-
-    #navbar { height: 56px; background: #0b1120; border-bottom: 1px solid #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; flex-shrink: 0; }
-    .nav-brand { font-size: 16px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 8px; text-decoration: none; }
-    .nav-tabs { display: flex; gap: 8px; align-items: center; }
-    .nav-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px; }
-    .nav-btn:hover { border-color: #38bdf8; color: white; }
-    .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-
-    .main-screen { flex: 1; padding: 30px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
-    .tests-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-    .test-card { background: #0b1120; border: 1.5px solid #1e293b; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-    .test-card:hover { border-color: #38bdf8; }
-    .tool-btn { background: #1e293b; color: white; border: 1px solid #334155; padding: 7px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 11px; text-decoration: none; text-align: center; }
-    .tool-btn:hover { border-color: #38bdf8; }
-
-    #preview-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 80000; padding: 20px; }
-    .preview-card { background: #0b1120; border: 2px solid #38bdf8; border-radius: 14px; width: 800px; max-height: 85vh; padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; color: #f8fafc; }
-  </style>
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-const __auditConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
-try{
- const __auditDb=getFirestore(initializeApp(__auditConfig,"activityTracker"));
- const __path=location.pathname||"/";
- const __isTeacherPage=/teacher\.html$|public_tests\.html$/i.test(__path);
- const __getContext=()=>{const studentEmail=(localStorage.getItem("ExamVault_Student_Email")||"").trim().toLowerCase();const teacherEmail=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();let userType="guest",email="",name="";if(__isTeacherPage||(!studentEmail&&teacherEmail)){userType="teacher";email=teacherEmail;name=""}else if(studentEmail){userType="student";email=studentEmail;name=localStorage.getItem("ExamVault_Student_Name")||""}return {userType,email,name,userId:email||localStorage.getItem("AZ_VISITOR_ID")||("v_"+Date.now())}};
- let __visitorId=localStorage.getItem("AZ_VISITOR_ID");if(!__visitorId){__visitorId=crypto.randomUUID?crypto.randomUUID():"v_"+Date.now()+"_"+Math.random().toString(36).slice(2);localStorage.setItem("AZ_VISITOR_ID",__visitorId)}
- const __log=async(activityType,element="",details="")=>{try{const ctx=__getContext(),col=ctx.userType==="teacher"?"teacher_activity_logs":ctx.userType==="student"?"student_activity_logs":"guest_activity_logs",now=Date.now();await addDoc(collection(__auditDb,col),{...ctx,activityType,element:String(element||"").slice(0,200),details:String(details||"").slice(0,500),path:__path,pageTitle:document.title,device:/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"Mobile":"Desktop",language:navigator.language||"",referrer:document.referrer||"Direct",timestamp:new Date(now).toISOString(),visitedAt:new Date(now).toISOString(),expiresAt:new Date(now+15*24*60*60*1000).toISOString()})}catch(e){console.debug("Audit log:",e)}};
- const __clean=async()=>{const cutoff=Date.now()-15*24*60*60*1000;for(const col of ["student_activity_logs","teacher_activity_logs","guest_activity_logs"]){try{const snap=await getDocs(collection(__auditDb,col));const old=snap.docs.filter(d=>{const x=d.data(),t=Date.parse(x.timestamp||x.visitedAt||"");return t&&t<cutoff});await Promise.all(old.map(d=>deleteDoc(doc(__auditDb,col,d.id))))}catch(e){console.debug("Audit cleanup "+col,e)}}};
- await __clean();await __log("page_view","",document.title);window.AZ_AUDIT_LOG=__log;
- document.addEventListener("click",e=>{const el=e.target.closest("button,a,[role='button'],input[type='submit'],input[type='button'],select");if(!el)return;const label=(el.innerText||el.value||el.getAttribute("aria-label")||el.getAttribute("title")||el.id||"click").trim();const href=el.getAttribute("href");__log("click",label,href?("href="+href):"")});
-}catch(e){console.debug("Activity analytics:",e)}
-</script>
-<style>
-.profile-container{position:relative;display:inline-block}.profile-dropdown{position:absolute;right:0;top:40px;background:#0b1120;border:1px solid #334155;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.8);width:220px;display:none;flex-direction:column;z-index:1000;overflow:hidden}.profile-dropdown.show{display:flex}.dropdown-header{padding:12px 16px;border-bottom:1px solid #1e293b;font-size:12px;color:#38bdf8;font-weight:700;word-break:break-all}.dropdown-item{padding:10px 16px;font-size:12px;color:#fecaca;background:#7f1d1d;border:0;cursor:pointer;text-align:left;font-weight:700;width:100%}.dropdown-item:hover{background:#991b1b}
-</style></head>
-<body>
-
-  <div id="toast-msg">✔ Action Successful!</div>
-
-  <!-- VIEW QUESTIONS MODAL -->
-  <div id="preview-modal-overlay">
-    <div class="preview-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding-bottom:8px;">
-        <h3 id="preview-modal-title" style="color:#38bdf8; font-size:16px;">🔍 Test Questions Preview</h3>
-        <button class="tool-btn" style="background:#7f1d1d;" onclick="document.getElementById('preview-modal-overlay').style.display='none'">✕ Close</button>
-      </div>
-      <div id="preview-modal-body" style="display:flex; flex-direction:column; gap:12px; overflow-y:auto; flex:1;"></div>
-    </div>
-  </div>
-
-  <div id="navbar">
-    <a href="teacher.html" class="nav-brand">
-      🏠 <span>A to Z Exam Mocks</span>
-    </a>
-    <div class="nav-tabs">
-      <a class="nav-btn" href="teacher.html">🏠 Dashboard</a>
-      <a href="admin.html" class="nav-btn" id="super-admin-nav-btn" style="display:none; background:#2563eb; color:white; border-color:#38bdf8;">👑 Super Admin Panel</a>
-      <a class="nav-btn" href="library.html">📁 Central Library</a>
-      <a class="nav-btn" href="library_access.html">🤝 Group Library</a>
-      <div class="profile-container">
-        <div class="user-pill" onclick="toggleProfileDropdown()">
-          👤 <span id="current-user-tag">Educator</span> ▼
-        </div>
-        <div class="profile-dropdown" id="profile-dropdown-menu">
-          <div class="dropdown-header" id="dropdown-user-email">Not Logged In</div>
-          <button class="dropdown-item" onclick="logoutTeacher()">🔒 Logout</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="main-screen">
-    <div>
-      <h2 style="font-size:20px; font-weight:900; color:#f8fafc;">🔗 Published Mock Tests & Management</h2>
-      <p style="font-size:13px; color:#94a3b8; margin-top:4px;">View test questions, copy share links, or delete tests permanently.</p>
-    </div>
-
-    <div class="tests-grid" id="published-tests-grid">
-      <p style="color:#64748b; font-size:13px;">Loading published tests from cloud...</p>
-    </div>
-  </div>
-
-  <script>
-    function showToast(text) {
-      const el = document.getElementById('toast-msg');
-      el.textContent = text; el.style.display = 'block';
-      setTimeout(() => { el.style.display = 'none'; }, 2000);
+    function renderLibraryText(v){
+      var x=libraryMathMarkup(v);
+      return escapeHtml(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
     }
-
-    let allPublishedTestsMap = {};
+    function typesetLibraryMath(){
+      if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
+      if(MathJax.startup&&MathJax.startup.promise){
+        MathJax.startup.promise.then(function(){
+          MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
+        }).catch(function(){});
+      }
+    }
 
     async function loadPublishedTests() {
       const grid = document.getElementById('published-tests-grid');
