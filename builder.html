@@ -573,11 +573,11 @@ document.addEventListener("DOMContentLoaded",()=>{
  loadQuestions();
 });
 </script>
-<!-- Local, non-Firebase Text Editor: changes live only in this Builder window -->
+<!-- Builder Library Text Editor: saved changes update the Library question permanently -->
 <div id="textEditorBackdrop" class="text-editor-backdrop" onclick="if(event.target===this)closeTextEditor()">
   <div class="text-editor">
-    <h3>✏️ Edit Question Text — Paper Only</h3>
-    <div class="print-note">Changes made here are temporary. They are NOT saved to the Library or Firebase and affect only this Test Builder window/paper.</div>
+    <h3>✏️ Edit Question Text — Library</h3>
+    <div class="print-note">Changes made here are saved permanently to this question in the Library/Firebase. Paper Designer edits remain temporary and are separate.</div>
     <textarea id="textEditorMain" placeholder="Question text…"></textarea>
     <div class="editor-grid">
       <label>Font Size<select id="textEditorFontSize"><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="15">15 px</option><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select></label>
