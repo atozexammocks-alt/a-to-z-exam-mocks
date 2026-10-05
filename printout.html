@@ -269,12 +269,41 @@ function apply(){
  if(sSel.size){sSel.forEach(id=>sStyle[id]={...(sStyle[id]||{}),font:f,size:sz});build();return}
 }
 function loadStored(){
+ // 1) Best source: Paper Designer's in-memory payload.
  try{
-  if(window.opener&&window.opener.__AZ_PRINT_PAYLOAD&&Array.isArray(window.opener.__AZ_PRINT_PAYLOAD.questions)&&window.opener.__AZ_PRINT_PAYLOAD.questions.length){receive(window.opener.__AZ_PRINT_PAYLOAD);return true}
+  if(window.opener&&window.opener.__AZ_PRINT_PAYLOAD&&Array.isArray(window.opener.__AZ_PRINT_PAYLOAD.questions)&&window.opener.__AZ_PRINT_PAYLOAD.questions.length){
+   receive(window.opener.__AZ_PRINT_PAYLOAD);return true
+  }
  }catch(e){}
+ // 2) Normal source: payload saved by Paper Designer before opening this page.
  try{
   const x=JSON.parse(localStorage.getItem('AZ_PRINT_PAYLOAD')||'null');
   if(x?.questions?.length){receive(x);return true}
+ }catch(e){}
+ // 3) Deterministic fallback: Builder already keeps the exact selected question
+ // objects locally. This avoids making Printout depend on Firebase just to render.
+ try{
+  const ids=printIdsFromAnySource();
+  const handoff=JSON.parse(localStorage.getItem('AZ_BUILDER_SELECTED_QUESTIONS')||'[]');
+  if(Array.isArray(handoff)&&handoff.length){
+   const map=new Map(handoff.map(q=>[String(q?.id||q?.qid||q?.questionId||''),q]));
+   const qs=(ids.length?ids:handoff.map(q=>String(q?.id||q?.qid||q?.questionId||'')).filter(Boolean))
+     .map(id=>map.get(String(id))).filter(Boolean);
+   if(qs.length){
+    const branding=JSON.parse(localStorage.getItem('AZ_PAPER_BRANDING')||'{}');
+    const sections=storedPrintSections();
+    receive({
+     questions:qs,
+     sections:Array.isArray(sections)?sections:[],
+     branding:branding,
+     title:branding.paperTitle||'Question Paper',
+     school:branding.schoolName||'',
+     logo:branding.showLogo?branding.logoUrl:'',
+     watermarkCount:1
+    });
+    return true;
+   }
+  }
  }catch(e){}
  return false
 }
