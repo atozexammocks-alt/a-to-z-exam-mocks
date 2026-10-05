@@ -59,19 +59,50 @@ let testData=null,currentIdx=0,userResponses={},timerInterval=null,timeLeftSecon
 const $=id=>document.getElementById(id);
 const norm=v=>String(v??"").replace(/\r\n?/g,"\n").trim();
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function imageOf(q){for(const k of ["questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","base64Image","question"]){const v=norm(q?.[k]);if(/^(https?:\/\/|data:image\/|blob:)/i.test(v))return v}return "";}
-function textOf(q){for(const k of ["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"]){const v=norm(q?.[k]);if(v&&!/^(https?:\/\/|data:image\/|blob:)/i.test(v))return v}return "";}
-function optionsOf(q){let v=q?.options??q?.choices??q?.answers;if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(norm).filter(Boolean);if(v&&typeof v==="object")return Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(norm).filter(Boolean);v=norm(q?.optText);if(v)return v.split(/\s*\|\s*/).map(norm).filter(Boolean);return ["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??q?.[k]).map(norm).filter(Boolean);}
-
-/* Same normalization/rendering approach used by the Library/Test Builder. */
+function imageOf(q){
+ const keys=["questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","base64Image"];
+ for(const k of keys){const v=norm(q?.[k]);if(/^(https?:\\/\\/|data:image\\/|blob:)/i.test(v))return v;if(/^data:[^;]+;base64,/i.test(v))return v;}
+ return "";
+}
+function textOf(q){
+ for(const k of ["qText","text","questionText","question_text","content","questionTextHtml","prompt"]){const v=norm(q?.[k]);if(v&&!/^(https?:\\/\\/|data:image\\/|blob:)/i.test(v))return v;}
+ return "";
+}
+function stripLeadingOptionLabels(v){
+ let x=norm(v);
+ // Remove labels only when they are at the beginning, so labels inside the actual statement remain untouched.
+ x=x.replace(/^\\s*(?:\\([A-Da-d]\\)|\\[[A-Da-d]\\]|[A-Da-d][.)]|[A-Da-d]\\s*[-:])\\s*/,'');
+ return x.trim();
+}
+function optionsOf(q){
+ let v=q?.options??q?.choices??q?.answers;
+ let arr=[];
+ if(Array.isArray(v)) arr=v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x);
+ else if(v&&typeof v==="object") arr=Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x);
+ else {v=norm(q?.optText);if(v) arr=v.split(/\\s*\\|\\s*/);}
+ if(!arr.length){
+   arr=["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??null).filter(x=>x!=null&&String(x).trim()!="");
+ }
+ return arr.map(stripLeadingOptionLabels).filter(Boolean).slice(0,4);
+}
+function cleanQuestionText(v){
+ let x=norm(v);
+ // Some imported questions contain the complete MCQ options inside qText. Keep only the statement here.
+ x=x.replace(/(?:\\r?\\n|<br\\s*\\/?>|\\s)+(?=\\(?[A-Da-d]\\)?\\s*[.)])/g,"\n");
+ const marker=/\n\s*(?:\\([A-Da-d]\\)|[A-Da-d][.)])\s+/;
+ const m=x.search(marker);
+ if(m>0){const tail=x.slice(m);const count=(tail.match(/(?:^|\n)\s*(?:\\([A-Da-d]\\)|[A-Da-d][.)])\s+/g)||[]).length;if(count>=2)x=x.slice(0,m).trim();}
+ return x;
+}
 function renderMath(v){
  let x=norm(v);if(!x)return "";
- x=x.replace(/\\(?=[A-Za-z()[\]{}$])/g,"\\");
- x=x.replace(/^\s*sprintf\s*\(\s*["']([\s\S]*?)["']\s*\)\s*$/i,"$1");
+ // Normalize common escaped JSON/import forms before MathJax sees them.
+ x=x.replace(/\\\\(?=\\\\|\\(|\\)|\\[|\\]|\\$|[A-Za-z])/g,"\\");
  x=x.replace(/\\\\/g,"\\");
- const cmd=/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|overline|underline|mathrm|mathbf|mathit|textbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|prod|int|iint|iiint|oint|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega|degree|circ|begin|end|text)\b/.test(x);
- const pow=/[A-Za-z0-9)\]}]\s*[_^]\s*(?:\{[^}]+\}|[A-Za-z0-9+\-()]+)/.test(x);
- if((cmd||pow)&&!/^\s*(?:\\\(|\\\[|\$)/.test(x))return "\\("+x+"\\)";
+ x=x.replace(/^\s*sprintf\s*\(\s*["']([\s\S]*?)["']\s*\)\s*$/i,"$1");
+ const hasTex=/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|overline|underline|mathrm|mathbf|mathit|textbf|text|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|prod|int|iint|iiint|oint|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega|degree|circ|begin|end)\b/.test(x);
+ const hasPower=/[A-Za-z0-9)\]}]\s*[_^]\s*(?:\{[^}]+\}|[A-Za-z0-9+\-()]+)/.test(x);
+ if((hasTex||hasPower)&&!/^\s*(?:\\\(|\\\[|\$)/.test(x))return "\\("+x+"\\)";
  return x.replace(/\\n/g,"\n");
 }
 function safeRich(v){
@@ -79,11 +110,8 @@ function safeRich(v){
  const protectedText=x.replace(/\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\$[^$\n]+\$/g,m=>{parts.push(m);return "@@M"+(parts.length-1)+"@@";});
  return escapeHtml(protectedText).replace(/\n/g,"<br>").replace(/@@M(\d+)@@/g,(_,i)=>parts[Number(i)]||"");
 }
-function typeset(){if(window.MathJax?.typesetPromise){if(window.MathJax.startup?.promise)window.MathJax.startup.promise.then(()=>window.MathJax.typesetPromise([$("q-text-note"),$("q-opts-note"),$("btn-opt-A"),$("btn-opt-B"),$("btn-opt-C"),$("btn-opt-D")]).catch(()=>{})).catch(()=>{});else window.MathJax.typesetPromise().catch(()=>{});}}
-function getTestId(){const raw=new URLSearchParams(window.location.search).get("id");if(!raw)return "";try{return decodeURIComponent(raw).trim()}catch{return String(raw).trim()}}
-function showError(message,detail=""){$("loading").style.display="none";$('test-workspace').style.display="none";$('error-box').style.display="flex";$('error-message').textContent=detail?message+"\n\nDetails: "+detail:message;}
-
-async function loadQuestionsByIds(ids){
+function typeset(){if(window.MathJax?.typesetPromise){if(window.MathJax.startup?.promise)window.MathJax.startup.promise.then(()=>window.MathJax.typesetPromise([$("q-text-note"),$("btn-opt-A"),$("btn-opt-B"),$("btn-opt-C"),$("btn-opt-D")]).catch(()=>{})).catch(()=>{});else window.MathJax.typesetPromise().catch(()=>{});}}
+function loadQuestionsByIds(ids){
  const cleanIds=ids.map(x=>String(x??"").trim()).filter(Boolean);if(!cleanIds.length)return [];
  const snap=await getDocs(collection(db,"questions"));const map={};snap.forEach(d=>{map[d.id]={id:d.id,...d.data()}});
  return cleanIds.map(id=>map[id]).filter(Boolean);
@@ -109,14 +137,34 @@ function startTimer(){clearInterval(timerInterval);updateTimer();timerInterval=s
 function updateTimer(){const m=Math.floor(timeLeftSeconds/60),s=timeLeftSeconds%60;$("timer-display").textContent=`⏱️ ${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
 function initAntiCheating(){window.addEventListener("blur",()=>{if(isSubmitting||!testData)return;focusLossCount++;if(focusLossCount===1)alert("⚠️ Warning: Do not switch tabs or minimize the browser during the exam!");else if(focusLossCount>=3){alert("🚨 Security Alert: Multiple tab switches detected. Auto-submitting test.");submitTest(true)}})}
 function loadQuestion(idx){
- if(!testData?.questions?.[idx])return;currentIdx=idx;const q=testData.questions[idx];
- $("q-indicator").textContent=`Question ${idx+1} of ${testData.questions.length}`;$("q-subject-tag").textContent=q.topic||q.subject||q.chapter||"General";
- const mode=String(q.contentMode||((q.questionImage||q.image||q.croppedImage)?"both":"text")).toLowerCase();const im=imageOf(q);const showImage=!!im&&mode!=="text";
- $("q-img-wrapper").style.display=showImage?"flex":"none";if(showImage)$("current-q-img").src=im;else $("current-q-img").removeAttribute("src");
- const text=textOf(q);$("q-text-note").style.display=mode==="image"?"none":"block";$("q-text-note").innerHTML=mode==="image"?"":safeRich(text||("Question "+(idx+1)));
- const opts=optionsOf(q);$("q-opts-note").style.display=(opts.length&&mode!=="image")?"block":"none";$("q-opts-note").innerHTML=opts.length?"<strong>Options:</strong><br>"+opts.map(safeRich).join("<br>"):"";
- ["A","B","C","D"].forEach((letter,i)=>{const b=$("btn-opt-"+letter);const value=opts[i]||"Option "+letter;b.innerHTML=`(${letter}) ${safeRich(value)}`;b.className="opt-btn"+(userResponses[idx]===letter?" selected":"");b.style.display=opts[i]||i<4?"block":"none";b.onclick=()=>{userResponses[currentIdx]=letter;loadQuestion(currentIdx)}});
- $("prev-btn").disabled=idx===0;$("next-btn").textContent=idx===testData.questions.length-1?"Save & Stay ▶":"Save & Next ▶";highlightPalette();typeset();
+ if(!testData?.questions?.[idx])return;
+ currentIdx=idx;const q=testData.questions[idx];
+ $("q-indicator").textContent=`Question ${idx+1} of ${testData.questions.length}`;
+ $("q-subject-tag").textContent=q.topic||q.subject||q.chapter||"General";
+ const mode=String(q.contentMode||((q.questionImage||q.image||q.croppedImage)?"both":"text")).toLowerCase();
+ const im=imageOf(q),showImage=!!im&&mode!=="text";
+ const iw=$("q-img-wrapper"),img=$("current-q-img");
+ iw.style.display=showImage?"flex":"none";
+ if(showImage){img.onload=()=>{iw.style.display="flex"};img.onerror=()=>{iw.style.display="none"};img.src=im;}else{img.onload=null;img.onerror=null;img.removeAttribute("src");}
+ const text=cleanQuestionText(textOf(q));
+ $("q-text-note").style.display=mode==="image"?"none":"block";
+ $("q-text-note").innerHTML=mode==="image"?"":safeRich(text||("Question "+(idx+1)));
+ // Do NOT print a second static copy of the options. The four clickable buttons below are the only options shown.
+ $("q-opts-note").innerHTML="";
+ $("q-opts-note").style.display="none";
+ const opts=optionsOf(q);
+ ["A","B","C","D"].forEach((letter,i)=>{
+   const b=$("btn-opt-"+letter),value=opts[i]||"";
+   b.innerHTML=value?safeRich(value):`(${letter}) Option ${letter}`;
+   b.className="opt-btn"+(userResponses[idx]===letter?" selected":"");
+   b.style.display=value?"block":"none";
+   b.setAttribute("aria-label",value?`Option ${letter}: ${value}`:`Option ${letter}`);
+   b.onclick=()=>{if(value){userResponses[currentIdx]=letter;loadQuestion(currentIdx)}};
+ });
+ $("prev-btn").disabled=idx===0;
+ $("next-btn").textContent=idx===testData.questions.length-1?"Save & Stay ▶":"Save & Next ▶";
+ highlightPalette();
+ typeset();
 }
 function renderPalette(){const grid=$("palette-grid");grid.innerHTML="";testData.questions.forEach((_,i)=>{const b=document.createElement("div");b.className="p-box";b.id="palette-box-"+i;b.textContent=i+1;b.onclick=()=>loadQuestion(i);grid.appendChild(b)});highlightPalette()}
 function highlightPalette(){testData?.questions?.forEach((_,i)=>{const b=$("palette-box-"+i);if(!b)return;b.className="p-box";if(userResponses[i])b.classList.add("answered");if(i===currentIdx)b.classList.add("current")})}
