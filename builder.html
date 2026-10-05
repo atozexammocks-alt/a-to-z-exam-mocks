@@ -568,7 +568,33 @@ function customHtml(){
 }
 window.previewCustomized=function(){const w=window.open("","_blank");if(!w)return alert("Allow popups for preview.");w.document.open();w.document.write(customHtml());w.document.close()};
 window.printCustomized=function(){const w=window.open("","_blank");if(!w)return alert("Allow popups for printing.");w.document.open();w.document.write(customHtml());w.document.close();setTimeout(()=>w.print(),900)};
-window.publishNow=async function(){if(!window.selected.size)return alert("Select questions first.");try{const ref=await addDoc(collection(db,"published_tests"),{title:document.getElementById("paperTitle").value||"Physics Test",questionIds:[...window.selected],createdBy:(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase(),createdAt:new Date().toISOString(),price:0});const link=location.origin+"/test_player.html?id="+ref.id;try{await navigator.clipboard.writeText(link)}catch(e){}alert("✔ Test Published!\n\nStudent link:\n"+link)}catch(e){alert("Publish failed: "+(e?.message||e))}};
+window.publishNow=async function(){
+ if(!window.selected||!window.selected.size){alert("Select questions first.");return;}
+ ensurePaperFields();
+ const existing=document.getElementById("azPublishModal");if(existing)existing.remove();
+ const modal=document.createElement("div");modal.id="azPublishModal";modal.innerHTML="<div style=\"position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px\"><div style=\"width:min(520px,100%);background:#fff;color:#111827;border-radius:14px;padding:20px;box-shadow:0 20px 60px #0006\"><div style=\"font-size:20px;font-weight:900;margin-bottom:4px\">🚀 Publish Mock Test</div><div style=\"font-size:12px;color:#64748b;margin-bottom:16px\">Selected questions: <b id=\"azPubCount\"></b></div><label style=\"display:block;font-size:12px;font-weight:800;margin:10px 0 5px\">Mock Test Name *</label><input id=\"azPubTitle\" value=\"Physics Mock Test\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px\"><div style=\"display:grid;grid-template-columns:1fr 1fr;gap:12px\"><div><label style=\"display:block;font-size:12px;font-weight:800;margin:10px 0 5px\">Duration (minutes) *</label><input id=\"azPubTime\" type=\"number\" min=\"1\" value=\"60\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px\"></div><div><label style=\"display:block;font-size:12px;font-weight:800;margin:10px 0 5px\">Interval (minutes)</label><input id=\"azPubInterval\" type=\"number\" min=\"0\" value=\"0\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px\"></div></div><label style=\"display:block;font-size:12px;font-weight:800;margin:10px 0 5px\">Class *</label><input id=\"azPubClass\" placeholder=\"e.g. 12th Physics\" style=\"width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:8px\"><div style=\"display:flex;gap:8px;justify-content:flex-end;margin-top:18px\"><button type=\"button\" id=\"azPubCancel\" style=\"padding:9px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;font-weight:800\">Cancel</button><button type=\"button\" id=\"azPubConfirm\" style=\"padding:9px 14px;border:0;border-radius:8px;background:#7c3aed;color:#fff;font-weight:900\">Publish Test</button></div><div id=\"azPubStatus\" style=\"font-size:12px;color:#64748b;margin-top:10px;min-height:16px\"></div></div></div>";
+ document.body.appendChild(modal);document.getElementById("azPubCount").textContent=String(window.selected.size);
+ const close=()=>modal.remove();document.getElementById("azPubCancel").onclick=close;
+ document.getElementById("azPubConfirm").onclick=async()=>{
+  const title=String(document.getElementById("azPubTitle").value||"").trim();
+  const time=Math.max(1,Number(document.getElementById("azPubTime").value)||0);
+  const interval=Math.max(0,Number(document.getElementById("azPubInterval").value)||0);
+  const className=String(document.getElementById("azPubClass").value||"").trim();
+  const status=document.getElementById("azPubStatus");
+  if(!title||!className||!time){status.textContent="Please fill Test Name, Duration and Class.";return;}
+  const btn=document.getElementById("azPubConfirm");btn.disabled=true;btn.textContent="Publishing…";status.textContent="Saving mock test…";
+  try{
+   const authUser=await window.ensureBuilderAuth?.();
+   const createdBy=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
+   const questionIds=[...window.selected].map(String);const selectedQs=selectedQuestions();
+   const totalMarks=selectedQs.reduce((sum,q)=>sum+(Number(q.marks??q.mark??q.marksPerQuestion)||1),0);
+   const ref=await addDoc(collection(db,"published_tests"),{title,time,duration:time,interval,className,class:className,questionIds,questionCount:questionIds.length,totalMarks,createdBy:createdBy||(authUser?.uid||""),createdByUid:authUser?.uid||"",createdAt:new Date().toISOString(),price:0,status:"published",visibility:"public"});
+   const link=location.origin+"/test_player.html?id="+ref.id;try{await navigator.clipboard.writeText(link)}catch(e){}
+   status.textContent="Published successfully. Student link copied if clipboard is available.";btn.textContent="Published ✓";btn.disabled=true;
+   setTimeout(()=>{close();alert("✔ Test Published!\n\nStudent link:\n"+link)},350);
+  }catch(e){console.error("Publish failed:",e);status.textContent="Publish failed: "+String(e?.message||e);btn.disabled=false;btn.textContent="Publish Test";}
+ };
+};
 
 window.saveBlueprint=function(){const data={title:document.getElementById("paperTitle").value,school:document.getElementById("schoolName").value,logo:document.getElementById("logoUrl").value,selected:[...window.selected],date:new Date().toISOString()};localStorage.setItem("AZ_TEST_BUILDER_BLUEPRINT",JSON.stringify(data));alert("Blueprint saved on this device.")};
 
