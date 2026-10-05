@@ -353,7 +353,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import {getFirestore,collection,getDocs} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {getFirestore,collection,getDocs,doc,getDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const AZCFG={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 try{
  const app=initializeApp(AZCFG,"AZPrintoutDirect");const auth=getAuth(app),db=getFirestore(app);
@@ -381,9 +381,19 @@ async function directLoad(){
   const sections=storedPrintSections();
   const branding=JSON.parse(localStorage.getItem("AZ_PAPER_BRANDING")||"{}");
   await signInAnonymously(auth);
-  const snap=await getDocs(collection(db,"questions"));
-  const map=new Map(snap.docs.map(d=>[String(d.id),{id:d.id,...d.data()}]));
-  const qs=ids.map(id=>map.get(String(id))).filter(Boolean);
+  // Do NOT download the entire questions collection. That request can hang on a
+  // large library and leave Printout permanently on "Loading paper…".
+  // Fetch only the exact IDs selected in Paper Designer.
+  const results=await Promise.race([
+   Promise.all(ids.map(async id=>{
+    try{
+     const snap=await getDoc(doc(db,"questions",String(id)));
+     return snap.exists()?{id:snap.id,...snap.data()}:null;
+    }catch(e){return null}
+   })),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Question fetch timeout")),8000))
+  ]);
+  const qs=results.filter(Boolean);
   if(!qs.length)return;
   window.__AZ_DIRECT_PRINT_LOADED=true;
   receive({questions:qs,sections:Array.isArray(sections)?sections:[],branding:branding,title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:branding.showLogo?branding.logoUrl:"",watermarkCount:1});
