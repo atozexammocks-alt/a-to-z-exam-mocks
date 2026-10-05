@@ -210,7 +210,7 @@ window.loadQuestions=async function(){
    for(const cname of ["questions","library_questions","questionBank","question_bank"]){
      try{
        const snap=await getDocs(collection(db,cname));
-       all=all.concat(snap.docs.map(d=>({id:d.id,...d.data()})));
+       all=all.concat(snap.docs.map(d=>({id:d.id,_sourceCollection:cname,...d.data()})));
      }catch(e){}
    }
    const seen=new Set();
