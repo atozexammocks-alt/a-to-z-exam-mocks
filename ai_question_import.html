@@ -23,25 +23,48 @@ let qs=[],editing=-1,sourcePdfFile=null,cropStart=null,cropEnd=null,cropPage=1,f
 function tree(d){if(Array.isArray(d.libraryTree)&&d.libraryTree.length)return d.libraryTree;return(Array.isArray(d.mainFolders)?d.mainFolders:[]).map(n=>({name:String(n),children:(d.subFolders&&Array.isArray(d.subFolders[n])?d.subFolders[n]:[]).map(x=>({name:String(x),children:[]}))}));}
 function paths(ns,p="",o=[]){(ns||[]).forEach(n=>{let x=String(n.name||"").trim(),z=p?p+" / "+x:x;if(x){o.push(z);paths(n.children,z,o)}});return o}
 function pathOptions(selected){var h='<option value="">📁 Select Library Folder…</option>';folderPaths.forEach(function(p){h+='<option value="'+esc(p)+'"'+(p===selected?' selected':'')+'>📁 '+esc(p)+'</option>';});return h}
+function inferAcademicLevel(q){
+  var raw=[q.level,q.class,q.grade,q.standard,q.course,q.subject,q.book,q.source,String(q.question||"")].map(function(x){return String(x||"").trim()}).join(" ");
+  var m=raw.match(/(?:class|std|standard|grade|12th|12|xi{0,2}|11th|11|10th|10|9th|9)\\s*[- ]?(?:class|std|standard|grade)?\\s*(11|12|10|9)\\b/i);
+  if(m)return m[1]==="12"?"12th":m[1]==="11"?"11th":m[1]+"th";
+  if(/\\b(?:xii|class\\s*12|12th|12\\s*class)\\b/i.test(raw))return "12th";
+  if(/\\b(?:xi|class\\s*11|11th|11\\s*class)\\b/i.test(raw))return "11th";
+  if(/\\b(?:x|class\\s*10|10th|10\\s*class)\\b/i.test(raw))return "10th";
+  return "";
+}
+function cleanPathPart(x,fallback){
+  x=String(x||"").replace(/[\\/]+/g," ").replace(/\\s+/g," ").trim();
+  return x||fallback;
+}
 function semanticSuggestedPath(q){
-  var sp=norm(q.suggestedPath||""); if(sp)return sp;
-  var subject=String(q.subject||"").trim(), chapter=String(q.chapter||"").trim(), topic=String(q.topic||"").trim();
-  var s=(subject||"Physics").replace(/\s+/g," ").trim();
-  var t=(topic||chapter||"General").replace(/\s+/g," ").trim();
-  var low=(t+" "+chapter).toLowerCase();
-  if(/integration|integral|calculus/.test(low)) return s+" / Calculus / Integration";
-  if(/differentiation|derivative|differential/.test(low)) return s+" / Calculus / Differentiation";
-  if(/fourier/.test(low)) return s+" / Calculus / Fourier Transform";
-  if(/laplace/.test(low)) return s+" / Calculus / Laplace Transform";
-  if(/matrix|matrices/.test(low)) return s+" / Algebra / Matrices";
-  if(/complex/.test(low)) return s+" / Algebra / Complex Numbers";
-  if(/mechanics|kinematics|dynamics|motion|work|energy|momentum/.test(low)) return s+" / Mechanics / "+t;
-  if(/optic|lens|mirror|tir|refraction|interference|diffraction/.test(low)) return s+" / Optics / "+t;
-  if(/electromagnet|electrostat|magnet|current|circuit/.test(low)) return s+" / Electromagnetism / "+t;
-  if(/quantum/.test(low)) return s+" / Quantum Mechanics / "+t;
-  if(/thermo|thermal|statistical/.test(low)) return s+" / Thermal Physics / "+t;
-  if(/differential equation/.test(low)) return s+" / Differential Equations / Differential Equations";
-  return s+" / "+(chapter||"General")+" / "+t;
+  var subject=cleanPathPart(q.subject,"Physics"),chapter=cleanPathPart(q.chapter,"General"),topic=cleanPathPart(q.subtopic||q.topic,"General");
+  var level=inferAcademicLevel(q);
+  var low=(topic+" "+chapter+" "+String(q.section||"")).toLowerCase();
+  if(/plane\\s*mirror|plane\\s*reflect/.test(low))topic="Plane Mirror";
+  else if(/spherical\\s*mirror|concave\\s*mirror|convex\\s*mirror/.test(low))topic="Spherical Mirror";
+  else if(/lens|lens\\s*formula|lens\\s*maker|power of lens/.test(low))topic="Lenses";
+  else if(/diffraction\\s*grating|grating/.test(low))topic="Diffraction Grating";
+  else if(/young|double\\s*slit|ydse|interference/.test(low))topic="Interference";
+  else if(/diffraction/.test(low))topic="Diffraction";
+  else if(/total\\s*internal|tir|critical\\s*angle|refraction/.test(low))topic="Refraction & TIR";
+  else if(/integration|integral/.test(low))topic="Integration";
+  else if(/differentiation|derivative|differential/.test(low))topic="Differentiation";
+  else if(/fourier/.test(low))topic="Fourier Transform";
+  else if(/laplace/.test(low))topic="Laplace Transform";
+  else if(/matrix|matrices/.test(low))topic="Matrices";
+  else if(/complex/.test(low))topic="Complex Numbers";
+  else if(/kinematics/.test(low))chapter="Mechanics",topic="Kinematics";
+  else if(/dynamics/.test(low))chapter="Mechanics",topic="Dynamics";
+  else if(/work|energy|momentum/.test(low))chapter="Mechanics",topic=topic;
+  else if(/optic|lens|mirror|tir|refraction|interference|diffraction/.test(low))chapter="Optics";
+  else if(/electromagnet|electrostat|magnet|current|circuit/.test(low))chapter=/current|circuit/.test(low)?"Current Electricity":"Electromagnetism";
+  else if(/quantum|photoelectric|dual nature/.test(low))chapter="Modern Physics";
+  else if(/thermo|thermal|statistical/.test(low))chapter="Thermal Physics";
+  var parts=[];
+  if(level)parts.push(level);
+  parts.push(chapter,topic);
+  if(!level && subject && subject.toLowerCase()!=="physics")parts.unshift(subject);
+  return parts.filter(Boolean).join(" / ");
 }
 function suggestedMatch(q){var sp=norm(q.suggestedPath||"")||semanticSuggestedPath(q);if(sp&&folderPaths.indexOf(sp)>=0)return sp;if(sp){var a=sp.split(" / ").filter(Boolean);for(var i=a.length-1;i>=0;i--){var tail=a.slice(i).join(" / ").toLowerCase();var hit=folderPaths.find(function(p){return p.toLowerCase().endsWith(tail);});if(hit)return hit;}}return ""}
 function normalizeMathMarkup(s){
@@ -366,7 +389,13 @@ async function extract(){
         libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),
         diagram:String(q.diagram_description||"").trim(),figureRequired:Boolean(q.figure_required||q.figureRequired)||/as shown in (the )?figure|shown in (the )?figure|see (the )?figure|figure\s*(\d+|below|above)|diagram|graph|circuit diagram|schematic/i.test(String(q.question||"")+" "+String(q.diagram_description||"")),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||pageNo).trim(),book:String(q.book||"").trim(),
         subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
-        suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
+        suggestedPath:semanticSuggestedPath({
+  suggestedPath:String(q.suggested_library_path||"").trim(),
+  level:String(q.level||q.class||q.grade||"").trim(),
+  subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),
+  topic:String(q.topic||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
+  book:String(q.book||"").trim(),source:String(q.source||"").trim(),question:String(q.question||"")
+}),
         tableRows:Array.isArray(q.table_rows)?q.table_rows.filter(Array.isArray):[],
         matrixLatex:String(q.matrix_latex||"").trim(),cropImage:String(q.crop_image||q.image||"").trim(),cropBox:q.crop_box||q.bounding_box||null
       };
@@ -401,7 +430,7 @@ async function extract(){
       $("status").textContent="🖼️ Reading page "+pageNo+"/"+totalPages+"…";
       let currentImage=await pageImage(pageNo);
       let nextImage=pageNo<totalPages?await pageImage(pageNo+1):"";
-      let prompt="You are extracting an exam paper one page at a time. CURRENT PAGE = "+pageNo+" of "+totalPages+". Extract EVERY complete question whose QUESTION TEXT STARTS on the CURRENT PAGE. You may inspect the NEXT PAGE image only to complete a question that starts on the current page. Do not extract a question that starts on the next page. If a question continues onto the next page, include its complete continuation, all options, subparts and figure references. If the next page contains the options for a question started on the current page, those options MUST be attached to that question in the options array; never return only the statement. If a question number is visually above/before the current page but its question text starts here, treat it as starting on the current page. Return ONLY valid JSON with a questions array. Never summarize, translate, shorten, paraphrase or omit anything. Preserve every English and Hindi/Devanagari word exactly as printed, punctuation, brackets, option labels, bilingual wording, numbers and units. IMPORTANT LINE FORMAT: keep English and Hindi on separate lines whenever they are separate in the PDF. Never merge the English line with its Hindi line. Preserve intentional line breaks between statement, Hindi translation, options, assertions, subparts and equations. A slash / is literal prose unless the PDF visibly shows a mathematical fraction. Preserve prose separately from mathematics. CRITICAL MATH RULE: preserve mathematical meaning exactly and use valid LaTeX inside MathJax delimiters \\\\( ... \\\\) or \\\\[ ... \\\\]. Preserve °C, Å and Å exactly; NEVER turn Å into AA, /A or double-A. Preserve μ, Ω, eV, nm, K and other units. Preserve integrals, contour integrals, limits, derivatives d/dx, partial derivatives, nabla, summation, products, Greek symbols, vectors, fractions, roots, powers, subscripts, superscripts, determinants and actual mathematical matrices. Use proper LaTeX such as \\\\frac, \\\\sqrt, \\\\int, \\\\sum, \\\\begin{pmatrix}...\\\\end{pmatrix}; never replace a matrix with prose or a table with a matrix. Do not output raw math commands outside MathJax delimiters. Do not invent equations. Real tables must use table_rows; matrix_latex is only for actual mathematical matrices. Do not split an expression across lines. Preserve all question/options/subparts as one complete block. ALWAYS provide suggested_library_path for every question. Existing Library paths: "+libraryList+". Fields: question_number,question,options,answer,topic,chapter,source,year,difficulty,suggested_flag,explanation,diagram_description,figure_required,figure_reference,page,book,subject,subtopic,section,suggested_library_path,table_rows,matrix_latex,is_continuation,continuation,crop_box. For every question starting on CURRENT PAGE, return crop_box as normalized JSON {x,y,width,height} around the complete visible question content on CURRENT PAGE, including its options when present. Figure rule: set figure_required=true when the question explicitly refers to a figure, diagram, graph, circuit, schematic, or other visual needed to answer it; otherwise set false. Set figure_reference to the exact reference phrase. This box is used to automatically show the original PDF image beside the OCR text. suggested_flag must be exactly easy, hard, important, nonimportant, or normal; use normal when uncertain.";
+      let prompt="You are extracting an exam paper one page at a time. CURRENT PAGE = "+pageNo+" of "+totalPages+". Extract EVERY complete question whose QUESTION TEXT STARTS on the CURRENT PAGE. You may inspect the NEXT PAGE image only to complete a question that starts on the current page. Do not extract a question that starts on the next page. If a question continues onto the next page, include its complete continuation, all options, subparts and figure references. If the next page contains the options for a question started on the current page, those options MUST be attached to that question in the options array; never return only the statement. If a question number is visually above/before the current page but its question text starts here, treat it as starting on the current page. Return ONLY valid JSON with a questions array. Never summarize, translate, shorten, paraphrase or omit anything. Preserve every English and Hindi/Devanagari word exactly as printed, punctuation, brackets, option labels, bilingual wording, numbers and units. IMPORTANT LINE FORMAT: keep English and Hindi on separate lines whenever they are separate in the PDF. Never merge the English line with its Hindi line. Preserve intentional line breaks between statement, Hindi translation, options, assertions, subparts and equations. A slash / is literal prose unless the PDF visibly shows a mathematical fraction. Preserve prose separately from mathematics. CRITICAL MATH RULE: preserve mathematical meaning exactly and use valid LaTeX inside MathJax delimiters \\\\( ... \\\\) or \\\\[ ... \\\\]. Preserve °C, Å and Å exactly; NEVER turn Å into AA, /A or double-A. Preserve μ, Ω, eV, nm, K and other units. Preserve integrals, contour integrals, limits, derivatives d/dx, partial derivatives, nabla, summation, products, Greek symbols, vectors, fractions, roots, powers, subscripts, superscripts, determinants and actual mathematical matrices. Use proper LaTeX such as \\\\frac, \\\\sqrt, \\\\int, \\\\sum, \\\\begin{pmatrix}...\\\\end{pmatrix}; never replace a matrix with prose or a table with a matrix. Do not output raw math commands outside MathJax delimiters. Do not invent equations. Real tables must use table_rows; matrix_latex is only for actual mathematical matrices. Do not split an expression across lines. Preserve all question/options/subparts as one complete block. ALWAYS provide suggested_library_path for every question. IMPORTANT LIBRARY HIERARCHY: identify the deepest reliable academic classification from the paper. Prefer a path like "12th / Optics / Plane Mirror", "12th / Optics / Spherical Mirror", "12th / Optics / Lenses", "12th / Optics / Diffraction Grating", etc. Use the actual class/grade first when identifiable; then chapter; then the most specific topic/subtopic. Do NOT stop at only the main folder or chapter. Do NOT invent a topic when the paper does not provide enough evidence; use the deepest level supported by the question. For every question also provide level/class/grade when identifiable. Existing Library paths: "+libraryList+". Fields: question_number,question,options,answer,topic,chapter,source,year,difficulty,suggested_flag,explanation,diagram_description,figure_required,figure_reference,page,book,subject,subtopic,section,level,class,grade,suggested_library_path,table_rows,matrix_latex,is_continuation,continuation,crop_box. For every question starting on CURRENT PAGE, return crop_box as normalized JSON {x,y,width,height} around the complete visible question content on CURRENT PAGE, including its options when present. Figure rule: set figure_required=true when the question explicitly refers to a figure, diagram, graph, circuit, schematic, or other visual needed to answer it; otherwise set false. Set figure_reference to the exact reference phrase. This box is used to automatically show the original PDF image beside the OCR text. suggested_flag must be exactly easy, hard, important, nonimportant, or normal; use normal when uncertain.";
       let parts=[{text:prompt},{inlineData:{mimeType:"image/jpeg",data:currentImage}}];
       if(nextImage)parts.push({text:"NEXT PAGE (continuation reference only; do not extract new question starts from this page):"},{inlineData:{mimeType:"image/jpeg",data:nextImage}});
       let body={contents:[{role:"user",parts:parts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:32768}};
