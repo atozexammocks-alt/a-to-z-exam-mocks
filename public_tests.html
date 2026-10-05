@@ -4,6 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>A to Z Exam Mocks - Published Tests & Management</title>
+  <script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};
+function libraryMathMarkup(v){
+ var x=String(v||""); if(!x)return "";
+ if(/\\\\\(|\\\\\[/.test(x))return x;
+ if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)||/(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x))return "\\("+x+"\\)";
+ return x;
+}
+function renderLibraryText(v){
+ var x=libraryMathMarkup(v);
+ return String(x).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/&amp;(lt|gt);/g,"&$1;").replace(/\\\\/g,"\\\\");
+}
+function typesetLibraryMath(){
+ if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
+ if(MathJax.startup&&MathJax.startup.promise)MathJax.startup.promise.then(function(){MathJax.typesetPromise([document.getElementById("preview-modal-body")]).catch(function(){});}).catch(function(){});
+}
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
   
   <script type="module">
@@ -202,9 +220,9 @@ try{
             itemDiv.style.cssText = "background:#060911; border:1px solid #1e293b; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:6px;";
             itemDiv.innerHTML = `
               <div style="font-size:12px; color:#38bdf8; font-weight:bold;">Q.${idx + 1} [Topic: ${q.topic || 'General'}]</div>
-              ${q.qText ? `<div style="font-size:13px; color:#f8fafc; font-weight:bold;">${q.qText}</div>` : ''}
-              ${q.question ? `<img src="${q.question}" style="max-width:100%; max-height:160px; object-fit:contain; background:#fff; border-radius:4px; padding:4px;">` : ''}
-              ${q.optText ? `<div style="font-size:12px; color:#cbd5e1;"><strong>Options:</strong> ${q.optText}</div>` : ''}
+              ${(() => { const text=q.qText||q.text||q.questionText||q.question_text||q.content; return text ? \`<div style="font-size:13px; color:#f8fafc; font-weight:bold; line-height:1.6;">${renderLibraryText(text)}</div>\` : ""; })()}
+              ${q.question ? \`<img src="${q.question}" style="max-width:100%; max-height:160px; object-fit:contain; background:#fff; border-radius:4px; padding:4px;">\` : ""}
+              ${(() => { let opts=q.options||q.choices||q.answerOptions; if(!opts&&typeof q.optText==="string") opts=q.optText.split(/\s*\|\s*/).map(s=>s.trim()).filter(Boolean); if(typeof opts==="string"){try{opts=JSON.parse(opts)}catch(e){opts=null}} if(!Array.isArray(opts)) opts=["A","B","C","D"].map(k=>q["option"+k]??q["option_"+k]??q["choice"+k]).filter(v=>v!=null&&String(v).trim()).map(String); return opts.length ? \`<div style="font-size:12px; color:#cbd5e1;"><strong>Options:</strong><br>${opts.map(o=>renderLibraryText(o)).join("<br>")}</div>\` : ""; })()}
               <div style="font-size:12px; color:#10b981;"><strong>Correct Key:</strong> ${q.key || 'A'}</div>
             `;
             modalBody.appendChild(itemDiv);
@@ -216,6 +234,8 @@ try{
             modalBody.appendChild(itemDiv);
           }
         });
+
+        typesetLibraryMath();
 
         if (modalBody.innerHTML === '') {
           modalBody.innerHTML = `<p style="color:#ef4444; text-align:center;">No matching questions found in the database vault.</p>`;
