@@ -300,11 +300,10 @@ async function loadQuestions(){
 function goBack(){location.href="builder.html"}
 function updateBrandingPreview(){
  const b=readBranding();const el=document.getElementById("brandingPreview");if(!el)return;
- const font=b.fontFamily||"Times New Roman";
- el.style.setProperty("--pv-font","'"+font.replace(/'/g,"")+"'");
+ el.style.setProperty("--pv-font","Arial,sans-serif");
  el.innerHTML=(b.showLogo&&b.logoUrl?'<img class="pv-logo" src="'+esc(b.logoUrl)+'">':"")+""+'<div class="pv-school">'+esc(b.schoolName||"Institute / School Name")+'</div><div class="pv-title">'+esc(b.paperTitle||"Question Paper")+'</div><div class="pv-meta"><div class="pv-left"><div><b>Class:</b> '+esc(b.className||"—")+'</div><div><b>Subject:</b> '+esc(b.subjectName||"—")+'</div></div><div class="pv-right"><div><b>Session:</b> '+esc(b.sessionName||"—")+'</div><div><b>Time:</b> '+esc(b.examTime||"—")+'</div></div></div><div class="pv-line"></div>'+(b.instructions?'<div class="pv-note"><b>Instructions</b><br>'+esc(b.instructions)+'</div>':'<div class="pv-note">Your instructions will appear here.</div>')+'<div class="pv-footer" style="position:absolute;left:24px;right:24px;bottom:20px;border-top:1px solid #999;padding-top:6px;text-align:center;font-size:10px">'+(b.showAZBrand?"A to Z Exam Mocks • ":"")+(b.showFooter?"Question Paper":"")+"</div>";
 }
-function bindBrandingPreview(){["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily","showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>{const e=document.getElementById(k);if(e){e.addEventListener("input",updateBrandingPreview);e.addEventListener("change",updateBrandingPreview)}})}
+function bindBrandingPreview(){["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","instructions","printLayout","showLogo","showAZBrand","showFooter"].forEach(k=>{const e=document.getElementById(k);if(e&&!e.dataset.previewBound){e.dataset.previewBound="1";e.addEventListener("input",updateBrandingPreview);e.addEventListener("change",updateBrandingPreview)}})}
 function openBranding(){
  if(!questions.length){alert("No selected questions available.");return}
  const old=safeJSON("AZ_PAPER_BRANDING",{})||{};
@@ -313,11 +312,11 @@ function openBranding(){
  document.getElementById("brandingModal").classList.add("show");updateBrandingPreview();bindBrandingPreview();const lf=document.getElementById("logoFile");if(lf&&!lf.dataset.bound){lf.dataset.bound="1";lf.addEventListener("change",()=>{const f=lf.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{document.getElementById("logoUrl").value=String(rd.result||"");updateBrandingPreview()};rd.readAsDataURL(f)})}
 }
 function closeBranding(){document.getElementById("brandingModal").classList.remove("show")}
-function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>o[k]=document.getElementById(k).value.trim());["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>o[k]=document.getElementById(k).checked);return o}
+function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","instructions"].forEach(k=>{const e=document.getElementById(k);o[k]=e?String(e.value||"").trim():""});o.layout=document.getElementById("printLayout")?.value||"one";["showLogo","showAZBrand","showFooter"].forEach(k=>{const e=document.getElementById(k);o[k]=e?!!e.checked:true});return o}
 function printPaper(){
  branding=readBranding();localStorage.setItem("AZ_PAPER_BRANDING",JSON.stringify(branding));localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections));
  closeBranding();
- const payload={questions:questions,sections:sections,branding:branding,fontFamily:branding.fontFamily||"Times New Roman",textEdits:paperEdits(),title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:(branding.showLogo?branding.logoUrl:"")||"",layout:branding.layout||"one",qSize:14,oSize:13,titleSize:18,schoolSize:20,subSize:13,lineW:2,qGap:10,imgH:160};
+ const payload={questions:questions,sections:sections,branding:branding,textEdits:paperEdits(),title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:(branding.showLogo?branding.logoUrl:"")||"",layout:branding.layout||"one",qSize:14,oSize:13,titleSize:18,schoolSize:20,subSize:13,lineW:2,qGap:10,imgH:160};
  window.__AZ_PRINT_PAYLOAD=payload;
  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage skipped:",e)}
  const selectedQuery=questions.map(q=>String(q.id)).filter(Boolean).join(",");
