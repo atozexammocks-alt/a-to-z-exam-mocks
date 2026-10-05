@@ -370,7 +370,7 @@ function printPaper(){
  try{localStorage.setItem("AZ_PRINT_SELECTED_IDS",JSON.stringify(questions.map(q=>String(q.id)).filter(Boolean)));localStorage.setItem("AZ_PRINT_SECTIONS",JSON.stringify(sections))}catch(e){}
  const w=window.open("about:blank","_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage failed",e)}
- const url="printout.html?selected="+encodeURIComponent(selectedQuery);
+ const url="printout.html?v=20261005-2&selected="+encodeURIComponent(selectedQuery);
  try{w.location.replace(url)}catch(e){w.location.href=url}
  savePrintSession().catch(e=>console.warn("IndexedDB backup save skipped",e));
  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
