@@ -63,18 +63,29 @@ button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;fle
    <label>Academic Session<input id="sessionName" placeholder="e.g. 2026–27"></label>
    <label>Time Allowed<input id="examTime" placeholder="e.g. 3 Hours"></label>
    <label>Institute Logo<input id="logoFile" type="file" accept="image/*"><input id="logoUrl" placeholder="Or paste logo URL (https://...)" style="margin-top:6px"></label>
-   <label>Paper Font Family<select id="fontFamily"><option value="Times New Roman">Times New Roman</option><option value="Arial">Arial</option><option value="Calibri">Calibri</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Cambria">Cambria</option><option value="Garamond">Garamond</option></select></label>
-   <label>Watermark Text<input id="watermarkText" value="A to Z Exam Mocks"></label>
+   <label>Print Layout<select id="printLayout"><option value="one">One Column</option><option value="two">Two Columns</option></select></label>
    <label class="full">Header / Instructions<textarea id="instructions" rows="3" placeholder="General instructions for students..."></textarea></label>
   </div></div>
   <label class="check"><input id="showLogo" type="checkbox" checked> Show institute logo</label>
-  <label class="check"><input id="showWatermark" type="checkbox"> Show watermark</label>
   <label class="check"><input id="showAZBrand" type="checkbox" checked> Show A to Z Exam Mocks branding</label>
   <label class="check"><input id="showFooter" type="checkbox" checked> Show branded footer</label>
   <div class="actions"><button class="btn" onclick="closeBranding()">Cancel</button><button class="btn blue" onclick="printPaper()">Continue to Print</button></div>
  </div>
 </div>
-<div id="toast"></div>
+<div id="sectionModal" class="modal">
+ <div class="dialog" style="width:min(520px,96vw)">
+  <h2>＋ Create Paper Section</h2>
+  <div class="formgrid">
+   <label>Section
+    <select id="newSectionLetter"><option>A</option><option>B</option><option>C</option><option>D</option><option>E</option><option>F</option><option>G</option><option>H</option></select>
+   </label>
+   <label>Section Name<input id="newSectionName" placeholder="e.g. Section A"></label>
+   <label>Question Type<select id="newSectionType"><option>MCQ</option><option>Very Short Answer</option><option>Short Answer</option><option>Long Answer</option><option>Assertion–Reason</option><option>Numerical</option><option>Case Study</option><option>Mixed</option></select></label>
+   <label>Marks per Question<input id="newSectionMarks" type="number" min="0" step="0.5" value="1"></label>
+  </div>
+  <div class="actions"><button class="btn" onclick="closeSectionModal()">Cancel</button><button class="btn green" onclick="createSectionFromModal()">Create Section</button></div>
+ </div>
+</div><div id="toast"></div>
 <div id="libraryImportModal" class="modal">
  <div class="dialog" style="width:min(980px,97vw)">
   <h2>＋ Import Question from Library</h2>
@@ -136,11 +147,25 @@ function selectedIds(){
  return safeJSON("AZ_BUILDER_SELECTED_IDS",[]).map(String);
 }
 function normalizeSections(){
- sections=sections.map((s,i)=>({id:String(s.id||("sec_"+Date.now()+"_"+i)),name:s.name||("Section "+String.fromCharCode(65+i)),type:s.type||"MCQ",marks:Number(s.marks)||1,questionIds:Array.isArray(s.questionIds)?s.questionIds.map(String):[]}));
+ sections=sections.map((s,i)=>({id:String(s.id||("sec_"+Date.now()+"_"+i)),name:s.name||("Section "+String.fromCharCode(65+i)),type:s.type||"MCQ",marks:Number.isFinite(Number(s.marks))?Number(s.marks):1,questionIds:Array.isArray(s.questionIds)?s.questionIds.map(String):[]}));
 }
 function sectionTypes(){return ["MCQ","Very Short Answer","Short Answer","Long Answer","Assertion–Reason","Numerical","Case Study","Mixed"]}
 function addSection(){
- const i=sections.length;sections.push({id:"sec_"+Date.now()+"_"+i,name:"Section "+String.fromCharCode(65+i),type:i===0?"MCQ":"Short Answer",marks:1,questionIds:[]});renderAll()
+ const i=sections.length,letter=String.fromCharCode(65+i);
+ document.getElementById("newSectionLetter").value=letter;
+ document.getElementById("newSectionName").value="Section "+letter;
+ document.getElementById("newSectionType").value=i===0?"MCQ":"Short Answer";
+ document.getElementById("newSectionMarks").value="1";
+ document.getElementById("sectionModal").classList.add("show");
+}
+function closeSectionModal(){document.getElementById("sectionModal").classList.remove("show")}
+function createSectionFromModal(){
+ const letter=document.getElementById("newSectionLetter").value||String.fromCharCode(65+sections.length);
+ const name=document.getElementById("newSectionName").value.trim()||("Section "+letter);
+ const type=document.getElementById("newSectionType").value||"MCQ";
+ const marks=Math.max(0,Number(document.getElementById("newSectionMarks").value)||0);
+ sections.push({id:"sec_"+Date.now()+"_"+sections.length,name,type,marks,questionIds:[]});
+ closeSectionModal();renderAll();
 }
 function removeSection(id){
  const s=sections.find(x=>x.id===id);if(!s)return;
@@ -157,7 +182,7 @@ function assign(qid,sid){
  requestAnimationFrame(()=>{const box=document.getElementById("questions");if(box)box.scrollTop=scrollTop;});
 }
 function sectionUpdate(id,key,val){const s=sections.find(x=>x.id===id);if(!s)return;s[key]=key==="marks"?Math.max(0,Number(val)||0):String(val);renderAll()}
-function sectionStats(s){return {count:s.questionIds.length,marks:s.questionIds.reduce((sum,id)=>sum+(Number(questions.find(q=>q.id===id)?.marks)||0),0)}}
+function sectionStats(s){return {count:s.questionIds.length,marks:s.questionIds.length*(Number(s.marks)||0)}}
 function renderSections(){
  const el=document.getElementById("sections");
  if(!sections.length){el.innerHTML='<div class="empty">No sections yet.<br><small>Click ＋ Add Section to start.</small></div>';return}
@@ -277,14 +302,14 @@ function updateBrandingPreview(){
  const b=readBranding();const el=document.getElementById("brandingPreview");if(!el)return;
  const font=b.fontFamily||"Times New Roman";
  el.style.setProperty("--pv-font","'"+font.replace(/'/g,"")+"'");
- el.innerHTML=(b.showLogo&&b.logoUrl?'<img class="pv-logo" src="'+esc(b.logoUrl)+'">':"")+(b.showWatermark?'<div class="pv-watermark">'+esc(b.watermarkText||"A to Z Exam Mocks")+'</div>':"")+'<div class="pv-school">'+esc(b.schoolName||"Institute / School Name")+'</div><div class="pv-title">'+esc(b.paperTitle||"Question Paper")+'</div><div class="pv-meta"><div class="pv-left"><div><b>Class:</b> '+esc(b.className||"—")+'</div><div><b>Subject:</b> '+esc(b.subjectName||"—")+'</div></div><div class="pv-right"><div><b>Session:</b> '+esc(b.sessionName||"—")+'</div><div><b>Time:</b> '+esc(b.examTime||"—")+'</div></div></div><div class="pv-line"></div>'+(b.instructions?'<div class="pv-note"><b>Instructions</b><br>'+esc(b.instructions)+'</div>':'<div class="pv-note">Your instructions will appear here.</div>')+'<div class="pv-footer" style="position:absolute;left:24px;right:24px;bottom:20px;border-top:1px solid #999;padding-top:6px;text-align:center;font-size:10px">'+(b.showAZBrand?"A to Z Exam Mocks • ":"")+(b.showFooter?"Question Paper":"")+"</div>";
+ el.innerHTML=(b.showLogo&&b.logoUrl?'<img class="pv-logo" src="'+esc(b.logoUrl)+'">':"")+""+'<div class="pv-school">'+esc(b.schoolName||"Institute / School Name")+'</div><div class="pv-title">'+esc(b.paperTitle||"Question Paper")+'</div><div class="pv-meta"><div class="pv-left"><div><b>Class:</b> '+esc(b.className||"—")+'</div><div><b>Subject:</b> '+esc(b.subjectName||"—")+'</div></div><div class="pv-right"><div><b>Session:</b> '+esc(b.sessionName||"—")+'</div><div><b>Time:</b> '+esc(b.examTime||"—")+'</div></div></div><div class="pv-line"></div>'+(b.instructions?'<div class="pv-note"><b>Instructions</b><br>'+esc(b.instructions)+'</div>':'<div class="pv-note">Your instructions will appear here.</div>')+'<div class="pv-footer" style="position:absolute;left:24px;right:24px;bottom:20px;border-top:1px solid #999;padding-top:6px;text-align:center;font-size:10px">'+(b.showAZBrand?"A to Z Exam Mocks • ":"")+(b.showFooter?"Question Paper":"")+"</div>";
 }
 function bindBrandingPreview(){["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily","showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>{const e=document.getElementById(k);if(e){e.addEventListener("input",updateBrandingPreview);e.addEventListener("change",updateBrandingPreview)}})}
 function openBranding(){
  if(!questions.length){alert("No selected questions available.");return}
  const old=safeJSON("AZ_PAPER_BRANDING",{})||{};
- ["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>{if(old[k]!==undefined&&document.getElementById(k))document.getElementById(k).value=old[k]});
- ["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>{if(old[k]!==undefined)document.getElementById(k).checked=old[k]});
+ ["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","instructions"].forEach(k=>{if(old[k]!==undefined&&document.getElementById(k))document.getElementById(k).value=old[k]});
+ ["showLogo","showAZBrand","showFooter"].forEach(k=>{if(old[k]!==undefined)document.getElementById(k).checked=old[k]});if(document.getElementById("printLayout"))document.getElementById("printLayout").value=old.layout||"one";
  document.getElementById("brandingModal").classList.add("show");updateBrandingPreview();bindBrandingPreview();const lf=document.getElementById("logoFile");if(lf&&!lf.dataset.bound){lf.dataset.bound="1";lf.addEventListener("change",()=>{const f=lf.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{document.getElementById("logoUrl").value=String(rd.result||"");updateBrandingPreview()};rd.readAsDataURL(f)})}
 }
 function closeBranding(){document.getElementById("brandingModal").classList.remove("show")}
@@ -292,7 +317,7 @@ function readBranding(){const o={};["schoolName","className","subjectName","pape
 function printPaper(){
  branding=readBranding();localStorage.setItem("AZ_PAPER_BRANDING",JSON.stringify(branding));localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections));
  closeBranding();
- const payload={questions:questions,sections:sections,branding:branding,fontFamily:branding.fontFamily||"Times New Roman",textEdits:paperEdits(),title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:(branding.showLogo?branding.logoUrl:"")||"",layout:"one",qSize:14,oSize:13,titleSize:18,schoolSize:20,subSize:13,lineW:2,qGap:10,imgH:160};
+ const payload={questions:questions,sections:sections,branding:branding,fontFamily:branding.fontFamily||"Times New Roman",textEdits:paperEdits(),title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:(branding.showLogo?branding.logoUrl:"")||"",layout:branding.layout||"one",qSize:14,oSize:13,titleSize:18,schoolSize:20,subSize:13,lineW:2,qGap:10,imgH:160};
  window.__AZ_PRINT_PAYLOAD=payload;
  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage skipped:",e)}
  const selectedQuery=questions.map(q=>String(q.id)).filter(Boolean).join(",");
