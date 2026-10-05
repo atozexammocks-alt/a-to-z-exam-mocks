@@ -113,7 +113,7 @@ let questions=[],sections=[],branding={};
 
 function safeJSON(key,fallback){try{const v=JSON.parse(localStorage.getItem(key)||"");return v??fallback}catch(e){return fallback}}
 function esc(v){return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
-function cleanText(v){let s=String(v??"").trim();s=s.replace(/^\s*(?:question|ques|q)\s*[-.:]?\s*\d+\s*[.)\-:]?\s*/i,"");s=s.replace(/^\s*\d+\s*[.)\-:]?\s*/,"");return s.trim()}
+function cleanText(v){return String(v??"").trim()}
 function optionsOf(q){
  const v=q?.options??q?.choices??q?.answers;
  if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(String).filter(x=>x.trim());
@@ -292,13 +292,28 @@ function loadState(){
 }
 async function loadQuestions(){
  const ids=selectedIds();
- if(!ids.length){document.getElementById("poolStatus").textContent="No Builder selection";renderAll();return}
  const handoff=safeJSON("AZ_BUILDER_SELECTED_QUESTIONS",[]);
  const compact=new Map((Array.isArray(handoff)?handoff:[]).map(q=>[String(q?.id||q?.qid||q?.questionId||""),q]));
- try{await signInAnonymously(auth);const snap=await getDocs(collection(db,"questions"));const map=new Map(snap.docs.map(d=>[String(d.id),{id:d.id,...d.data()}]));questions=ids.map(id=>map.get(String(id))||compact.get(String(id))).filter(Boolean)}
- catch(e){console.warn("Paper Designer Firebase load:",e);questions=ids.map(id=>compact.get(String(id))).filter(Boolean)}
+ if(!ids.length){
+  document.getElementById("poolStatus").textContent="No Builder selection";
+  questions=[];
+  renderAll();
+  return;
+ }
+ // Test Builder selection is the source of truth. Refresh those exact IDs from
+ // the master Library collection, with the Builder handoff as a guaranteed fallback.
+ try{
+  await signInAnonymously(auth);
+  const snap=await getDocs(collection(db,"questions"));
+  const map=new Map(snap.docs.map(d=>[String(d.id),{id:d.id,...d.data()}]));
+  questions=ids.map(id=>map.get(String(id))||compact.get(String(id))).filter(Boolean);
+ }catch(e){
+  console.warn("Paper Designer Firebase load; using Builder handoff:",e);
+  questions=ids.map(id=>compact.get(String(id))).filter(Boolean);
+ }
+ // Keep the exact Test Builder selection order; never load an unrelated question.
  document.getElementById("poolStatus").textContent=questions.length+" / "+ids.length+" selected questions loaded";
- renderAll()
+ renderAll();
 }
 function goBack(){location.href="builder.html"}
 function updateBrandingPreview(){
