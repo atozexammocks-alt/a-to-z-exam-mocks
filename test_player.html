@@ -272,7 +272,7 @@ try{
     function libraryMathMarkup(v){
       var x=String(v||"");
       if(!x)return "";
-      if(/\\\\\\(|\\\\\\[/.test(x)) return x;
+      if(/\\\\\(|\\\\\[/.test(x)) return x;
       if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
         || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
         return "\\("+x+"\\)";
@@ -281,14 +281,13 @@ try{
     }
     function renderLibraryText(v){
       var x=libraryMathMarkup(v);
-      return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+      return escapeHtml(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
     }
     function typesetLibraryMath(){
       if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
       if(MathJax.startup&&MathJax.startup.promise){
         MathJax.startup.promise.then(function(){
-          var nodes=[document.getElementById("q-text-note"),document.getElementById("q-opts-note")].filter(Boolean);
-          MathJax.typesetPromise(nodes).catch(function(){});
+          MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
         }).catch(function(){});
       }
     }
