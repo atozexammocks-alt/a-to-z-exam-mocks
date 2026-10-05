@@ -52,9 +52,11 @@ header{background:#0b1120;border-bottom:1px solid #1e293b;padding:12px 24px;disp
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, doc, getDoc, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
-const app=initializeApp(firebaseConfig);const db=getFirestore(app);
+const app=initializeApp(firebaseConfig);const db=getFirestore(app);const auth=getAuth(app);
+const authReady=signInAnonymously(auth).catch(e=>{console.warn("Anonymous auth unavailable:",e);return null;});
 let testData=null,currentIdx=0,userResponses={},timerInterval=null,timeLeftSeconds=0,isSubmitting=false,testStartTimestamp=0,focusLossCount=0;
 const $=id=>document.getElementById(id);
 function getTestId(){
@@ -122,20 +124,50 @@ function safeRich(v){
 }
 function typeset(){if(window.MathJax?.typesetPromise){if(window.MathJax.startup?.promise)window.MathJax.startup.promise.then(()=>window.MathJax.typesetPromise([$("q-text-note"),$("btn-opt-A"),$("btn-opt-B"),$("btn-opt-C"),$("btn-opt-D")]).catch(()=>{})).catch(()=>{});else window.MathJax.typesetPromise().catch(()=>{});}}
 async function loadQuestionsByIds(ids){
- const cleanIds=ids.map(x=>String(x??"").trim()).filter(Boolean);if(!cleanIds.length)return [];
- const snap=await getDocs(collection(db,"questions"));const map={};snap.forEach(d=>{map[d.id]={id:d.id,...d.data()}});
- return cleanIds.map(id=>map[id]).filter(Boolean);
+ const cleanIds=[...new Set((ids||[]).map(x=>{
+   if(x&&typeof x==="object") return String(x.id??x.questionId??x.docId??x.refId??"").trim();
+   return String(x??"").trim();
+ }).filter(Boolean))];
+ if(!cleanIds.length)return [];
+ try{await authReady}catch(_){}
+ const collectionsToTry=["questions","library_questions","questionBank","question_bank"];
+ const map=new Map();
+ for(const cname of collectionsToTry){
+   try{
+     const snap=await getDocs(collection(db,cname));
+     snap.forEach(d=>{
+       if(cleanIds.includes(d.id)) map.set(d.id,{id:d.id,_sourceCollection:cname,...d.data()});
+     });
+   }catch(e){console.warn("Could not read "+cname,e)}
+   if(map.size===cleanIds.length)break;
+ }
+ return cleanIds.map(id=>map.get(id)).filter(Boolean);
+}
+function normalizePublishedQuestions(raw){
+ const embedded=Array.isArray(raw?.questions)?raw.questions:[];
+ if(embedded.length){
+   return embedded.map((q,i)=>{
+     if(q&&typeof q==="object") return q.id?{...q}:({...q,id:String(q.id??q.questionId??"embedded_"+i)});
+     return null;
+   }).filter(Boolean);
+ }
+ return [];
 }
 async function initTestPlayer(){
  const studentEmail=(localStorage.getItem("ExamVault_Student_Email")||"").trim();
+ if(!auth.currentUser){try{await authReady}catch(_){}}
  if(!studentEmail){showError("Please login first from the Student Portal.");setTimeout(()=>{window.location.href="student.html"},900);return;}
  const testId=getTestId();if(!testId){showError("No test ID was supplied in the URL.","Expected format: test_player.html?id=YOUR_PUBLISHED_TEST_ID");return;}
  try{
    const ref=doc(db,"published_tests",testId);const snap=await getDoc(ref);
    if(!snap.exists()){showError("Published test not found.","The player looked for published_tests/"+testId+" but that document does not exist. Check that the Open Mock Test link contains the actual published test document ID.");return;}
    const raw=snap.data();
-   let questions=Array.isArray(raw.questions)?raw.questions.filter(Boolean):[];
-   if(!questions.length&&Array.isArray(raw.questionIds)&&raw.questionIds.length)questions=await loadQuestionsByIds(raw.questionIds);
+   let questions=normalizePublishedQuestions(raw);
+   if(!questions.length&&Array.isArray(raw.questionIds)&&raw.questionIds.length){
+     questions=await loadQuestionsByIds(raw.questionIds);
+     const missing=raw.questionIds.length-questions.length;
+     if(missing>0)console.warn("Published test: "+missing+" question ID(s) could not be resolved.",raw.questionIds);
+   }
    if(!questions.length){showError("This published test has no available questions.","The test document was found, but neither embedded questions nor matching questionIds produced any questions.");return;}
    const price=Number(raw.price||0);
    if(price>0){const email=studentEmail.toLowerCase();const purchaseId=encodeURIComponent(email)+"_"+encodeURIComponent(testId);const purchaseSnap=await getDoc(doc(db,"purchases",purchaseId));if(!purchaseSnap.exists()||purchaseSnap.data().status!=="paid"){alert("This is a paid mock test. Please purchase it before starting.");window.location.href="mock_tests.html";return;}}
