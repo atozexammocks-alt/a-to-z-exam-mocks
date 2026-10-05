@@ -268,6 +268,31 @@ try{
       });
     }
 
+    // Shared question-math renderer: intentionally matches Library/Test Builder.
+    function libraryMathMarkup(v){
+      var x=String(v||"");
+      if(!x)return "";
+      if(/\\\\\\(|\\\\\\[/.test(x)) return x;
+      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
+        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
+        return "\\("+x+"\\)";
+      }
+      return x;
+    }
+    function renderLibraryText(v){
+      var x=libraryMathMarkup(v);
+      return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+    }
+    function typesetLibraryMath(){
+      if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
+      if(MathJax.startup&&MathJax.startup.promise){
+        MathJax.startup.promise.then(function(){
+          var nodes=[document.getElementById("q-text-note"),document.getElementById("q-opts-note")].filter(Boolean);
+          MathJax.typesetPromise(nodes).catch(function(){});
+        }).catch(function(){});
+      }
+    }
+
     function loadQuestion(idx) {
       currentIdx = idx;
       const q = testData.questions[idx];
@@ -292,20 +317,20 @@ try{
 
       const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       const qTextEl = document.getElementById('q-text-note');
-      qTextEl.innerHTML = contentMode === 'image' ? '' : esc(q.qText || q.text || q.questionText || (imageSrc && !/^data:image\\//i.test(imageSrc) ? imageSrc : '') || ('Question ' + (idx + 1)));
+      qTextEl.innerHTML = contentMode === 'image' ? '' : renderLibraryText(q.qText || q.text || q.questionText || q.question_text || q.content || (imageSrc && !/^data:image\\//i.test(imageSrc) ? imageSrc : '') || ('Question ' + (idx + 1)));
       qTextEl.style.display = contentMode === 'image' ? 'none' : 'block';
 
       const qOptsEl = document.getElementById('q-opts-note');
       const opts = Array.isArray(q.options) ? q.options.map(String).filter(Boolean) :
                    (q.optText ? q.optText.split(/\\s*\\|\\s*/).map(s => s.trim()).filter(Boolean) : []);
       if (opts.length && contentMode !== 'image') {
-        qOptsEl.innerHTML = `<strong>Options:</strong><br>` + opts.map(o => esc(o)).join('<br>');
+        qOptsEl.innerHTML = `<strong>Options:</strong><br>` + opts.map(o => renderLibraryText(o)).join('<br>');
         qOptsEl.style.display = 'block';
       } else {
         qOptsEl.innerHTML = '';
         qOptsEl.style.display = 'none';
       }
-      if(window.MathJax && window.MathJax.typesetPromise) MathJax.typesetPromise([qTextEl,qOptsEl]).catch(()=>{});
+      typesetLibraryMath();
 
       ['A', 'B', 'C', 'D'].forEach(opt => {
         const btn = document.getElementById(`btn-opt-${opt}`);
