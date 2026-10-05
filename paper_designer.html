@@ -122,8 +122,7 @@ function optionsOf(q){
  const v=q?.options??q?.choices??q?.answers;
  if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(String).filter(x=>x.trim());
  if(v&&typeof v==="object")return Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(String).filter(x=>x.trim());
- if(typeof v==="string"&&v.trim()){try{const a=JSON.parse(v);if(Array.isArray(a))return a.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(String).filter(x=>x.trim())}catch(e){} return v.split(/\s*\|\s*|\r?
-/).map(x=>x.replace(/^\s*\([A-Ea-e]\)\s*/,"").replace(/^\s*[A-Ea-e][.)]\s*/,"").trim()).filter(Boolean)}
+ if(typeof v==="string"&&v.trim()){try{const a=JSON.parse(v);if(Array.isArray(a))return a.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(String).filter(x=>x.trim())}catch(e){} return v.split(/\s*\|\s*|\r?\n/).map(x=>x.replace(/^\s*\([A-Ea-e]\)\s*/,"").replace(/^\s*[A-Ea-e][.)]\s*/,"").trim()).filter(Boolean)}
  return ["A","B","C","D","E"].map(k=>q?.["option"+k]??q?.["option_"+k]??q?.["choice"+k]).map(x=>String(x??"")).filter(x=>x.trim())
 }
 function textOf(q){
@@ -144,8 +143,7 @@ function mathMarkup(v){
  }
  return x;
 }
-function renderText(v){return esc(mathMarkup(v)).replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\r?
-/g,"<br>")}
+function renderText(v){return esc(mathMarkup(v)).replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\r?\n/g,"<br>")}
 function typeset(){if(!window.MathJax?.typesetPromise)return;MathJax.startup?.promise?.then(()=>MathJax.typesetPromise([document.getElementById("questions")]).catch(()=>{}))}
 function toast(s){const t=document.getElementById("toast");t.textContent=s;t.style.display="block";clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.style.display="none",2200)}
 
@@ -214,8 +212,7 @@ function renderQuestions(){
  }).join("");
  typeset()
 }
-function applyPaperEditorResults(){const done=localStorage.getItem("AZ_PAPER_EDITOR_DONE"),qid=localStorage.getItem("AZ_PAPER_EDITOR_QID");if(done&&qid){const all=paperEdits(),existing=all[String(qid)]||{},raw=localStorage.getItem("AZ_PAPER_EDITOR_RESULT_OPTIONS")||"",opts=raw?raw.split(/\
-/).filter(Boolean):[];all[String(qid)]={...existing,text:localStorage.getItem("AZ_PAPER_EDITOR_RESULT_TEXT")??existing.text,image:localStorage.getItem("AZ_PAPER_EDITOR_RESULT_IMAGE")||existing.image,options:opts,hideOptions:localStorage.getItem("Temp_Editor_KeepOptions")==="false",updatedAt:new Date().toISOString()};savePaperEdits(all);["AZ_PAPER_EDITOR_DONE","AZ_PAPER_EDITOR_RESULT_IMAGE","AZ_PAPER_EDITOR_RESULT_TEXT","AZ_PAPER_EDITOR_RESULT_OPTIONS","AZ_PAPER_EDITOR_QID"].forEach(k=>localStorage.removeItem(k))}}
+function applyPaperEditorResults(){const done=localStorage.getItem("AZ_PAPER_EDITOR_DONE"),qid=localStorage.getItem("AZ_PAPER_EDITOR_QID");if(done&&qid){const all=paperEdits(),existing=all[String(qid)]||{},raw=localStorage.getItem("AZ_PAPER_EDITOR_RESULT_OPTIONS")||"",opts=raw?raw.split(/\\n/).filter(Boolean):[];all[String(qid)]={...existing,text:localStorage.getItem("AZ_PAPER_EDITOR_RESULT_TEXT")??existing.text,image:localStorage.getItem("AZ_PAPER_EDITOR_RESULT_IMAGE")||existing.image,options:opts,hideOptions:localStorage.getItem("Temp_Editor_KeepOptions")==="false",updatedAt:new Date().toISOString()};savePaperEdits(all);["AZ_PAPER_EDITOR_DONE","AZ_PAPER_EDITOR_RESULT_IMAGE","AZ_PAPER_EDITOR_RESULT_TEXT","AZ_PAPER_EDITOR_RESULT_OPTIONS","AZ_PAPER_EDITOR_QID"].forEach(k=>localStorage.removeItem(k))}}
 function renderAll(){normalizeSections();renderSections();renderQuestions();updateTotals();saveState()}
 function updateTotals(){
  const assigned=new Set();
@@ -373,17 +370,10 @@ function printPaper(){
  try{localStorage.setItem("AZ_PRINT_SELECTED_IDS",JSON.stringify(questions.map(q=>String(q.id)).filter(Boolean)));localStorage.setItem("AZ_PRINT_SECTIONS",JSON.stringify(sections))}catch(e){}
  const w=window.open("about:blank","_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage failed",e)}
- const url="printout.html?v=20261005-3&session="+encodeURIComponent(printSession)+"&selected="+encodeURIComponent(selectedQuery);
- // Save the exact Paper Designer session before Printout navigates.
- savePrintSession().catch(e=>console.warn("IndexedDB print session save skipped",e)).finally(()=>{
-   try{w.location.replace(url)}catch(e){w.location.href=url}
- });
+ const url="printout.html?selected="+encodeURIComponent(selectedQuery);
+ try{w.location.replace(url)}catch(e){w.location.href=url}
+ savePrintSession().catch(e=>console.warn("IndexedDB backup save skipped",e));
  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
- // The Printout page can finish navigation after this function returns, so send the
- // payload again after navigation as a reliable same-origin handoff.
- setTimeout(send,150);
- setTimeout(send,600);
- setTimeout(send,1500);
 }function buildPrintHtml(items){
  const b=branding;const escP=esc;
  const sectionsHtml=sections.map(s=>{const qs=s.questionIds.map(id=>questions.find(q=>q.id===id)).filter(Boolean);if(!qs.length)return "";return '<section class="psec"><h2>'+escP(s.name)+' <span>('+qs.length+' Questions • '+sectionStats(s).marks+' Marks)</span></h2>'+qs.map((q,i)=>printQ(q,i+1)).join("")+'</section>'}).join("");
