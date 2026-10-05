@@ -374,6 +374,11 @@ function printPaper(){
  try{w.location.replace(url)}catch(e){w.location.href=url}
  savePrintSession().catch(e=>console.warn("IndexedDB backup save skipped",e));
  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
+ // The Printout page can finish navigation after this function returns, so send the
+ // payload again after navigation as a reliable same-origin handoff.
+ setTimeout(send,150);
+ setTimeout(send,600);
+ setTimeout(send,1500);
 }function buildPrintHtml(items){
  const b=branding;const escP=esc;
  const sectionsHtml=sections.map(s=>{const qs=s.questionIds.map(id=>questions.find(q=>q.id===id)).filter(Boolean);if(!qs.length)return "";return '<section class="psec"><h2>'+escP(s.name)+' <span>('+qs.length+' Questions • '+sectionStats(s).marks+' Marks)</span></h2>'+qs.map((q,i)=>printQ(q,i+1)).join("")+'</section>'}).join("");
