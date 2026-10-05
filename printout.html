@@ -307,6 +307,11 @@ function loadStored(){
  }catch(e){}
  return false
 }
+// Deterministic local bootstrap: Printout must render the Paper Designer payload immediately.
+// Do this before any Firebase/IndexedDB work so a network/storage delay cannot leave the page on Loading paper…
+function bootLocalPayload(){
+ try{if(data.questions.length)return true;return loadStored();}catch(e){console.warn("Local print payload bootstrap failed",e);return false}
+}
 function printIdsFromAnySource(){
  try{
   const u=(new URLSearchParams(location.search).get("selected")||"").split(",").map(x=>x.trim()).filter(Boolean);
@@ -331,17 +336,18 @@ function storedPrintSections(){
 }
 window.addEventListener('message',e=>{if(e.data?.type==='AZ_PRINT_PAYLOAD')receive(e.data.payload)});
 setPaperSize('A4');setPaperMargin('normal');
+// Run immediately as well as on DOMContentLoaded. The script is already below the paper element.
+bootLocalPayload();
 window.addEventListener('DOMContentLoaded',()=>{
  let tries=0;
  const boot=()=>{
   tries++;
-  if(!data.questions.length)loadStored();
+  if(!data.questions.length)bootLocalPayload();
   if(data.questions.length)return;
   if(tries<8){setTimeout(boot,250);return}
   document.getElementById('paper').innerHTML='<div class="empty">No questions received.<br><small>Return to Paper Designer and use Print / Export again.</small></div>';
  };
  boot();
- setTimeout(boot,50);
 });
 </script>
 <script type="module">
