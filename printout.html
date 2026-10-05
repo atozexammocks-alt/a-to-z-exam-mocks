@@ -89,7 +89,24 @@ function questionText(q){
           MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
         }).catch(function(){});
       }
+    }
 
+    function questionOptions(q){
+      let opts=q.options||q.choices||q.answerOptions;
+      if(!opts && typeof q.optText==='string' && q.optText.trim()) opts=q.optText.split(/\s*\|\s*/).map(x=>x.replace(/^\s*\([A-E]\)\s*/i,'').trim()).filter(Boolean);
+      if(typeof opts==='string'){ try{ opts=JSON.parse(opts); }catch(e){ opts=null; } }
+      if(Array.isArray(opts)) return opts.map((x,i)=> typeof x==='object' ? (x.text||x.value||x.label||'') : String(x)).filter(Boolean);
+      const out=[];
+      ['A','B','C','D','E'].forEach(k=>{
+        const v=q['option'+k]??q['option_'+k]??q['choice'+k];
+        if(v!==undefined && String(v).trim()) out.push(String(v));
+      });
+      return out;
+    }
+    function normalizeFolderPath(v){
+      return String(v||'').trim().replace(/\\/g,'/').split('/').map(x=>x.trim()).filter(Boolean).join(' / ');
+    }
+    
 let data={questions:[],sections:[],branding:{},title:'Question Paper',school:'',logo:'',layout:'one',watermarkCount:1};
 let qSel=new Set(),sSel=new Set(),modeName='questions',qStyle={},sStyle={};
 let savedRange=null,savedFormatTarget=null;
