@@ -57,6 +57,16 @@ const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomai
 const app=initializeApp(firebaseConfig);const db=getFirestore(app);
 let testData=null,currentIdx=0,userResponses={},timerInterval=null,timeLeftSeconds=0,isSubmitting=false,testStartTimestamp=0,focusLossCount=0;
 const $=id=>document.getElementById(id);
+function getTestId(){
+  const p=new URLSearchParams(window.location.search);
+  return String(p.get("id")||p.get("testId")||"").trim();
+}
+function showError(title,details=""){
+  const box=$("loading");
+  if(box){box.style.display="flex";box.innerHTML=`<div style="max-width:720px;text-align:center;padding:28px"><h2 style="color:#ef4444;margin-bottom:10px">${escapeHtml(title)}</h2><p style="color:#cbd5e1;line-height:1.6">${escapeHtml(details)}</p></div>`;}
+  console.error(title,details);
+}
+
 const norm=v=>String(v??"").replace(/\r\n?/g,"\n").trim();
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function imageOf(q){
