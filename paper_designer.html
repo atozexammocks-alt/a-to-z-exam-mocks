@@ -369,6 +369,9 @@ function printPaper(){
  });
  try{localStorage.setItem("AZ_PRINT_SELECTED_IDS",JSON.stringify(questions.map(q=>String(q.id)).filter(Boolean)));localStorage.setItem("AZ_PRINT_SECTIONS",JSON.stringify(sections))}catch(e){}
  const w=window.open("about:blank","_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
+ // Extra same-window handoff: window.name survives navigation from about:blank to printout.html.
+ // This is a backup for browsers where IndexedDB/localStorage/opener access is restricted.
+ try{w.name="__AZ_PRINT_PAYLOAD__"+JSON.stringify(payload)}catch(e){console.warn("Window-name print payload skipped:",e)}
  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage failed",e)}
  const navigateToPrintout=()=>{
    const url="printout.html?session="+encodeURIComponent(printSession)+"&selected="+encodeURIComponent(selectedQuery);
