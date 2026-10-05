@@ -68,7 +68,7 @@ function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)
 function mathMarkup(v){
  var x=String(v||"");
  if(!x)return "";
- if(/\\\\\\(|\\\\\\[/.test(x)) return x;
+ if(/\\\\\(|\\\\\[/.test(x)) return x;
  if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
    || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
    return "\\("+x+"\\)";
