@@ -8,15 +8,11 @@
 window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};
 function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function libraryMathMarkup(v){
-      var x=String(v==null?"":v);
+      var x=String(v||"");
       if(!x)return "";
-      // Normalize stored escaped LaTeX. Firebase/import data can contain \vec or \\vec.
-      x=x.replace(/\\\\{2,}/g,"\\");
-      // Normalize slash-delimited legacy notation such as /vec R/ and /curl J/.
-      x=x.replace(/(^|[\s,(])\/(vec|curl|hat|bar|dot|ddot|sqrt|frac|dfrac|tfrac|int|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|mathbf|mathrm|text)\b/g,"$1\\$2");
-      x=x.replace(/\/(\)|\])/g,"$1");
-      if(/\\(?:frac|dfrac|tfrac|sqrt|vec|curl|hat|bar|dot|ddot|mathbf|mathrm|mathcal|text|begin|end|left|right|nabla|partial|int|iint|iiint|oint|sum|prod|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b/.test(x)
-        || /(?:[A-Za-z0-9}])\^\{[^}]+\}|(?:[A-Za-z0-9}])_\{[^}]+\}/.test(x)){
+      if(/\\\\\(|\\\\\[/.test(x)) return x;
+      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
+        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
         return "\\("+x+"\\)";
       }
       return x;
@@ -29,10 +25,7 @@ function libraryMathMarkup(v){
       if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
       if(MathJax.startup&&MathJax.startup.promise){
         MathJax.startup.promise.then(function(){
-          var body=document.getElementById("preview-modal-body");
-          if(!body)return;
-          MathJax.typesetClear([body]);
-          return MathJax.typesetPromise([body]);
+          MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
         }).catch(function(){});
       }
     }
@@ -102,9 +95,9 @@ function libraryMathMarkup(v){
             itemDiv.style.cssText = "background:#060911; border:1px solid #1e293b; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:6px;";
             itemDiv.innerHTML = `
               <div style="font-size:12px; color:#38bdf8; font-weight:bold;">Q.${idx + 1} [Topic: ${q.topic || 'General'}]</div>
-              ${(() => { const text=q.qText||q.text||q.questionText||q.question_text||q.content; return text ? \`<div class="library-q-text" style="font-size:13px; color:#f8fafc; font-weight:bold; line-height:1.6;">${renderLibraryText(text)}</div>\` : ""; })()}
+              ${(() => { const text=q.qText||q.text||q.questionText||q.question_text||q.content; return text ? \`<div style="font-size:13px; color:#f8fafc; font-weight:bold; line-height:1.6;">${renderLibraryText(text)}</div>\` : ""; })()}
               ${q.question ? \`<img src="${q.question}" style="max-width:100%; max-height:160px; object-fit:contain; background:#fff; border-radius:4px; padding:4px;">\` : ""}
-              ${(() => { let opts=q.options||q.choices||q.answerOptions; if(!opts&&typeof q.optText==="string") opts=q.optText.split(/\s*\|\s*/).map(s=>s.trim()).filter(Boolean); if(typeof opts==="string"){try{opts=JSON.parse(opts)}catch(e){opts=null}} if(!Array.isArray(opts)) opts=["A","B","C","D"].map(k=>q["option"+k]??q["option_"+k]??q["choice"+k]).filter(v=>v!=null&&String(v).trim()).map(String); return opts.length ? \`<div class="library-q-options" style="font-size:12px; color:#cbd5e1;"><strong>Options:</strong><br>${opts.map((o,i)=>String.fromCharCode(65+i)+". "+renderLibraryText(o)).join("<br>")}</div>\` : ""; })()}
+              ${(() => { let opts=q.options||q.choices||q.answerOptions; if(!opts&&typeof q.optText==="string") opts=q.optText.split(/\s*\|\s*/).map(s=>s.trim()).filter(Boolean); if(typeof opts==="string"){try{opts=JSON.parse(opts)}catch(e){opts=null}} if(!Array.isArray(opts)) opts=["A","B","C","D"].map(k=>q["option"+k]??q["option_"+k]??q["choice"+k]).filter(v=>v!=null&&String(v).trim()).map(String); return opts.length ? \`<div style="font-size:12px; color:#cbd5e1;"><strong>Options:</strong><br>${opts.map(o=>renderLibraryText(o)).join("<br>")}</div>\` : ""; })()}
               <div style="font-size:12px; color:#10b981;"><strong>Correct Key:</strong> ${q.key || 'A'}</div>
             `;
             modalBody.appendChild(itemDiv);
