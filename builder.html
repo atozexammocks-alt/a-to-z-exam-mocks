@@ -214,6 +214,7 @@ window.loadQuestions=async function(){
    }
    const seen=new Set();
    window.builderData=all.filter(x=>!seen.has(x.id)&&seen.add(x.id));
+   if(!window.builderData.length){try{await loadQuestionsDirect();}catch(restErr){console.warn("REST fallback after empty SDK result failed:",restErr);}}
   }catch(firebaseErr){
    console.warn("SDK read failed; using direct Firestore REST:",firebaseErr);
    await loadQuestionsDirect();
@@ -260,8 +261,9 @@ function renderQuestions(){
  }).join("");
  typeset();
 }
-window.toggleQuestion=function(id){id=String(id);window.selected.has(id)?window.selected.delete(id):window.selected.add(id);renderQuestions();renderSelected()};
-window.removeSelection=function(id){window.selected.delete(String(id));renderQuestions();renderSelected()};
+function syncQuestionSelectionUI(id){const key=String(id);const card=[...document.querySelectorAll("#questions .card")].find(el=>el.dataset.questionId===key);if(!card)return;const checked=window.selected.has(key);card.classList.toggle("selected",checked);const cb=card.querySelector('input[type="checkbox"]');if(cb)cb.checked=checked;}
+window.toggleQuestion=function(id){id=String(id);const box=document.getElementById("questions"),scrollTop=box?.scrollTop||0;window.selected.has(id)?window.selected.delete(id):window.selected.add(id);syncQuestionSelectionUI(id);renderSelected();requestAnimationFrame(()=>{if(box)box.scrollTop=scrollTop;});};
+window.removeSelection=function(id){id=String(id);const box=document.getElementById("questions"),scrollTop=box?.scrollTop||0;window.selected.delete(id);syncQuestionSelectionUI(id);renderSelected();requestAnimationFrame(()=>{if(box)box.scrollTop=scrollTop;});};
 
 window.openTextEditor=function(encodedId){
  const id=decodeURIComponent(String(encodedId||""));
