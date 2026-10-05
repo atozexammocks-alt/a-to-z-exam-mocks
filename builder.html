@@ -101,7 +101,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import {getFirestore,collection,getDocs,addDoc,doc,updateDoc,getDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {getFirestore,collection,getDocs,addDoc,doc,updateDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig);
@@ -120,7 +120,6 @@ window.builderDB=db;
 window.builderData=[];
 window.builderMode="private";
 window.folderFilter="";
-window.builderFolderTrees={private:[],central:[],group:[]};
 window.selected=new Set();
 window.textEdits=window.textEdits||{};
 window.activeTextEditId=null;
@@ -163,18 +162,15 @@ function folderOf(q){
 function isCentral(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.central===true||q?.isCentral===true||x==="central"||x.includes("central")}
 function isGroup(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.group===true||x==="group"||x.includes("group")}
 function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="group")return isGroup(q);return !isCentral(q)&&!isGroup(q)}
-function libraryMathMarkup(v){
- var x=String(v||"");
+function renderMath(html){
+ const x=String(html??"");
  if(!x)return "";
- if(/\\\\\\(|\\\\\\[/.test(x)) return x;
+ if(/\\\\\(|\\\\\[/.test(x)) return x;
  if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
    || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
    return "\\("+x+"\\)";
  }
- return x;
-}
-function renderMath(html){
- return libraryMathMarkup(String(html??"")).replace(/\\n/g,"<br>");
+ return x.replace(/\\n/g,"<br>");
 }
 function typeset(){if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise().catch(()=>{});}
 
@@ -204,39 +200,6 @@ async function loadQuestionsDirect(){
  });
  return window.builderData;
 }
-function builderTeacherEmail(){return (localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase()}
-function builderTeacherDocId(email){return String(email||"").replace(/[^a-zA-Z0-9]/g,"_")}
-function builderLegacyTree(data){
- if(Array.isArray(data?.libraryTree)&&data.libraryTree.length)return data.libraryTree;
- const mains=Array.isArray(data?.mainFolders)?data.mainFolders:[];
- const subs=data?.subFolders&&typeof data.subFolders==="object"?data.subFolders:{};
- return mains.map(name=>({id:"f_"+name,name:String(name).trim(),type:"folder",children:(Array.isArray(subs[name])?subs[name]:[]).map(s=>({id:"f_"+name+"_"+s,name:String(s).trim(),type:"folder",children:[]}))})).filter(n=>n.name);
-}
-function builderInsertFolderPath(tree,raw){
- const parts=folderOf({folderPath:raw}).split(" / ").filter(Boolean); if(!parts.length)return;
- let level=tree;
- parts.forEach(name=>{
-  let n=level.find(x=>String(x.name||"").toLowerCase()===name.toLowerCase());
-  if(!n){n={id:"f_"+name,name,type:"folder",children:[]};level.push(n)}
-  n.children=Array.isArray(n.children)?n.children:[]; level=n.children;
- });
-}
-async function loadBuilderFolderTree(){
- try{
-  const email=builderTeacherEmail();
-  const specs=[
-   ["private","folder_configs_private",builderTeacherDocId(email)],
-   ["central","folder_configs_central","global_central_tree"],
-   ["group","folder_configs_group",builderTeacherDocId(email)+"_group"]
-  ];
-  await Promise.all(specs.map(async ([mode,col,id])=>{
-   try{
-    const snap=await getDoc(doc(db,col,id));
-    window.builderFolderTrees[mode]=snap.exists()?builderLegacyTree(snap.data()):[];
-   }catch(e){window.builderFolderTrees[mode]=[];console.warn("Builder folder tree load failed:",mode,e)}
-  }));
- }catch(e){console.warn("Builder folder tree setup failed:",e)}
-}
 window.loadQuestions=async function(){
  const status=document.getElementById("status"),box=document.getElementById("questions");
  status.textContent="Loading directly from Firebase…";
@@ -257,7 +220,6 @@ window.loadQuestions=async function(){
    console.warn("SDK read failed; using direct Firestore REST:",firebaseErr);
    await loadQuestionsDirect();
   }
-  await loadBuilderFolderTree();
   status.textContent="Firebase connected • "+window.builderData.length+" questions";
   renderTree();renderQuestions();renderSelected();
  }catch(e){
@@ -379,18 +341,10 @@ window.previewImage=function(src){
 window.expandedFolders=window.expandedFolders||new Set();
 
 function renderTree(){
- const source=window.builderFolderTrees?.[window.builderMode]||[];
  const root={name:"Library",path:"",children:{},count:0};
- function addNode(parent,node){
-  const key=String(node.name||"").trim(); if(!key)return null;
-  const n=parent.children[key]||{name:key,path:parent.path?(parent.path+" / "+key):key,children:{},count:0};
-  parent.children[key]=n;
-  (Array.isArray(node.children)?node.children:[]).forEach(ch=>addNode(n,ch));
-  return n;
- }
- source.forEach(n=>addNode(root,n));
  getModeQuestions().forEach(q=>{
-  const p=folderOf(q),parts=p?p.split(" / "):[]; root.count++;
+  const p=folderOf(q),parts=p?p.split(" / "):[];
+  root.count++;
   let n=root,cur="";
   parts.forEach(part=>{
    cur=cur?cur+" / "+part:part;
@@ -398,18 +352,29 @@ function renderTree(){
    n=n.children[part]; n.count++;
   });
  });
+
  const html=[];
- html.push('<div class="tree-row '+(!window.folderFilter?'active':'')+'" onclick="chooseFolder(\\'\\')" style="font-weight:900">📚 <span>All Questions</span><span class="count">'+root.count+'</span></div>');
+ html.push('<div class="tree-row '+(!window.folderFilter?'active':'')+'" onclick="chooseFolder(\'\')" style="font-weight:900">📚 <span>All Questions</span><span class="count">'+root.count+'</span></div>');
+
  function walk(n,depth){
   Object.values(n.children).sort((a,b)=>a.name.localeCompare(b.name)).forEach(node=>{
-   const hasChildren=Object.keys(node.children).length>0,open=window.expandedFolders.has(node.path);
-   html.push('<div class="tree-row '+(window.folderFilter===node.path?'active':'')+'" style="padding-left:'+(6+depth*16)+'px" onclick="folderRowClick(\\''+esc(node.path)+'\\','+hasChildren+')">'+
-    (hasChildren?'<span class="tree-toggle">'+(open?'▾':'▸')+'</span>':'<span class="tree-toggle empty-toggle">•</span>')+
-    '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📁 '+esc(node.name)+'</span><span class="count">'+node.count+'</span></div>');
-   if(hasChildren&&open)walk(node,depth+1);
+   const hasChildren=Object.keys(node.children).length>0;
+   const open=window.expandedFolders.has(node.path);
+   html.push(
+    '<div class="tree-row '+(window.folderFilter===node.path?'active':'')+'" style="padding-left:'+(6+depth*16)+'px" onclick="folderRowClick(\''+esc(node.path)+'\','+hasChildren+')">'+
+      (hasChildren
+       ? '<span class="tree-toggle">'+(open?'▾':'▸')+'</span>'
+       : '<span class="tree-toggle empty-toggle">•</span>')+
+      '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📁 '+esc(node.name)+'</span>'+
+      '<span class="count">'+node.count+'</span>'+
+    '</div>'
+   );
+   if(hasChildren && open) walk(node,depth+1);
   });
  }
- walk(root,0); document.getElementById("tree").innerHTML=html.join(""); document.getElementById("folderCount").textContent=root.count;
+ walk(root,0);
+ document.getElementById("tree").innerHTML=html.join("");
+ document.getElementById("folderCount").textContent=root.count;
 }
 window.toggleFolder=function(path){
  path=String(path);
