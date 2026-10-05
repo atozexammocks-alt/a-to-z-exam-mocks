@@ -269,6 +269,15 @@ function apply(){
  if(sSel.size){sSel.forEach(id=>sStyle[id]={...(sStyle[id]||{}),font:f,size:sz});build();return}
 }
 function loadStored(){
+ // 0) Direct backup: Paper Designer stores the exact payload in window.name before navigating.
+ // window.name survives navigation from about:blank to printout.html.
+ try{
+  const wn=String(window.name||"");
+  if(wn.startsWith("__AZ_PRINT_PAYLOAD__")){
+   const x=JSON.parse(wn.slice("__AZ_PRINT_PAYLOAD__".length));
+   if(x&&Array.isArray(x.questions)&&x.questions.length){receive(x);return true}
+  }
+ }catch(e){console.warn("Window-name print payload unavailable:",e)}
  // 1) Best source: Paper Designer's in-memory payload.
  try{
   if(window.opener&&window.opener.__AZ_PRINT_PAYLOAD&&Array.isArray(window.opener.__AZ_PRINT_PAYLOAD.questions)&&window.opener.__AZ_PRINT_PAYLOAD.questions.length){
