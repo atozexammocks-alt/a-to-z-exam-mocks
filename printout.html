@@ -77,7 +77,17 @@ function questionText(q){
     }
 const escapeHtml=esc;
 function cleanQ(v){return String(v??'').trim();}
-function cleanOpt(v){return String(v??'').trim();}
+function cleanOpt(v){
+  let x=String(v??'').trim();
+  // Library already supplies the A/B/C/D/E marker through the renderer. Remove any
+  // embedded option labels from imported data so we never print "B. (b) ...".
+  for(let i=0;i<3;i++){
+    const before=x;
+    x=x.replace(/^\\s*(?:\\(?[A-Ea-e]\\)?[.)]|\\[[A-Ea-e]\\]|[A-Ea-e]\\s*[-:])\\s*/,'');
+    if(x===before)break;
+  }
+  return x.trim();
+}
 function imageOf(q){
   for(const k of ["questionImage","image","img","imageData","croppedImage","croppedImageData","questionImageData","base64Image","imageUrl","imageURL","diagram","imageSrc","src","question"]){
     const v=q?.[k];
@@ -116,9 +126,9 @@ function imageOf(q){
 
     function questionOptions(q){
       let opts=q.options||q.choices||q.answerOptions;
-      if(!opts && typeof q.optText==='string' && q.optText.trim()) opts=q.optText.split(/\s*\|\s*/).map(x=>x.replace(/^\s*\([A-E]\)\s*/i,'').trim()).filter(Boolean);
+      if(!opts && typeof q.optText==='string' && q.optText.trim()) opts=q.optText.split(/\s*\|\s*/).map(cleanOpt).filter(Boolean);
       if(typeof opts==='string'){ try{ opts=JSON.parse(opts); }catch(e){ opts=null; } }
-      if(Array.isArray(opts)) return opts.map((x,i)=> typeof x==='object' ? (x.text||x.value||x.label||'') : String(x)).filter(Boolean);
+      if(Array.isArray(opts)) return opts.map((x,i)=>cleanOpt(typeof x==='object' ? (x.text||x.value||x.label||'') : String(x))).filter(Boolean);
       const out=[];
       ['A','B','C','D','E'].forEach(k=>{
         const v=q['option'+k]??q['option_'+k]??q['choice'+k];
