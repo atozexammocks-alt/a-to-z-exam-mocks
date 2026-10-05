@@ -63,7 +63,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 function textOf(q){for(const k of ['qText','text','questionText','question_text','content','questionTextHtml','prompt','question']){const v=q?.[k];if(typeof v==='string'&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim()))return v.trim()}return''}
 function imageOf(q){for(const k of ['questionImage','image','img','imageData','croppedImage','croppedImageData','questionImageData','base64Image','imageUrl','imageURL','diagram','imageSrc','src','question']){const v=q?.[k];if(typeof v==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim();if(v&&typeof v==='object')for(const kk of ['data','url','src','image','dataUrl','base64']){const z=v[kk];if(typeof z==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(z.trim()))return z.trim()}}return''}
 function optionsOf(q){let v=q?.options??q?.choices??q?.answerOptions;if(typeof v==='string'){try{v=JSON.parse(v)}catch(e){v=v.split(/\s*\|\s*/)}}if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):String(x)).filter(x=>String(x).trim());return['A','B','C','D'].map(k=>q?.['option'+k]??q?.['option_'+k]??q?.['choice'+k]).filter(x=>String(x??'').trim())}
-function cleanQ(v){let s=String(v??'').trim();s=s.replace(/^\s*(?:question|ques|q)\s*[-.:]?\s*\d+\s*[.)\-:]?\s*/i,'');s=s.replace(/^\s*\d+\s*[.)\-:]?\s*/,'');return s.trim()}
+function cleanQ(v){return String(v??'').trim()}
 function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
 function mathMarkup(v){
  var x=String(v||"");
