@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — Printout</title>
 <script>
-window.MathJax={tex:{inlineMath:[['\\\\(','\\\\)'],['$','$']],displayMath:[['\\\\[','\\\\]'],['$$','$$']]},svg:{fontCache:'global'}};</script>
+window.MathJax={tex:{inlineMath:[["\\\\(","\\\\)"],["$","$"]],displayMath:[["\\\\[","\\\\]"],["$$","$$"]]},svg:{fontCache:"global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -25,8 +25,8 @@ body{min-height:100vh}
 .meta{font-size:12px;margin-top:5px;display:flex;justify-content:space-between;text-align:left}.meta .right{text-align:right}
 .content{position:relative;z-index:2}.content.two-col{column-count:2;column-gap:16mm;column-rule:1px solid #b8b8b8;column-rule-width:1px;column-rule-style:solid}.content.two-col .section{column-span:all}.content.two-col .question{break-inside:avoid;page-break-inside:avoid}.question{break-inside:avoid;page-break-inside:avoid;margin:0 0 10px;padding:2px 0;line-height:1.5}
 .question.selected{outline:2px solid #2563eb;outline-offset:2px}.qbox{border:1px solid #888;padding:6px;border-radius:4px}.qbottom{border-bottom:1px solid #888}.qleft{border-left:3px solid #888;padding-left:7px}.qline{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:3px;align-items:start}.qmarks{font-size:.82em;font-weight:700;white-space:nowrap;text-align:right;padding-left:8px}
-.qnum{font-weight:700}.qtext{min-width:0;overflow-wrap:anywhere}
-.options{margin:5px 0 0 31px;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}.options.row-wise{grid-template-columns:1fr}.option{display:grid;grid-template-columns:22px minmax(0,1fr);gap:3px;min-width:0;overflow-wrap:anywhere}
+.qnum{font-weight:700}.qtext{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.options{margin:5px 0 0 31px;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}.options.row-wise{grid-template-columns:1fr}.option{display:grid;grid-template-columns:22px minmax(0,1fr);gap:3px;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
 .qimage{margin:7px auto;text-align:center}.qimage img{max-width:96%;max-height:180px;object-fit:contain}
 .section{position:relative;z-index:2;text-align:center;font-weight:800;font-size:15px;margin:14px 0 10px;padding:6px 8px;border-bottom:1px solid #555;break-inside:avoid}
 .section.box{border:1px solid #555}.section.none{border:0}.section.selected{outline:2px solid #2563eb;outline-offset:2px}
@@ -74,7 +74,10 @@ function mathMarkup(v){
       }
       return x;
     }
-function render(v){return esc(mathMarkup(v)).replace(/&lt;/g,'<').replace(/&gt;/g,'>')}
+function render(v){
+      var x=mathMarkup(v);
+      return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+    }
 let data={questions:[],sections:[],branding:{},title:'Question Paper',school:'',logo:'',layout:'one',watermarkCount:1};
 let qSel=new Set(),sSel=new Set(),modeName='questions',qStyle={},sStyle={};
 let savedRange=null,savedFormatTarget=null;
