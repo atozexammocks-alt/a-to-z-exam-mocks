@@ -380,8 +380,7 @@ function printPaper(){
    console.warn("IndexedDB print session save failed; using local payload handoff:",e);
    navigateToPrintout();
  });
- const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
-}function buildPrintHtml(items){
+ function buildPrintHtml(items){
  const b=branding;const escP=esc;
  const sectionsHtml=sections.map(s=>{const qs=s.questionIds.map(id=>questions.find(q=>q.id===id)).filter(Boolean);if(!qs.length)return "";return '<section class="psec"><h2>'+escP(s.name)+' <span>('+qs.length+' Questions • '+sectionStats(s).marks+' Marks)</span></h2>'+qs.map((q,i)=>printQ(q,i+1)).join("")+'</section>'}).join("");
  const un=questions.filter(q=>!sectionOf(q.id));const unHtml=un.length?'<section class="psec"><h2>Unassigned Questions</h2>'+un.map((q,i)=>printQ(q,i+1)).join("")+'</section>':"";
