@@ -236,7 +236,12 @@ window.setMode=function(mode){
 };
 window.selectAllVisible=function(){getVisible().forEach(q=>window.selected.add(String(q.id)));renderQuestions();renderSelected()};
 window.clearSelection=function(){window.selected.clear();renderQuestions();renderSelected()};
-function getModeQuestions(){return window.builderData.filter(q=>belongs(q,window.builderMode))}
+function getModeQuestions(){
+  // Private/All must show the complete Library question bank, exactly like the
+  // original working Test Builder. Central and Group remain filterable views.
+  if(window.builderMode==="private") return window.builderData;
+  return window.builderData.filter(q=>belongs(q,window.builderMode));
+}
 function getVisible(){
  const term=(document.getElementById("search")?.value||"").trim().toLowerCase(),type=document.getElementById("typeFilter")?.value||"ALL";
  return getModeQuestions().filter(q=>{
