@@ -373,6 +373,11 @@ function printPaper(){
  const url="printout.html?selected="+encodeURIComponent(selectedQuery);
  try{w.location.replace(url)}catch(e){w.location.href=url}
  savePrintSession().catch(e=>console.warn("IndexedDB backup save skipped",e));
+ // Re-send after navigation so Printout receives the exact Paper Designer question payload.
+ const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
+ setTimeout(send,150);
+ setTimeout(send,600);
+ setTimeout(send,1500);
  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
 }function buildPrintHtml(items){
  const b=branding;const escP=esc;
