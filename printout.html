@@ -376,9 +376,9 @@ async function directLoad(){
     receive({questions:session.questions,sections:Array.isArray(session.sections)?session.sections:[],branding:session.branding||{},title:session.branding?.paperTitle||"Question Paper",school:session.branding?.schoolName||"",logo:session.branding?.showLogo?session.branding.logoUrl:"",watermarkCount:1});
    }
   }catch(e){
-   console.error("Printout IndexedDB boot failed",e);
-   const p=document.getElementById("paper");
-   if(p)p.innerHTML='<div class="empty">Unable to load the print session. Please press Print again from Paper Designer.</div>';
+   // IndexedDB is optional. Never replace a valid/possibly-loading paper with an error screen.
+   console.warn("Printout IndexedDB backup unavailable:",e);
+   try{loadStored();}catch(_){}
   }
  }
  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bootIndexedDB,{once:true});
