@@ -369,11 +369,17 @@ async function directLoad(){
   if(window.__AZ_DIRECT_PRINT_LOADED)return;
   const sessionId=new URLSearchParams(location.search).get("session");
   if(sessionId){
-   const session=await openPrintSession(sessionId);
-   if(session&&Array.isArray(session.questions)&&session.questions.length){
-    window.__AZ_DIRECT_PRINT_LOADED=true;
-    receive({questions:session.questions,sections:Array.isArray(session.sections)?session.sections:[],branding:session.branding||{},title:session.branding?.paperTitle||"Question Paper",school:session.branding?.schoolName||"",logo:session.branding?.showLogo?session.branding.logoUrl:"",watermarkCount:1});
-    return;
+   // Exact Paper Designer session first. If IndexedDB is unavailable, fall through
+   // instead of aborting the complete printout loader.
+   try{
+    const session=await openPrintSession(sessionId);
+    if(session&&Array.isArray(session.questions)&&session.questions.length){
+     window.__AZ_DIRECT_PRINT_LOADED=true;
+     receive({questions:session.questions,sections:Array.isArray(session.sections)?session.sections:[],branding:session.branding||{},title:session.branding?.paperTitle||"Question Paper",school:session.branding?.schoolName||"",logo:session.branding?.showLogo?session.branding.logoUrl:"",watermarkCount:1});
+     return;
+    }
+   }catch(e){
+    console.warn("Print session unavailable; falling back to selected questions:",e);
    }
   }
   const ids=printIdsFromAnySource();
@@ -394,7 +400,12 @@ async function directLoad(){
    new Promise((_,reject)=>setTimeout(()=>reject(new Error("Question fetch timeout")),8000))
   ]);
   const qs=results.filter(Boolean);
-  if(!qs.length)return;
+  if(!qs.length){
+   // Firebase is only a fallback. Try the exact Builder/Paper Designer handoff
+   // before leaving the page without questions.
+   try{loadStored();}catch(_){}
+   return;
+  }
   window.__AZ_DIRECT_PRINT_LOADED=true;
   receive({questions:qs,sections:Array.isArray(sections)?sections:[],branding:branding,title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:branding.showLogo?branding.logoUrl:"",watermarkCount:1});
  }
