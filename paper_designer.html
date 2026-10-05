@@ -354,10 +354,10 @@ function printPaper(){
  });
  try{localStorage.setItem("AZ_PRINT_SELECTED_IDS",JSON.stringify(questions.map(q=>String(q.id)).filter(Boolean)));localStorage.setItem("AZ_PRINT_SECTIONS",JSON.stringify(sections))}catch(e){}
  const w=window.open("about:blank","_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
- savePrintSession().then(()=>{
-  const url="printout.html?session="+encodeURIComponent(printSession)+"&selected="+encodeURIComponent(selectedQuery);
-  try{w.location.replace(url)}catch(e){w.location.href=url}
- }).catch(e=>{console.warn("IndexedDB print session save failed",e);try{w.close()}catch(_){}alert("Could not prepare the print session. Please try Print again.")});
+ try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage failed",e)}
+ const url="printout.html?selected="+encodeURIComponent(selectedQuery);
+ try{w.location.replace(url)}catch(e){w.location.href=url}
+ savePrintSession().catch(e=>console.warn("IndexedDB backup save skipped",e));
  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
 }function buildPrintHtml(items){
  const b=branding;const escP=esc;
