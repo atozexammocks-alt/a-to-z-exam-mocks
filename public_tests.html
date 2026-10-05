@@ -11,7 +11,7 @@ function libraryMathMarkup(v){
       var x=String(v==null?"":v);
       if(!x)return "";
       // Normalize stored escaped LaTeX. Firebase/import data can contain \vec or \\vec.
-      x=x.replace(/\\{2,}/g,"\\");
+      x=x.replace(/\\\\{2,}/g,"\\");
       // Normalize slash-delimited legacy notation such as /vec R/ and /curl J/.
       x=x.replace(/(^|[\s,(])\/(vec|curl|hat|bar|dot|ddot|sqrt|frac|dfrac|tfrac|int|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|mathbf|mathrm|text)\b/g,"$1\\$2");
       x=x.replace(/\/(\)|\])/g,"$1");
