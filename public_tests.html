@@ -110,7 +110,13 @@ function libraryMathMarkup(v){
           }
         });
 
-        typesetLibraryMath();
+        // Re-render the complete preview after inserting all questions.
+        // MathJax must run after the modal is visible and the DOM is fully populated.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            typesetLibraryMath();
+          });
+        });
 
         if (modalBody.innerHTML === '') {
           modalBody.innerHTML = `<p style="color:#ef4444; text-align:center;">No matching questions found in the database vault.</p>`;
