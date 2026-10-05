@@ -6,6 +6,7 @@
   <title>A to Z Exam Mocks - Published Tests & Management</title>
   <script>
 window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};
+function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function libraryMathMarkup(v){
       var x=String(v||"");
       if(!x)return "";
