@@ -130,11 +130,14 @@ function imageOf(q){
  return "";
 }
 function mathMarkup(v){
- const x=String(v||"");if(!x)return "";if(/\\\(|\\\[/.test(x))return x;
- const hasLatex=/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|int|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega|oint|prod|begin|end|text)\b/.test(x);
- const hasPower=/(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x);
- const hasEquation=/[A-Za-z0-9)\]]\s*=\s*[A-Za-z0-9(\\]/.test(x);
- return(hasLatex||hasPower||hasEquation)?"\\("+x+"\\)":x;
+ var x=String(v||"");
+ if(!x)return "";
+ if(/\\\\\\(|\\\\\\[/.test(x)) return x;
+ if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
+   || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
+   return "\\("+x+"\\)";
+ }
+ return x;
 }
 function renderText(v){return esc(mathMarkup(v)).replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\r?\n/g,"<br>")}
 function typeset(){if(!window.MathJax?.typesetPromise)return;MathJax.startup?.promise?.then(()=>MathJax.typesetPromise([document.getElementById("questions")]).catch(()=>{}))}
