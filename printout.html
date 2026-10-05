@@ -32,7 +32,7 @@ body{min-height:100vh}
 .section.box{border:1px solid #555}.section.none{border:0}.section.selected{outline:2px solid #2563eb;outline-offset:2px}
 .footer{position:relative;z-index:2;text-align:center;border-top:1px solid #777;margin-top:18px;padding-top:5px;font-size:10px}
 .watermark-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
-.watermark{position:absolute;left:-20%;width:140%;text-align:center;color:#64748b;font-size:58px;font-weight:900;opacity:var(--wm-opacity,.22);transform:rotate(-32deg);white-space:nowrap}
+.watermark{position:absolute;left:-20%;width:140%;text-align:center;color:#334155;font-size:64px;font-weight:900;opacity:var(--wm-opacity,.18);transform:rotate(-32deg);white-space:nowrap}
 .w0{top:7%}.w1{top:27%}.w2{top:47%}.w3{top:67%}.w4{top:87%}.w5{top:107%}
 .empty{padding:80px 20px;text-align:center;color:#64748b;font-size:16px}
 @media(max-width:900px){.paper{width:100%;margin:8px auto;padding:10mm}.toolbar{position:sticky}.meta{font-size:10px}}
@@ -42,7 +42,7 @@ body{min-height:100vh}
 </style>
 </head>
 <body>
-<div class="toolbar" onmousedown="saveCurrentSelection(event)"><label>Watermark <input id="watermarkOpacity" type="range" min="0" max="100" value="22" oninput="setWatermarkOpacity(this.value)" style="width:110px"> <span id="watermarkOpacityValue">22%</span></label><label>Watermarks <input id="watermarkCount" type="number" min="1" max="6" value="1" style="width:48px" onchange="setWatermarkCount(this.value)"></label>
+<div class="toolbar" onmousedown="saveCurrentSelection(event)"><label>Watermark <input id="watermarkOpacity" type="range" min="0" max="100" value="18" oninput="setWatermarkOpacity(this.value)" style="width:110px"> <span id="watermarkOpacityValue">18%</span></label><label>Watermarks <input id="watermarkCount" type="number" min="1" max="6" value="1" style="width:48px" onchange="setWatermarkCount(this.value)"></label>
 <b>🖨 Print Preview</b>
 <label>Size <input id="fontSize" type="number" min="8" max="72" value="14" oninput="liveFontSize(this.value)" onmousedown="saveCurrentSelection(event)"></label><button type="button" onmousedown="saveCurrentSelection(event)" onclick="changeSelectedFontSize(-1)">A−</button><button type="button" onmousedown="saveCurrentSelection(event)" onclick="changeSelectedFontSize(1)">A+</button>
 <button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('bold')"><b>B</b></button><button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('italic')"><i>I</i></button><button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('underline')"><u>U</u></button>
