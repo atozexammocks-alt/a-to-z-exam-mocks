@@ -121,7 +121,7 @@ function safeRich(v){
  return escapeHtml(protectedText).replace(/\n/g,"<br>").replace(/@@M(\d+)@@/g,(_,i)=>parts[Number(i)]||"");
 }
 function typeset(){if(window.MathJax?.typesetPromise){if(window.MathJax.startup?.promise)window.MathJax.startup.promise.then(()=>window.MathJax.typesetPromise([$("q-text-note"),$("btn-opt-A"),$("btn-opt-B"),$("btn-opt-C"),$("btn-opt-D")]).catch(()=>{})).catch(()=>{});else window.MathJax.typesetPromise().catch(()=>{});}}
-function loadQuestionsByIds(ids){
+async function loadQuestionsByIds(ids){
  const cleanIds=ids.map(x=>String(x??"").trim()).filter(Boolean);if(!cleanIds.length)return [];
  const snap=await getDocs(collection(db,"questions"));const map={};snap.forEach(d=>{map[d.id]={id:d.id,...d.data()}});
  return cleanIds.map(id=>map[id]).filter(Boolean);
