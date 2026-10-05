@@ -333,6 +333,7 @@ async function loadQuestions(){
  }catch(e){
   console.warn("Paper Designer Firebase refresh skipped; Builder handoff remains active:",e);
  }
+}
 function goBack(){location.href="builder.html"}
 function updateBrandingPreview(){
  const b=readBranding();const el=document.getElementById("brandingPreview");if(!el)return;
