@@ -1,159 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>A to Z Exam Mocks - Published Tests & Management</title>
-  <script>
-window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};
-function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function libraryMathMarkup(v){
-      var x=String(v||"");
-      if(!x)return "";
-      if(/\\\\\(|\\\\\[/.test(x)) return x;
-      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
-        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
-        return "\\("+x+"\\)";
-      }
-      return x;
-    }
-    function renderLibraryText(v){
-      var x=libraryMathMarkup(v);
-      return escapeHtml(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
-    }
-    function typesetLibraryMath(){
-      if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
-      if(MathJax.startup&&MathJax.startup.promise){
-        MathJax.startup.promise.then(function(){
-          MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
-        }).catch(function(){});
-      }
-    }
-
-    async function loadPublishedTests() {
-      const grid = document.getElementById('published-tests-grid');
-      grid.innerHTML = '';
-
-      try {
-        const snap = await window.getDocs(window.collection(window.db, "published_tests"));
-        if (snap.empty) {
-          grid.innerHTML = `<p style="color:#64748b; font-size:13px;">No mock tests published yet.</p>`;
-          return;
-        }
-
-        allPublishedTestsMap = {};
-        snap.forEach(d => {
-          const tId = d.id;
-          const t = d.data();
-          allPublishedTestsMap[tId] = t;
-          const totalQ = t.questionIds ? t.questionIds.length : 0;
-          const shareUrl = `${window.location.origin}/test_player.html?id=${tId}`;
-
-          const card = document.createElement('div');
-          card.className = 'test-card';
-          card.id = `test-card-${tId}`;
-          card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-              <h3 style="color:#38bdf8; font-size:16px;">${t.title || 'Mock Test'}</h3>
-              <span style="font-size:11px; background:rgba(16,185,129,0.2); color:#10b981; border:1px solid rgba(16,185,129,0.4); padding:2px 8px; border-radius:4px; font-weight:800;">LIVE</span>
-            </div>
-            <div style="font-size:12px; color:#94a3b8;">
-              <span>⏱ ${t.time || 60} Mins</span> • <span>🎯 ${t.marks || 100} Marks</span> • <span>❓ ${totalQ} Questions</span>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:6px; margin-top:auto; border-top:1px solid #1e293b; padding-top:10px;">
-              <button class="tool-btn" style="background:#0284c7;" onclick="openTestPreview('${tId}')">👁️ View Questions</button>
-              <button class="tool-btn" style="background:#2563eb;" onclick="navigator.clipboard.writeText('${shareUrl}'); showToast('✔ Test Link Copied!')">🔗 Share Test Link</button>
-              <button class="tool-btn" style="background:#7f1d1d; color:#fecaca;" onclick="deletePublishedTest('${tId}')">🗑️ Delete Test Permanently</button>
-            </div>
-          `;
-          grid.appendChild(card);
-        });
-      } catch (e) {
-        grid.innerHTML = `<p style="color:#ef4444; font-size:13px;">Failed to load published tests.</p>`;
-      }
-    }
-
-    window.openTestPreview = async function(tId) {
-      const testData = allPublishedTestsMap[tId];
-      if (!testData || !testData.questionIds) return alert("No questions found for this test!");
-
-      document.getElementById('preview-modal-title').textContent = `🔍 Preview: ${testData.title || 'Mock Test'}`;
-      const modalBody = document.getElementById('preview-modal-body');
-      modalBody.innerHTML = `<p style="color:#94a3b8; text-align:center;">Fetching questions...</p>`;
-      document.getElementById('preview-modal-overlay').style.display = 'flex';
-
-      try {
-        const qSnap = await window.getDocs(window.collection(window.db, "questions"));
-        const qMap = {};
-        qSnap.forEach(d => qMap[d.id] = d.data());
-
-        modalBody.innerHTML = '';
-        testData.questionIds.forEach((qId, idx) => {
-          const q = qMap[qId];
-          if (q) {
-            const itemDiv = document.createElement('div');
-            itemDiv.style.cssText = "background:#060911; border:1px solid #1e293b; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:6px;";
-            itemDiv.innerHTML = `
-              <div style="font-size:12px; color:#38bdf8; font-weight:bold;">Q.${idx + 1} [Topic: ${q.topic || 'General'}]</div>
-              ${(() => { const text=q.qText||q.text||q.questionText||q.question_text||q.content; return text ? \`<div style="font-size:13px; color:#f8fafc; font-weight:bold; line-height:1.6;">${renderLibraryText(text)}</div>\` : ""; })()}
-              ${q.question ? \`<img src="${q.question}" style="max-width:100%; max-height:160px; object-fit:contain; background:#fff; border-radius:4px; padding:4px;">\` : ""}
-              ${(() => { let opts=q.options||q.choices||q.answerOptions; if(!opts&&typeof q.optText==="string") opts=q.optText.split(/\s*\|\s*/).map(s=>s.trim()).filter(Boolean); if(typeof opts==="string"){try{opts=JSON.parse(opts)}catch(e){opts=null}} if(!Array.isArray(opts)) opts=["A","B","C","D"].map(k=>q["option"+k]??q["option_"+k]??q["choice"+k]).filter(v=>v!=null&&String(v).trim()).map(String); return opts.length ? \`<div style="font-size:12px; color:#cbd5e1;"><strong>Options:</strong><br>${opts.map(o=>renderLibraryText(o)).join("<br>")}</div>\` : ""; })()}
-              <div style="font-size:12px; color:#10b981;"><strong>Correct Key:</strong> ${q.key || 'A'}</div>
-            `;
-            modalBody.appendChild(itemDiv);
-          } else {
-            // Fallback if question ID mapping differs slightly
-            const itemDiv = document.createElement('div');
-            itemDiv.style.cssText = "background:#060911; border:1px solid #1e293b; border-radius:8px; padding:12px; color:#ef4444; font-size:12px;";
-            itemDiv.textContent = `Q.${idx + 1}: Question data unavailable or ID mismatch.`;
-            modalBody.appendChild(itemDiv);
-          }
-        });
-
-        // Re-render the complete preview after inserting all questions.
-        // MathJax must run after the modal is visible and the DOM is fully populated.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            typesetLibraryMath();
-          });
-        });
-
-        if (modalBody.innerHTML === '') {
-          modalBody.innerHTML = `<p style="color:#ef4444; text-align:center;">No matching questions found in the database vault.</p>`;
-        }
-      } catch (e) {
-        modalBody.innerHTML = `<p style="color:#ef4444; text-align:center;">Failed to load questions preview: ${e.message}</p>`;
-      }
-    };
-
-    window.deletePublishedTest = async function(tId) {
-      if (confirm("⚠️ Are you sure you want to delete this mock test permanently? Students will no longer be able to access it.")) {
-        try {
-          await window.deleteDoc(window.doc(window.db, "published_tests", tId));
-          const card = document.getElementById(`test-card-${tId}`);
-          if (card) card.remove();
-          showToast("🗑️ Test Deleted Successfully!");
-        } catch (e) {
-          alert("Failed to delete test: " + e.message);
-        }
-      }
-    };
-  </script>
-<script>
-(function(){
-  function init(){
-    const email=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase();
-    const tag=document.getElementById('current-user-tag'), head=document.getElementById('dropdown-user-email');
-    if(tag) tag.textContent=email||'Educator';
-    if(head) head.textContent=email||'Not Logged In';
-    const admin=document.getElementById('super-admin-nav-btn');
-    if(admin) admin.style.display=(email==='atozexammocks@gmail.com'||email==='vikasattri3003@gmail.com')?'inline-flex':'none';
-  }
-  window.toggleProfileDropdown=function(){const d=document.getElementById('profile-dropdown-menu');if(d)d.classList.toggle('show');};
-  window.logoutTeacher=function(){localStorage.removeItem('ExamVault_Teacher_Email');localStorage.removeItem('ExamVault_Teacher_UID');location.replace('index.html');};
-  document.addEventListener('click',e=>{if(!e.target.closest('.profile-container')){const d=document.getElementById('profile-dropdown-menu');if(d)d.classList.remove('show');}});
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
-  window.addEventListener('pageshow',init);
-})();
-</script></body>
-</html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A to Z Exam Mocks - Published Tests & Management</title>
+<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#060911;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}.top{height:58px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:10px;padding:0 14px;position:sticky;top:0;z-index:10}.brand{font-weight:900;color:#38bdf8}.spacer{flex:1}.pill,.badge{font-size:11px;color:#cbd5e1;background:#0f172a;border:1px solid #334155;border-radius:999px;padding:6px 10px}.page{max-width:1250px;margin:auto;padding:14px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.search{flex:1;min-width:200px;background:#060911;color:#fff;border:1px solid #334155;border-radius:7px;padding:9px;font-size:12px}.btn{border:1px solid #334155;background:#0f172a;color:#e2e8f0;border-radius:7px;padding:8px 10px;font-size:11px;font-weight:800;cursor:pointer}.btn.blue{background:#2563eb;border-color:#3b82f6;color:#fff}.btn.red{background:#7f1d1d;border-color:#991b1b;color:#fecaca}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}.test-card{background:#0b1120;border:1px solid #1e293b;border-radius:10px;padding:13px;min-height:180px;display:flex;flex-direction:column;gap:9px}.test-card h3{margin:0;color:#38bdf8;font-size:16px}.meta{font-size:12px;color:#94a3b8;line-height:1.6}.actions{display:flex;flex-direction:column;gap:6px;margin-top:auto;border-top:1px solid #1e293b;padding-top:10px}.empty{text-align:center;padding:40px;color:#64748b;border:1px dashed #334155;border-radius:10px}.error{color:#fecaca;background:#450a0a;border:1px solid #7f1d1d;padding:12px;border-radius:8px;font-size:12px}.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;padding:12px;z-index:100}.modal{width:min(1000px,96vw);max-height:94vh;background:#0b1120;border:1px solid #334155;border-radius:12px;overflow:hidden;display:flex;flex-direction:column}.modal-head{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #1e293b}.modal-head h2{margin:0;color:#38bdf8;font-size:15px;flex:1}.modal-body{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:10px}.preview-q{background:#060911;border:1px solid #1e293b;border-radius:9px;padding:12px}.qhead{font-size:11px;color:#38bdf8;font-weight:900;margin-bottom:8px}.library-q-text{font-size:14px;color:#f8fafc;font-weight:400;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}.library-q-image{background:#fff;border:1px solid #e2e8f0;border-radius:7px;margin:8px 0;display:flex;align-items:center;justify-content:center;overflow:hidden}.library-q-image img{display:block;max-width:100%;max-height:420px;object-fit:contain}.library-q-options{margin-top:9px;padding-top:9px;border-top:1px solid #1e293b;color:#cbd5e1;font-size:13px;line-height:1.6}.opt{display:grid;grid-template-columns:25px minmax(0,1fr);gap:2px;margin:2px 0;align-items:start}.correct{margin-top:8px;color:#10b981;font-size:11px;font-weight:800}@media(max-width:700px){.top{height:auto;min-height:58px;flex-wrap:wrap;padding:8px}.spacer{display:none}.page{padding:8px}.modal{width:100%;max-height:96vh}}
+</style></head><body>
+<header class="top"><button class="btn" onclick="location.href='index.html'">🏠 Dashboard</button><div class="brand">📝 Published Tests & Management</div><div class="spacer"></div><span id="userPill" class="pill">Educator</span><button class="btn" onclick="loadPublishedTests()">↻ Reload</button></header>
+<main class="page"><div class="toolbar"><input id="search" class="search" placeholder="Search published tests…" oninput="renderTestCards()"><span id="status" class="badge">Connecting…</span></div><div id="published-tests-grid" class="grid"><div class="empty">Loading published tests…</div></div></main>
+<div id="preview-modal-overlay" class="overlay" onclick="if(event.target===this)closePreview()"><section class="modal"><div class="modal-head"><h2 id="preview-modal-title">🔍 Preview</h2><button class="btn" onclick="closePreview()">✕ Close</button></div><div id="preview-modal-body" class="modal-body"></div></section></div>
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";import{getAuth,signInAnonymously}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";import{getFirestore,collection,getDocs,doc,deleteDoc}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);window.allPublishedTestsMap={};
+const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
+function norm(v){let s=String(v??"").replace(/\r\n?/g,"\n").replace(/&nbsp;/gi," ");s=s.replace(/&amp;/gi,"&").replace(/&lt;/gi,"<").replace(/&gt;/gi,">");return s.trim()}
+function imageOf(q){for(const k of["question","questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image"]){const v=q?.[k];if(typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim()}return""}
+function textOf(q){for(const k of["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"]){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return norm(v)}return""}
+function optionsOf(q){const v=q?.options??q?.choices??q?.answers;if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(norm).filter(Boolean);if(v&&typeof v==="object")return Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(norm).filter(Boolean);if(typeof q?.optText==="string"){const a=q.optText.split(/\s*\|\s*/).map(norm).filter(Boolean);if(a.length)return a}return["A","B","C","D"].map(k=>q?.["option"+k]??q?.["option_"+k]??q?.["choice"+k]??q?.["opt"+k]).map(norm).filter(Boolean)}
+function renderMath(v){let x=norm(v);if(!x)return"";x=x.replace(/\\\\(?=[A-Za-z()[\]{}$])/g,"\\");if(/\\\(|\\\[|\\\$/.test(x))return x;const cmd=/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|mathrm|mathbf|mathit|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|prod|int|iint|iiint|oint|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega|begin|end|text)\b/.test(x);const pow=/[A-Za-z0-9)\]}]\s*[_^]\s*(?:\{[^}]+\}|[A-Za-z0-9+\-()]+)/.test(x);return(cmd||pow)?"\\("+x+"\\)":x.replace(/\\n/g,"\n")}
+function safeRich(v){const x=renderMath(v),parts=[];const p=x.replace(/\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\\\$[\s\S]*?\\\$/g,m=>{parts.push(m);return"@@M"+(parts.length-1)+"@@"});return esc(p).replace(/\n/g,"<br>").replace(/@@M(\d+)@@/g,(_,i)=>parts[+i])}
+function typeset(){if(!window.MathJax?.typesetPromise)return;const run=()=>window.MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(()=>{});window.MathJax.startup?.promise?window.MathJax.startup.promise.then(run).catch(()=>{}):run()}
+window.renderTestCards=function(){const grid=document.getElementById("published-tests-grid"),term=(document.getElementById("search")?.value||"").trim().toLowerCase(),entries=Object.entries(window.allPublishedTestsMap).filter(([_,t])=>!term||String(t.title??"").toLowerCase().includes(term));if(!entries.length){grid.innerHTML='<div class="empty">No published tests found.</div>';return}grid.innerHTML="";entries.forEach(([id,t])=>{const n=Array.isArray(t.questionIds)?t.questionIds.length:0,c=document.createElement("div");c.className="test-card";c.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px"><h3>'+esc(t.title||"Mock Test")+'</h3><span class="badge" style="color:#10b981">LIVE</span></div><div class="meta">⏱ '+esc(t.time||60)+' Mins • 🎯 '+esc(t.marks||100)+' Marks • ❓ '+n+' Questions</div><div class="actions"><button class="btn blue" onclick="openTestPreview('+JSON.stringify(id)+')">👁️ View Questions</button><button class="btn" onclick="copyTestLink('+JSON.stringify(id)+')">🔗 Share Test Link</button><button class="btn red" onclick="deletePublishedTest('+JSON.stringify(id)+')">🗑️ Delete Test Permanently</button></div>';c.id="test-card-"+id;grid.appendChild(c)})};
+window.copyTestLink=async id=>{const u=location.origin+"/test_player.html?id="+encodeURIComponent(id);try{await navigator.clipboard.writeText(u);alert("✔ Test Link Copied!")}catch(e){prompt("Copy this test link:",u)}};
+function renderQuestion(q,i){const d=document.createElement("article");d.className="preview-q";const txt=textOf(q),img=imageOf(q),opts=optionsOf(q);let h='<div class="qhead">Q.'+(i+1)+' • Topic: '+esc(norm(q.topic??q.chapter??q.unit??"General")||"General")+'</div>';if(txt)h+='<div class="library-q-text">'+safeRich(txt)+'</div>';if(img)h+='<div class="library-q-image"><img src="'+esc(img)+'" alt="Question"></div>';if(opts.length){h+='<div class="library-q-options">';opts.forEach((o,j)=>h+='<div class="opt"><b>'+String.fromCharCode(65+j)+'.</b><span>'+safeRich(o)+'</span></div>');h+='</div>'}h+='<div class="correct">Correct Key: '+esc(norm(q.key??q.correctKey??q.answer??"A")||"A")+'</div>';d.innerHTML=h;return d}
+window.loadPublishedTests=async function(){const grid=document.getElementById("published-tests-grid"),status=document.getElementById("status");status.textContent="Loading…";grid.innerHTML='<div class="empty">Loading published tests…</div>';try{await signInAnonymously(auth).catch(()=>null);const s=await getDocs(collection(db,"published_tests"));window.allPublishedTestsMap={};s.forEach(d=>window.allPublishedTestsMap[d.id]={id:d.id,...d.data()});status.textContent="Firebase connected • "+s.size+" published tests";renderTestCards()}catch(e){console.error(e);status.textContent="Firebase error";grid.innerHTML='<div class="error"><b>Failed to load published tests.</b><br>'+esc(e.message||e)+'</div>'}};
+window.openTestPreview=async function(id){const t=window.allPublishedTestsMap[id];if(!t?.questionIds){alert("No questions found for this test!");return}document.getElementById("preview-modal-title").textContent="🔍 Preview: "+(t.title||"Mock Test");const body=document.getElementById("preview-modal-body");body.innerHTML='<div class="empty">Fetching questions…</div>';document.getElementById("preview-modal-overlay").style.display="flex";try{const s=await getDocs(collection(db,"questions")),map={};s.forEach(d=>map[d.id]={id:d.id,...d.data()});body.innerHTML="";let found=0;t.questionIds.forEach((qid,i)=>{if(map[qid]){found++;body.appendChild(renderQuestion(map[qid],i))}else{const x=document.createElement("div");x.className="error";x.textContent="Q."+(i+1)+": Question data unavailable (ID mismatch).";body.appendChild(x)}});if(!found)body.innerHTML='<div class="error">No matching questions found in the questions collection.</div>';requestAnimationFrame(()=>requestAnimationFrame(typeset))}catch(e){body.innerHTML='<div class="error"><b>Failed to load questions preview.</b><br>'+esc(e.message||e)+'</div>'}};
+window.closePreview=()=>document.getElementById("preview-modal-overlay").style.display="none";
+window.deletePublishedTest=async id=>{if(!confirm("⚠️ Delete this published test permanently? Students will no longer be able to access it."))return;try{await signInAnonymously(auth).catch(()=>null);await deleteDoc(doc(db,"published_tests",id));delete window.allPublishedTestsMap[id];renderTestCards();alert("🗑️ Test Deleted Successfully!")}catch(e){alert("Failed to delete test: "+(e.message||e))}};
+document.getElementById("userPill").textContent=(localStorage.getItem("ExamVault_Teacher_Email")||"Educator").trim()||"Educator";loadPublishedTests();
+</script></body></html>
