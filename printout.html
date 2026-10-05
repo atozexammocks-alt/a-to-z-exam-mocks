@@ -370,11 +370,10 @@ async function directLoad(){
     req.onsuccess=()=>{const db=req.result;const tx=db.transaction("sessions","readonly");const get=tx.objectStore("sessions").get(id);get.onsuccess=()=>{const v=get.result||null;db.close();resolve(v)};get.onerror=()=>{db.close();reject(get.error)}};
     req.onerror=()=>reject(req.error);
    });
-   if(session&&Array.isArray(session.questions)&&session.questions.length){
+   // IndexedDB is only a backup. If localStorage/message already supplied questions,
+   // never overwrite the working paper with an IndexedDB error.
+   if(session&&Array.isArray(session.questions)&&session.questions.length && !data.questions.length){
     receive({questions:session.questions,sections:Array.isArray(session.sections)?session.sections:[],branding:session.branding||{},title:session.branding?.paperTitle||"Question Paper",school:session.branding?.schoolName||"",logo:session.branding?.showLogo?session.branding.logoUrl:"",watermarkCount:1});
-   }else{
-    const p=document.getElementById("paper");
-    if(p)p.innerHTML='<div class="empty">Print session found, but no questions were saved. Please go back and press Print again.</div>';
    }
   }catch(e){
    console.error("Printout IndexedDB boot failed",e);
