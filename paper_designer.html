@@ -304,21 +304,35 @@ async function loadQuestions(){
   renderAll();
   return;
  }
- // Test Builder selection is the source of truth. Refresh those exact IDs from
- // the master Library collection, with the Builder handoff as a guaranteed fallback.
- try{
-  await signInAnonymously(auth);
-  const snap=await getDocs(collection(db,"questions"));
-  const map=new Map(snap.docs.map(d=>[String(d.id),{id:d.id,...d.data()}]));
-  questions=ids.map(id=>map.get(String(id))||compact.get(String(id))).filter(Boolean);
- }catch(e){
-  console.warn("Paper Designer Firebase load; using Builder handoff:",e);
-  questions=ids.map(id=>compact.get(String(id))).filter(Boolean);
- }
- // Keep the exact Test Builder selection order; never load an unrelated question.
+
+ // CRITICAL: Builder already hands us the exact selected question objects.
+ // Render them immediately. Do not make the Paper Designer UI wait for Firebase.
+ questions=ids.map(id=>compact.get(String(id))).filter(Boolean);
  document.getElementById("poolStatus").textContent=questions.length+" / "+ids.length+" selected questions loaded";
  renderAll();
-}
+
+ // Firebase is only a refresh/enrichment step. A slow/hanging Firebase request
+ // must never leave the Paper Designer stuck on "Loading selected questions…".
+ try{
+  const firebaseLoad=Promise.race([
+   (async()=>{
+    await signInAnonymously(auth);
+    return await getDocs(collection(db,"questions"));
+   })(),
+   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Firebase question refresh timeout")),6000))
+  ]);
+  const snap=await firebaseLoad;
+  const map=new Map(snap.docs.map(d=>[String(d.id),{id:d.id,...d.data()}]));
+  const refreshed=ids.map(id=>map.get(String(id))).filter(Boolean);
+  // Only replace the handoff copy when Firebase actually returned the requested questions.
+  if(refreshed.length===ids.length){
+   questions=refreshed;
+   document.getElementById("poolStatus").textContent=questions.length+" / "+ids.length+" selected questions loaded";
+   renderAll();
+  }
+ }catch(e){
+  console.warn("Paper Designer Firebase refresh skipped; Builder handoff remains active:",e);
+ }
 function goBack(){location.href="builder.html"}
 function updateBrandingPreview(){
  const b=readBranding();const el=document.getElementById("brandingPreview");if(!el)return;
