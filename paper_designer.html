@@ -63,10 +63,13 @@ button,input,select,textarea{font:inherit}.app{min-height:100vh;display:flex;fle
    <label>Academic Session<input id="sessionName" placeholder="e.g. 2026–27"></label>
    <label>Time Allowed<input id="examTime" placeholder="e.g. 3 Hours"></label>
    <label>Institute Logo<input id="logoFile" type="file" accept="image/*"><input id="logoUrl" placeholder="Or paste logo URL (https://...)" style="margin-top:6px"></label>
+   <label>Font Family<select id="fontFamily"><option value="Times New Roman">Times New Roman</option><option value="Arial">Arial</option><option value="Calibri">Calibri</option><option value="Georgia">Georgia</option><option value="Verdana">Verdana</option><option value="Cambria">Cambria</option><option value="Garamond">Garamond</option></select></label>
+   <label>Watermark Text<input id="watermarkText" value="A to Z Exam Mocks"></label>
    <label>Print Layout<select id="printLayout"><option value="one">One Column</option><option value="two">Two Columns</option></select></label>
    <label class="full">Header / Instructions<textarea id="instructions" rows="3" placeholder="General instructions for students..."></textarea></label>
   </div></div>
   <label class="check"><input id="showLogo" type="checkbox" checked> Show institute logo</label>
+  <label class="check"><input id="showWatermark" type="checkbox"> Show watermark</label>
   <label class="check"><input id="showAZBrand" type="checkbox" checked> Show A to Z Exam Mocks branding</label>
   <label class="check"><input id="showFooter" type="checkbox" checked> Show branded footer</label>
   <div class="actions"><button class="btn" onclick="closeBranding()">Cancel</button><button class="btn blue" onclick="printPaper()">Continue to Print</button></div>
@@ -318,19 +321,19 @@ async function loadQuestions(){
 function goBack(){location.href="builder.html"}
 function updateBrandingPreview(){
  const b=readBranding();const el=document.getElementById("brandingPreview");if(!el)return;
- el.style.setProperty("--pv-font","Arial,sans-serif");
- el.innerHTML=(b.showLogo&&b.logoUrl?'<img class="pv-logo" src="'+esc(b.logoUrl)+'">':"")+""+'<div class="pv-school">'+esc(b.schoolName||"Institute / School Name")+'</div><div class="pv-title">'+esc(b.paperTitle||"Question Paper")+'</div><div class="pv-meta"><div class="pv-left"><div><b>Class:</b> '+esc(b.className||"—")+'</div><div><b>Subject:</b> '+esc(b.subjectName||"—")+'</div></div><div class="pv-right"><div><b>Session:</b> '+esc(b.sessionName||"—")+'</div><div><b>Time:</b> '+esc(b.examTime||"—")+'</div></div></div><div class="pv-line"></div>'+(b.instructions?'<div class="pv-note"><b>Instructions</b><br>'+esc(b.instructions)+'</div>':'<div class="pv-note">Your instructions will appear here.</div>')+'<div class="pv-footer" style="position:absolute;left:24px;right:24px;bottom:20px;border-top:1px solid #999;padding-top:6px;text-align:center;font-size:10px">'+(b.showAZBrand?"A to Z Exam Mocks • ":"")+(b.showFooter?"Question Paper":"")+"</div>";
+ el.style.setProperty("--pv-font","'"+String(b.fontFamily||"Arial").replace(/'/g,"")+"'");
+ el.innerHTML=(b.showLogo&&b.logoUrl?'<img class="pv-logo" src="'+esc(b.logoUrl)+'">':"")+(b.showWatermark?'<div class="pv-watermark">'+esc(b.watermarkText||"A to Z Exam Mocks")+'</div>':"")+'<div class="pv-school">'+esc(b.schoolName||"Institute / School Name")+'</div><div class="pv-title">'+esc(b.paperTitle||"Question Paper")+'</div><div class="pv-meta"><div class="pv-left"><div><b>Class:</b> '+esc(b.className||"—")+'</div><div><b>Subject:</b> '+esc(b.subjectName||"—")+'</div></div><div class="pv-right"><div><b>Session:</b> '+esc(b.sessionName||"—")+'</div><div><b>Time:</b> '+esc(b.examTime||"—")+'</div></div></div><div class="pv-line"></div>'+(b.instructions?'<div class="pv-note"><b>Instructions</b><br>'+esc(b.instructions)+'</div>':'<div class="pv-note">Your instructions will appear here.</div>')+'<div class="pv-footer" style="position:absolute;left:24px;right:24px;bottom:20px;border-top:1px solid #999;padding-top:6px;text-align:center;font-size:10px">'+(b.showAZBrand?"A to Z Exam Mocks • ":"")+(b.showFooter?"Question Paper":"")+"</div>";
 }
-function bindBrandingPreview(){["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","instructions","printLayout","showLogo","showAZBrand","showFooter"].forEach(k=>{const e=document.getElementById(k);if(e&&!e.dataset.previewBound){e.dataset.previewBound="1";e.addEventListener("input",updateBrandingPreview);e.addEventListener("change",updateBrandingPreview)}})}
+function bindBrandingPreview(){["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily","printLayout","showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>{const e=document.getElementById(k);if(e&&!e.dataset.previewBound){e.dataset.previewBound="1";e.addEventListener("input",updateBrandingPreview);e.addEventListener("change",updateBrandingPreview)}})}
 function openBranding(){
  if(!questions.length){alert("No selected questions available.");return}
  const old=safeJSON("AZ_PAPER_BRANDING",{})||{};
- ["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","instructions"].forEach(k=>{if(old[k]!==undefined&&document.getElementById(k))document.getElementById(k).value=old[k]});
- ["showLogo","showAZBrand","showFooter"].forEach(k=>{if(old[k]!==undefined)document.getElementById(k).checked=old[k]});if(document.getElementById("printLayout"))document.getElementById("printLayout").value=old.layout||"one";
+ ["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>{if(old[k]!==undefined&&document.getElementById(k))document.getElementById(k).value=old[k]});
+ ["showLogo","showWatermark","showAZBrand","showFooter"].forEach(k=>{if(old[k]!==undefined)document.getElementById(k).checked=old[k]});if(document.getElementById("printLayout"))document.getElementById("printLayout").value=old.layout||"one";
  document.getElementById("brandingModal").classList.add("show");updateBrandingPreview();bindBrandingPreview();const lf=document.getElementById("logoFile");if(lf&&!lf.dataset.bound){lf.dataset.bound="1";lf.addEventListener("change",()=>{const f=lf.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{document.getElementById("logoUrl").value=String(rd.result||"");updateBrandingPreview()};rd.readAsDataURL(f)})}
 }
 function closeBranding(){document.getElementById("brandingModal").classList.remove("show")}
-function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","instructions"].forEach(k=>{const e=document.getElementById(k);o[k]=e?String(e.value||"").trim():""});o.layout=document.getElementById("printLayout")?.value||"one";["showLogo","showAZBrand","showFooter"].forEach(k=>{const e=document.getElementById(k);o[k]=e?!!e.checked:true});return o}
+function readBranding(){const o={};["schoolName","className","subjectName","paperTitle","sessionName","examTime","logoUrl","watermarkText","instructions","fontFamily"].forEach(k=>{const e=document.getElementById(k);o[k]=e?String(e.value||"").trim():""});o.layout=document.getElementById("printLayout")?.value||"one";["showLogo","showAZBrand","showFooter"].forEach(k=>{const e=document.getElementById(k);o[k]=e?!!e.checked:true});return o}
 function printPaper(){
  branding=readBranding();localStorage.setItem("AZ_PAPER_BRANDING",JSON.stringify(branding));localStorage.setItem("AZ_PAPER_DESIGN_SECTIONS",JSON.stringify(sections));
  closeBranding();
