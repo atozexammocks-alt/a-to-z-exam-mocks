@@ -370,14 +370,16 @@ function printPaper(){
  try{localStorage.setItem("AZ_PRINT_SELECTED_IDS",JSON.stringify(questions.map(q=>String(q.id)).filter(Boolean)));localStorage.setItem("AZ_PRINT_SECTIONS",JSON.stringify(sections))}catch(e){}
  const w=window.open("about:blank","_blank");if(!w){alert("Popup blocked. Please allow popups for Printout.");return}
  try{localStorage.setItem("AZ_PRINT_PAYLOAD",JSON.stringify(payload))}catch(e){console.warn("Print payload storage failed",e)}
- const url="printout.html?selected="+encodeURIComponent(selectedQuery);
- try{w.location.replace(url)}catch(e){w.location.href=url}
- savePrintSession().catch(e=>console.warn("IndexedDB backup save skipped",e));
- // Re-send after navigation so Printout receives the exact Paper Designer question payload.
- const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
- setTimeout(send,150);
- setTimeout(send,600);
- setTimeout(send,1500);
+ const navigateToPrintout=()=>{
+   const url="printout.html?session="+encodeURIComponent(printSession)+"&selected="+encodeURIComponent(selectedQuery);
+   try{w.location.replace(url)}catch(e){w.location.href=url}
+ };
+ // Save the exact Paper Designer payload first, then navigate. Printout reads this
+ // session directly, so it does not depend on localStorage size or postMessage timing.
+ savePrintSession().then(navigateToPrintout).catch(e=>{
+   console.warn("IndexedDB print session save failed; using local payload handoff:",e);
+   navigateToPrintout();
+ });
  const send=()=>{try{w.postMessage({type:"AZ_PRINT_PAYLOAD",payload:payload},"*")}catch(e){}};
 }function buildPrintHtml(items){
  const b=branding;const escP=esc;
