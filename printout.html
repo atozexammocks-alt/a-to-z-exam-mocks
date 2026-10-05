@@ -66,19 +66,15 @@ function optionsOf(q){let v=q?.options??q?.choices??q?.answerOptions;if(typeof v
 function cleanQ(v){return String(v??'').trim()}
 function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
 function mathMarkup(v){
- var x=String(v||"").trim();
- if(!x)return "";
- // Preserve explicit TeX delimiters and support $...$ / $$...$$ from imported questions.
- if(/^\\\\\\([\\s\\S]*\\\\\\)$/.test(x)||/^\\\\\\[[\\s\\S]*\\\\\\]$/.test(x)||/^\\$\\$[\\s\\S]*\\$\\$$/.test(x)) return x;
- if(/^\\$[\\s\\S]*\\$$/.test(x)) return "\\("+x.slice(1,-1).trim()+"\\)";
- // Detect raw LaTeX such as \\int_{1}^{2}, \\frac{...}{...}, x^{2}, etc.
- if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
-   || /(?:[A-Za-z0-9}])(?:\\\\)?(?:\\^|\\_)(?:\\{[^}]+\\}|[^\\s]+)/.test(x)
-   || /(?:\\^|\\_)\\{[^}]+\\}/.test(x)){
-   return "\\("+x+"\\)";
- }
- return x;
-}
+      var x=String(v||"");
+      if(!x)return "";
+      if(/\\\\\(|\\\\\[/.test(x)) return x;
+      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
+        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
+        return "\\("+x+"\\)";
+      }
+      return x;
+    }
 function render(v){return esc(mathMarkup(v)).replace(/&lt;/g,'<').replace(/&gt;/g,'>')}
 let data={questions:[],sections:[],branding:{},title:'Question Paper',school:'',logo:'',layout:'one',watermarkCount:1};
 let qSel=new Set(),sSel=new Set(),modeName='questions',qStyle={},sStyle={};
