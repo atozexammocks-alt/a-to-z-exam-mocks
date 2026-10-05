@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — Printout</title>
 <script>
-window.MathJax={tex:{inlineMath:[["\\\\(","\\\\)"],["$","$"]],displayMath:[["\\\\[","\\\\]"],["$$","$$"]]},svg:{fontCache:"global"}};</script>
+window.MathJax={tex:{inlineMath:[["\\\\(","\\\\)"],["$","$"]],displayMath:[["\\\\[","\\\\]"],["$","$"]]},svg:{fontCache:"global"}};</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <style>
 *{box-sizing:border-box}
@@ -59,24 +59,50 @@ body{min-height:100vh}
 <div id="paper" class="paper"><div class="empty">Loading paper…</div></div>
 <script>
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function textOf(q){for(const k of ['qText','text','questionText','question_text','content','questionTextHtml','prompt','question']){const v=q?.[k];if(typeof v==='string'&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim()))return v.trim()}return''}
-function imageOf(q){for(const k of ['questionImage','image','img','imageData','croppedImage','croppedImageData','questionImageData','base64Image','imageUrl','imageURL','diagram','imageSrc','src','question']){const v=q?.[k];if(typeof v==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim();if(v&&typeof v==='object')for(const kk of ['data','url','src','image','dataUrl','base64']){const z=v[kk];if(typeof z==='string'&&/^(https?:\/\/|data:image\/|blob:)/i.test(z.trim()))return z.trim()}}return''}
-function optionsOf(q){let v=q?.options??q?.choices??q?.answerOptions;if(typeof v==='string'){try{v=JSON.parse(v)}catch(e){v=v.split(/\s*\|\s*/)}}if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):String(x)).filter(x=>String(x).trim());return['A','B','C','D'].map(k=>q?.['option'+k]??q?.['option_'+k]??q?.['choice'+k]).filter(x=>String(x??'').trim())}
+function questionText(q){
+      const candidates=[q.text,q.qText,q.questionText,q.question_text,q.content];
+      for(const v of candidates){
+        if(typeof v==='string' && v.trim()) return v.trim();
+      }
+      const fallback=q.question;
+      if(typeof fallback==='string' && fallback.trim() && !/^(data:image\\/|https?:\\/\\/|blob:)/i.test(fallback.trim())) return fallback.trim();
+      return '';
+    }
+function questionOptions(q){
+      let opts=q.options||q.choices||q.answerOptions;
+      if(!opts && typeof q.optText==='string' && q.optText.trim()) opts=q.optText.split(/\\s*\\|\\s*/).map(x=>x.replace(/^\\s*\\([A-E]\\)\\s*/i,'').trim()).filter(Boolean);
+      if(typeof opts==='string'){ try{ opts=JSON.parse(opts); }catch(e){ opts=null; } }
+      if(Array.isArray(opts)) return opts.map((x,i)=> typeof x==='object' ? (x.text||x.value||x.label||'') : String(x)).filter(Boolean);
+      const out=[];
+      ['A','B','C','D','E'].forEach(k=>{
+        const v=q['option'+k]??q['option_'+k]??q['choice'+k];
+        if(v!==undefined && String(v).trim()) out.push(String(v));
+      });
+      return out;
+    }
 function cleanQ(v){return String(v??'').trim()}
-function cleanOpt(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
-function mathMarkup(v){
+function cleanOpt(v){return String(v??'').trim().replace(/^(?:\\s*(?:\\([A-Ea-e]\\)|[A-Ea-e][.)])\\s*)+/,'').trim()}
+function libraryMathMarkup(v){
       var x=String(v||"");
       if(!x)return "";
-      if(/\\\\\(|\\\\\[/.test(x)) return x;
-      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
-        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
-        return "\\("+x+"\\)";
+      if(/\\\\\\(|\\\\\\[/.test(x)) return x;
+      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\\\b/.test(x)
+        || /(?:[A-Za-z0-9\\\\}])\\\\^\\\\{[^}]+\\\\}|(?:[A-Za-z0-9\\\\}])_\\\\{[^}]+\\\\}/.test(x)){
+        return "\\\\("+x+"\\\\)";
       }
       return x;
     }
-function render(v){
-      var x=mathMarkup(v);
+function renderLibraryText(v){
+      var x=libraryMathMarkup(v);
       return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+    }
+function typesetLibraryMath(){
+      if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
+      if(MathJax.startup&&MathJax.startup.promise){
+        MathJax.startup.promise.then(function(){
+          MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
+        }).catch(function(){});
+      }
     }
 let data={questions:[],sections:[],branding:{},title:'Question Paper',school:'',logo:'',layout:'one',watermarkCount:1};
 let qSel=new Set(),sSel=new Set(),modeName='questions',qStyle={},sStyle={};
@@ -143,8 +169,8 @@ function changeSelectedFontSize(delta){
 function receive(p){if(!p||!Array.isArray(p.questions))return;data=Object.assign(data,p);data.questions=p.questions||[];data.sections=Array.isArray(p.sections)?p.sections:[];data.branding=p.branding||{};data.title=data.branding.paperTitle||p.title||'Question Paper';data.school=data.branding.schoolName||p.school||'';data.logo=data.branding.logoUrl||p.logo||'';build()}
 function markLabel(m){const x=Number(m);if(!isFinite(x)||x<=0)return '';return '1 × '+x+' = '+x+' Mark'+(x===1?'':'s')}
 function sectionMarkLabel(s){const x=Number(s?.marks);if(!isFinite(x)||x<=0)return '';return x===1?'1 Mark Each':x+' Marks Each'}
-function questionHTML(q,n){const id=String(q.id||'');const e=data.textEdits?.[id]||{};const text=cleanQ(e.text!==undefined?e.text:textOf(q));const opts=(Array.isArray(e.options)?e.options:optionsOf(q)).map(cleanOpt).filter(Boolean);const img=imageOf(q);const st=qStyle[id]||{};const font=st.font||e.fontFamily||data.branding.fontFamily||'Times New Roman';const size=st.size||e.fontSize||14;const weight=st.weight||e.weight||400;const italic=st.italic?'italic':'normal';const under=st.underline?'underline':'none';const border=document.getElementById('qBorder').value;const sectionForQ=data.sections.find(s=>Array.isArray(s.questionIds)&&s.questionIds.map(String).includes(id));const qMark=sectionForQ?.marks??q.marks??q.mark??q.marksPerQuestion;const cls='question '+(qSel.has(id)?'selected ':'')+(border==='box'?'qbox':border==='bottom'?'qbottom':border==='left'?'qleft':'');const style='font-family:'+esc(font)+';font-size:'+Number(size)+'px;font-weight:'+Number(weight)+';font-style:'+italic+';text-decoration:'+under+';';return '<div class="'+cls+'" data-q="'+esc(id)+'" onclick="selectQ(\''+esc(id)+'\')" style="'+style+'"><div class="qline"><span class="qnum">'+n+'.</span><span class="qtext editableText" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+render(text)+'</span><span class="qmarks">'+markLabel(qMark)+'</span></div>'+(img?'<div class="qimage"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!e.hideOptions?'<div class="options '+((opts.length>=3&&(opts.some(o=>String(o).length>55)||opts.join(' ').length>150))?'row-wise':'')+'">'+opts.map((o,i)=>'<div class="option"><b>'+String.fromCharCode(65+i)+'.</b><span class="editableText" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+render(o)+'</span></div>').join('')+'</div>':'')+'</div>'}
-function build(){const p=document.getElementById('paper');const b=data.branding||{};const logo=(b.showLogo&&b.logoUrl)||data.logo?'<img class="logo" src="'+esc((b.showLogo&&b.logoUrl)||data.logo)+'">':'';let h='<header class="header">'+logo+'<div class="header-main" style="font-size:14px;font-weight:700;">'+(data.school?'<div class="school editable" contenteditable="true" spellcheck="false" data-field="schoolName">'+esc(data.school)+'</div>':'<div class="school editable" contenteditable="true" spellcheck="false" data-field="schoolName">School Name</div>')+'<div class="title editable" contenteditable="true" spellcheck="false" data-field="paperTitle" style="font-size:18px;font-weight:700;">'+esc(data.title)+'</div><div class="meta"><div><b>Class:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="className">'+esc(b.className||'—')+'</span><br><b>Subject:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="subjectName">'+esc(b.subjectName||'—')+'</span></div><div class="right"><b>Session:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="sessionName">'+esc(b.sessionName||'—')+'</span><br><b>Time:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="examTime">'+esc(b.examTime||'—')+'</span></div></div></div></header><main class="content">';let n=0;if(data.sections.length){const assigned=new Set();for(const s of data.sections){const ids=Array.isArray(s.questionIds)?s.questionIds.map(String):[];const qs=ids.map(id=>data.questions.find(q=>String(q.id)===id)).filter(Boolean);qs.forEach(q=>assigned.add(String(q.id)));if(!qs.length)continue;const sb=document.getElementById('sectionBorder').value;const ss=sStyle[String(s.id)]||{};const st='font-size:'+Number(ss.size||15)+'px;font-weight:'+Number(ss.weight||700)+';font-style:'+(ss.italic?'italic':'normal')+';text-decoration:'+(ss.underline?'underline':'none')+';';h+='<div class="section '+sb+' '+(sSel.has(String(s.id))?'selected':'')+'" data-s="'+esc(s.id)+'" onclick="selectS(\''+esc(s.id)+'\')" style="'+st+'">'+'<span class="editableText sectionName" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+esc(s.name||'Section')+'</span> <span style="font-size:11px;font-weight:400">('+qs.length+' Questions • '+sectionMarkLabel(s)+')</span></div>';qs.forEach(q=>{n++;h+=questionHTML(q,n)})}/* Only questions explicitly assigned to a section belong in the paper. Builder selection is the pool; section assignment is the print inclusion rule. */}else data.questions.forEach(q=>{n++;h+=questionHTML(q,n)});h+='</main>'+(b.showFooter!==false?'<div class="footer">'+(b.showAZBrand!==false?'A to Z Exam Mocks • ':'')+'Question Paper</div>':'');p.innerHTML=h.replace('<main class="content">','<main class="content '+(String(data.branding.layout||data.layout||'one')==='two'?'two-col':'one-col')+'">');if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([p]).catch(()=>{})}
+function questionHTML(q,n){const id=String(q.id||'');const e=data.textEdits?.[id]||{};const text=cleanQ(e.text!==undefined?e.text:questionText(q));const opts=(Array.isArray(e.options)?e.options:questionOptions(q)).map(cleanOpt).filter(Boolean);const img=imageOf(q);const st=qStyle[id]||{};const font=st.font||e.fontFamily||data.branding.fontFamily||'Times New Roman';const size=st.size||e.fontSize||14;const weight=st.weight||e.weight||400;const italic=st.italic?'italic':'normal';const under=st.underline?'underline':'none';const border=document.getElementById('qBorder').value;const sectionForQ=data.sections.find(s=>Array.isArray(s.questionIds)&&s.questionIds.map(String).includes(id));const qMark=sectionForQ?.marks??q.marks??q.mark??q.marksPerQuestion;const cls='question '+(qSel.has(id)?'selected ':'')+(border==='box'?'qbox':border==='bottom'?'qbottom':border==='left'?'qleft':'');const style='font-family:'+esc(font)+';font-size:'+Number(size)+'px;font-weight:'+Number(weight)+';font-style:'+italic+';text-decoration:'+under+';';return '<div class="'+cls+'" data-q="'+esc(id)+'" onclick="selectQ(\''+esc(id)+'\')" style="'+style+'"><div class="qline"><span class="qnum">'+n+'.</span><span class="qtext library-q-text editableText" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+render(text)+'</span><span class="qmarks">'+markLabel(qMark)+'</span></div>'+(img?'<div class="qimage"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!e.hideOptions?'<div class="options library-q-options '+((opts.length>=3&&(opts.some(o=>String(o).length>55)||opts.join(' ').length>150))?'row-wise':'')+'">'+opts.map((o,i)=>'<div class="option"><b>'+String.fromCharCode(65+i)+'.</b><span class="editableText" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+render(o)+'</span></div>').join('')+'</div>':'')+'</div>'}
+function build(){const p=document.getElementById('paper');const b=data.branding||{};const logo=(b.showLogo&&b.logoUrl)||data.logo?'<img class="logo" src="'+esc((b.showLogo&&b.logoUrl)||data.logo)+'">':'';let h='<header class="header">'+logo+'<div class="header-main" style="font-size:14px;font-weight:700;">'+(data.school?'<div class="school editable" contenteditable="true" spellcheck="false" data-field="schoolName">'+esc(data.school)+'</div>':'<div class="school editable" contenteditable="true" spellcheck="false" data-field="schoolName">School Name</div>')+'<div class="title editable" contenteditable="true" spellcheck="false" data-field="paperTitle" style="font-size:18px;font-weight:700;">'+esc(data.title)+'</div><div class="meta"><div><b>Class:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="className">'+esc(b.className||'—')+'</span><br><b>Subject:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="subjectName">'+esc(b.subjectName||'—')+'</span></div><div class="right"><b>Session:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="sessionName">'+esc(b.sessionName||'—')+'</span><br><b>Time:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="examTime">'+esc(b.examTime||'—')+'</span></div></div></div></header><main class="content">';let n=0;if(data.sections.length){const assigned=new Set();for(const s of data.sections){const ids=Array.isArray(s.questionIds)?s.questionIds.map(String):[];const qs=ids.map(id=>data.questions.find(q=>String(q.id)===id)).filter(Boolean);qs.forEach(q=>assigned.add(String(q.id)));if(!qs.length)continue;const sb=document.getElementById('sectionBorder').value;const ss=sStyle[String(s.id)]||{};const st='font-size:'+Number(ss.size||15)+'px;font-weight:'+Number(ss.weight||700)+';font-style:'+(ss.italic?'italic':'normal')+';text-decoration:'+(ss.underline?'underline':'none')+';';h+='<div class="section '+sb+' '+(sSel.has(String(s.id))?'selected':'')+'" data-s="'+esc(s.id)+'" onclick="selectS(\''+esc(s.id)+'\')" style="'+st+'">'+'<span class="editableText sectionName" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+esc(s.name||'Section')+'</span> <span style="font-size:11px;font-weight:400">('+qs.length+' Questions • '+sectionMarkLabel(s)+')</span></div>';qs.forEach(q=>{n++;h+=questionHTML(q,n)})}/* Only questions explicitly assigned to a section belong in the paper. Builder selection is the pool; section assignment is the print inclusion rule. */}else data.questions.forEach(q=>{n++;h+=questionHTML(q,n)});h+='</main>'+(b.showFooter!==false?'<div class="footer">'+(b.showAZBrand!==false?'A to Z Exam Mocks • ':'')+'Question Paper</div>':'');p.innerHTML=h.replace('<main class="content">','<main class="content '+(String(data.branding.layout||data.layout||'one')==='two'?'two-col':'one-col')+'">');typesetLibraryMath()}
 function mode(m){modeName=m;qSel.clear();sSel.clear();build()}
 function selectAllQuestions(){modeName='questions';qSel=new Set(data.questions.map(q=>String(q.id)));sSel.clear();build()}
 function clearSel(){qSel.clear();sSel.clear();build()}
