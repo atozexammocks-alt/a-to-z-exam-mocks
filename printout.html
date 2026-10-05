@@ -37,7 +37,14 @@ body{min-height:100vh}
 .empty{padding:80px 20px;text-align:center;color:#64748b;font-size:16px}
 @media(max-width:900px){.paper{width:100%;margin:8px auto;padding:10mm}.toolbar{position:sticky}.meta{font-size:10px}}
 @media print{
- html,body{background:#fff}.toolbar{display:none!important}.paper{width:auto;min-height:auto;margin:0;padding:0;box-shadow:none}.question.selected,.section.selected{outline:none}.watermark{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ @page{size:A4;margin:0}
+ html,body{background:#fff}
+ .toolbar{display:none!important}
+ .paper{width:210mm;min-height:297mm;margin:0;padding:15mm;box-shadow:none;overflow:visible}
+ .question.selected,.section.selected{outline:none}
+ .watermark{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .content.two-col{column-fill:auto;height:calc(297mm - 30mm)}
+ .content.two-col .question{break-inside:avoid;page-break-inside:avoid}
 }
 </style>
 </head>
@@ -48,7 +55,7 @@ body{min-height:100vh}
 <button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('bold')"><b>B</b></button><button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('italic')"><i>I</i></button><button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('underline')"><u>U</u></button>
 <label>Q Border <select id="qBorder"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom</option><option value="left">Left</option></select></label>
 <label>Section <select id="sectionBorder"><option value="bottom">Bottom</option><option value="box">Box</option><option value="none">None</option></select></label>
-<button class="gray" onclick="selectAllQuestions()">Select All Questions</button>
+<button class="gray" onclick="selectAllQuestions()">Select All Questions</button><button class="gray" onclick="moveSelected(-1)">↑ Move Up</button><button class="gray" onclick="moveSelected(1)">↓ Move Down</button>
 <button class="gray" onclick="mode('questions')">Select Questions</button>
 <button class="gray" onclick="mode('sections')">Select Sections</button>
 <button class="gray" onclick="clearSel()">Clear</button>
@@ -196,6 +203,44 @@ function mode(m){modeName=m;qSel.clear();sSel.clear();build()}
 function selectAllQuestions(){modeName='questions';qSel=new Set(data.questions.map(q=>String(q.id)));sSel.clear();build()}
 function clearSel(){qSel.clear();sSel.clear();build()}
 function selectQ(id){if(modeName!=='questions')return;id=String(id);qSel.has(id)?qSel.delete(id):qSel.add(id);sSel.clear();build()}
+function moveSelected(dir){
+ if(!qSel.size)return;
+ const selected=new Set([...qSel].map(String));
+ let moved=false;
+ if(Array.isArray(data.sections)&&data.sections.length){
+  for(const sec of data.sections){
+   const ids=(sec.questionIds||[]).map(String);
+   for(let i=0;i<ids.length;i++){
+    if(!selected.has(ids[i]))continue;
+    const j=i+dir;
+    if(j>=0&&j<ids.length&&(!selected.has(ids[j]))){[ids[i],ids[j]]=[ids[j],ids[i]];moved=true;}
+   }
+   sec.questionIds=ids;
+  }
+  const assigned=new Set(data.sections.flatMap(sec=>(sec.questionIds||[]).map(String)));
+  const un=data.questions.filter(q=>!assigned.has(String(q.id))).map(q=>String(q.id));
+  for(let i=0;i<un.length;i++){
+   if(!selected.has(un[i]))continue;
+   const j=i+dir;
+   if(j>=0&&j<un.length&&(!selected.has(un[j]))){[un[i],un[j]]=[un[j],un[i]];moved=true;}
+  }
+  if(moved){
+   const byId=new Map(data.questions.map(q=>[String(q.id),q]));
+   const ordered=[];
+   for(const sec of data.sections) for(const id of sec.questionIds||[]) if(byId.has(String(id))) ordered.push(byId.get(String(id)));
+   for(const id of un) if(byId.has(String(id))&&!ordered.some(q=>String(q.id)===id))ordered.push(byId.get(id));
+   data.questions=ordered;
+  }
+ }else{
+  const arr=data.questions;
+  for(let i=0;i<arr.length;i++){
+   if(!selected.has(String(arr[i].id)))continue;
+   const j=i+dir;
+   if(j>=0&&j<arr.length&&!selected.has(String(arr[j].id))){[arr[i],arr[j]]=[arr[j],arr[i]];moved=true;}
+  }
+ }
+ if(moved){try{localStorage.setItem('AZ_PRINT_SELECTED_IDS',JSON.stringify(data.questions.map(q=>String(q.id))));}catch(e){}build();}
+}
 function selectS(id){if(modeName!=='sections')return;id=String(id);sSel.has(String(id))?sSel.delete(String(id)):sSel.add(String(id));qSel.clear();build()}
 function fmt(k){if(!qSel.size&&!sSel.size){if(k==='bold')wrapSelectionStyle({fontWeight:'700'});else if(k==='italic')wrapSelectionStyle({fontStyle:'italic'});else if(k==='underline')wrapSelectionStyle({textDecoration:'underline'});else return;return}if(qSel.size){qSel.forEach(id=>{const s=qStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;qStyle[id]=s});build()}else if(sSel.size){sSel.forEach(id=>{const s=sStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;sStyle[id]=s});build()}else alert('Select question(s) or section(s) first.')}
 function apply(){
