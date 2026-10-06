@@ -226,11 +226,18 @@ function renderInlineVisuals(q,side){
   });
   html+='</div>'; return html;
 }
+function optionNeedsVisual(q,idx){
+  var required=Array.isArray(q.optionFigureRequired)&&q.optionFigureRequired[idx]===true;
+  var img=figureImageForOption(q,idx);
+  var box=Array.isArray(q.optionFigureBoxes)&&q.optionFigureBoxes[idx];
+  return !!(required||img||box);
+}
 function renderOptionHtml(q,opt,idx,review){
-  var img=figureImageForOption(q,idx),h='<div class="opt math-content"><b>'+String.fromCharCode(65+idx)+'.</b> '+esc(formatQuestionText(opt));
-  if(img)h+='<div class="option-visual"><img src="'+esc(img)+'" alt="Option '+String.fromCharCode(65+idx)+' figure"></div>';
-  else if(review && Array.isArray(q.optionFigureRequired)&&q.optionFigureRequired[idx])h+='<div class="option-visual"><div class="figure-missing">⚠️ Figure required for this option.</div></div>';
-  if(review)h+='<div class="inline-figure-tools"><button class="btn mini-btn purple" data-a="option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">🖼 Insert Figure for Option '+String.fromCharCode(65+idx)+'</button>'+(img?'<button class="btn mini-btn red" data-a="remove-option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">Remove</button>':'')+'</div>';
+  var img=figureImageForOption(q,idx),needs=optionNeedsVisual(q,idx),letter=String.fromCharCode(65+idx);
+  var h='<div class="opt math-content"><b>'+letter+'.</b> '+esc(formatQuestionText(opt));
+  if(img)h+='<div class="option-visual"><img src="'+esc(img)+'" alt="Option '+letter+' figure"></div>';
+  else if(review&&needs)h+='<div class="option-visual"><div class="figure-missing">⚠️ Image required for Option '+letter+'.</div></div>';
+  if(review&&needs)h+='<div class="inline-figure-tools"><button class="btn mini-btn purple" data-a="option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">🖼 Insert Figure for Option '+letter+'</button>'+(img?'<button class="btn mini-btn red" data-a="remove-option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">Remove</button>':'')+'</div>';
   return h+'</div>';
 }
 function renderQuestionWithInlineFigures(q){
@@ -356,13 +363,13 @@ function compactImageDataUrl(dataUrl){
   return new Promise(function(resolve){
     try{
       var img=new Image();img.onload=function(){
-        var maxW=800,maxH=800,scale=Math.min(1,maxW/img.width,maxH/img.height),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+        var maxW=620,maxH=620,scale=Math.min(1,maxW/img.width,maxH/img.height),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
         var c=document.createElement("canvas");c.width=w;c.height=h;var ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
-        var q=.72,out=c.toDataURL("image/jpeg",q);
-        while(out.length>120000&&q>.42){q-=.08;out=c.toDataURL("image/jpeg",q)}
+        var q=.62,out=c.toDataURL("image/jpeg",q);
+        while(out.length>65000&&q>.28){q-=.06;out=c.toDataURL("image/jpeg",q)}
         resolve(out);
-      };img.onerror=function(){resolve(dataUrl)};img.src=dataUrl;
-    }catch(_){resolve(dataUrl)}
+      };img.onerror=function(){resolve("")};img.src=dataUrl;
+    }catch(_){resolve("")}
   });
 }
 async function uploadVisualAsset(db, dataUrl, pathPart, cache){
@@ -384,7 +391,7 @@ async function uploadVisualAsset(db, dataUrl, pathPart, cache){
     // Storage rules may be unavailable in the existing project. Keep the Library usable by
     // compacting the visual and storing it only when it is small enough for Firestore.
     var compact=await compactImageDataUrl(original);
-    if(compact.length>140000)throw Error("Figure/image could not be uploaded to Storage and is still too large for Firestore fallback ("+Math.round(compact.length/1024)+" KB). Please fix Firebase Storage Rules.");
+    if(!compact||compact.length>70000)throw Error("Figure/image upload failed and could not be safely compressed for Library storage. Please check Firebase Storage Rules/login.");
     console.warn("Storage upload unavailable; using compact Firestore image fallback for",safe,err);
     cache[original]=compact;return compact;
   }
@@ -463,7 +470,7 @@ async function saveQ(i){
   var safePayload=firestoreSafePayload(payload);
   var payloadBytes=0;
   try{payloadBytes=new Blob([JSON.stringify(safePayload)]).size}catch(_){}
-  if(payloadBytes>900000)throw Error("Question data is too large ("+Math.round(payloadBytes/1024)+" KB) after visual upload. Please reduce the number/size of visual assets.");
+  if(payloadBytes>900000)throw Error("Question data is too large ("+Math.round(payloadBytes/1024)+" KB) after visual upload. Please reduce visual size or check Firebase Storage Rules.");
   try{
     var savedRef=await db.collection("questions").add(safePayload);
     console.info("[A2Z AI Import] Library save successful:",savedRef.id);
@@ -653,7 +660,7 @@ async function extract(){
         source:String(q.source||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"mcq").trim().toLowerCase()||"mcq",answerRegion:String(q.answer_region||q.answerRegion||"").trim(),
         flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},
         libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),
-        diagram:String(q.diagram_description||"").trim(),visualType:(Array.isArray(q.table_rows)&&q.table_rows.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||""))),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:((!Array.isArray(q.table_rows)||!q.table_rows.length)&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired)&&isFigureVisual(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||"")),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||pageNo).trim(),book:String(q.book||"").trim(),
+        diagram:String(q.diagram_description||"").trim(),visualType:(Array.isArray(q.table_rows)&&q.table_rows.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||""))),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:((!Array.isArray(q.table_rows)||!q.table_rows.length)&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired)&&isFigureVisual(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||"")),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||pageNo).trim(),sourcePage:String(pageNo).trim(),book:String(q.book||"").trim(),
         subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
         suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
         tableRows:normalizeTableRows(q.table_rows),
@@ -673,6 +680,7 @@ async function extract(){
         let t=String(q.question||"").replace(/\s+/g," ").trim().toLowerCase();
         let existing=n?all.find(function(x){return String(x.no||"").trim().toLowerCase()===n}):null;
         if(existing&&(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true)){
+          existing.sourcePage=String(pageNo);
           if(Array.isArray(q.options)&&q.options.length)existing.options=(existing.options||[]).concat(q.options.map(function(x){return normalizeAngstromText(String(x))}));
           if(q.question&&String(q.question).trim()&&String(q.question).trim().toLowerCase()!==String(existing.text||"").trim().toLowerCase())existing.text=(existing.text+"\n"+q.question).trim();
           if(!existing.cropImage&&q.crop_box&&pageImageData)existing.cropImage=await makeAutoCrop(pageImageData,q.crop_box);
@@ -683,8 +691,8 @@ async function extract(){
             for(let bi=0;bi<q.content_blocks.length;bi++){let b=q.content_blocks[bi]||{};let nb={type:String(b.type||b.visualType||"diagram"),visualType:visualTypeOf(b.visualType||b.type),anchor:String(b.anchor||b.insert_after||"").trim(),image:String(b.image||"").trim(),cropBox:b.crop_box||b.figure_crop_box||null,required:Boolean(b.required),reconstruction:b.reconstruction||b.visual_reconstruction||null};if(!nb.image&&nb.cropBox&&pageImageData)nb.image=await makeAutoCrop(pageImageData,nb.cropBox);existing.contentBlocks.push(nb);}
           }
           if(Array.isArray(q.option_figure_boxes)){
-            existing.optionImages=existing.optionImages||[];existing.optionFigureRequired=existing.optionFigureRequired||[];
-            for(let oi=0;oi<q.option_figure_boxes.length;oi++){let ob=q.option_figure_boxes[oi];if(ob&&!existing.optionImages[oi]&&pageImageData)existing.optionImages[oi]=await makeAutoCrop(pageImageData,ob);}
+            existing.optionImages=existing.optionImages||[];existing.optionFigureRequired=existing.optionFigureRequired||[];existing.optionFigureBoxes=q.option_figure_boxes;
+            for(let oi=0;oi<q.option_figure_boxes.length;oi++){let ob=q.option_figure_boxes[oi];if(ob){existing.optionFigureRequired[oi]=true;if(!existing.optionImages[oi]&&pageImageData)existing.optionImages[oi]=await makeAutoCrop(pageImageData,ob);}}
           }
           continue;
         }
@@ -692,6 +700,14 @@ async function extract(){
         if(!t||seen[k])continue;
         seen[k]=1;
         let nq=normalizePageQuestion(q,all.length,pageNo);
+        nq.sourcePage=String(pageNo);
+        if(Array.isArray(q.option_figure_boxes)&&q.option_figure_boxes.length){
+          nq.optionFigureBoxes=q.option_figure_boxes;nq.optionFigureRequired=nq.optionFigureRequired||[];nq.optionImages=nq.optionImages||[];
+          for(let oi=0;oi<q.option_figure_boxes.length;oi++){
+            let ob=q.option_figure_boxes[oi];
+            if(ob){nq.optionFigureRequired[oi]=true;if(!nq.optionImages[oi]&&pageImageData)nq.optionImages[oi]=await makeAutoCrop(pageImageData,ob);}
+          }
+        }
         if(!nq.cropImage&&nq.cropBox&&pageImageData)nq.cropImage=await makeAutoCrop(pageImageData,nq.cropBox);
         if(!nq.figureImage&&nq.figureCropBox&&pageImageData)nq.figureImage=await makeAutoCrop(pageImageData,nq.figureCropBox);
         if(Array.isArray(nq.visualRegions)){
@@ -767,11 +783,11 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
     $("status").textContent="❌ "+e.message;alert("AI extraction failed: "+e.message);
   }finally{$("extract").disabled=false}
 }
-async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;if(!cropTarget||cropTarget==="question")cropTarget="question";cropPage=Number(qs[i].page)||1;$("cropPanel").style.display="block";$("cropStatus").textContent="Loading page "+cropPage+"…";try{if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;cropPage=Math.max(1,Math.min(cropPage,pdf.numPages));let page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(2.5,Math.max(1.2,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Drag over the question area."}catch(e){$("cropStatus").textContent=e.message}}
+async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;if(!cropTarget||cropTarget==="question")cropTarget="question";cropPage=Number(qs[i].sourcePage||qs[i].page)||1;$("cropPanel").style.display="block";$("cropStatus").textContent="Loading page "+cropPage+"…";try{if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;cropPage=Math.max(1,Math.min(cropPage,pdf.numPages));let page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(2.5,Math.max(1.2,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Drag over the question area."}catch(e){$("cropStatus").textContent=e.message}}
 async function cropFigure(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;cropTarget="figure";await cropQ(i);cropTarget="figure";$("cropStatus").textContent="🖼 Drag ONLY around the figure/diagram/image. Adjust it manually if AI crop was not exact. Use Next Page if needed."}
 async function navigateCropPage(delta){if(editing<0||!sourcePdfFile)return;var target=(Number(cropPage)||1)+Number(delta||0);try{var pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;if(target<1||target>pdf.numPages)return;cropPage=target;var page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(1.5,Math.max(.8,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Page "+cropPage+" loaded — drag over this question/continuation.";}catch(e){$("cropStatus").textContent=e.message}}
 function setup(){
- $("eCropFromPdf").onclick=()=>{if(editing>=0)cropQ(editing)}; $("eCrop").onclick=()=>{if(editing>=0)cropQ(editing)}; $("geminiKey").value=localStorage.getItem(KEY)||"";$("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("Gemini API key भरें.");localStorage.setItem(KEY,v);alert("✔ Key saved on this device.")};$("pdf").addEventListener("change",function(){let f=this.files&&this.files[0];$("status").textContent=f?"📄 PDF selected: "+f.name+" ("+(f.size/1048576).toFixed(2)+" MB)":"Waiting for PDF…";});$("extract").onclick=extract;$("clear").onclick=()=>{qs=[];render();$("status").textContent="Cleared.";showSaveToast("Review list cleared.")};$("import").onclick=async()=>{if(!qs.length)return;$("import").disabled=true;let processed=0;try{while(qs.length){let q=qs[0];if(!q.folderPath)throw Error("Question "+q.no+": select its Library path first.");q.libraryMode=q.libraryMode||"private";$("status").textContent="☁ Uploading question + all visual assets to Library…";await saveQ(0);uploadedCount++;processed++;qs.splice(0,1);render();$("status").textContent="☁ Saved "+processed+" question(s). "+qs.length+" remaining.";showSaveToast("✔ Question "+q.no+" saved to Library. "+qs.length+" remaining.");}}catch(e){showSaveToast("❌ Save stopped: "+e.message,true);alert("Save failed: "+e.message)}finally{$("import").disabled=!qs.length}};$("grid").addEventListener("change",async e=>{let sel=e.target.closest("select[data-path-i]");if(sel){setQuestionPath(Number(sel.dataset.pathI),sel.value);return}let lm=e.target.closest("select.q-library-mode");if(lm){let i=Number(lm.dataset.i);if(qs[i]){qs[i].libraryMode=lm.value;qs[i].folderPath="";await loadFolders(lm.value,$("ePath"),$("eStatus"));render();}}});$("grid").addEventListener("change",function(e){var t=e.target,i=Number(t.dataset.i);if(!Number.isFinite(i)||!qs[i])return;if(t.classList.contains("q-type-control")){qs[i].qType=t.value;render()}else if(t.classList.contains("q-answer-control"))qs[i].answer=t.value;else if(t.classList.contains("q-answer-region"))qs[i].answerRegion=t.value;});$("grid").addEventListener("click",async function(e){
+ $("eCropFromPdf").onclick=()=>{if(editing>=0)cropQ(editing)}; $("eCrop").onclick=()=>{if(editing>=0)cropQ(editing)}; $("geminiKey").value=localStorage.getItem(KEY)||"";$("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("Gemini API key भरें.");localStorage.setItem(KEY,v);alert("✔ Key saved on this device.")};$("pdf").addEventListener("change",function(){let f=this.files&&this.files[0];$("status").textContent=f?"📄 PDF selected: "+f.name+" ("+(f.size/1048576).toFixed(2)+" MB)":"Waiting for PDF…";});$("extract").onclick=extract;$("clear").onclick=()=>{qs=[];render();$("status").textContent="Cleared.";showSaveToast("Review list cleared.")};$("import").onclick=async()=>{if(!qs.length)return;$("import").disabled=true;let processed=0;try{while(qs.length){let q=qs[0];if(!q.folderPath)throw Error("Question "+q.no+": select its Library path first.");q.libraryMode=q.libraryMode||"private";$("status").textContent="☁ Uploading question + all visual assets to Library…";await saveQ(0);uploadedCount++;processed++;qs.splice(0,1);render();$("status").textContent="☁ Saved "+processed+" question(s). "+qs.length+" remaining.";showSaveToast("✔ Question "+q.no+" saved to Library. "+qs.length+" remaining.");}}catch(e){showQuestionSavedPopup("Question Save Failed",false);showSaveToast("❌ Save stopped: "+e.message,true);$("status").textContent="❌ Save failed: "+e.message}finally{$("import").disabled=!qs.length}};$("grid").addEventListener("change",async e=>{let sel=e.target.closest("select[data-path-i]");if(sel){setQuestionPath(Number(sel.dataset.pathI),sel.value);return}let lm=e.target.closest("select.q-library-mode");if(lm){let i=Number(lm.dataset.i);if(qs[i]){qs[i].libraryMode=lm.value;qs[i].folderPath="";await loadFolders(lm.value,$("ePath"),$("eStatus"));render();}}});$("grid").addEventListener("change",function(e){var t=e.target,i=Number(t.dataset.i);if(!Number.isFinite(i)||!qs[i])return;if(t.classList.contains("q-type-control")){qs[i].qType=t.value;render()}else if(t.classList.contains("q-answer-control"))qs[i].answer=t.value;else if(t.classList.contains("q-answer-region"))qs[i].answerRegion=t.value;});$("grid").addEventListener("click",async function(e){
   var b=e.target.closest("button[data-a]");
   if(!b)return;
   var i=Number(b.dataset.i);
