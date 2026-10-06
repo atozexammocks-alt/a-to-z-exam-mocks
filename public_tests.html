@@ -14,8 +14,22 @@ const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZQFBBF7Q_KMX0",authDomain
 const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);window.allPublishedTestsMap={};
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));
 function norm(v){let s=String(v??"").replace(/\r\n?/g,"\n").replace(/&nbsp;/gi," ");s=s.replace(/&amp;/gi,"&").replace(/&lt;/gi,"<").replace(/&gt;/gi,">");return s.trim()}
-function imageOf(q){for(const k of["question","questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image"]){const v=q?.[k];if(typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim()}return""}
-function textOf(q){for(const k of["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"]){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return norm(v)}return""}
+function imageOf(q){
+ const keys=["questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image","figure","figureImage","figureUrl","figureURL","figureData","figureSrc","visual","visualImage","visualUrl","visualURL","questionFigure","questionFigureImage","questionImageHtml","figureHtml","imageHtml","html","questionHtml","qText","text","questionText","question_text","content","questionTextHtml","prompt","question"];
+ const seen=new Set();
+ const direct=v=>{
+  if(typeof v!=="string")return ""; const x=v.trim(); if(!x)return "";
+  if(/^(https?:\/\/|data:image\/|blob:)/i.test(x))return x;
+  const decoded=x.replace(/&quot;/gi,'"').replace(/&#39;/gi,"'");
+  const m=decoded.match(/<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["']/i);
+  if(m&&m[1].trim())return m[1].trim();
+  return "";
+ };
+ const walk=v=>{if(v==null)return ""; if(typeof v==="string")return direct(v); if(typeof v!=="object"||seen.has(v))return ""; seen.add(v); if(Array.isArray(v)){for(const x of v){const z=walk(x);if(z)return z;}return "";} for(const k of Object.keys(v)){const z=walk(v[k]);if(z)return z;} return "";};
+ for(const k of keys){const z=walk(q?.[k]);if(z)return z;} return "";
+}
+function hasEmbeddedImageMarkup(v){return /<img\b/i.test(String(v??""))||/&lt;img\b/i.test(String(v??""));}
+function textOf(q){for(const k of["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"]){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim()}return""}
 function optionsOf(q){const v=q?.options??q?.choices??q?.answers;if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(norm).filter(Boolean);if(v&&typeof v==="object")return Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).map(norm).filter(Boolean);if(typeof q?.optText==="string"){const a=q.optText.split(/\s*\|\s*/).map(norm).filter(Boolean);if(a.length)return a}return["A","B","C","D"].map(k=>q?.["option"+k]??q?.["option_"+k]??q?.["choice"+k]??q?.["opt"+k]).map(norm).filter(Boolean)}
 function renderMath(html){
  const x=String(html??"");
@@ -29,15 +43,26 @@ function renderMath(html){
 }
 function safeRich(v){
  const x=renderMath(v),parts=[];
+ if(/<img\b/i.test(x)||/&lt;img\b/i.test(x)){return x.replace(/&lt;img/gi,"<img").replace(/&gt;/gi,">").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'")}
+
  const p=x.replace(/\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\$[^$\n]+\$/g,m=>{parts.push(m);return "@@M"+(parts.length-1)+"@@"});
  return esc(p).replace(/\n/g,"<br>").replace(/@@M(\d+)@@/g,(_,i)=>parts[+i]);
 }
 function typeset(){if(!window.MathJax?.typesetPromise)return;const run=()=>window.MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(()=>{});window.MathJax.startup?.promise?window.MathJax.startup.promise.then(run).catch(()=>{}):run()}
 window.renderTestCards=function(){const grid=document.getElementById("published-tests-grid"),term=(document.getElementById("search")?.value||"").trim().toLowerCase(),entries=Object.entries(window.allPublishedTestsMap).filter(([_,t])=>!term||String(t.title??"").toLowerCase().includes(term));if(!entries.length){grid.innerHTML='<div class="empty">No published tests found.</div>';return}grid.innerHTML="";entries.forEach(([id,t])=>{const n=Array.isArray(t.questionIds)?t.questionIds.length:(Array.isArray(t.questions)?t.questions.length:0),c=document.createElement("div");c.className="test-card";c.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px"><h3>'+esc(t.title||"Mock Test")+'</h3><span class="badge" style="color:#10b981">LIVE</span></div><div class="meta">⏱ '+esc(t.time??t.duration??60)+' Mins • 🎯 '+esc(t.marks??100)+' Marks • ❓ '+n+' Questions</div><div class="actions"><button type="button" class="btn blue" data-action="questions" data-id="'+esc(id)+'">👁️ View Questions</button><button type="button" class="btn" style="background:#059669;border-color:#10b981;color:#fff" data-action="mock" data-id="'+esc(id)+'">▶️ View the Mock Test</button><button type="button" class="btn" data-action="share" data-id="'+esc(id)+'">🔗 Share Test Link</button><button type="button" class="btn red" data-action="delete" data-id="'+esc(id)+'">🗑️ Delete Test Permanently</button></div>';c.id="test-card-"+id;grid.appendChild(c)})};
-window.openMockTest=id=>{const u="test_player.html?id="+encodeURIComponent(id)+"&preview=1";const w=window.open(u,"_blank");if(!w)location.href=u};
+window.openMockTest=id=>{const u="test_player.html?id="+encodeURIComponent(id)+"";const w=window.open(u,"_blank");if(!w)location.href=u};
 window.copyTestLink=async id=>{const path="test_player.html?id="+encodeURIComponent(id);const u=location.protocol==="file:"?path:(location.origin+"/"+path);try{await navigator.clipboard.writeText(u);alert("✔ Test Link Copied!\n\n"+u)}catch(e){prompt("Copy this test link:",u)}};
 document.getElementById("published-tests-grid").addEventListener("click",function(e){const b=e.target.closest("button[data-action]");if(!b)return;e.preventDefault();e.stopPropagation();const id=b.getAttribute("data-id"),a=b.getAttribute("data-action");if(a==="questions")window.openTestPreview(id);else if(a==="mock")window.openMockTest(id);else if(a==="share")window.copyTestLink(id);else if(a==="delete")window.deletePublishedTest(id)});
-function renderQuestion(q,i){const d=document.createElement("article");d.className="preview-q";const txt=textOf(q),img=imageOf(q),opts=optionsOf(q);let h='<div class="qhead">Q.'+(i+1)+' • Topic: '+esc(norm(q.topic??q.chapter??q.unit??"General")||"General")+'</div>';if(txt)h+='<div class="library-q-text">'+safeRich(txt)+'</div>';if(img)h+='<div class="library-q-image"><img src="'+esc(img)+'" alt="Question"></div>';if(opts.length){h+='<div class="library-q-options">';opts.forEach((o,j)=>h+='<div class="opt"><b>'+String.fromCharCode(65+j)+'.</b><span>'+safeRich(o)+'</span></div>');h+='</div>'}h+='<div class="correct">Correct Key: '+esc(norm(q.key??q.correctKey??q.answer??"A")||"A")+'</div>';d.innerHTML=h;return d}
+function renderQuestion(q,i){
+ const d=document.createElement("article"); d.className="preview-q";
+ const txt=textOf(q),img=imageOf(q),opts=optionsOf(q);
+ let h='<div class="qhead">Q.'+(i+1)+' • Topic: '+esc(norm(q.topic??q.chapter??q.unit??"General")||"General")+'</div>';
+ if(txt) h+='<div class="library-q-text">'+safeRich(txt)+'</div>';
+ if(img&&!hasEmbeddedImageMarkup(txt)) h+='<div class="library-q-image"><img src="'+esc(img)+'" alt="Question Figure"></div>';
+ if(opts.length){h+='<div class="library-q-options">';opts.forEach((o,j)=>h+='<div class="opt"><b>'+String.fromCharCode(65+j)+'.</b><span>'+safeRich(o)+'</span></div>');h+='</div>'}
+ h+='<div class="correct">Correct Key: '+esc(norm(q.key??q.correctKey??q.answer??"A")||"A")+'</div>';
+ d.innerHTML=h; return d;
+}
 window.loadPublishedTests=async function(){const grid=document.getElementById("published-tests-grid"),status=document.getElementById("status");status.textContent="Loading…";grid.innerHTML='<div class="empty">Loading published tests…</div>';try{await signInAnonymously(auth).catch(()=>null);const s=await getDocs(collection(db,"published_tests"));window.allPublishedTestsMap={};s.forEach(d=>window.allPublishedTestsMap[d.id]={id:d.id,...d.data()});status.textContent="Firebase connected • "+s.size+" published tests";renderTestCards()}catch(e){console.error(e);status.textContent="Firebase error";grid.innerHTML='<div class="error"><b>Failed to load published tests.</b><br>'+esc(e.message||e)+'</div>'}};
 window.openTestPreview=async function(id){const t=window.allPublishedTestsMap[id];if(!t?.questionIds){alert("No questions found for this test!");return}document.getElementById("preview-modal-title").textContent="🔍 Preview: "+(t.title||"Mock Test");document.getElementById("modal-open-test").onclick=()=>openMockTest(id);const body=document.getElementById("preview-modal-body");body.innerHTML='<div class="empty">Fetching questions…</div>';document.getElementById("preview-modal-overlay").style.display="flex";try{let qs=Array.isArray(t.questions)?t.questions.slice():[];if(!qs.length&&Array.isArray(t.questionIds)){const s=await getDocs(collection(db,"questions")),map={};s.forEach(d=>map[d.id]={id:d.id,...d.data()});qs=t.questionIds.map(qid=>map[qid]).filter(Boolean)}body.innerHTML="";if(!qs.length){body.innerHTML='<div class="error">No matching questions found for this published test.</div>';return}qs.forEach((q,i)=>body.appendChild(renderQuestion(q,i)));requestAnimationFrame(()=>requestAnimationFrame(typeset))}catch(e){body.innerHTML='<div class="error"><b>Failed to load questions preview.</b><br>'+esc(e.message||e)+'</div>'}};
 window.closePreview=()=>document.getElementById("preview-modal-overlay").style.display="none";
