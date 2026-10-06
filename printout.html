@@ -89,17 +89,35 @@ function cleanOpt(v){
   return x.trim();
 }
 function imageOf(q){
-  for(const k of ["questionImage","image","img","imageData","croppedImage","croppedImageData","questionImageData","base64Image","imageUrl","imageURL","diagram","imageSrc","src","question"]){
-    const v=q?.[k];
-    if(typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim();
-    if(v&&typeof v==="object"){
-      for(const kk of ["data","url","src","image","dataUrl","base64"]){
-        const z=v[kk];
-        if(typeof z==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(z.trim()))return z.trim();
+  const isImg=v=>typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim());
+  const seen=new Set();
+  function walk(v,depth=0){
+    if(v==null||depth>5)return "";
+    if(typeof v==="string"){
+      const x=v.trim();
+      if(isImg(x))return x;
+      const m=x.match(/<img[^>]+src=["']([^"']+)["']/i);
+      if(m&&isImg(m[1]))return m[1].trim();
+      return "";
+    }
+    if(typeof v!=="object"||seen.has(v))return "";
+    seen.add(v);
+    const keys=["dataUrl","dataURL","downloadURL","downloadUrl","url","src","image","data","base64",
+      "croppedImage","croppedImageData","questionImage","questionImageData","imageData","imageUrl","imageURL",
+      "figure","figureImage","figureData","crop","cropData","cropped","content","html"];
+    for(const k of keys){
+      if(Object.prototype.hasOwnProperty.call(v,k)){
+        const found=walk(v[k],depth+1);
+        if(found)return found;
       }
     }
+    for(const k of Object.keys(v)){
+      const found=walk(v[k],depth+1);
+      if(found)return found;
+    }
+    return "";
   }
-  return "";
+  return walk(q);
 }
     function libraryMathMarkup(v){
       var x=String(v||"");
@@ -293,7 +311,11 @@ function loadStored(){
  // objects locally. This avoids making Printout depend on Firebase just to render.
  try{
   const ids=printIdsFromAnySource();
-  const handoff=JSON.parse(localStorage.getItem('AZ_BUILDER_SELECTED_QUESTIONS')||'[]');
+  let handoff=[];
+  try{handoff=JSON.parse(localStorage.getItem('AZ_BUILDER_SELECTED_QUESTIONS')||'[]');}catch(e){}
+  if(!Array.isArray(handoff)||!handoff.length){
+    try{handoff=JSON.parse(sessionStorage.getItem('AZ_BUILDER_SELECTED_QUESTIONS')||'[]');}catch(e){}
+  }
   if(Array.isArray(handoff)&&handoff.length){
    const map=new Map(handoff.map(q=>[String(q?.id||q?.qid||q?.questionId||''),q]));
    const qs=(ids.length?ids:handoff.map(q=>String(q?.id||q?.qid||q?.questionId||'')).filter(Boolean))
@@ -326,8 +348,14 @@ function printIdsFromAnySource(){
   const u=(new URLSearchParams(location.search).get("selected")||"").split(",").map(x=>x.trim()).filter(Boolean);
   if(u.length)return u;
  }catch(e){}
+ for(const key of ["AZ_PRINT_SELECTED_IDS","AZ_BUILDER_SELECTED_IDS"]){
+  try{
+   const a=JSON.parse(localStorage.getItem(key)||"[]");
+   if(Array.isArray(a)&&a.length)return a.map(String).filter(Boolean);
+  }catch(e){}
+ }
  try{
-  const a=JSON.parse(localStorage.getItem("AZ_PRINT_SELECTED_IDS")||"[]");
+  const a=JSON.parse(sessionStorage.getItem("AZ_BUILDER_SELECTED_IDS")||"[]");
   if(Array.isArray(a)&&a.length)return a.map(String).filter(Boolean);
  }catch(e){}
  return [];
@@ -376,10 +404,9 @@ try{
 }
 async function directLoad(){
   if(window.__AZ_DIRECT_PRINT_LOADED)return;
+  try{ if(loadStored()){ window.__AZ_DIRECT_PRINT_LOADED=true; return; } }catch(e){ console.warn("Local Paper Designer payload unavailable:",e); }
   const sessionId=new URLSearchParams(location.search).get("session");
   if(sessionId){
-   // Exact Paper Designer session first. If IndexedDB is unavailable, fall through
-   // instead of aborting the complete printout loader.
    try{
     const session=await openPrintSession(sessionId);
     if(session&&Array.isArray(session.questions)&&session.questions.length){
@@ -387,34 +414,27 @@ async function directLoad(){
      receive({questions:session.questions,sections:Array.isArray(session.sections)?session.sections:[],branding:session.branding||{},title:session.branding?.paperTitle||"Question Paper",school:session.branding?.schoolName||"",logo:session.branding?.showLogo?session.branding.logoUrl:"",watermarkCount:1});
      return;
     }
-   }catch(e){
-    console.warn("Print session unavailable; falling back to selected questions:",e);
-   }
+   }catch(e){ console.warn("Print session unavailable:",e); }
   }
   const ids=printIdsFromAnySource();
   if(!ids.length)return;
   const sections=storedPrintSections();
   const branding=JSON.parse(localStorage.getItem("AZ_PAPER_BRANDING")||"{}");
-  await signInAnonymously(auth);
-  // Do NOT download the entire questions collection. That request can hang on a
-  // large library and leave Printout permanently on "Loading paper…".
-  // Fetch only the exact IDs selected in Paper Designer.
-  const results=await Promise.race([
-   Promise.all(ids.map(async id=>{
+  try{await signInAnonymously(auth);}catch(e){console.warn("Anonymous Firebase sign-in failed:",e)}
+  const collections=["questions","library_questions","questionBank","question_bank"];
+  const found=[];
+  for(const cname of collections){
+   if(found.length>=ids.length)break;
+   for(const id of ids){
+    if(found.some(q=>String(q.id)===String(id)))continue;
     try{
-     const snap=await getDoc(doc(db,"questions",String(id)));
-     return snap.exists()?{id:snap.id,...snap.data()}:null;
-    }catch(e){return null}
-   })),
-   new Promise((_,reject)=>setTimeout(()=>reject(new Error("Question fetch timeout")),8000))
-  ]);
-  const qs=results.filter(Boolean);
-  if(!qs.length){
-   // Firebase is only a fallback. Try the exact Builder/Paper Designer handoff
-   // before leaving the page without questions.
-   try{loadStored();}catch(_){}
-   return;
+     const snap=await getDoc(doc(db,cname,String(id)));
+     if(snap.exists())found.push({id:snap.id,_sourceCollection:cname,...snap.data()});
+    }catch(e){console.warn("Question lookup failed in "+cname+":",e)}
+   }
   }
+  const qs=ids.map(id=>found.find(q=>String(q.id)===String(id))).filter(Boolean);
+  if(!qs.length){try{loadStored()}catch(_){ } return;}
   window.__AZ_DIRECT_PRINT_LOADED=true;
   receive({questions:qs,sections:Array.isArray(sections)?sections:[],branding:branding,title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:branding.showLogo?branding.logoUrl:"",watermarkCount:1});
  }
