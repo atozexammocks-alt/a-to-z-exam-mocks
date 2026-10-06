@@ -68,7 +68,8 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 @media print{
  body{background:#fff;color:#000}.no-print{display:none!important}.print-area{display:block!important}
 }
-.selected-reader{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:1000;background:#0b1120;border:1px solid #10b981;color:#fff;border-radius:999px;padding:9px 18px;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:12px;font-weight:900;pointer-events:none}.selected-reader strong{color:#34d399;font-size:15px;margin:0 3px}@media(max-width:700px){.selected-reader{bottom:10px;max-width:calc(100vw - 20px);white-space:nowrap}}</style>
+.selected-reader{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:1000;background:#0b1120;border:1px solid #10b981;color:#fff;border-radius:999px;padding:9px 18px;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:12px;font-weight:900;pointer-events:none}.selected-reader strong{color:#34d399;font-size:15px;margin:0 3px}@media(max-width:700px){.selected-reader{bottom:10px;max-width:calc(100vw - 20px);white-space:nowrap}}.library-q-text img,.question-view-body img,.qbody img{max-width:100%;height:auto;display:block;margin:10px auto}.library-q-text table{max-width:100%;overflow:auto}.library-q-text svg{max-width:100%;height:auto}
+</style>
 </head>
 <body>
 <div class="app">
@@ -271,7 +272,7 @@ function renderQuestions(){
   return '<article class="card '+(sel?'selected':'')+'" data-question-id="'+esc(id)+'">'+
    '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleQuestion(\''+esc(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div>'+(dupCount>1?'<span class="dup-tag">⚠ DUPLICATE ×'+dupCount+'</span>':'<span class="clean-tag">✓ CLEAN</span>')+(txt?'<button class="btn blue" onclick="openTextEditor(\''+encodeURIComponent(id)+'\')">✏️ Edit Text</button>':'')+'<button class="btn blue" onclick="openQuestionView(\''+encodeURIComponent(id)+'\')">👁 View</button>'+'<button class="btn" onclick="removeSelection(\''+esc(id)+'\')">✕</button></div>'+
    (img?'<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')"><img src="'+esc(img)+'" alt="Question"></div>':'')+
-   (txt?'<div class="qbody" style="'+textStyleOf(q)+'">'+renderMath(esc(txt))+'</div>':'')+
+   (txt?'<div class="qbody" style="'+textStyleOf(q)+'">'+renderLibraryText(txt)+'</div>':'')+
    (opts.length && !((window.textEdits[id]||{}).hideOptions)?'<div class="opts" style="'+textStyleOf(q)+'">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderMath(esc(o))+'</div>').join("")+'</div>':'')+
   '</article>';
  }).join("");
@@ -353,6 +354,18 @@ window.previewImage=function(src){
  }
 };
 
+function libraryMathMarkup(v){
+ const x=String(v??"");
+ if(!x)return "";
+ if(/\\\\\(|\\\\\[/.test(x))return x;
+ if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\b/.test(x) || /(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x))return "\\("+x+"\\)";
+ return x;
+}
+function renderLibraryText(v){
+ const x=libraryMathMarkup(v);
+ return esc(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
+}
+
 window.openQuestionView=function(encodedId){
  const id=decodeURIComponent(String(encodedId||""));
  const q=(window.builderData||[]).find(x=>String(x.id)===id);
@@ -362,7 +375,7 @@ window.openQuestionView=function(encodedId){
  const opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean);
  const edit=window.textEdits[id]||{};
  let html="";
- if(txt) html+='<div class="qbody" style="'+textStyleOf(q)+'">'+renderMath(esc(txt))+'</div>';
+ if(txt) html+='<div class="qbody" style="'+textStyleOf(q)+'">'+renderLibraryText(txt)+'</div>';
  if(img) html+='<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')" style="cursor:zoom-in"><img src="'+esc(img)+'" alt="Question Figure"></div>';
  if(opts.length&&!edit.hideOptions) html+='<div class="opts" style="'+textStyleOf(q)+'">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderMath(esc(o))+'</div>').join("")+'</div>';
  if(!html)html='<div class="empty">No preview content available for this question.</div>';
