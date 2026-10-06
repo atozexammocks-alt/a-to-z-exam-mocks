@@ -18,6 +18,7 @@
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {getFirestore,doc,getDoc,collection,getDocs,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {getStorage,ref as storageRef,getDownloadURL} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
 // Correct Firebase configuration used by the A to Z Exam Mocks project.
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZQFBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
@@ -27,8 +28,31 @@ let testData=null,currentIdx=0,userResponses={},timerInterval=null,timeLeftSecon
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function getTestId(){const p=new URLSearchParams(location.search);return String(p.get("id")||p.get("testId")||"").trim()}
 function showError(title,details=""){clearInterval(timerInterval);$("loading").innerHTML=`<div class="error-card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(details)}</p><button class="btn-action" style="margin-top:16px" onclick="location.href='mock_tests.html'">Return to Mock Tests</button></div>`;console.error(title,details)}
-function findImage(v,depth=0){if(depth>6||v==null)return "";if(typeof v==="string"){const s=v.trim();const m=s.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)return m[1];if(/^(https?:\/\/|data:image\/|blob:|gs:\/\/)/i.test(s))return s;return ""}if(Array.isArray(v)){for(const x of v){const r=findImage(x,depth+1);if(r)return r}return ""}if(typeof v==="object"){for(const k of ["dataUrl","dataURL","downloadURL","downloadUrl","url","src","image","data","base64","base64Data","imageBase64","croppedImage","croppedImageData","croppedImageUrl","croppedImageURL","questionImage","questionImageData","imageData","imageUrl","imageURL","imgUrl","imgSrc","figure","figureImage","figureData","figureUrl","crop","cropData","cropped","croppedData","content_blocks","contentBlocks","blocks","elements","parts","html","content","questionTextHtml","qText","questionText","text","prompt"]){if(k in v){const r=findImage(v[k],depth+1);if(r)return r}}}return ""}
-function imageOf(q){return findImage(q)}
+function imageCandidate(v,depth=0){
+ if(depth>10||v==null)return "";
+ if(typeof v==="string"){
+  const s=v.trim(); if(!s)return "";
+  const img=s.match(/<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["']/i); if(img)return img[1].trim();
+  if(/^(?:https?:\/\/|data:image\/|blob:|gs:\/\/)/i.test(s))return s;
+  if(/^[{\[]/.test(s)){try{return imageCandidate(JSON.parse(s),depth+1)}catch(_){}}
+  return "";
+ }
+ if(Array.isArray(v)){for(const x of v){const r=imageCandidate(x,depth+1);if(r)return r}return ""}
+ if(typeof v==="object"){
+  // Prefer explicit image/crop fields first.
+  const preferred=["dataUrl","dataURL","downloadURL","downloadUrl","url","src","image","imageUrl","imageURL","img","imgUrl","imgSrc","base64","base64Data","imageBase64","croppedImage","croppedImageData","croppedImageUrl","croppedImageURL","questionImage","questionImageData","imageData","figure","figureImage","figureData","figureUrl","crop","cropData","cropped","croppedData","content_blocks","contentBlocks","blocks","elements","parts","html","content","questionTextHtml","question","qText","questionText","text","prompt"];
+  for(const k of preferred){if(Object.prototype.hasOwnProperty.call(v,k)){const r=imageCandidate(v[k],depth+1);if(r)return r}}
+  // Last resort: inspect all nested values. Only image-looking strings are returned.
+  for(const [k,val] of Object.entries(v)){if(preferred.includes(k))continue;const r=imageCandidate(val,depth+1);if(r)return r}
+ }
+ return "";
+}
+async function resolveImageURL(candidate){
+ const s=String(candidate||"").trim(); if(!s)return "";
+ if(/^gs:\/\//i.test(s)){try{return await getDownloadURL(storageRef(storage,s))}catch(e){console.warn("Could not resolve Firebase Storage image:",s,e);return ""}}
+ return s;
+}
+function findImage(v,depth=0){return imageCandidate(v,depth)}
 function textOf(q){for(const k of ["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"]){const v=norm(q?.[k]);if(!v)continue;if(/^(?:https?:\/\/|data:image\/|blob:|gs:\/\/)/i.test(v))continue;if(/^\s*<img\b[^>]*>\s*$/i.test(v))continue;return v}return ""}
 function optionsOf(q){let v=q?.options??q?.choices??q?.answers,arr=[];if(Array.isArray(v))arr=v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x);else if(v&&typeof v==='object')arr=Object.values(v).map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x);if(!arr.length)arr=["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??null).filter(x=>x!=null&&String(x).trim()!="");return arr.map(x=>norm(x).replace(/^\s*(?:\([A-Da-d]\)|\[[A-Da-d]\]|[A-Da-d][.)]|[A-Da-d]\s*[-:])\s*/,"")).filter(Boolean).slice(0,4)}
 function libraryMathMarkup(v){
