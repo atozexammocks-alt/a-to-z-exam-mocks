@@ -411,23 +411,66 @@ async function persistVisualAssets(db,q){
   }
   return q;
 }
+function firestoreSafe(v){
+  if(Array.isArray(v)){
+    // Firestore does not allow an array directly inside another array.
+    // Convert nested arrays to maps while preserving their order.
+    return v.map(function(x){return Array.isArray(x)?firestoreSafeArrayMap(x):firestoreSafe(x)});
+  }
+  if(v&&typeof v==="object"){
+    var out={};
+    Object.keys(v).forEach(function(k){
+      var x=v[k];
+      if(x===undefined||typeof x==="function")return;
+      out[k]=firestoreSafe(x);
+    });
+    return out;
+  }
+  return v;
+}
+function firestoreSafeArrayMap(a){
+  var o={};
+  a.forEach(function(x,i){o[String(i)]=firestoreSafe(x)});
+  o.__array=true;
+  return o;
+}
+function firestoreSafePayload(payload){
+  // Keep normal top-level arrays such as options/optionImages intact.
+  // Only nested arrays are converted to ordered maps.
+  var out={};
+  Object.keys(payload||{}).forEach(function(k){
+    var v=payload[k];
+    if(v===undefined||typeof v==="function")return;
+    if(Array.isArray(v)){
+      out[k]=v.map(function(x){return Array.isArray(x)?firestoreSafeArrayMap(x):firestoreSafe(x)});
+    }else out[k]=firestoreSafe(v);
+  });
+  return out;
+}
 async function saveQ(i){
   var sq=qs[i];
   if(sq){var cv=canonicalVisuals(sq);for(var vi=0;vi<cv.length;vi++){if(cv[vi].required!==false&&!cv[vi].image)throw Error("Q"+sq.no+" requires Figure "+(vi+1)+". Crop/adjust that figure once before saving.");}}
-let q=qs[i];if(!q||!q.text)throw Error("Question text is empty.");if(!q.folderPath)throw Error("Select a Library folder.");var cv2=canonicalVisuals(q);for(var vj=0;vj<cv2.length;vj++){if(cv2[vj].required!==false&&!cv2[vj].image)throw Error("Q"+q.no+" requires Figure "+(vj+1)+". Crop/adjust that figure once before saving.");}if(Array.isArray(q.optionFigureRequired)){for(var oi=0;oi<q.optionFigureRequired.length;oi++){if(q.optionFigureRequired[oi]&&!figureImageForOption(q,oi))throw Error("Q"+q.no+" requires a figure for option "+String.fromCharCode(65+oi)+". Insert that option figure before saving.");}}let em=email();
-if(!em)throw Error("Teacher login not found. Please log in through Teacher Portal first.");
-let db=await firebaseReady(),authUser=firebase.auth().currentUser;
-if(!authUser)throw Error("Firebase teacher session is not active. Please log in through Teacher Portal again and reopen this page.");
-if(authUser.email && String(authUser.email).toLowerCase()!==em)console.warn("[A2Z AI Import] Local teacher email and Firebase auth email differ:",em,authUser.email);
-let m=q.libraryMode||"private",p=q.folderPath;
-await persistVisualAssets(db,q);
-var payload={ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text,question:q.cropImage||"",solution:q.explanation||"",options:q.options||[],keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:q.qType||"mcq",answerRegion:q.answerRegion||"",contentMode:q.contentMode||"text",keepText:q.contentMode!=="image",keepImage:q.contentMode==="image"||q.contentMode==="both",level:q.difficulty||"Medium",answer:q.answer||"",source:q.source||"",sourceExam:q.source||"",sourceYear:q.year||"",sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",suggestedFlag:q.flagChoice||"normal",flags:q.flags||{},questionImage:q.cropImage||"",image:q.cropImage||"",figureImage:q.figureImage||"",figureRequired:!!q.figureRequired,figureReference:q.figureReference||"",contentBlocks:Array.isArray(q.contentBlocks)?q.contentBlocks:[],optionImages:Array.isArray(q.optionImages)?q.optionImages:[],optionFigureRequired:Array.isArray(q.optionFigureRequired)?q.optionFigureRequired:[],visualStorageVersion:3,visualRegions:Array.isArray(q.visualRegions)?q.visualRegions:[],reconstructedVisuals:Array.isArray(q.visualRegions)?q.visualRegions.filter(function(v){return v&&v.reconstruction}).length:0,createdAt:new Date().toISOString()};
-var payloadBytes=0;
-try{payloadBytes=new Blob([JSON.stringify(payload)]).size}catch(_){}
-if(payloadBytes>900000)throw Error("Question data is too large ("+Math.round(payloadBytes/1024)+" KB) after visual upload. The image should be stored in Firebase Storage, not inside Firestore.");
-var savedRef=await db.collection("questions").add(payload);
-console.info("[A2Z AI Import] Library save successful:",savedRef.id);
-return savedRef.id;}
+  let q=qs[i];if(!q||!q.text)throw Error("Question text is empty.");if(!q.folderPath)throw Error("Select a Library folder.");var cv2=canonicalVisuals(q);for(var vj=0;vj<cv2.length;vj++){if(cv2[vj].required!==false&&!cv2[vj].image)throw Error("Q"+q.no+" requires Figure "+(vj+1)+". Crop/adjust that figure once before saving.");}if(Array.isArray(q.optionFigureRequired)){for(var oi=0;oi<q.optionFigureRequired.length;oi++){if(q.optionFigureRequired[oi]&&!figureImageForOption(q,oi))throw Error("Q"+q.no+" requires a figure for option "+String.fromCharCode(65+oi)+". Insert that option figure before saving.");}}let em=email();
+  if(!em)throw Error("Teacher login not found. Please log in through Teacher Portal first.");
+  let db=await firebaseReady(),authUser=firebase.auth().currentUser;
+  if(!authUser)throw Error("Firebase teacher session is not active. Please log in through Teacher Portal again and reopen this page.");
+  if(authUser.email && String(authUser.email).toLowerCase()!==em)console.warn("[A2Z AI Import] Local teacher email and Firebase auth email differ:",em,authUser.email);
+  let m=q.libraryMode||"private",p=q.folderPath;
+  await persistVisualAssets(db,q);
+  var payload={ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text,question:q.cropImage||"",solution:q.explanation||"",options:q.options||[],keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:q.qType||"mcq",answerRegion:q.answerRegion||"",contentMode:q.contentMode||"text",keepText:q.contentMode!=="image",keepImage:q.contentMode==="image"||q.contentMode==="both",level:q.difficulty||"Medium",answer:q.answer||"",source:q.source||"",sourceExam:q.source||"",sourceYear:q.year||"",sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",suggestedFlag:q.flagChoice||"normal",flags:q.flags||{},questionImage:q.cropImage||"",image:q.cropImage||"",figureImage:q.figureImage||"",figureRequired:!!q.figureRequired,figureReference:q.figureReference||"",contentBlocks:Array.isArray(q.contentBlocks)?q.contentBlocks:[],optionImages:Array.isArray(q.optionImages)?q.optionImages:[],optionFigureRequired:Array.isArray(q.optionFigureRequired)?q.optionFigureRequired:[],visualStorageVersion:3,visualRegions:Array.isArray(q.visualRegions)?q.visualRegions:[],reconstructedVisuals:Array.isArray(q.visualRegions)?q.visualRegions.filter(function(v){return v&&v.reconstruction}).length:0,createdAt:new Date().toISOString()};
+  var safePayload=firestoreSafePayload(payload);
+  var payloadBytes=0;
+  try{payloadBytes=new Blob([JSON.stringify(safePayload)]).size}catch(_){}
+  if(payloadBytes>900000)throw Error("Question data is too large ("+Math.round(payloadBytes/1024)+" KB) after visual upload. Please reduce the number/size of visual assets.");
+  try{
+    var savedRef=await db.collection("questions").add(safePayload);
+    console.info("[A2Z AI Import] Library save successful:",savedRef.id);
+    return savedRef.id;
+  }catch(err){
+    console.error("[A2Z AI Import] Firestore save payload:",safePayload,err);
+    throw Error("Save failed: "+(err&&err.message?err.message:String(err)));
+  }
+}
 function renderEditorVisual(q){
   var t=$("editorTextPreview"),im=$("editorImagePreview");
   if(t)t.innerHTML=esc(q.text||"").replace(/\n/g,"<br>");
