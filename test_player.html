@@ -53,8 +53,22 @@ async function resolveImageURL(candidate){
  return s;
 }
 function findImage(v,depth=0){return imageCandidate(v,depth)}
-function textOf(q){for(const k of ["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"]){const v=norm(q?.[k]);if(!v)continue;if(/^(?:https?:\/\/|data:image\/|blob:|gs:\/\/)/i.test(v))continue;if(/^\s*<img\b[^>]*>\s*$/i.test(v))continue;return v}return ""}
-function optionsOf(q){let v=q?.options??q?.choices??q?.answers,arr=[];if(Array.isArray(v))arr=v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x);else if(v&&typeof v==='object')arr=Object.values(v).map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x);if(!arr.length)arr=["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??null).filter(x=>x!=null&&String(x).trim()!="");return arr.map(x=>norm(x).replace(/^\s*(?:\([A-Da-d]\)|\[[A-Da-d]\]|[A-Da-d][.)]|[A-Da-d]\s*[-:])\s*/,"")).filter(Boolean).slice(0,4)}
+function textOf(q){
+ const keys=["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"];
+ for(const k of keys){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:|gs:\/\/)/i.test(v.trim()))return v.trim();}
+ return "";
+}
+function displayTextOf(q){
+ return textOf(q);
+}
+function optionsOf(q){
+ const v=q?.options??q?.choices??q?.answers;
+ if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).filter(x=>String(x).trim());
+ if(v&&typeof v==="object")return Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??""):x).filter(x=>String(x).trim());
+ return ["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??q?.[k]).filter(x=>String(x??"").trim());
+}
+function displayOptionsOf(q){return optionsOf(q)}
+function cleanOptionText(v){return String(v??"").trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
 function libraryMathMarkup(v){
  const x=String(v??"");
  if(!x)return "";
@@ -62,7 +76,10 @@ function libraryMathMarkup(v){
  if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\b/.test(x) || /(?:[A-Za-z0-9\}])\^\{[^}]+\}|(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x))return "\\("+x+"\\)";
  return x;
 }
-function renderLibraryText(v){const x=libraryMathMarkup(v);return escapeHtml(x).replace(/&lt;img\b/gi,"<img").replace(/&gt;/gi,">").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&amp;/gi,"&").replace(/\n/g,"<br>")}
+function renderLibraryText(v){
+ const x=libraryMathMarkup(v);
+ return escapeHtml(x).replace(/&lt;img\b/gi,"<img").replace(/&gt;/gi,">").replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&amp;/gi,"&").replace(/\\n/g,"<br>");
+}
 function safeRich(v){return renderLibraryText(v)}
 async function loadQuestionsByIds(ids){const clean=[...new Set((ids||[]).map(x=>typeof x==='object'?String(x.id??x.questionId??x.docId??''):String(x)).map(x=>x.trim()).filter(Boolean))];if(!clean.length)return[];const map=new Map();for(const cname of ["questions","library_questions","questionBank","question_bank"]){try{const snap=await getDocs(collection(db,cname));snap.forEach(d=>{if(clean.includes(d.id))map.set(d.id,{id:d.id,_sourceCollection:cname,...d.data()})})}catch(e){console.warn(cname,e)}if(map.size===clean.length)break}return clean.map(id=>map.get(id)).filter(Boolean)}
 function normalizePublishedQuestions(raw){if(!Array.isArray(raw?.questions))return[];return raw.questions.map((q,i)=>q&&typeof q==='object'?{...q,id:String(q.id??q.questionId??q.docId??("embedded_"+i))}:null).filter(Boolean)}
@@ -95,9 +112,9 @@ function loadQuestion(i){
  const txt=textOf(q);$("q-text-note").style.display=txt?'block':'none';$("q-text-note").innerHTML=txt?safeRich(txt):'';
  const numerical=isNumerical(q), opts=optionsOf(q), nw=$("numerical-wrap"), ni=$("numerical-input"), skip=$("skip-btn");
  nw.style.display=numerical?'flex':'none';
- $(".options-row").style.display=numerical?'none':(opts.length?'grid':'none');
+ $(".options-row").style.display=(!numerical && questionType(q)==="MCQ" && opts.length)?'grid':'none';
  if(numerical){ni.value=(userResponses[i]&&userResponses[i]!="__SKIPPED__")?String(userResponses[i]):'';ni.oninput=()=>{const v=normalizeNumber(ni.value);if(v){userResponses[i]=v}else delete userResponses[i];highlightPalette();updateAnswerState()};ni.onkeydown=e=>{if(e.key==='Enter')goNext()}}
- ['A','B','C','D'].forEach((l,n)=>{const b=$(('btn-opt-'+l)),v=opts[n]||'';b.style.display=v&&!numerical?'block':'none';b.innerHTML=v?safeRich(v):'';b.className='opt-btn'+(userResponses[i]===l?' selected':'');b.onclick=()=>{if(v&&!numerical){userResponses[i]=l;loadQuestion(i)}}});
+ ['A','B','C','D'].forEach((l,n)=>{const b=$(('btn-opt-'+l)),v=opts[n]||'';b.style.display=(v&&!numerical&&questionType(q)==='MCQ')?'block':'none';b.innerHTML=v?safeRich(v):'';b.className='opt-btn'+(userResponses[i]===l?' selected':'');b.onclick=()=>{if(v&&!numerical){userResponses[i]=l;loadQuestion(i)}}});
  skip.classList.toggle('active',userResponses[i]==='__SKIPPED__');skip.onclick=()=>{if(userResponses[i]==='__SKIPPED__')delete userResponses[i];else userResponses[i]='__SKIPPED__';loadQuestion(i)};
  $("prev-btn").disabled=i===0;$('next-btn').textContent=i===testData.questions.length-1?'Save & Stay ▶':'Save & Next ▶';updateAnswerState();highlightPalette();
  if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([$('q-text-note'),$('btn-opt-A'),$('btn-opt-B'),$('btn-opt-C'),$('btn-opt-D')]).catch(()=>{})
