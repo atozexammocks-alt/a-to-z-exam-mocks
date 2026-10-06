@@ -139,11 +139,19 @@ window.sections=[{name:"Section A",type:"MCQ",marks:1}];
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function imageOf(q){
- const keys=["question","questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image"];
- for(const k of keys){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())===false)return v.trim();}
- for(const k of keys){const v=q?.[k];if(typeof v==="string"&&/^((https?:\/\/)|(data:image\/)|(blob:))/i.test(v.trim()))return v.trim();}
- return "";
+ const keys=["questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image","figure","figureImage","figureUrl","figureURL","figureData","figureSrc","visual","visualImage","visualUrl","visualURL","questionFigure","questionFigureImage","questionImageHtml","figureHtml","imageHtml","html","questionHtml"];
+ const seen=new Set();
+ const direct=v=>{
+  if(typeof v!=="string")return ""; const x=v.trim(); if(!x)return "";
+  if(/^(https?:\/\/|data:image\/|blob:)/i.test(x))return x;
+  const m=x.match(/<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["']/i);
+  if(m&&/^(https?:\/\/|data:image\/|blob:)/i.test(m[1].trim()))return m[1].trim();
+  return "";
+ };
+ const walk=v=>{if(v==null)return ""; if(typeof v==="string")return direct(v); if(typeof v!=="object"||seen.has(v))return ""; seen.add(v); if(Array.isArray(v)){for(const x of v){const z=walk(x);if(z)return z;}return "";} for(const k of Object.keys(v)){const z=walk(v[k]);if(z)return z;} return "";};
+ for(const k of keys){const z=walk(q?.[k]);if(z)return z;} return "";
 }
+function hasEmbeddedImageMarkup(v){return /<img\b/i.test(String(v??""))||/&lt;img\b/i.test(String(v??""));}
 function textOf(q){
  const keys=["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"];
  for(const k of keys){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:)/i.test(v.trim()))return v.trim();}
@@ -376,7 +384,7 @@ window.openQuestionView=function(encodedId){
  const edit=window.textEdits[id]||{};
  let html="";
  if(txt) html+='<div class="qbody" style="'+textStyleOf(q)+'">'+renderLibraryText(txt)+'</div>';
- if(img) html+='<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')" style="cursor:zoom-in"><img src="'+esc(img)+'" alt="Question Figure"></div>';
+ if(img&&!hasEmbeddedImageMarkup(txt)) html+='<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')" style="cursor:zoom-in"><img src="'+esc(img)+'" alt="Question Figure"></div>';
  if(opts.length&&!edit.hideOptions) html+='<div class="opts" style="'+textStyleOf(q)+'">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderMath(esc(o))+'</div>').join("")+'</div>';
  if(!html)html='<div class="empty">No preview content available for this question.</div>';
  document.getElementById("questionViewBody").innerHTML=html;
