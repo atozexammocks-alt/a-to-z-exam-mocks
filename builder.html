@@ -218,48 +218,53 @@ window.loadQuestions=async function(){
  const previousScroll=box?.scrollTop||0;
  status.textContent="Connecting to Library…";
  try{
-  // Never let an auth/network promise leave the Builder stuck on “Loading”.
-  try{await Promise.race([window.builderAuthReady, new Promise(r=>setTimeout(r,4000))]);}catch(_){}
-
+  // Do not block the Builder on Firebase Auth. Library reading is done directly
+  // from the same Firestore project, just like the Library data source.
   status.textContent="Loading Library folders…";
-  // Folder structure is independent from question loading, so a question read
-  // cannot prevent the Library folders from appearing.
   await loadAllBuilderFolderTrees();
   renderTree();
 
   status.textContent="Loading Library questions…";
   let loaded=[];
   try{
-   const snap=await Promise.race([getDocs(collection(db,"questions")),new Promise((_,rej)=>setTimeout(()=>rej(new Error("Firestore question read timed out")),12000))]);
-   loaded=snap.docs.map(d=>({id:d.id,...d.data()}));
-  }catch(primaryErr){
-   console.warn("Canonical questions collection read failed:",primaryErr);
+   loaded=await loadBuilderQuestionsREST();
+  }catch(e){
+   console.warn("Direct Firestore question read failed:",e);
   }
 
+  // SDK fallback only if REST could not read the collection.
   if(!loaded.length){
-   const legacyNames=["library_questions","questionBank","question_bank"];
-   const legacyResults=await Promise.all(legacyNames.map(async cname=>{
-    try{
-     const snap=await Promise.race([getDocs(collection(db,cname)),new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),7000))]);
-     return snap.docs.map(d=>({id:d.id,...d.data()}));
-    }catch(e){return []}
-   }));
-   loaded=legacyResults.flat();
+   try{
+    const snap=await Promise.race([getDocs(collection(db,"questions")),new Promise((_,rej)=>setTimeout(()=>rej(new Error("Firestore SDK read timed out")),8000))]);
+    loaded=snap.docs.map(d=>({id:d.id,...d.data()}));
+   }catch(e){console.warn("Firestore SDK question read failed:",e)}
   }
 
+  const email=builderTeacherEmail();
   const seen=new Set();
-  window.builderData=loaded.filter(x=>{const id=String(x.id);if(seen.has(id))return false;seen.add(id);return true;});
+  window.builderData=loaded.filter(q=>{
+   const id=String(q.id||""); if(seen.has(id))return false; seen.add(id);
+   const owner=String(q.ownerEmail||q.creatorEmail||q.createdBy||q.teacherEmail||"").trim().toLowerCase();
+   const x=String(q.libraryMode||q.targetLibrary||q.libraryType||"").trim().toLowerCase();
+   const central=q.central===true||q.isCentral===true||x==="central"||x.includes("central");
+   const group=q.group===true||x==="group"||x.includes("group");
+   if(window.builderMode==="central") return central;
+   if(window.builderMode==="group") return group;
+   return !central&&!group && (!owner || !email || owner===email);
+  });
 
-  if(!window.builderData.length){
-   try{await loadQuestionsDirect();}catch(e){console.warn("Firestore REST fallback failed:",e);}
+  // Legacy/older data may have folder paths even when the folder-config doc is empty.
+  // Rebuild missing nodes locally so the Builder never loses the Library structure.
+  const tree=window.builderFolderTrees[window.builderMode]||[];
+  for(const q of window.builderData){
+   const p=folderOf(q); if(p) treeInsertPath(tree,p);
   }
-
   renderTree();
   renderQuestions(previousScroll);
   renderSelected();
   status.textContent=window.builderData.length
-    ? "Library connected • "+window.builderData.length+" questions"
-    : "Library connected • 0 questions";
+   ? "Library connected • "+window.builderData.length+" questions"
+   : "Library connected • 0 questions";
  }catch(e){
   console.error("Library load failed:",e);
   status.textContent="Library loading failed";
@@ -449,6 +454,33 @@ function builderTreePaths(tree,prefix=""){
  (Array.isArray(tree)?tree:[]).forEach(n=>{const name=String(n?.name||"").trim();if(!name)return;const path=prefix?prefix+" / "+name:name;out.push(path);out.push(...builderTreePaths(n.children,path));});
  return out;
 }
+async function firestoreRestGetDocument(path){
+ const base="https://firestore.googleapis.com/v1/projects/physicsvault-80a10/databases/(default)/documents/";
+ const url=base+path.split('/').map(encodeURIComponent).join('/')+"?key="+encodeURIComponent("AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0");
+ const ctrl=new AbortController();
+ const timer=setTimeout(()=>ctrl.abort(),8000);
+ try{
+  const res=await fetch(url,{cache:"no-store",signal:ctrl.signal});
+  if(!res.ok) return null;
+  return await res.json();
+ }finally{clearTimeout(timer)}
+}
+function firestoreValue(v){
+ if(!v||typeof v!=="object") return v;
+ if("stringValue" in v) return v.stringValue;
+ if("integerValue" in v) return Number(v.integerValue);
+ if("doubleValue" in v) return Number(v.doubleValue);
+ if("booleanValue" in v) return v.booleanValue;
+ if("timestampValue" in v) return v.timestampValue;
+ if("nullValue" in v) return null;
+ if("arrayValue" in v) return (v.arrayValue.values||[]).map(firestoreValue);
+ if("mapValue" in v) return Object.fromEntries(Object.entries(v.mapValue.fields||{}).map(([k,x])=>[k,firestoreValue(x)]));
+ return v;
+}
+function firestoreDocData(docJson){
+ if(!docJson) return null;
+ return Object.fromEntries(Object.entries(docJson.fields||{}).map(([k,v])=>[k,firestoreValue(v)]));
+}
 async function loadBuilderFolderTree(mode){
  const email=builderTeacherEmail();
  let col="folder_configs_private",id=builderTeacherDocId(email);
@@ -456,15 +488,31 @@ async function loadBuilderFolderTree(mode){
  if(mode==="group"){col="folder_configs_group";id=builderTeacherDocId(email)+"_group";}
  try{
   if(!email && mode!=="central") return [];
-  const snap=await getDoc(doc(db,col,id));
-  const data=snap.exists()?snap.data():{};
+  const raw=await firestoreRestGetDocument(col+"/"+id);
+  const data=firestoreDocData(raw)||{};
   const tree=builderLegacyTree(data);
   window.builderFolderTrees[mode]=tree;
   return tree;
- }catch(e){console.warn("Builder folder tree load failed",mode,e);return [];}
+ }catch(e){console.warn("Builder folder REST load failed",mode,e);return []}
 }
 async function loadAllBuilderFolderTrees(){
- await Promise.all(["private","central","group"].map(loadBuilderFolderTree));
+ const results=await Promise.all(["private","central","group"].map(loadBuilderFolderTree));
+ return results;
+}
+
+async function loadBuilderQuestionsREST(){
+ const base="https://firestore.googleapis.com/v1/projects/physicsvault-80a10/databases/(default)/documents/questions";
+ const url=base+"?key="+encodeURIComponent("AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0")+"&pageSize=1000";
+ const ctrl=new AbortController(); const timer=setTimeout(()=>ctrl.abort(),10000);
+ try{
+  const res=await fetch(url,{cache:"no-store",signal:ctrl.signal});
+  if(!res.ok) throw new Error("Firestore REST "+res.status);
+  const data=await res.json();
+  return (data.documents||[]).map(d=>{
+   const id=String(d.name||"").split("/").pop();
+   return {id,...firestoreDocData(d)};
+  });
+ }finally{clearTimeout(timer)}
 }
 
 function renderTree(){
