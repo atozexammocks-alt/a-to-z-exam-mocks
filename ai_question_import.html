@@ -274,7 +274,9 @@ function render(){
 }
 function readQuestionModeChoice(i,mode){
   var q=qs[i];if(!q)return;
-  if(mode!=="text"&&!q.cropImage){showSaveToast("पहले “✂ Insert / Crop Image” से image बनाओ.",true);return;}
+  var hasAnyVisual=!!(q.cropImage||q.figureImage||(q.contentBlocks||[]).some(function(b){return b&&b.image})||(q.visualRegions||[]).some(function(v){return v&&v.image})||(q.optionImages||[]).some(Boolean));
+  if(mode==="image"&&!q.cropImage){showSaveToast("पहले “✂ Re-crop Question” से complete question image बनाओ.",true);return;}
+  if(mode==="both"&&!hasAnyVisual){showSaveToast("पहले question/figure की image crop करो, फिर Both चुनो.",true);return;}
   q.contentMode=mode;render();
   showSaveToast("✔ Q"+q.no+" — "+(mode==="text"?"Text Only":mode==="image"?"Image Only":"Image + Text")+" selected.");
 }
@@ -330,21 +332,22 @@ async function addFolderFromUI(mode,parentPath){
 }
 async function uploadVisualAsset(db, dataUrl, pathPart){
   if(!dataUrl || !String(dataUrl).startsWith("data:image/")) return dataUrl || "";
+  var app=firebase.app(), storage=firebase.storage(app), ref=storage.ref();
+  var safe=(String(pathPart||"visual").replace(/[^a-zA-Z0-9._-]+/g,"_").slice(0,120)||"visual");
+  var ext=/data:image\/png/i.test(dataUrl)?"png":"jpg";
+  var base64=String(dataUrl).split(",")[1]||"";
+  var bin=atob(base64), bytes=new Uint8Array(bin.length);
+  for(var k=0;k<bin.length;k++)bytes[k]=bin.charCodeAt(k);
+  var blob=new Blob([bytes],{type:ext==="png"?"image/png":"image/jpeg"});
+  var uid=(firebase.auth().currentUser&&firebase.auth().currentUser.uid)||"anonymous";
+  if(!uid) throw Error("Firebase authentication is not ready for visual upload.");
+  var fileRef=ref.child("ai_question_assets/"+tid(email()||uid)+"/"+Date.now()+"_"+safe+"."+ext);
   try{
-    var app=firebase.app(), storage=firebase.storage(app), ref=storage.ref();
-    var safe=(String(pathPart||"visual").replace(/[^a-zA-Z0-9._-]+/g,"_").slice(0,120)||"visual");
-    var ext=/data:image\/png/i.test(dataUrl)?"png":"jpg";
-    var base64=String(dataUrl).split(",")[1]||"";
-    var bin=atob(base64), bytes=new Uint8Array(bin.length);
-    for(var k=0;k<bin.length;k++)bytes[k]=bin.charCodeAt(k);
-    var blob=new Blob([bytes],{type:ext==="png"?"image/png":"image/jpeg"});
-    var uid=(firebase.auth().currentUser&&firebase.auth().currentUser.uid)||"anonymous";
-    var fileRef=ref.child("ai_question_assets/"+tid(email()||uid)+"/"+Date.now()+"_"+safe+"."+ext);
     await fileRef.put(blob,{contentType:blob.type,cacheControl:"public,max-age=31536000"});
     return await fileRef.getDownloadURL();
   }catch(err){
-    console.warn("Visual asset upload failed; keeping local data URL",err);
-    return dataUrl;
+    console.error("Visual asset upload failed",err);
+    throw Error("Figure/image upload failed for "+safe+". Firebase Storage rejected the file, so the question was NOT saved. Please check Storage rules/login and try again. "+(err&&err.message?err.message:""));
   }
 }
 async function persistVisualAssets(db,q){
@@ -380,7 +383,13 @@ if(!authUser)throw Error("Firebase teacher session is not active. Please log in 
 if(authUser.email && String(authUser.email).toLowerCase()!==em)console.warn("[A2Z AI Import] Local teacher email and Firebase auth email differ:",em,authUser.email);
 let m=q.libraryMode||"private",p=q.folderPath;
 await persistVisualAssets(db,q);
-await db.collection("questions").add({ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text,question:q.cropImage||"",solution:q.explanation||"",options:q.options||[],keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:q.qType||"mcq",answerRegion:q.answerRegion||"",contentMode:q.contentMode||"text",keepText:q.contentMode!=="image",keepImage:q.contentMode==="image"||q.contentMode==="both",level:q.difficulty||"Medium",answer:q.answer||"",source:q.source||"",sourceExam:q.source||"",sourceYear:q.year||"",sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",suggestedFlag:q.flagChoice||"normal",flags:q.flags||{},questionImage:q.cropImage||"",image:q.cropImage||"",figureImage:q.figureImage||"",figureRequired:!!q.figureRequired,figureReference:q.figureReference||"",contentBlocks:Array.isArray(q.contentBlocks)?q.contentBlocks:[],optionImages:Array.isArray(q.optionImages)?q.optionImages:[],optionFigureRequired:Array.isArray(q.optionFigureRequired)?q.optionFigureRequired:[],visualStorageVersion:3,visualRegions:Array.isArray(q.visualRegions)?q.visualRegions:[],reconstructedVisuals:Array.isArray(q.visualRegions)?q.visualRegions.filter(function(v){return v&&v.reconstruction}).length:0,createdAt:new Date().toISOString()})}
+var payload={ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text,question:q.cropImage||"",solution:q.explanation||"",options:q.options||[],keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:q.qType||"mcq",answerRegion:q.answerRegion||"",contentMode:q.contentMode||"text",keepText:q.contentMode!=="image",keepImage:q.contentMode==="image"||q.contentMode==="both",level:q.difficulty||"Medium",answer:q.answer||"",source:q.source||"",sourceExam:q.source||"",sourceYear:q.year||"",sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",suggestedFlag:q.flagChoice||"normal",flags:q.flags||{},questionImage:q.cropImage||"",image:q.cropImage||"",figureImage:q.figureImage||"",figureRequired:!!q.figureRequired,figureReference:q.figureReference||"",contentBlocks:Array.isArray(q.contentBlocks)?q.contentBlocks:[],optionImages:Array.isArray(q.optionImages)?q.optionImages:[],optionFigureRequired:Array.isArray(q.optionFigureRequired)?q.optionFigureRequired:[],visualStorageVersion:3,visualRegions:Array.isArray(q.visualRegions)?q.visualRegions:[],reconstructedVisuals:Array.isArray(q.visualRegions)?q.visualRegions.filter(function(v){return v&&v.reconstruction}).length:0,createdAt:new Date().toISOString()};
+var payloadBytes=0;
+try{payloadBytes=new Blob([JSON.stringify(payload)]).size}catch(_){}
+if(payloadBytes>900000)throw Error("Question data is too large ("+Math.round(payloadBytes/1024)+" KB) after visual upload. The image should be stored in Firebase Storage, not inside Firestore.");
+var savedRef=await db.collection("questions").add(payload);
+console.info("[A2Z AI Import] Library save successful:",savedRef.id);
+return savedRef.id;}
 function renderEditorVisual(q){
   var t=$("editorTextPreview"),im=$("editorImagePreview");
   if(t)t.innerHTML=esc(q.text||"").replace(/\n/g,"<br>");
