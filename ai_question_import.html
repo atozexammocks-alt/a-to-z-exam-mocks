@@ -172,17 +172,36 @@ function visualRegionList(q){
   if(!a.length&&Array.isArray(q.contentBlocks))a=q.contentBlocks.map(function(b){return Object.assign({},b,{visualType:b.visualType||b.type||"diagram"})});
   return a;
 }
+function canonicalVisuals(q){
+  // ONE canonical slot per detected visual. visualRegions is the source of truth.
+  var src=Array.isArray(q.visualRegions)?q.visualRegions:[];
+  var out=[];
+  src.forEach(function(v){
+    if(!v)return;
+    var type=visualTypeOf(v.visualType||v.type);
+    if(!isFigureVisual(type))return;
+    var key=[type,String(v.anchor||v.figureReference||v.cropBox?JSON.stringify(v.cropBox||{}):"")].join("|").toLowerCase();
+    if(out.some(function(x){return x._key===key;}))return;
+    out.push(Object.assign({},v,{visualType:type,type:type,required:(v.required!==false)||!!q.figureRequired,_key:key}));
+  });
+  // Legacy/import fallback: if AI supplied only figureImage, expose exactly one slot.
+  if(!out.length && q.figureImage) out.push({visualType:visualTypeOf(q.visualType||"diagram")||"diagram",type:"diagram",anchor:q.figureReference||"",image:q.figureImage,required:!!q.figureRequired,_legacyFigure:true,_key:"legacy-figure"});
+  return out;
+}
 function renderVisualRegions(q,review){
-  var a=visualRegionList(q);if(!a.length)return "";
-  var html='<div class="extraction-assets"><div class="extraction-assets-title">🔎 Detected Visual Elements</div>';
-  a.forEach(function(v,idx){var type=visualTypeOf(v.visualType||v.type),img=String(v.image||"");
-    html+='<div class="visual-region-card"><b>'+visualTypeLabel(type)+'</b><span class="visual-type-badge visual-type-'+type+'">'+visualTypeLabel(type)+'</span>';
+  var a=canonicalVisuals(q);if(!a.length)return "";
+  var html='<div class="extraction-assets"><div class="extraction-assets-title">🖼 Required Figures — '+a.length+'</div>';
+  a.forEach(function(v,idx){
+    var type=visualTypeOf(v.visualType||v.type),img=String(v.image||"");
+    // Keep the canonical image mirrored to figureImage for old save/Builder compatibility.
+    if(idx===0 && img && !q.figureImage)q.figureImage=img;
+    html+='<div class="visual-region-card"><b>Figure '+(idx+1)+'</b><span class="visual-type-badge visual-type-'+type+'">'+visualTypeLabel(type)+'</span>';
     if(v.anchor)html+='<div class="muted" style="margin-top:3px">Anchor: '+esc(v.anchor)+'</div>';
     var recon=renderReconstruction(v);
     if(recon)html+=recon;
-    else if(img)html+='<img src="'+esc(img)+'" alt="'+esc(visualTypeLabel(type))+'">';
-    else if(v.cropBox||v.required)html+='<div class="visual-region-missing">⚠️ '+visualTypeLabel(type)+' reconstruction/crop not available — manually adjust it.</div>';
-    if(review)html+='<div class="visual-region-tools"><button class="btn mini-btn purple" data-a="visual-region-crop" data-i="'+qs.indexOf(q)+'" data-vis-index="'+idx+'">✂ Crop / Adjust '+esc(visualTypeLabel(type))+'</button></div>';
+    if(img)html+='<img src="'+esc(img)+'" alt="Figure '+(idx+1)+'">';
+    else html+='<div class="visual-region-missing">⚠️ Figure '+(idx+1)+' needs one crop/adjustment.</div>';
+    if(review)html+='<div class="visual-region-tools"><button class="btn mini-btn purple" data-a="visual-region-crop" data-i="'+qs.indexOf(q)+'" data-vis-index="'+idx+'">✂ Crop / Adjust Figure '+(idx+1)+'</button></div>';
     html+='</div>';
   });
   return html+'</div>';
@@ -192,14 +211,15 @@ function normalizeVisualBlocks(q){
   return q.contentBlocks;
 }
 function renderInlineVisuals(q,side){
-  var blocks=normalizeVisualBlocks(q); if(!blocks.length)return "";
+  // Only MANUAL inline slots appear here. Auto-detected visuals are rendered once by renderVisualRegions().
+  var blocks=normalizeVisualBlocks(q).filter(function(b){return b&&b.manual===true;}); if(!blocks.length)return "";
   var html='<div class="visual-blocks">';
   blocks.forEach(function(b,idx){
-    var img=String(b.image||"");
-    var vt=visualTypeOf(b.visualType||b.type); html+='<div class="visual-slot"><div class="figure-index">'+visualTypeLabel(vt)+' '+(idx+1)+(b.anchor?' • '+esc(b.anchor):'')+'</div>';
-    if(img) html+='<img src="'+esc(img)+'" alt="Question figure '+(idx+1)+'">';
-    else html+='<div class="figure-missing">⚠️ Figure slot ready — click “Crop / Adjust This Figure”.</div>';
-    if(side==="review") html+='<div class="inline-figure-tools"><button class="btn mini-btn purple" data-a="inline-figure" data-i="'+qs.indexOf(q)+'" data-fig-index="'+idx+'">✂ Crop / Adjust This Figure</button></div>';
+    var img=String(b.image||""); var vt=visualTypeOf(b.visualType||b.type);
+    html+='<div class="visual-slot"><div class="figure-index">Manual Figure '+(idx+1)+(b.anchor?' • '+esc(b.anchor):'')+'</div>';
+    if(img)html+='<img src="'+esc(img)+'" alt="Manual question figure '+(idx+1)+'">';
+    else html+='<div class="figure-missing">⚠️ Manual figure slot ready.</div>';
+    if(side==="review")html+='<div class="inline-figure-tools"><button class="btn mini-btn purple" data-a="inline-figure" data-i="'+qs.indexOf(q)+'" data-fig-index="'+qs.indexOf(b)+'">✂ Crop / Adjust This Figure</button></div>';
     html+='</div>';
   });
   html+='</div>'; return html;
@@ -239,7 +259,7 @@ function render(){
     var mode=q.contentMode||"text";
     var opts=(q.options||[]).map(function(o,oi){return renderOptionHtml(q,o,oi,false)}).join("");
     var image=q.cropImage?'<div class="figure-preview auto-source-image"><b>🖼 Original Question Image</b><img src="'+esc(q.cropImage)+'" alt="Automatically cropped source question"></div>':'<div class="figure-preview auto-source-image empty-image"><span class="muted">⏳ Complete question image not auto-cropped. Use Re-crop Question.</span></div>';
-    var figure=q.figureImage?'<div class="figure-preview auto-figure-image"><b>🖼 Extracted Figure / Diagram</b>'+(q.figureNeedsAdjust?'<div class="figure-missing">⚠️ Approximate crop — please Adjust Crop once.</div>':'')+'<img src="'+esc(q.figureImage)+'" alt="Automatically extracted figure"></div>':'<div class="figure-preview auto-figure-image empty-image"><span class="muted">⚠️ Figure not auto-extracted. Use “Crop Figure / Adjust” below.</span></div>';
+    var cvs=canonicalVisuals(q);var figure=cvs.length?"":(q.figureImage?'<div class="figure-preview auto-figure-image"><b>🖼 Extracted Figure / Diagram</b><img src="'+esc(q.figureImage)+'" alt="Extracted figure"></div>':'');
     var path='<div class="pathbox"><b>📁 Library Location — This Question</b>'+
       (q.suggestedPath?'<div class="pathhint">🤖 AI suggested: '+esc(q.suggestedPath)+'</div>':"")+
       '<div id="qpath-'+i+'" class="pathrow" style="align-items:flex-start"></div>'+
@@ -261,12 +281,12 @@ function render(){
       '<button class="btn purple '+(mode==="image"?"selected":"")+'" data-a="keep-image" data-i="'+i+'">🖼 Keep Image</button>'+
       '<button class="btn green '+(mode==="both"?"selected":"")+'" data-a="keep-both" data-i="'+i+'">📝+🖼 Both</button>'+
       '<span class="keep-state">'+(mode==="image"?"🖼 Image Only selected":mode==="both"?"📝+🖼 Image + Text selected":"📝 Text Only selected")+'</span><span class="muted" style="width:100%">Multiple figures are saved separately: Question figures + Option A/B/C/D figures.</span></div>'+
-      '<div class="row"><button class="btn purple" data-a="crop" data-i="'+i+'">✂ Re-crop Question</button><button class="btn green" data-a="figure" data-i="'+i+'">🖼️ Crop Figure / Adjust</button><button class="btn" data-a="add-inline-figure" data-i="'+i+'">＋ Insert Figure Slot</button><button class="btn" data-a="edit-page" data-i="'+i+'">✏️ Open Question Editor</button></div>'+
-      renderInlineVisuals(q,'review')+renderVisualRegions(q,true)+(q.tableRows&&q.tableRows.length?renderTableHtml(q.tableRows):'')+(q.matrixLatex?renderMatrixHtml(q.matrixLatex):'')+path+
+      '<div class="row">'+(mode==="image"?'<button class="btn purple" data-a="crop" data-i="'+i+'">✂ Re-crop Question Image</button>':"")+(cvs.length?"":'<button class="btn green" data-a="figure" data-i="'+i+'">🖼️ Crop Figure / Adjust</button>')+'<button class="btn" data-a="add-inline-figure" data-i="'+i+'">＋ Insert Figure Slot</button><button class="btn" data-a="edit-page" data-i="'+i+'">✏️ Open Question Editor</button></div>'+
+      renderInlineVisuals(q,'review')+renderVisualRegions(q,true)+(q.options||[]).map(function(o,oi){return renderOptionHtml(q,o,oi,true)}).join("")+(q.tableRows&&q.tableRows.length?renderTableHtml(q.tableRows):'')+(q.matrixLatex?renderMatrixHtml(q.matrixLatex):'')+path+
       '<div class="row"><button class="btn green" data-a="save" data-i="'+i+'">☁ Save to Library</button><button class="btn red" data-a="del" data-i="'+i+'">🗑 Delete</button></div></div>';
     var right='<div class="student-review"><div class="student-head"><b>🎓 Student View</b><span class="muted">Live preview</span></div>'+
       '<div class="student-text"><b style="color:#38bdf8">'+esc(q.no)+'</b><div class="q math-content">'+renderQuestionWithInlineFigures(q)+'</div>'+opts+(q.tableRows&&q.tableRows.length?renderTableHtml(q.tableRows):'')+(q.matrixLatex?renderMatrixHtml(q.matrixLatex):'')+renderVisualRegions(q,false)+'</div>'+
-      '<div class="student-image">'+image+(q.figureRequired?'<div class="figure-required">⚠️ FIGURE REQUIRED — Check the extracted figure below and adjust the crop if needed.</div>':"")+figure+'</div></div>';
+      '<div class="student-image">'+image+figure+'</div></div>';
     return '<div class="card aiq-review-card"><div class="review-layout">'+left+right+'</div><div class="muted review-meta">'+esc([q.topic,q.chapter,q.source,q.year,q.answer?"Answer: "+q.answer:"",q.page?"Page: "+q.page:""].filter(Boolean).join(" • "))+'</div></div>';
   }).join("");
   qs.forEach(function(_,i){renderQuestionPathSelectors(i)});
@@ -274,12 +294,12 @@ function render(){
 }
 function readQuestionModeChoice(i,mode){
   var q=qs[i];if(!q)return;
-  var hasAnyVisual=!!(q.cropImage||q.figureImage||(q.contentBlocks||[]).some(function(b){return b&&b.image})||(q.visualRegions||[]).some(function(v){return v&&v.image})||(q.optionImages||[]).some(Boolean));
+  // Text/Both never require a complete-question crop. Image Only does.
   if(mode==="image"&&!q.cropImage){showSaveToast("पहले “✂ Re-crop Question” से complete question image बनाओ.",true);return;}
-  if(mode==="both"&&!hasAnyVisual){showSaveToast("पहले question/figure की image crop करो, फिर Both चुनो.",true);return;}
   q.contentMode=mode;render();
-  showSaveToast("✔ Q"+q.no+" — "+(mode==="text"?"Text Only":mode==="image"?"Image Only":"Image + Text")+" selected.");
+  showSaveToast("✔ Q"+q.no+" — "+(mode==="text"?"Text Only":mode==="image"?"Image Only":"Text + Figures")+" selected.");
 }
+
 let __firebaseReadyPromise=null;
 function firebaseReady(){
   if(!firebase.apps.length)firebase.initializeApp(cfg);
@@ -330,53 +350,71 @@ async function addFolderFromUI(mode,parentPath){
   await saveFolderPath(mode,full);
   return full;
 }
-async function uploadVisualAsset(db, dataUrl, pathPart){
+function compactImageDataUrl(dataUrl){
+  return new Promise(function(resolve){
+    try{
+      var img=new Image();img.onload=function(){
+        var maxW=800,maxH=800,scale=Math.min(1,maxW/img.width,maxH/img.height),w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+        var c=document.createElement("canvas");c.width=w;c.height=h;var ctx=c.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+        var q=.72,out=c.toDataURL("image/jpeg",q);
+        while(out.length>120000&&q>.42){q-=.08;out=c.toDataURL("image/jpeg",q)}
+        resolve(out);
+      };img.onerror=function(){resolve(dataUrl)};img.src=dataUrl;
+    }catch(_){resolve(dataUrl)}
+  });
+}
+async function uploadVisualAsset(db, dataUrl, pathPart, cache){
   if(!dataUrl || !String(dataUrl).startsWith("data:image/")) return dataUrl || "";
+  cache=cache||{};var original=String(dataUrl);
+  if(cache[original])return cache[original];
   var app=firebase.app(), storage=firebase.storage(app), ref=storage.ref();
   var safe=(String(pathPart||"visual").replace(/[^a-zA-Z0-9._-]+/g,"_").slice(0,120)||"visual");
-  var ext=/data:image\/png/i.test(dataUrl)?"png":"jpg";
-  var base64=String(dataUrl).split(",")[1]||"";
-  var bin=atob(base64), bytes=new Uint8Array(bin.length);
-  for(var k=0;k<bin.length;k++)bytes[k]=bin.charCodeAt(k);
+  var ext=/data:image\/png/i.test(original)?"png":"jpg",base64=original.split(",")[1]||"";
+  var bin=atob(base64),bytes=new Uint8Array(bin.length);for(var k=0;k<bin.length;k++)bytes[k]=bin.charCodeAt(k);
   var blob=new Blob([bytes],{type:ext==="png"?"image/png":"image/jpeg"});
   var uid=(firebase.auth().currentUser&&firebase.auth().currentUser.uid)||"anonymous";
-  if(!uid) throw Error("Firebase authentication is not ready for visual upload.");
-  var fileRef=ref.child("ai_question_assets/"+tid(email()||uid)+"/"+Date.now()+"_"+safe+"."+ext);
+  if(!uid)throw Error("Firebase authentication is not ready for visual upload.");
   try{
+    var fileRef=ref.child("ai_question_assets/"+tid(email()||uid)+"/"+Date.now()+"_"+safe+"."+ext);
     await fileRef.put(blob,{contentType:blob.type,cacheControl:"public,max-age=31536000"});
-    return await fileRef.getDownloadURL();
+    var url=await fileRef.getDownloadURL();cache[original]=url;return url;
   }catch(err){
-    console.error("Visual asset upload failed",err);
-    throw Error("Figure/image upload failed for "+safe+". Firebase Storage rejected the file, so the question was NOT saved. Please check Storage rules/login and try again. "+(err&&err.message?err.message:""));
+    // Storage rules may be unavailable in the existing project. Keep the Library usable by
+    // compacting the visual and storing it only when it is small enough for Firestore.
+    var compact=await compactImageDataUrl(original);
+    if(compact.length>140000)throw Error("Figure/image could not be uploaded to Storage and is still too large for Firestore fallback ("+Math.round(compact.length/1024)+" KB). Please fix Firebase Storage Rules.");
+    console.warn("Storage upload unavailable; using compact Firestore image fallback for",safe,err);
+    cache[original]=compact;return compact;
   }
 }
 async function persistVisualAssets(db,q){
-  var prefix="Q"+String(q.no||"question");
-  if(q.cropImage)q.cropImage=await uploadVisualAsset(db,q.cropImage,prefix+"_complete");
-  if(q.figureImage)q.figureImage=await uploadVisualAsset(db,q.figureImage,prefix+"_figure");
-  if(Array.isArray(q.optionImages)){
-    for(var oi=0;oi<q.optionImages.length;oi++){
-      if(q.optionImages[oi])q.optionImages[oi]=await uploadVisualAsset(db,q.optionImages[oi],prefix+"_option_"+String.fromCharCode(65+oi));
+  var prefix="Q"+String(q.no||"question"),cache={};
+  if(q.cropImage)q.cropImage=await uploadVisualAsset(db,q.cropImage,prefix+"_complete",cache);
+  // One upload per unique visual. figureImage, visualRegions and contentBlocks may reference the same crop.
+  if(Array.isArray(q.visualRegions)){
+    for(var vi=0;vi<q.visualRegions.length;vi++){
+      var vr=q.visualRegions[vi];
+      if(vr&&vr.image)vr.image=await uploadVisualAsset(db,vr.image,prefix+"_visual_"+(vi+1)+"_"+visualTypeOf(vr.visualType||vr.type),cache);
     }
+  }
+  var cvs=canonicalVisuals(q);
+  if(cvs.length&&cvs[0].image)q.figureImage=cvs[0].image;
+  else if(q.figureImage)q.figureImage=await uploadVisualAsset(db,q.figureImage,prefix+"_figure",cache);
+  if(Array.isArray(q.optionImages)){
+    for(var oi=0;oi<q.optionImages.length;oi++)if(q.optionImages[oi])q.optionImages[oi]=await uploadVisualAsset(db,q.optionImages[oi],prefix+"_option_"+String.fromCharCode(65+oi),cache);
   }
   if(Array.isArray(q.contentBlocks)){
     for(var bi=0;bi<q.contentBlocks.length;bi++){
       var b=q.contentBlocks[bi];
-      if(b&&b.image)b.image=await uploadVisualAsset(db,b.image,prefix+"_figure_"+(bi+1));
-    }
-  }
-  if(Array.isArray(q.visualRegions)){
-    for(var vi=0;vi<q.visualRegions.length;vi++){
-      var vr=q.visualRegions[vi];
-      if(vr&&vr.image)vr.image=await uploadVisualAsset(db,vr.image,prefix+"_visual_"+(vi+1)+"_"+visualTypeOf(vr.visualType||vr.type));
+      if(b&&b.image)b.image=await uploadVisualAsset(db,b.image,prefix+"_figure_"+(bi+1),cache);
     }
   }
   return q;
 }
 async function saveQ(i){
   var sq=qs[i];
-  if(sq&&sq.figureRequired&&!sq.figureImage&&!((sq.contentBlocks||[]).some(function(b){return b&&b.image&&isFigureVisual(b.visualType||b.type)}))&&!((sq.visualRegions||[]).some(function(v){return v&&v.image&&isFigureVisual(v.visualType||v.type)}))){throw Error("Q"+sq.no+" requires a visual crop. Use the appropriate Crop / Adjust control before saving.");}
-let q=qs[i];if(!q||!q.text)throw Error("Question text is empty.");if(!q.folderPath)throw Error("Select a Library folder.");if(q.figureRequired&&!q.figureImage&&!((q.contentBlocks||[]).some(function(b){return b&&b.image&&isFigureVisual(b.visualType||b.type)}))&&!((q.visualRegions||[]).some(function(v){return v&&v.image&&isFigureVisual(v.visualType||v.type)})))throw Error("Q"+q.no+" requires a visual crop. Insert/crop the visual before saving.");if(Array.isArray(q.optionFigureRequired)){for(var oi=0;oi<q.optionFigureRequired.length;oi++){if(q.optionFigureRequired[oi]&&!figureImageForOption(q,oi))throw Error("Q"+q.no+" requires a figure for option "+String.fromCharCode(65+oi)+". Insert that option figure before saving.");}}let em=email();
+  if(sq){var cv=canonicalVisuals(sq);for(var vi=0;vi<cv.length;vi++){if(cv[vi].required!==false&&!cv[vi].image)throw Error("Q"+sq.no+" requires Figure "+(vi+1)+". Crop/adjust that figure once before saving.");}}
+let q=qs[i];if(!q||!q.text)throw Error("Question text is empty.");if(!q.folderPath)throw Error("Select a Library folder.");var cv2=canonicalVisuals(q);for(var vj=0;vj<cv2.length;vj++){if(cv2[vj].required!==false&&!cv2[vj].image)throw Error("Q"+q.no+" requires Figure "+(vj+1)+". Crop/adjust that figure once before saving.");}if(Array.isArray(q.optionFigureRequired)){for(var oi=0;oi<q.optionFigureRequired.length;oi++){if(q.optionFigureRequired[oi]&&!figureImageForOption(q,oi))throw Error("Q"+q.no+" requires a figure for option "+String.fromCharCode(65+oi)+". Insert that option figure before saving.");}}let em=email();
 if(!em)throw Error("Teacher login not found. Please log in through Teacher Portal first.");
 let db=await firebaseReady(),authUser=firebase.auth().currentUser;
 if(!authUser)throw Error("Firebase teacher session is not active. Please log in through Teacher Portal again and reopen this page.");
@@ -704,7 +742,7 @@ function setup(){
     else if(a==="keep-both"){readQuestionModeChoice(i,"both");}
     else if(a==="edit-page"){openQuestionEditor(i);}
     else if(a==="flag"){applyFlagChoice(qs[i],b.dataset.flag);render();showSaveToast("🏷️ Q"+qs[i].no+" flagged as "+b.dataset.flag+".");}
-    else if(a==="crop"){await cropQ(i);}else if(a==="figure"){await cropFigure(i);}else if(a==="add-inline-figure"){qs[i].contentBlocks=qs[i].contentBlocks||[];qs[i].contentBlocks.push({type:"figure",anchor:"",image:"",required:true});render();showSaveToast("✔ Figure slot added. Use its Crop / Adjust button.");}else if(a==="inline-figure"){cropTarget="inline:"+String(b.dataset.figIndex||0);await cropQ(i);cropTarget="inline:"+String(b.dataset.figIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around this inline figure.";}else if(a==="visual-region-crop"){cropTarget="visual:"+String(b.dataset.visIndex||0);await cropQ(i);cropTarget="visual:"+String(b.dataset.visIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around this detected "+visualTypeLabel((qs[i].visualRegions||[])[Number(b.dataset.visIndex||0)]?.visualType)+".";}else if(a==="option-figure"){cropTarget="option:"+String(b.dataset.optIndex||0);await cropQ(i);cropTarget="option:"+String(b.dataset.optIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around the figure inside option "+String.fromCharCode(65+Number(b.dataset.optIndex||0))+".";}else if(a==="remove-option-figure"){var oi=Number(b.dataset.optIndex||0);qs[i].optionImages=qs[i].optionImages||[];qs[i].optionImages[oi]="";render();showSaveToast("Option figure removed.");}
+    else if(a==="crop"){await cropQ(i);}else if(a==="figure"){await cropFigure(i);}else if(a==="add-inline-figure"){qs[i].contentBlocks=qs[i].contentBlocks||[];qs[i].contentBlocks.push({type:"figure",visualType:"diagram",anchor:"",image:"",required:true,manual:true});render();showSaveToast("✔ Figure slot added. Use its Crop / Adjust button.");}else if(a==="inline-figure"){cropTarget="inline:"+String(b.dataset.figIndex||0);await cropQ(i);cropTarget="inline:"+String(b.dataset.figIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around this inline figure.";}else if(a==="visual-region-crop"){cropTarget="visual:"+String(b.dataset.visIndex||0);await cropQ(i);cropTarget="visual:"+String(b.dataset.visIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around this detected "+visualTypeLabel((qs[i].visualRegions||[])[Number(b.dataset.visIndex||0)]?.visualType)+".";}else if(a==="option-figure"){cropTarget="option:"+String(b.dataset.optIndex||0);await cropQ(i);cropTarget="option:"+String(b.dataset.optIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around the figure inside option "+String.fromCharCode(65+Number(b.dataset.optIndex||0))+".";}else if(a==="remove-option-figure"){var oi=Number(b.dataset.optIndex||0);qs[i].optionImages=qs[i].optionImages||[];qs[i].optionImages[oi]="";render();showSaveToast("Option figure removed.");}
     else if(a==="del"){
       if(confirm("Delete this question from review?")){qs.splice(i,1);render();}
     }
@@ -752,7 +790,7 @@ function setup(){
     showSaveToast("❌ Save failed: "+(err&&err.message?err.message:String(err)),true);
     alert("Save failed: "+(err&&err.message?err.message:String(err)));
   }
-});$("eAddOption").onclick=()=>{if(editing<0)return;syncEditorOptions();var q=qs[editing];q.options=q.options||[];q.options.push("");renderEditorOptions(q);};$("eTextOnly").onclick=()=>{if(editing<0)return;readEdit();qs[editing].contentMode="text";$("eStatus").textContent="📝 Text Only selected."};$("eImageOnly").onclick=()=>{if(editing<0)return;readEdit();if(!qs[editing].cropImage)return alert("पहले Crop Complete Question करके image बनाओ.");qs[editing].contentMode="image";$("eStatus").textContent="🖼 Image Only selected."};$("eBoth").onclick=()=>{if(editing<0)return;readEdit();if(!qs[editing].cropImage)return alert("पहले Crop Complete Question करके image बनाओ.");qs[editing].contentMode="both";$("eStatus").textContent="📝+🖼 Image + Text selected."};$("eSave").onclick=()=>{readEdit();render();$("editor").style.display="none";editing=-1};$("eClose").onclick=()=>{$("editor").style.display="none";editing=-1};$("eSaveLib").onclick=async()=>{if(editing<0)return;readEdit();try{let savedIndex=editing,savedNo=qs[savedIndex].no;await saveQ(savedIndex);uploadedCount++;qs.splice(savedIndex,1);$("editor").style.display="none";editing=-1;render();showSaveToast("✔ Question "+savedNo+" saved to Library. "+qs.length+" remaining.")}catch(e){alert("Save failed: "+e.message)}};$("eMode").onchange=()=>loadFolders($("eMode").value,$("ePath"),$("eStatus"));$("cropClose").onclick=()=>{$("cropPanel").style.display="none"};$("cropPrevPage").onclick=()=>navigateCropPage(-1);$("cropNextPage").onclick=()=>navigateCropPage(1);$("cropSave").onclick=()=>{if(editing<0||!cropStart||!cropEnd)return alert("Select an area first.");let c=$("pdfCanvas"),x=Math.min(cropStart.x,cropEnd.x),y=Math.min(cropStart.y,cropEnd.y),w=Math.abs(cropEnd.x-cropStart.x),h=Math.abs(cropEnd.y-cropStart.y),o=document.createElement("canvas"),s=Math.min(4,2400/w);o.width=Math.round(w*s);o.height=Math.round(h*s);o.getContext("2d").drawImage(c,x,y,w,h,0,0,o.width,o.height);var data=o.toDataURL("image/jpeg",.94);if(cropTarget==="figure"){qs[editing].figureImage=data;qs[editing].figureRequired=true;}else if(String(cropTarget).indexOf("option:")===0){var oi=Number(String(cropTarget).split(":")[1]||0);qs[editing].optionImages=qs[editing].optionImages||[];qs[editing].optionImages[oi]=data;qs[editing].optionFigureRequired=qs[editing].optionFigureRequired||[];qs[editing].optionFigureRequired[oi]=true;}else if(String(cropTarget).indexOf("inline:")===0){var bi=Number(String(cropTarget).split(":")[1]||0);qs[editing].contentBlocks=qs[editing].contentBlocks||[];qs[editing].contentBlocks[bi]=qs[editing].contentBlocks[bi]||{type:"diagram",visualType:"diagram",anchor:"",required:true};qs[editing].contentBlocks[bi].image=data;qs[editing].contentBlocks[bi].required=true;}else if(String(cropTarget).indexOf("visual:")===0){var vi=Number(String(cropTarget).split(":")[1]||0);qs[editing].visualRegions=qs[editing].visualRegions||[];qs[editing].visualRegions[vi]=qs[editing].visualRegions[vi]||{visualType:"diagram",type:"diagram",required:false};qs[editing].visualRegions[vi].image=data;}else{qs[editing].cropImage=data;}$("cropPanel").style.display="none";render();if(cropTarget==="question")editQ(editing);cropTarget="question";if($("eStatus"))$("eStatus").textContent="✔ Crop inserted."};let can=$("pdfCanvas"),rect=$("cropRect");
+});$("eAddOption").onclick=()=>{if(editing<0)return;syncEditorOptions();var q=qs[editing];q.options=q.options||[];q.options.push("");renderEditorOptions(q);};$("eTextOnly").onclick=()=>{if(editing<0)return;readEdit();qs[editing].contentMode="text";$("eStatus").textContent="📝 Text Only selected."};$("eImageOnly").onclick=()=>{if(editing<0)return;readEdit();if(!qs[editing].cropImage)return alert("पहले Crop Complete Question करके image बनाओ.");qs[editing].contentMode="image";$("eStatus").textContent="🖼 Image Only selected."};$("eBoth").onclick=()=>{if(editing<0)return;readEdit();qs[editing].contentMode="both";$("eStatus").textContent="📝+🖼 Image + Text selected."};$("eSave").onclick=()=>{readEdit();render();$("editor").style.display="none";editing=-1};$("eClose").onclick=()=>{$("editor").style.display="none";editing=-1};$("eSaveLib").onclick=async()=>{if(editing<0)return;readEdit();try{let savedIndex=editing,savedNo=qs[savedIndex].no;await saveQ(savedIndex);uploadedCount++;qs.splice(savedIndex,1);$("editor").style.display="none";editing=-1;render();showSaveToast("✔ Question "+savedNo+" saved to Library. "+qs.length+" remaining.")}catch(e){alert("Save failed: "+e.message)}};$("eMode").onchange=()=>loadFolders($("eMode").value,$("ePath"),$("eStatus"));$("cropClose").onclick=()=>{$("cropPanel").style.display="none"};$("cropPrevPage").onclick=()=>navigateCropPage(-1);$("cropNextPage").onclick=()=>navigateCropPage(1);$("cropSave").onclick=()=>{if(editing<0||!cropStart||!cropEnd)return alert("Select an area first.");let c=$("pdfCanvas"),x=Math.min(cropStart.x,cropEnd.x),y=Math.min(cropStart.y,cropEnd.y),w=Math.abs(cropEnd.x-cropStart.x),h=Math.abs(cropEnd.y-cropStart.y),o=document.createElement("canvas"),s=Math.min(4,2400/w);o.width=Math.round(w*s);o.height=Math.round(h*s);o.getContext("2d").drawImage(c,x,y,w,h,0,0,o.width,o.height);var data=o.toDataURL("image/jpeg",.94);if(cropTarget==="figure"){qs[editing].figureImage=data;qs[editing].figureRequired=true;}else if(String(cropTarget).indexOf("option:")===0){var oi=Number(String(cropTarget).split(":")[1]||0);qs[editing].optionImages=qs[editing].optionImages||[];qs[editing].optionImages[oi]=data;qs[editing].optionFigureRequired=qs[editing].optionFigureRequired||[];qs[editing].optionFigureRequired[oi]=true;}else if(String(cropTarget).indexOf("inline:")===0){var bi=Number(String(cropTarget).split(":")[1]||0);qs[editing].contentBlocks=qs[editing].contentBlocks||[];qs[editing].contentBlocks[bi]=qs[editing].contentBlocks[bi]||{type:"diagram",visualType:"diagram",anchor:"",required:true};qs[editing].contentBlocks[bi].image=data;qs[editing].contentBlocks[bi].required=true;}else if(String(cropTarget).indexOf("visual:")===0){var cvi=Number(String(cropTarget).split(":")[1]||0),cvlist=canonicalVisuals(qs[editing]),targetV=cvlist[cvi];if(targetV&&targetV._legacyFigure){qs[editing].figureImage=data;qs[editing].figureRequired=true;}else{var actual=-1;(qs[editing].visualRegions||[]).forEach(function(v,ix){if(actual<0&&v===targetV)actual=ix;});if(actual<0)actual=cvi;qs[editing].visualRegions=qs[editing].visualRegions||[];qs[editing].visualRegions[actual]=qs[editing].visualRegions[actual]||{visualType:"diagram",type:"diagram",required:true};qs[editing].visualRegions[actual].image=data;if(cvi===0)qs[editing].figureImage=data;}}else{qs[editing].cropImage=data;}$("cropPanel").style.display="none";render();if(cropTarget==="question")editQ(editing);cropTarget="question";if($("eStatus"))$("eStatus").textContent="✔ Crop inserted."};let can=$("pdfCanvas"),rect=$("cropRect");
 can.addEventListener("pointerdown",function(e){
   if(cropSelecting)return;
   cropSelecting=true;
