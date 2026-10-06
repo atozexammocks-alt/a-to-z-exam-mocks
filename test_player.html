@@ -1,226 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>A to Z Exam Mocks - Live Test Portal</title>
-<script>
-window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},svg:{fontCache:'global'}};
-</script>
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},svg:{fontCache:'global'}};</script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-body{background:#060911;color:#f8fafc;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-header{background:#0b1120;border-bottom:1px solid #1e293b;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
-.brand{font-size:16px;font-weight:900;color:#38bdf8}.timer-badge{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:6px 14px;border-radius:20px;font-weight:800;font-size:13px}
-.test-workspace{flex:1;display:flex;height:calc(100vh - 56px);overflow:hidden}.q-panel{flex:1;display:flex;flex-direction:column;background:#060911;padding:24px;overflow-y:auto}
-.q-container{background:#0b1120;border:1.5px solid #1e293b;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px;max-width:800px;width:100%;margin:0 auto}
-.q-img-box{background:white;border-radius:8px;padding:16px;display:flex;justify-content:center}.q-img-box img{max-width:100%;height:auto;display:block}
-.q-text{font-size:14px;color:#f8fafc;font-weight:700;line-height:1.65;overflow-wrap:anywhere}.q-options-note{font-size:13px;color:#cbd5e1;background:#0f172a;padding:10px;border-radius:6px;border:1px solid #334155;line-height:1.65;overflow-wrap:anywhere}
-.options-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}.opt-btn{background:#0f172a;border:1.5px solid #334155;color:white;padding:12px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;text-align:left;transition:all .15s ease;line-height:1.55;overflow-wrap:anywhere}.opt-btn:hover{border-color:#38bdf8}.opt-btn.selected{background:#2563eb;border-color:#38bdf8;color:white;box-shadow:0 0 12px rgba(37,99,235,.4)}
-.palette-panel{width:300px;background:#0b1120;border-left:1px solid #1e293b;padding:20px;display:flex;flex-direction:column;gap:16px;flex-shrink:0}.palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;overflow-y:auto;max-height:300px;align-content:start}.p-box{background:#0f172a;border:1px solid #334155;color:#94a3b8;height:38px;border-radius:6px;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}.p-box.answered{background:#10b981;border-color:#059669;color:white}.p-box.current{border-color:#38bdf8;box-shadow:0 0 8px rgba(56,189,248,.5)}
-.btn-action{background:#2563eb;border:none;color:white;padding:12px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;width:100%;text-align:center}.btn-action:disabled{opacity:.55;cursor:not-allowed}
-#result-overlay{position:fixed;inset:0;background:rgba(6,9,17,.95);display:none;align-items:center;justify-content:center;z-index:999999;padding:20px}.result-card{background:#0b1120;border:2px solid #38bdf8;border-radius:20px;width:100%;max-width:450px;padding:30px;text-align:center;display:flex;flex-direction:column;gap:16px;box-shadow:0 25px 60px rgba(0,0,0,.9)}
-#loading{position:fixed;inset:0;background:#060911;z-index:99999;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px;color:#cbd5e1;font-weight:700}#error-box{display:none;position:fixed;inset:0;background:#060911;z-index:100000;align-items:center;justify-content:center;padding:20px}.error-card{width:100%;max-width:650px;background:#0b1120;border:1px solid #7f1d1d;border-radius:14px;padding:24px}.error-card h2{color:#ef4444;margin-bottom:12px}.error-card p{color:#cbd5e1;line-height:1.6;white-space:pre-wrap;word-break:break-word}.error-card button{margin-top:16px}
-@media(max-width:760px){body{overflow:auto;height:auto;min-height:100vh}.test-workspace{height:auto;min-height:calc(100vh - 56px);display:block;overflow:visible}.q-panel{padding:10px;overflow:visible}.q-container{padding:15px}.palette-panel{width:auto;border-left:0;border-top:1px solid #1e293b}.options-row{grid-template-columns:1fr}.palette-grid{max-height:240px}header{padding:12px 14px}.brand{font-size:14px}}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}body{background:#060911;color:#f8fafc;height:100vh;display:flex;flex-direction:column;overflow:hidden}header{background:#0b1120;border-bottom:1px solid #1e293b;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}.brand{font-size:16px;font-weight:900;color:#38bdf8}.timer-badge{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:6px 14px;border-radius:20px;font-weight:800;font-size:13px}.test-workspace{flex:1;display:flex;height:calc(100vh - 56px);overflow:hidden}.q-panel{flex:1;display:flex;flex-direction:column;background:#060911;padding:24px;overflow-y:auto}.q-container{background:#0b1120;border:1.5px solid #1e293b;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px;max-width:800px;width:100%;margin:0 auto}.q-img-box{background:white;border-radius:8px;padding:16px;display:flex;justify-content:center}.q-img-box img{max-width:100%;height:auto;display:block}.q-text{font-size:14px;color:#f8fafc;font-weight:700;line-height:1.65;overflow-wrap:anywhere}.options-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}.opt-btn{background:#0f172a;border:1.5px solid #334155;color:white;padding:12px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;text-align:left;line-height:1.55;overflow-wrap:anywhere}.opt-btn:hover{border-color:#38bdf8}.opt-btn.selected{background:#2563eb;border-color:#38bdf8}.palette-panel{width:300px;background:#0b1120;border-left:1px solid #1e293b;padding:20px;display:flex;flex-direction:column;gap:16px;flex-shrink:0}.palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;overflow-y:auto;max-height:300px}.p-box{background:#0f172a;border:1px solid #334155;color:#94a3b8;height:38px;border-radius:6px;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}.p-box.answered{background:#10b981;border-color:#059669;color:white}.p-box.current{border-color:#38bdf8}.btn-action{background:#2563eb;border:none;color:white;padding:12px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;width:100%;text-align:center}.btn-action:disabled{opacity:.55;cursor:not-allowed}#result-overlay{position:fixed;inset:0;background:rgba(6,9,17,.95);display:none;align-items:center;justify-content:center;z-index:999999;padding:20px}.result-card{background:#0b1120;border:2px solid #38bdf8;border-radius:20px;width:100%;max-width:450px;padding:30px;text-align:center}#loading{position:fixed;inset:0;background:#060911;z-index:99999;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px;color:#cbd5e1;font-weight:700}.error-card{max-width:700px;background:#0b1120;border:1px solid #7f1d1d;border-radius:14px;padding:24px}.error-card h2{color:#ef4444;margin-bottom:12px}.error-card p{color:#cbd5e1;line-height:1.6;white-space:pre-wrap;word-break:break-word}@media(max-width:760px){body{overflow:auto;height:auto;min-height:100vh}.test-workspace{height:auto;display:block;overflow:visible}.q-panel{padding:10px;overflow:visible}.q-container{padding:15px}.palette-panel{width:auto;border-left:0;border-top:1px solid #1e293b}.options-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div id="loading">Loading mock test…</div>
-<div id="error-box"><div class="error-card"><h2>Unable to open mock test</h2><p id="error-message"></p><button class="btn-action" id="error-back">Return to Mock Tests</button></div></div>
-<div id="result-overlay"><div class="result-card">
-<h2 style="color:#fff;font-size:24px;font-weight:900">🏆 Test Submitted!</h2>
-<p style="color:#94a3b8;font-size:13px">Here is your performance summary:</p>
-<div style="background:#0f172a;padding:16px;border-radius:12px;display:flex;flex-direction:column;gap:8px">
-<div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#94a3b8">Total Questions:</span><strong id="res-total" style="color:white">0</strong></div>
-<div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#94a3b8">Correct Answers:</span><strong id="res-correct" style="color:#10b981">0</strong></div>
-<div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#94a3b8">Final Score:</span><strong id="res-score" style="color:#38bdf8;font-size:18px">0 Marks</strong></div>
-</div>
-<div style="display:flex;gap:10px;margin-top:10px"><a href="leaderboard.html?id=" id="result-leaderboard-btn" class="btn-action" style="text-decoration:none;display:block;background:#f59e0b;flex:1">🏆 View Leaderboard</a><a href="mock_tests.html" class="btn-action" style="text-decoration:none;display:block;background:#10b981;flex:1">Return to Portal ➔</a></div>
-</div></div>
+<div id="result-overlay"><div class="result-card"><h2>🏆 Test Submitted!</h2><p style="margin:12px 0;color:#94a3b8">Here is your performance summary:</p><div style="background:#0f172a;padding:16px;border-radius:12px;display:flex;flex-direction:column;gap:8px"><div>Total Questions: <strong id="res-total">0</strong></div><div>Correct Answers: <strong id="res-correct">0</strong></div><div>Final Score: <strong id="res-score">0 Marks</strong></div></div><div style="display:flex;gap:10px;margin-top:16px"><a href="mock_tests.html" class="btn-action" style="text-decoration:none;background:#10b981">Return to Portal ➔</a></div></div></div>
 <header><div class="brand" id="test-title-header">A to Z Exam Mocks - Live Test</div><div class="timer-badge" id="timer-display">⏱️ 00:00</div></header>
-<div class="test-workspace" id="test-workspace" style="display:none">
-<div class="q-panel"><div class="q-container">
-<div style="display:flex;justify-content:space-between;align-items:center"><strong id="q-indicator" style="color:#38bdf8;font-size:15px">Question 1 of 0</strong><span id="q-subject-tag" style="font-size:11px;background:#1e293b;padding:3px 8px;border-radius:4px;color:#cbd5e1">General</span></div>
-<div class="q-img-box" id="q-img-wrapper" style="display:none"><img id="current-q-img" src="" alt="Question Image"></div>
-<div id="q-text-note" class="q-text"></div><div id="q-opts-note" class="q-options-note" style="display:none"></div>
-<div class="options-row"><button class="opt-btn" id="btn-opt-A">(A) Option A</button><button class="opt-btn" id="btn-opt-B">(B) Option B</button><button class="opt-btn" id="btn-opt-C">(C) Option C</button><button class="opt-btn" id="btn-opt-D">(D) Option D</button></div>
-<div style="display:flex;gap:12px;margin-top:10px"><button class="btn-action" id="prev-btn" style="background:#334155">◀ Previous</button><button class="btn-action" id="next-btn">Save &amp; Next ▶</button></div>
-</div></div>
-<div class="palette-panel"><h3 style="font-size:14px;font-weight:800;color:#38bdf8">Question Palette</h3><div class="palette-grid" id="palette-grid"></div><button class="btn-action" id="submit-btn" style="background:#ef4444;margin-top:auto">Submit Test</button></div>
-</div>
+<div class="test-workspace" id="test-workspace" style="display:none"><div class="q-panel"><div class="q-container"><div style="display:flex;justify-content:space-between;align-items:center"><strong id="q-indicator" style="color:#38bdf8;font-size:15px">Question 1 of 0</strong><span id="q-subject-tag" style="font-size:11px;background:#1e293b;padding:3px 8px;border-radius:4px;color:#cbd5e1">General</span></div><div class="q-img-box" id="q-img-wrapper" style="display:none"><img id="current-q-img" src="" alt="Question Image"></div><div id="q-text-note" class="q-text"></div><div class="options-row"><button class="opt-btn" id="btn-opt-A"></button><button class="opt-btn" id="btn-opt-B"></button><button class="opt-btn" id="btn-opt-C"></button><button class="opt-btn" id="btn-opt-D"></button></div><div style="display:flex;gap:12px;margin-top:10px"><button class="btn-action" id="prev-btn" style="background:#334155">◀ Previous</button><button class="btn-action" id="next-btn">Save &amp; Next ▶</button></div></div></div><div class="palette-panel"><h3 style="font-size:14px;font-weight:800;color:#38bdf8">Question Palette</h3><div class="palette-grid" id="palette-grid"></div><button class="btn-action" id="submit-btn" style="background:#ef4444;margin-top:auto">Submit Test</button></div></div>
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {getFirestore,doc,getDoc,collection,getDocs,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
-const app=initializeApp(firebaseConfig);const db=getFirestore(app);const auth=getAuth(app);
-const authReady=signInAnonymously(auth).catch(e=>{console.warn("Anonymous auth unavailable:",e);return null;});
-let testData=null,currentIdx=0,userResponses={},timerInterval=null,timeLeftSeconds=0,isSubmitting=false,testStartTimestamp=0,focusLossCount=0;
-const $=id=>document.getElementById(id);
-function getTestId(){
-  const p=new URLSearchParams(window.location.search);
-  return String(p.get("id")||p.get("testId")||"").trim();
-}
-function showError(title,details=""){
-  const box=$("loading");
-  if(box){box.style.display="flex";box.innerHTML=`<div style="max-width:720px;text-align:center;padding:28px"><h2 style="color:#ef4444;margin-bottom:10px">${escapeHtml(title)}</h2><p style="color:#cbd5e1;line-height:1.6">${escapeHtml(details)}</p></div>`;}
-  console.error(title,details);
-}
-
-const norm=v=>String(v??"").replace(/\r\n?/g,"\n").trim();
-function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function imageOf(q){
- const keys=["questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","base64Image"];
- for(const k of keys){const v=norm(q?.[k]);if(/^(https?:\\/\\/|data:image\\/|blob:)/i.test(v))return v;if(/^data:[^;]+;base64,/i.test(v))return v;}
- return "";
-}
-function textOf(q){
- for(const k of ["qText","text","questionText","question_text","content","questionTextHtml","prompt"]){const v=norm(q?.[k]);if(v&&!/^(https?:\\/\\/|data:image\\/|blob:)/i.test(v))return v;}
- return "";
-}
-function stripLeadingOptionLabels(v){
- let x=norm(v);
- // Remove labels only when they are at the beginning, so labels inside the actual statement remain untouched.
- x=x.replace(/^\\s*(?:\\([A-Da-d]\\)|\\[[A-Da-d]\\]|[A-Da-d][.)]|[A-Da-d]\\s*[-:])\\s*/,'');
- return x.trim();
-}
-function optionsOf(q){
- let v=q?.options??q?.choices??q?.answers;
- let arr=[];
- if(Array.isArray(v)) arr=v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x);
- else if(v&&typeof v==="object") arr=Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x);
- else {v=norm(q?.optText);if(v) arr=v.split(/\\s*\\|\\s*/);}
- if(!arr.length){
-   arr=["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??null).filter(x=>x!=null&&String(x).trim()!="");
- }
- return arr.map(stripLeadingOptionLabels).filter(Boolean).slice(0,4);
-}
-function cleanQuestionText(v){
- let x=norm(v);
- // Some imported questions contain the complete MCQ options inside qText. Keep only the statement here.
- x=x.replace(/(?:\\r?\\n|<br\\s*\\/?>|\\s)+(?=\\(?[A-Da-d]\\)?\\s*[.)])/g,"\n");
- const marker=/\n\s*(?:\\([A-Da-d]\\)|[A-Da-d][.)])\s+/;
- const m=x.search(marker);
- if(m>0){const tail=x.slice(m);const count=(tail.match(/(?:^|\n)\s*(?:\\([A-Da-d]\\)|[A-Da-d][.)])\s+/g)||[]).length;if(count>=2)x=x.slice(0,m).trim();}
- return x;
-}
-function renderMath(v){
- let x=norm(v);if(!x)return "";
- // Normalize common escaped JSON/import forms before MathJax sees them.
- x=x.replace(/\\\\(?=\\\\|\\(|\\)|\\[|\\]|\\$|[A-Za-z])/g,"\\");
- x=x.replace(/\\\\/g,"\\");
- x=x.replace(/^\s*sprintf\s*\(\s*["']([\s\S]*?)["']\s*\)\s*$/i,"$1");
- const hasTex=/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|overline|underline|mathrm|mathbf|mathit|textbf|text|left|right|sin|cos|tan|cot|sec|csc|log|ln|exp|sum|prod|int|iint|iiint|oint|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|hbar|pm|times|cdot|le|ge|ne|infty|Omega|degree|circ|begin|end)\b/.test(x);
- const hasPower=/[A-Za-z0-9)\]}]\s*[_^]\s*(?:\{[^}]+\}|[A-Za-z0-9+\-()]+)/.test(x);
- if((hasTex||hasPower)&&!/^\s*(?:\\\(|\\\[|\$)/.test(x))return "\\("+x+"\\)";
- return x.replace(/\\n/g,"\n");
-}
-function safeRich(v){
- const x=renderMath(v),parts=[];
- const protectedText=x.replace(/\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\$[^$\n]+\$/g,m=>{parts.push(m);return "@@M"+(parts.length-1)+"@@";});
- return escapeHtml(protectedText).replace(/\n/g,"<br>").replace(/@@M(\d+)@@/g,(_,i)=>parts[Number(i)]||"");
-}
-function typeset(){if(window.MathJax?.typesetPromise){if(window.MathJax.startup?.promise)window.MathJax.startup.promise.then(()=>window.MathJax.typesetPromise([$("q-text-note"),$("btn-opt-A"),$("btn-opt-B"),$("btn-opt-C"),$("btn-opt-D")]).catch(()=>{})).catch(()=>{});else window.MathJax.typesetPromise().catch(()=>{});}}
-async function loadQuestionsByIds(ids){
- const cleanIds=[...new Set((ids||[]).map(x=>{
-   if(x&&typeof x==="object") return String(x.id??x.questionId??x.docId??x.refId??"").trim();
-   return String(x??"").trim();
- }).filter(Boolean))];
- if(!cleanIds.length)return [];
- try{await authReady}catch(_){}
- const collectionsToTry=["questions","library_questions","questionBank","question_bank"];
- const map=new Map();
- for(const cname of collectionsToTry){
-   try{
-     const snap=await getDocs(collection(db,cname));
-     snap.forEach(d=>{
-       if(cleanIds.includes(d.id)) map.set(d.id,{id:d.id,_sourceCollection:cname,...d.data()});
-     });
-   }catch(e){console.warn("Could not read "+cname,e)}
-   if(map.size===cleanIds.length)break;
- }
- return cleanIds.map(id=>map.get(id)).filter(Boolean);
-}
-function normalizePublishedQuestions(raw){
- const embedded=Array.isArray(raw?.questions)?raw.questions:[];
- if(embedded.length){
-   return embedded.map((q,i)=>{
-     if(q&&typeof q==="object") return q.id?{...q}:({...q,id:String(q.id??q.questionId??"embedded_"+i)});
-     return null;
-   }).filter(Boolean);
- }
- return [];
-}
-async function initTestPlayer(){
- const studentEmail=(localStorage.getItem("ExamVault_Student_Email")||"").trim();
- if(!auth.currentUser){try{await authReady}catch(_){}}
- if(!studentEmail){showError("Please login first from the Student Portal.");setTimeout(()=>{window.location.href="student.html"},900);return;}
- const testId=getTestId();if(!testId){showError("No test ID was supplied in the URL.","Expected format: test_player.html?id=YOUR_PUBLISHED_TEST_ID");return;}
- try{
-   const ref=doc(db,"published_tests",testId);const snap=await getDoc(ref);
-   if(!snap.exists()){showError("Published test not found.","The player looked for published_tests/"+testId+" but that document does not exist. Check that the Open Mock Test link contains the actual published test document ID.");return;}
-   const raw=snap.data();
-   let questions=normalizePublishedQuestions(raw);
-   if(!questions.length&&Array.isArray(raw.questionIds)&&raw.questionIds.length){
-     questions=await loadQuestionsByIds(raw.questionIds);
-     const missing=raw.questionIds.length-questions.length;
-     if(missing>0)console.warn("Published test: "+missing+" question ID(s) could not be resolved.",raw.questionIds);
-   }
-   if(!questions.length){showError("This published test has no available questions.","The test document was found, but neither embedded questions nor matching questionIds produced any questions.");return;}
-   const price=Number(raw.price||0);
-   if(price>0){const email=studentEmail.toLowerCase();const purchaseId=encodeURIComponent(email)+"_"+encodeURIComponent(testId);const purchaseSnap=await getDoc(doc(db,"purchases",purchaseId));if(!purchaseSnap.exists()||purchaseSnap.data().status!=="paid"){alert("This is a paid mock test. Please purchase it before starting.");window.location.href="mock_tests.html";return;}}
-   testData={...raw,questions};timeLeftSeconds=(parseInt(raw.time)||parseInt(raw.duration)||60)*60;testStartTimestamp=Date.now();startTestEngine();initAntiCheating();
- }catch(err){console.error("Test player load error:",err);showError("Error loading test.",err?.message||String(err));}
-}
-function startTestEngine(){if(!testData?.questions?.length){showError("This test has no questions available.");return;}$("test-title-header").textContent=testData.title||"Live Test";$("loading").style.display="none";$("test-workspace").style.display="flex";renderPalette();loadQuestion(0);startTimer();}
-function startTimer(){clearInterval(timerInterval);updateTimer();timerInterval=setInterval(()=>{if(isSubmitting)return;if(timeLeftSeconds<=0){clearInterval(timerInterval);submitTest(true);return;}timeLeftSeconds--;updateTimer()},1000)}
-function updateTimer(){const m=Math.floor(timeLeftSeconds/60),s=timeLeftSeconds%60;$("timer-display").textContent=`⏱️ ${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`}
-function initAntiCheating(){window.addEventListener("blur",()=>{if(isSubmitting||!testData)return;focusLossCount++;if(focusLossCount===1)alert("⚠️ Warning: Do not switch tabs or minimize the browser during the exam!");else if(focusLossCount>=3){alert("🚨 Security Alert: Multiple tab switches detected. Auto-submitting test.");submitTest(true)}})}
-function loadQuestion(idx){
- if(!testData?.questions?.[idx])return;
- currentIdx=idx;const q=testData.questions[idx];
- $("q-indicator").textContent=`Question ${idx+1} of ${testData.questions.length}`;
- $("q-subject-tag").textContent=q.topic||q.subject||q.chapter||"General";
- const mode=String(q.contentMode||((q.questionImage||q.image||q.croppedImage)?"both":"text")).toLowerCase();
- const im=imageOf(q),showImage=!!im&&mode!=="text";
- const iw=$("q-img-wrapper"),img=$("current-q-img");
- iw.style.display=showImage?"flex":"none";
- if(showImage){img.onload=()=>{iw.style.display="flex"};img.onerror=()=>{iw.style.display="none"};img.src=im;}else{img.onload=null;img.onerror=null;img.removeAttribute("src");}
- const text=cleanQuestionText(textOf(q));
- $("q-text-note").style.display=mode==="image"?"none":"block";
- $("q-text-note").innerHTML=mode==="image"?"":safeRich(text||("Question "+(idx+1)));
- // Do NOT print a second static copy of the options. The four clickable buttons below are the only options shown.
- $("q-opts-note").innerHTML="";
- $("q-opts-note").style.display="none";
- const opts=optionsOf(q);
- ["A","B","C","D"].forEach((letter,i)=>{
-   const b=$("btn-opt-"+letter),value=opts[i]||"";
-   b.innerHTML=value?safeRich(value):`(${letter}) Option ${letter}`;
-   b.className="opt-btn"+(userResponses[idx]===letter?" selected":"");
-   b.style.display=value?"block":"none";
-   b.setAttribute("aria-label",value?`Option ${letter}: ${value}`:`Option ${letter}`);
-   b.onclick=()=>{if(value){userResponses[currentIdx]=letter;loadQuestion(currentIdx)}};
- });
- $("prev-btn").disabled=idx===0;
- $("next-btn").textContent=idx===testData.questions.length-1?"Save & Stay ▶":"Save & Next ▶";
- highlightPalette();
- typeset();
-}
-function renderPalette(){const grid=$("palette-grid");grid.innerHTML="";testData.questions.forEach((_,i)=>{const b=document.createElement("div");b.className="p-box";b.id="palette-box-"+i;b.textContent=i+1;b.onclick=()=>loadQuestion(i);grid.appendChild(b)});highlightPalette()}
-function highlightPalette(){testData?.questions?.forEach((_,i)=>{const b=$("palette-box-"+i);if(!b)return;b.className="p-box";if(userResponses[i])b.classList.add("answered");if(i===currentIdx)b.classList.add("current")})}
+// Correct Firebase configuration used by the A to Z Exam Mocks project.
+const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZQFBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
+const $=id=>document.getElementById(id),norm=v=>String(v??"").replace(/\r\n?/g,"\n").trim();
+let testData=null,currentIdx=0,userResponses={},timerInterval=null,timeLeftSeconds=0,isSubmitting=false,testStartTimestamp=0;
+function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function getTestId(){const p=new URLSearchParams(location.search);return String(p.get("id")||p.get("testId")||"").trim()}
+function showError(title,details=""){clearInterval(timerInterval);$("loading").innerHTML=`<div class="error-card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(details)}</p><button class="btn-action" style="margin-top:16px" onclick="location.href='mock_tests.html'">Return to Mock Tests</button></div>`;console.error(title,details)}
+function findImage(v,depth=0){if(depth>6||v==null)return "";if(typeof v==="string"){const s=v.trim();const m=s.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)return m[1];if(/^(https?:\/\/|data:image\/|blob:|gs:\/\/)/i.test(s))return s;return ""}if(Array.isArray(v)){for(const x of v){const r=findImage(x,depth+1);if(r)return r}return ""}if(typeof v==="object"){for(const k of ["dataUrl","dataURL","downloadURL","downloadUrl","url","src","image","data","base64","croppedImage","croppedImageData","questionImage","questionImageData","imageData","imageUrl","imageURL","figure","figureImage","figureData","crop","cropData","cropped","html","content","questionTextHtml","qText","questionText","text","prompt"]){if(k in v){const r=findImage(v[k],depth+1);if(r)return r}}}return ""}
+function imageOf(q){return findImage(q)}
+function textOf(q){for(const k of ["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"]){const v=norm(q?.[k]);if(!v)continue;if(/^(?:https?:\/\/|data:image\/|blob:|gs:\/\/)/i.test(v))continue;if(/^\s*<img\b[^>]*>\s*$/i.test(v))continue;return v}return ""}
+function optionsOf(q){let v=q?.options??q?.choices??q?.answers,arr=[];if(Array.isArray(v))arr=v.map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x);else if(v&&typeof v==='object')arr=Object.values(v).map(x=>typeof x==='object'?(x.text??x.value??x.label??''):x);if(!arr.length)arr=["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??null).filter(x=>x!=null&&String(x).trim()!="");return arr.map(x=>norm(x).replace(/^\s*(?:\([A-Da-d]\)|\[[A-Da-d]\]|[A-Da-d][.)]|[A-Da-d]\s*[-:])\s*/,"")).filter(Boolean).slice(0,4)}
+function renderMath(v){let x=norm(v);if(!x)return "";x=x.replace(/\\\\(?=\\\\|\(|\)|\[|\]|\$|[A-Za-z])/g,"\\").replace(/\\\\/g,"\\");const tex=/\\(?:frac|dfrac|tfrac|sqrt|vec|hat|bar|dot|ddot|overline|underline|mathrm|mathbf|mathit|text|left|right|sin|cos|tan|log|ln|sum|prod|int|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|times|cdot|le|ge|ne|infty|begin|end)\b/.test(x);const power=/[A-Za-z0-9)\]}]\s*[_^]\s*(?:\{[^}]+\}|[A-Za-z0-9+\-()]+)/.test(x);return(tex||power)&&!/^\s*(?:\\\(|\\\[|\$)/.test(x)?"\\("+x+"\\)":x.replace(/\\n/g,"\n")}
+function safeRich(v){const x=renderMath(v),parts=[];const p=x.replace(/\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\$[^$\n]+\$/g,m=>{parts.push(m);return"@@M"+(parts.length-1)+"@@"});return escapeHtml(p).replace(/\n/g,"<br>").replace(/@@M(\d+)@@/g,(_,i)=>parts[+i]||"")}
+async function loadQuestionsByIds(ids){const clean=[...new Set((ids||[]).map(x=>typeof x==='object'?String(x.id??x.questionId??x.docId??''):String(x)).map(x=>x.trim()).filter(Boolean))];if(!clean.length)return[];const map=new Map();for(const cname of ["questions","library_questions","questionBank","question_bank"]){try{const snap=await getDocs(collection(db,cname));snap.forEach(d=>{if(clean.includes(d.id))map.set(d.id,{id:d.id,_sourceCollection:cname,...d.data()})})}catch(e){console.warn(cname,e)}if(map.size===clean.length)break}return clean.map(id=>map.get(id)).filter(Boolean)}
+function normalizePublishedQuestions(raw){if(!Array.isArray(raw?.questions))return[];return raw.questions.map((q,i)=>q&&typeof q==='object'?{...q,id:String(q.id??q.questionId??("embedded_"+i))}:null).filter(Boolean)}
+async function init(){try{
+ const testId=getTestId();if(!testId)return showError("No test ID was supplied in the URL.","Expected: test_player.html?id=YOUR_PUBLISHED_TEST_ID");
+ const authPromise=signInAnonymously(auth).catch(e=>{console.warn("Anonymous auth unavailable",e);return null});
+ const snap=await getDoc(doc(db,"published_tests",testId));
+ if(!snap.exists())return showError("Published test not found.","No document exists at published_tests/"+testId+".");
+ const raw=snap.data();let questions=normalizePublishedQuestions(raw);
+ if(!questions.length&&Array.isArray(raw.questionIds)&&raw.questionIds.length)questions=await loadQuestionsByIds(raw.questionIds);
+ if(!questions.length)return showError("This published test has no available questions.","The published test was found, but no embedded questions or matching question IDs could be loaded.");
+ const email=(localStorage.getItem("ExamVault_Student_Email")||"").trim();
+ if(!email){showError("Please login first from the Student Portal.");setTimeout(()=>location.href="student.html",1000);return}
+ if(Number(raw.price||0)>0){const purchaseId=encodeURIComponent(email.toLowerCase())+"_"+encodeURIComponent(testId);const ps=await getDoc(doc(db,"purchases",purchaseId));if(!ps.exists()||ps.data().status!=="paid"){alert("This is a paid mock test. Please purchase it before starting.");location.href="mock_tests.html";return}}
+ testData={...raw,questions};timeLeftSeconds=(parseInt(raw.time)||parseInt(raw.duration)||60)*60;testStartTimestamp=Date.now();startTest();await authPromise;
+ }catch(e){showError("Error loading test.",e?.message||String(e))}}
+function startTest(){$("test-title-header").textContent=testData.title||"Live Test";$('loading').style.display="none";$('test-workspace').style.display="flex";renderPalette();loadQuestion(0);updateTimer();timerInterval=setInterval(()=>{if(timeLeftSeconds<=0){clearInterval(timerInterval);submitTest(true);return}timeLeftSeconds--;updateTimer()},1000)}
+function updateTimer(){const m=Math.floor(timeLeftSeconds/60),s=timeLeftSeconds%60;$('timer-display').textContent=`⏱️ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
+function loadQuestion(i){const q=testData.questions[i];if(!q)return;currentIdx=i;$('q-indicator').textContent=`Question ${i+1} of ${testData.questions.length}`;$('q-subject-tag').textContent=q.topic||q.subject||q.chapter||'General';const im=imageOf(q),tw=$('q-img-wrapper'),img=$('current-q-img');if(im){tw.style.display='flex';img.onerror=()=>tw.style.display='none';img.onload=()=>tw.style.display='flex';img.src=im}else{tw.style.display='none';img.removeAttribute('src')};const txt=textOf(q);$('q-text-note').style.display=txt?'block':'none';$('q-text-note').innerHTML=txt?safeRich(txt):'';const opts=optionsOf(q);['A','B','C','D'].forEach((l,n)=>{const b=$('btn-opt-'+l),v=opts[n]||'';b.style.display=v?'block':'none';b.innerHTML=v?safeRich(v):'';b.className='opt-btn'+(userResponses[i]===l?' selected':'');b.onclick=()=>{if(v){userResponses[i]=l;loadQuestion(i)}}});$('prev-btn').disabled=i===0;$('next-btn').textContent=i===testData.questions.length-1?'Save & Stay ▶':'Save & Next ▶';highlightPalette();if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([$('q-text-note'),$('btn-opt-A'),$('btn-opt-B'),$('btn-opt-C'),$('btn-opt-D')]).catch(()=>{})}
+function renderPalette(){const g=$('palette-grid');g.innerHTML='';testData.questions.forEach((_,i)=>{const b=document.createElement('div');b.className='p-box';b.textContent=i+1;b.onclick=()=>loadQuestion(i);g.appendChild(b)});highlightPalette()}function highlightPalette(){testData?.questions?.forEach((_,i)=>{const b=$('palette-box-'+i);if(!b)return;b.className='p-box'+(userResponses[i]?' answered':'')+(i===currentIdx?' current':'')})}
 function goNext(){if(currentIdx<testData.questions.length-1)loadQuestion(currentIdx+1)}function goPrev(){if(currentIdx>0)loadQuestion(currentIdx-1)}
-async function submitTest(isAuto=false){
- if(isSubmitting||!testData)return;if(!isAuto&&!confirm("Are you sure you want to submit the test?"))return;isSubmitting=true;clearInterval(timerInterval);$("submit-btn").disabled=true;
- let correct=0;testData.questions.forEach((q,i)=>{const key=norm(q.key??q.correctKey??q.answer).toUpperCase();if(userResponses[i]===key)correct++});
- const total=testData.questions.length;const totalMarks=parseInt(testData.marks)||total*4;const marksPerQ=total?totalMarks/total:0;const score=Math.round(correct*marksPerQ);const percentage=totalMarks?Math.round(score/totalMarks*100):0;const timeTaken=Math.max(0,Math.round((Date.now()-testStartTimestamp)/1000));
- const email=localStorage.getItem("ExamVault_Student_Email")||"student@gmail.com",name=localStorage.getItem("ExamVault_Student_Name")||"Student",phone=localStorage.getItem("ExamVault_Student_Phone")||"",referrer=localStorage.getItem("ExamVault_Student_Referrer")||"Direct",testId=getTestId()||"demo_test";
- try{await addDoc(collection(db,"student_results"),{testId,testTitle:testData.title||"Mock Test",studentEmail:email,studentName:name,studentPhone:phone,referrer,score,totalMarks,correctAnswers:correct,totalQuestions:total,percentage,timeTaken,userResponses,submittedAt:new Date().toISOString()})}catch(e){console.error("Failed to save result:",e)}
- $("res-total").textContent=total;$("res-correct").textContent=correct;$("res-score").textContent=`${score} / ${totalMarks} Marks (${correct}/${total} Correct)`;$("result-leaderboard-btn").href="leaderboard.html?id="+encodeURIComponent(testId);$("result-overlay").style.display="flex";
-}
-$("prev-btn").onclick=goPrev;$("next-btn").onclick=goNext;$("submit-btn").onclick=()=>submitTest(false);$("error-back").onclick=()=>window.location.href="mock_tests.html";
-window.addEventListener("load",initTestPlayer);
-</script>
-</body>
-</html>
+async function submitTest(auto=false){if(isSubmitting||!testData)return;if(!auto&&!confirm('Are you sure you want to submit the test?'))return;isSubmitting=true;clearInterval(timerInterval);let correct=0;testData.questions.forEach((q,i)=>{if(userResponses[i]===norm(q.key??q.correctKey??q.answer).toUpperCase())correct++});const total=testData.questions.length,totalMarks=parseInt(testData.marks)||total*4,score=Math.round(correct*(totalMarks/total));try{await addDoc(collection(db,'student_results'),{testId:getTestId(),testTitle:testData.title||'Mock Test',studentEmail:localStorage.getItem('ExamVault_Student_Email')||'',studentName:localStorage.getItem('ExamVault_Student_Name')||'Student',score,totalMarks,correctAnswers:correct,totalQuestions:total,percentage:totalMarks?Math.round(score/totalMarks*100):0,userResponses,submittedAt:new Date().toISOString()})}catch(e){console.error(e)}$('res-total').textContent=total;$('res-correct').textContent=correct;$('res-score').textContent=`${score} / ${totalMarks} Marks (${correct}/${total} Correct)`;$('result-overlay').style.display='flex'}
+$('prev-btn').onclick=goPrev;$('next-btn').onclick=goNext;$('submit-btn').onclick=()=>submitTest(false);window.addEventListener('error',e=>console.error('Player error:',e.error||e.message));init();
+</script></body></html>
