@@ -139,7 +139,7 @@ window.sections=[{name:"Section A",type:"MCQ",marks:1}];
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function imageOf(q){
- const keys=["questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image","figure","figureImage","figureUrl","figureURL","figureData","figureSrc","visual","visualImage","visualUrl","visualURL","questionFigure","questionFigureImage","questionImageHtml","figureHtml","imageHtml","html","questionHtml"];
+ const keys=["question","questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image","figure","figureImage","figureUrl","figureURL","figureData","figureSrc","visual","visualImage","visualUrl","visualURL","questionFigure","questionFigureImage","questionImageHtml","figureHtml","imageHtml","html","questionHtml"];
  const seen=new Set();
  const direct=v=>{
   if(typeof v!=="string")return ""; const x=v.trim(); if(!x)return "";
