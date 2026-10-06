@@ -69,8 +69,22 @@ function optionsOf(q){
 }
 function displayOptionsOf(q){return optionsOf(q)}
 function cleanOptionText(v){return String(v??"").trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
+/* A-Z EXAM MOCKS: UPDATED MATH RENDERER v3 */
+function normalizePlainMath(v){
+  let x=String(v??'');
+  // Convert common plain-text math produced by OCR/importers into MathJax.
+  x=x.replace(/\\\\/g,'\\');
+  x=x.replace(/\bSQRT\s*\(([^()]+)\)/gi,'\\sqrt{$1}');
+  x=x.replace(/\bsqrt\s*\(([^()]+)\)/gi,'\\sqrt{$1}');
+  x=x.replace(/\bFRAC\s*\(([^,()]+),\s*([^()]+)\)/gi,'\\frac{$1}{$2}');
+  x=x.replace(/\bfrac\s*\(([^,()]+),\s*([^()]+)\)/gi,'\\frac{$1}{$2}');
+  x=x.replace(/\b([A-Za-z0-9]+)\s*\^\s*\(([^)]+)\)/g,'$1^{$2}');
+  x=x.replace(/\b([A-Za-z0-9]+)\s*_\s*\(([^)]+)\)/g,'$1_{$2}');
+  return x;
+}
 function normalizeMathSource(v){
- const raw=String(v??'');
+
+ const raw=normalizePlainMath(v);
  if(!raw)return '';
  // Some imported Firestore/AI records contain one extra JSON-style escape.
  // Normalize only known MathJax delimiters/commands; do NOT globally collapse \\.
