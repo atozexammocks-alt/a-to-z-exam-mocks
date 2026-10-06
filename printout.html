@@ -83,7 +83,7 @@ function cleanOpt(v){
   // embedded option labels from imported data so we never print "B. (b) ...".
   for(let i=0;i<3;i++){
     const before=x;
-    x=x.replace(/^\\s*(?:\\(?[A-Ea-e]\\)?[.)]|\\[[A-Ea-e]\\]|[A-Ea-e]\\s*[-:])\\s*/,'');
+    x=x.replace(/^\s*(?:\(?[A-Ea-e]\)?[.)]|\[[A-Ea-e]\]|[A-Ea-e]\s*[-:])\s*/,'');
     if(x===before)break;
   }
   return x.trim();
@@ -344,22 +344,37 @@ function bootLocalPayload(){
  try{if(data.questions.length)return true;return loadStored();}catch(e){console.warn("Local print payload bootstrap failed",e);return false}
 }
 function printIdsFromAnySource(){
+ const out=[];
+ const add=v=>{
+  if(v==null)return;
+  if(Array.isArray(v)){v.forEach(add);return;}
+  if(typeof v==='object'){
+   for(const k of ['id','qid','questionId','questionID']){if(v[k]!=null){add(v[k]);return;}}
+   return;
+  }
+  const x=String(v).trim(); if(x&&!out.includes(x))out.push(x);
+ };
  try{
-  const u=(new URLSearchParams(location.search).get("selected")||"").split(",").map(x=>x.trim()).filter(Boolean);
-  if(u.length)return u;
+  const u=(new URLSearchParams(location.search).get('selected')||'').split(',').map(x=>x.trim()).filter(Boolean);
+  u.forEach(add);
  }catch(e){}
- for(const key of ["AZ_PRINT_SELECTED_IDS","AZ_BUILDER_SELECTED_IDS"]){
+ for(const key of ['AZ_PRINT_SELECTED_IDS','AZ_BUILDER_SELECTED_IDS']){
+  try{const a=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(a))a.forEach(add);}catch(e){}
+ }
+ try{const a=JSON.parse(sessionStorage.getItem('AZ_BUILDER_SELECTED_IDS')||'[]');if(Array.isArray(a))a.forEach(add);}catch(e){}
+ // Paper Designer is authoritative for ordering/section assignment.
+ for(const sectionsKey of ['AZ_PRINT_SECTIONS','AZ_PAPER_DESIGN_SECTIONS']){
   try{
-   const a=JSON.parse(localStorage.getItem(key)||"[]");
-   if(Array.isArray(a)&&a.length)return a.map(String).filter(Boolean);
+   const sections=JSON.parse(localStorage.getItem(sectionsKey)||'[]');
+   if(Array.isArray(sections))sections.forEach(sec=>{
+    if(!sec||typeof sec!=='object')return;
+    add(sec.questionIds); add(sec.questions); add(sec.ids); add(sec.questionIDs);
+   });
   }catch(e){}
  }
- try{
-  const a=JSON.parse(sessionStorage.getItem("AZ_BUILDER_SELECTED_IDS")||"[]");
-  if(Array.isArray(a)&&a.length)return a.map(String).filter(Boolean);
- }catch(e){}
- return [];
+ return out;
 }
+
 function storedPrintSections(){
  try{
   const a=JSON.parse(localStorage.getItem("AZ_PRINT_SECTIONS")||"[]");
@@ -431,6 +446,21 @@ async function directLoad(){
      const snap=await getDoc(doc(db,cname,String(id)));
      if(snap.exists())found.push({id:snap.id,_sourceCollection:cname,...snap.data()});
     }catch(e){console.warn("Question lookup failed in "+cname+":",e)}
+   }
+  }
+  // If the document ID was saved in a different legacy representation, do one
+  // collection-wide fallback and match every known ID exactly.
+  if(found.length<ids.length){
+   for(const cname of collections){
+    if(found.length>=ids.length)break;
+    try{
+     const snap=await getDocs(collection(db,cname));
+     for(const d of snap.docs){
+      if(ids.includes(String(d.id)) && !found.some(q=>String(q.id)===String(d.id))){
+       found.push({id:d.id,_sourceCollection:cname,...d.data()});
+      }
+     }
+    }catch(e){console.warn("Collection fallback failed in "+cname,e)}
    }
   }
   const qs=ids.map(id=>found.find(q=>String(q.id)===String(id))).filter(Boolean);
