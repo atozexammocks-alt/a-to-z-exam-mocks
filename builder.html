@@ -281,7 +281,7 @@ function renderQuestions(){
    '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' onchange="toggleQuestion(\''+esc(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div>'+(dupCount>1?'<span class="dup-tag">⚠ DUPLICATE ×'+dupCount+'</span>':'<span class="clean-tag">✓ CLEAN</span>')+(txt?'<button class="btn blue" onclick="openTextEditor(\''+encodeURIComponent(id)+'\')">✏️ Edit Text</button>':'')+'<button class="btn blue" onclick="openQuestionView(\''+encodeURIComponent(id)+'\')">👁 View</button>'+'<button class="btn" onclick="removeSelection(\''+esc(id)+'\')">✕</button></div>'+
    (img?'<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')"><img src="'+esc(img)+'" alt="Question"></div>':'')+
    (txt?'<div class="qbody" style="'+textStyleOf(q)+'">'+renderLibraryText(txt)+'</div>':'')+
-   (opts.length && !((window.textEdits[id]||{}).hideOptions)?'<div class="opts" style="'+textStyleOf(q)+'">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderMath(esc(o))+'</div>').join("")+'</div>':'')+
+   (opts.length && !((window.textEdits[id]||{}).hideOptions)?'<div class="opts" style="'+textStyleOf(q)+'">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderLibraryText(o)+'</div>').join("")+'</div>':'')+
   '</article>';
  }).join("");
  typeset();
@@ -385,7 +385,7 @@ window.openQuestionView=function(encodedId){
  let html="";
  if(txt) html+='<div class="qbody" style="'+textStyleOf(q)+'">'+renderLibraryText(txt)+'</div>';
  if(img&&!hasEmbeddedImageMarkup(txt)) html+='<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')" style="cursor:zoom-in"><img src="'+esc(img)+'" alt="Question Figure"></div>';
- if(opts.length&&!edit.hideOptions) html+='<div class="opts" style="'+textStyleOf(q)+'">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderMath(esc(o))+'</div>').join("")+'</div>';
+ if(opts.length&&!edit.hideOptions) html+='<div class="opts" style="'+textStyleOf(q)+'">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderLibraryText(o)+'</div>').join("")+'</div>';
  if(!html)html='<div class="empty">No preview content available for this question.</div>';
  document.getElementById("questionViewBody").innerHTML=html;
  document.getElementById("questionViewBackdrop").style.display="flex";
