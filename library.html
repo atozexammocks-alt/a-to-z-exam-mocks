@@ -17,7 +17,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",
+      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
       authDomain: "physicsvault-80a10.firebaseapp.com",
       projectId: "physicsvault-80a10",
       storageBucket: "physicsvault-80a10.firebasestorage.app",
@@ -679,6 +679,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
         if (window.teacherAuthReady) await window.teacherAuthReady;
         const snap=await window.getDocs(window.collection(window.db,"questions"));
         const all=snap.docs.map(d=>({id:d.id,...d.data()}));
+        console.info("[A2Z Library] Firebase questions fetched:", all.length);
         pickerQuestions=all;
         const email=teacherEmailKey();
         libraryQuestions=all.filter(q=>{
@@ -686,8 +687,9 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
           const explicitCentral=q.central===true || q.isCentral===true || q.libraryMode==='central' || q.targetLibrary==='central';
           const explicitGroup=q.group===true || q.libraryMode==='group' || q.targetLibrary==='group';
           if(activeLibraryMode==='private') {
-            // Include older/private records even when an old uploader did not write ownerEmail.
-            return !explicitCentral && !explicitGroup;
+            // Private library: include records owned by this teacher plus legacy private records.
+            // Do NOT hide a teacher's own question just because an older uploader wrote a mode flag.
+            return !explicitCentral && !explicitGroup && (!owner || !email || owner===email);
           }
           if(activeLibraryMode==='central') return explicitCentral;
           if(activeLibraryMode==='group') return explicitGroup;
@@ -783,11 +785,17 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       return '';
     }
     function libraryMathMarkup(v){
-      var x=String(v||"");
+      var x=String(v??"");
       if(!x)return "";
-      if(/\\\\\(|\\\\\[/.test(x)) return x;
-      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
-        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
+      // Preserve existing MathJax delimiters.
+      if(/\\\(|\\\[|\\\)|\\\]/.test(x) || /(^|[^$])\$[^$]+\$(?!$)/.test(x)) return x;
+      // Firestore/AI data normally contains SINGLE backslashes: \frac, \sqrt, \int, etc.
+      // Detect the actual LaTeX commands instead of requiring double backslashes.
+      if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|iiiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|nu|pi|sigma|omega|phi|psi|rho|tau|left|right|begin|end|mathbf|mathrm|text|overline|underline|vec|hat|dot|lim|log|ln|sin|cos|tan|cot|sec|csc|infty)\b/.test(x)
+        || /(?:[A-Za-z0-9\}])\^\{[^}]+\}/.test(x)
+        || /(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)
+        || /\\[A-Za-z]+_[0-9A-Za-z]/.test(x)
+        || /\\[A-Za-z]+\^/.test(x)){
         return "\\("+x+"\\)";
       }
       return x;
@@ -796,13 +804,13 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       var x=libraryMathMarkup(v);
       return escapeHtml(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
     }
-    function typesetLibraryMath(){
+    function typesetLibraryMath(root){
       if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
-      if(MathJax.startup&&MathJax.startup.promise){
-        MathJax.startup.promise.then(function(){
-          MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
-        }).catch(function(){});
-      }
+      var targets=[];
+      if(root) targets=[root];
+      else targets=Array.from(document.querySelectorAll(".library-q-text,.library-q-options,.sqv-text,.sqv-option,.sqv-figure"));
+      var run=function(){return MathJax.typesetPromise(targets).catch(function(e){console.warn("MathJax typeset failed:",e);});};
+      if(MathJax.startup&&MathJax.startup.promise) MathJax.startup.promise.then(run).catch(function(){}); else run();
     }
 
     function questionOptions(q){
@@ -1008,7 +1016,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       if(title)title.textContent='👁 View Question · '+String(q.qNo||q.no||'');
       body.innerHTML=renderSavedQuestionView(q);
       modal.style.display='flex';
-      typesetLibraryMath();
+      typesetLibraryMath(body);
     };
     window.closeSavedQuestionView=function(){const m=document.getElementById('saved-question-view-modal');if(m)m.style.display='none';};
 
