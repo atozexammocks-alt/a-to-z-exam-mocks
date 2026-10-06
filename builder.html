@@ -476,19 +476,25 @@ async function loadBuilderFolderTree(mode){
  let col="folder_configs_private",id=builderTeacherDocId(email);
  if(mode==="central"){col="folder_configs_central";id="global_central_tree";}
  if(mode==="group"){col="folder_configs_group";id=builderTeacherDocId(email)+"_group";}
- if(!email && mode!=="central") return [];
- // IMPORTANT: use the exact same authenticated Firestore path as Library.
- // Do not use REST here; Firestore rules expect the Firebase session.
- await window.builderAuthReady;
- const snap=await getDoc(doc(db,col,id));
- const data=snap.exists()?snap.data():{};
- const tree=builderLegacyTree(data);
- window.builderFolderTrees[mode]=tree;
- return tree;
+ if(!email && mode!=="central") { window.builderFolderTrees[mode]=[]; return []; }
+ try{
+  // Folder configuration is optional. A folder-config failure MUST NOT block
+  // the actual question-library load. Questions themselves are loaded below.
+  await window.builderAuthReady;
+  const snap=await getDoc(doc(db,col,id));
+  const data=snap.exists()?snap.data():{};
+  const tree=builderLegacyTree(data);
+  window.builderFolderTrees[mode]=tree;
+  return tree;
+ }catch(e){
+  console.warn("[A2Z Builder] Folder config unavailable for "+mode+"; rebuilding folders from questions.",e);
+  window.builderFolderTrees[mode]=[];
+  return [];
+ }
 }
 async function loadAllBuilderFolderTrees(){
- const results=await Promise.all(["private","central","group"].map(loadBuilderFolderTree));
- return results;
+ // Do not let one missing/forbidden folder-config document stop the Builder.
+ return Promise.allSettled(["private","central","group"].map(loadBuilderFolderTree));
 }
 
 
