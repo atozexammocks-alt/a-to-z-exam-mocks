@@ -54,71 +54,80 @@ async function resolveImageURL(candidate){
 }
 function findImage(v,depth=0){return imageCandidate(v,depth)}
 function textOf(q){
- const keys=["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"];
- for(const k of keys){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:|gs:\/\/)/i.test(v.trim()))return v.trim();}
- return "";
+ const keys=["qText","text","questionText","question_text","content","questionTextHtml","prompt","question","question_text_html"];
+ for(const k of keys){
+  const v=q?.[k];
+  if(typeof v==='string'&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:|gs:\/\/)/i.test(v.trim()))return v.trim();
+ }
+ return '';
 }
-function displayTextOf(q){
- return textOf(q);
-}
+function displayTextOf(q){return textOf(q)}
 function optionsOf(q){
- const v=q?.options??q?.choices??q?.answers;
- if(Array.isArray(v))return v.map(x=>typeof x==="object"?(x.text??x.value??x.label??""):x).filter(x=>String(x).trim());
- if(v&&typeof v==="object")return Object.values(v).map(x=>typeof x==="object"?(x.text??x.value??""):x).filter(x=>String(x).trim());
- return ["A","B","C","D"].map(k=>q?.["option"+k]??q?.["opt"+k]??q?.[k]).filter(x=>String(x??"").trim());
+ const v=q?.options??q?.choices??q?.answers??q?.answerOptions??q?.optionList;
+ if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??x.option??''):x).filter(x=>String(x??'').trim());
+ if(v&&typeof v==='object')return Object.values(v).map(x=>typeof x==='object'?(x.text??x.value??x.label??x.option??''):x).filter(x=>String(x??'').trim());
+ if(typeof v==='string'){
+  try{return optionsOf({...q,options:JSON.parse(v)})}catch(_){return v.split(/\s*\|\s*/).map(x=>x.trim()).filter(Boolean)}
+ }
+ const out=['A','B','C','D'].map(k=>q?.['option'+k]??q?.['opt'+k]??q?.['option_'+k]??q?.[k]).filter(x=>String(x??'').trim());
+ return out;
 }
 function displayOptionsOf(q){return optionsOf(q)}
-function cleanOptionText(v){return String(v??"").trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
-/* A-Z EXAM MOCKS: UPDATED MATH RENDERER v3 */
-function normalizePlainMath(v){
-  let x=String(v??'');
-  // Convert common plain-text math produced by OCR/importers into MathJax.
-  x=x.replace(/\\\\/g,'\\');
-  x=x.replace(/\bSQRT\s*\(([^()]+)\)/gi,'\\sqrt{$1}');
-  x=x.replace(/\bsqrt\s*\(([^()]+)\)/gi,'\\sqrt{$1}');
-  x=x.replace(/\bFRAC\s*\(([^,()]+),\s*([^()]+)\)/gi,'\\frac{$1}{$2}');
-  x=x.replace(/\bfrac\s*\(([^,()]+),\s*([^()]+)\)/gi,'\\frac{$1}{$2}');
-  x=x.replace(/\b([A-Za-z0-9]+)\s*\^\s*\(([^)]+)\)/g,'$1^{$2}');
-  x=x.replace(/\b([A-Za-z0-9]+)\s*_\s*\(([^)]+)\)/g,'$1_{$2}');
-  return x;
-}
-function normalizeMathSource(v){
+function cleanOptionText(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
 
- const raw=normalizePlainMath(v);
- if(!raw)return '';
- // Some imported Firestore/AI records contain one extra JSON-style escape.
- // Normalize only known MathJax delimiters/commands; do NOT globally collapse \\.
- return raw
-   .replace(/\\\\(?=\\\\[\(\)\[\]])/g,'\\')
-   .replace(/\\\\(?=(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|iiiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|nu|pi|sigma|omega|phi|psi|rho|tau|left|right|begin|end|mathbf|mathrm|text|overline|underline|vec|hat|dot|lim|log|ln|sin|cos|tan|cot|sec|csc|infty)\\b)/g,'\\');
-}
-function libraryMathMarkup(v){
- var x=normalizeMathSource(v);
+function normalizeMathSource(v){
+ let x=String(v??'');
  if(!x)return '';
- // Preserve existing MathJax delimiters exactly, including $...$ / $$...$$.
- if(/\\\(|\\\[|\\\)|\\\]/.test(x) || /(^|[^$])\$[^$]+\$(?!$)/.test(x) || /\$\$[\s\S]+?\$\$/.test(x)) return x;
- // Firestore/AI data normally contains SINGLE backslashes: \\frac, \\sqrt, \\int, etc.
- if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|iiiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|nu|pi|sigma|omega|phi|psi|rho|tau|left|right|begin|end|mathbf|mathrm|text|overline|underline|vec|hat|dot|lim|log|ln|sin|cos|tan|cot|sec|csc|infty)\b/.test(x)
-   || /(?:[A-Za-z0-9\}])\^\{[^}]+\}/.test(x)
-   || /(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)
-   || /\\[A-Za-z]+_[0-9A-Za-z]/.test(x)
-   || /\\[A-Za-z]+\^/.test(x)){
-   return '\\('+x+'\\)';
+ // Convert HTML entities only when they are clearly math delimiters/commands.
+ x=x.replace(/&bsol;/gi,'\\');
+ // Imported JSON/Firestore text can contain an extra layer of escaping.
+ for(let i=0;i<3;i++){
+   const y=x
+     .replace(/\\\\(?=\\[()[\\]])/g,'\\')
+     .replace(/\\\\(?=(?:frac|dfrac|tfrac|sqrt|nthroot|root|int|iint|iiint|iiiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|nu|pi|sigma|omega|phi|psi|rho|tau|left|right|begin|end|mathbf|mathrm|text|overline|underline|vec|hat|dot|lim|log|ln|sin|cos|tan|cot|sec|csc|infty)\b)/g,'\\');
+   if(y===x)break;
+   x=y;
  }
  return x;
 }
+function libraryMathMarkup(v){
+ let x=normalizeMathSource(v);
+ if(!x)return '';
+ // Existing MathJax delimiters stay untouched.
+ if(/\\\(|\\\[|\\\)|\\\]/.test(x)||/(^|[^$])\$[^$]+\$(?!$)/.test(x)||/\$\$[\s\S]+?\$\$/.test(x))return x;
+ // Recognize LaTeX commands and grouped superscripts/subscripts.
+ if(/\\(?:frac|dfrac|tfrac|sqrt|nthroot|root|int|iint|iiint|iiiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|nu|pi|sigma|omega|phi|psi|rho|tau|left|right|begin|end|mathbf|mathrm|text|overline|underline|vec|hat|dot|lim|log|ln|sin|cos|tan|cot|sec|csc|infty)\b/.test(x)
+   ||/[A-Za-z0-9)}]\^\{[^}]+\}/.test(x)
+   ||/[A-Za-z0-9)}]_\{[^}]+\}/.test(x)
+   ||/\\[A-Za-z]+_[0-9A-Za-z]/.test(x)
+   ||/\\[A-Za-z]+\^/.test(x)) return '\\('+x+'\\)';
+ return x;
+}
 function renderLibraryText(v){
- var x=libraryMathMarkup(v);
- return escapeHtml(x).replace(/&lt;img\b/gi,'<img').replace(/&gt;/gi,'>').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&amp;/gi,'&').replace(/\\n/g,'<br>');
+ const x=libraryMathMarkup(v);
+ // Match Library/Builder behavior while safely allowing stored <img> markup.
+ return escapeHtml(x)
+   .replace(/&lt;img\b/gi,'<img')
+   .replace(/&gt;/gi,'>')
+   .replace(/&quot;/gi,'"')
+   .replace(/&#39;/gi,"'")
+   .replace(/&amp;/gi,'&')
+   .replace(/\\n/g,'<br>');
 }
 function safeRich(v){return renderLibraryText(v)}
-function typesetLibraryMath(root){
- if(!window.MathJax||typeof MathJax.typesetPromise!=='function')return;
- var targets=root?[root]:[$('q-text-note'),$('btn-opt-A'),$('btn-opt-B'),$('btn-opt-C'),$('btn-opt-D')].filter(Boolean);
- try{if(typeof MathJax.typesetClear==='function')MathJax.typesetClear(targets)}catch(_){ }
- var run=function(){return MathJax.typesetPromise(targets).catch(function(e){console.warn('MathJax typeset failed:',e);});};
- if(MathJax.startup&&MathJax.startup.promise) MathJax.startup.promise.then(run).catch(function(){}); else run();
+function typesetLibraryMath(){
+ const targets=[$('q-text-note'),$('btn-opt-A'),$('btn-opt-B'),$('btn-opt-C'),$('btn-opt-D')].filter(Boolean);
+ if(!targets.length)return;
+ const run=()=>{
+   if(!window.MathJax||typeof MathJax.typesetPromise!=='function')return false;
+   try{MathJax.typesetClear?.(targets)}catch(_){ }
+   MathJax.typesetPromise(targets).catch(e=>console.warn('MathJax typeset failed:',e));
+   return true;
+ };
+ if(run())return;
+ let n=0; const wait=setInterval(()=>{if(run()||++n>80)clearInterval(wait)},100);
 }
+
 async function loadQuestionsByIds(ids){const clean=[...new Set((ids||[]).map(x=>typeof x==='object'?String(x.id??x.questionId??x.docId??''):String(x)).map(x=>x.trim()).filter(Boolean))];if(!clean.length)return[];const map=new Map();for(const cname of ["questions","library_questions","questionBank","question_bank"]){try{const snap=await getDocs(collection(db,cname));snap.forEach(d=>{if(clean.includes(d.id))map.set(d.id,{id:d.id,_sourceCollection:cname,...d.data()})})}catch(e){console.warn(cname,e)}if(map.size===clean.length)break}return clean.map(id=>map.get(id)).filter(Boolean)}
 function normalizePublishedQuestions(raw){if(!Array.isArray(raw?.questions))return[];return raw.questions.map((q,i)=>q&&typeof q==='object'?{...q,id:String(q.id??q.questionId??q.docId??("embedded_"+i))}:null).filter(Boolean)}
 async function init(){try{
@@ -150,9 +159,9 @@ function loadQuestion(i){
  const txt=textOf(q);$("q-text-note").style.display=txt?'block':'none';$("q-text-note").innerHTML=txt?safeRich(txt):'';
  const numerical=isNumerical(q), opts=optionsOf(q), nw=$("numerical-wrap"), ni=$("numerical-input"), skip=$("skip-btn");
  nw.style.display=numerical?'flex':'none';
- $(".options-row").style.display=(!numerical && questionType(q)==="MCQ" && opts.length)?'grid':'none';
+ $(".options-row").style.display=(!numerical && opts.length)?'grid':'none';
  if(numerical){ni.value=(userResponses[i]&&userResponses[i]!="__SKIPPED__")?String(userResponses[i]):'';ni.oninput=()=>{const v=normalizeNumber(ni.value);if(v){userResponses[i]=v}else delete userResponses[i];highlightPalette();updateAnswerState()};ni.onkeydown=e=>{if(e.key==='Enter')goNext()}}
- ['A','B','C','D'].forEach((l,n)=>{const b=$(('btn-opt-'+l)),v=opts[n]||'';b.style.display=(v&&!numerical&&questionType(q)==='MCQ')?'block':'none';b.innerHTML=v?safeRich(v):'';b.className='opt-btn'+(userResponses[i]===l?' selected':'');b.onclick=()=>{if(v&&!numerical){userResponses[i]=l;loadQuestion(i)}}});
+ ['A','B','C','D'].forEach((l,n)=>{const b=$(('btn-opt-'+l)),v=opts[n]||'';b.style.display=(v&&!numerical)?'block':'none';b.innerHTML=v?safeRich(v):'';b.className='opt-btn'+(userResponses[i]===l?' selected':'');b.onclick=()=>{if(v&&!numerical){userResponses[i]=l;loadQuestion(i)}}});
  skip.classList.toggle('active',userResponses[i]==='__SKIPPED__');skip.onclick=()=>{if(userResponses[i]==='__SKIPPED__')delete userResponses[i];else userResponses[i]='__SKIPPED__';loadQuestion(i)};
  $("prev-btn").disabled=i===0;$('next-btn').textContent=i===testData.questions.length-1?'Save & Stay ▶':'Save & Next ▶';updateAnswerState();highlightPalette();
  typesetLibraryMath()
