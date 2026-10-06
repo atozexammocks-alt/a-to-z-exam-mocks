@@ -101,7 +101,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import {getFirestore,collection,getDocs,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {getFirestore,collection,getDocs,getDoc,doc,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig);
@@ -116,6 +116,7 @@ window.ensureBuilderAuth=async function(){
   catch(e){ return auth.currentUser||null; }
 };
 window.builderDB=db;
+window.builderGetDoc=getDoc; window.builderDoc=doc;
 
 window.builderData=[];
 window.builderMode="private";
@@ -215,28 +216,31 @@ async function loadQuestionsDirect(){
 window.loadQuestions=async function(){
  const status=document.getElementById("status"),box=document.getElementById("questions");
  const previousScroll=box?.scrollTop||0;
- status.textContent="Loading Library…";
+ status.textContent="Connecting to Library…";
  try{
-  try{await window.builderAuthReady}catch(_){}
+  // Never let an auth/network promise leave the Builder stuck on “Loading”.
+  try{await Promise.race([window.builderAuthReady, new Promise(r=>setTimeout(r,4000))]);}catch(_){}
 
-  // The Library page uses the canonical `questions` collection. Read that first
-  // instead of waiting for four collections one after another. This makes the
-  // Builder open much faster and keeps its question view consistent with Library.
+  status.textContent="Loading Library folders…";
+  // Folder structure is independent from question loading, so a question read
+  // cannot prevent the Library folders from appearing.
+  await loadAllBuilderFolderTrees();
+  renderTree();
+
+  status.textContent="Loading Library questions…";
   let loaded=[];
   try{
-   const snap=await getDocs(collection(db,"questions"));
+   const snap=await Promise.race([getDocs(collection(db,"questions")),new Promise((_,rej)=>setTimeout(()=>rej(new Error("Firestore question read timed out")),12000))]);
    loaded=snap.docs.map(d=>({id:d.id,...d.data()}));
   }catch(primaryErr){
    console.warn("Canonical questions collection read failed:",primaryErr);
   }
 
-  // Backward-compatible fallback for older databases that may still have data
-  // in one of the legacy collections. These are queried in parallel.
   if(!loaded.length){
    const legacyNames=["library_questions","questionBank","question_bank"];
    const legacyResults=await Promise.all(legacyNames.map(async cname=>{
     try{
-     const snap=await getDocs(collection(db,cname));
+     const snap=await Promise.race([getDocs(collection(db,cname)),new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),7000))]);
      return snap.docs.map(d=>({id:d.id,...d.data()}));
     }catch(e){return []}
    }));
@@ -244,29 +248,22 @@ window.loadQuestions=async function(){
   }
 
   const seen=new Set();
-  window.builderData=loaded.filter(x=>{
-   const id=String(x.id);
-   if(seen.has(id))return false;
-   seen.add(id); return true;
-  });
+  window.builderData=loaded.filter(x=>{const id=String(x.id);if(seen.has(id))return false;seen.add(id);return true;});
 
   if(!window.builderData.length){
-   // Final fallback: REST is useful when the SDK read is temporarily blocked.
-   await loadQuestionsDirect();
+   try{await loadQuestionsDirect();}catch(e){console.warn("Firestore REST fallback failed:",e);}
   }
 
-  if(window.builderData.length){
-   status.textContent="Library connected • "+window.builderData.length+" questions";
-  }else{
-   status.textContent="Library connected • 0 questions";
-  }
   renderTree();
   renderQuestions(previousScroll);
   renderSelected();
+  status.textContent=window.builderData.length
+    ? "Library connected • "+window.builderData.length+" questions"
+    : "Library connected • 0 questions";
  }catch(e){
   console.error("Library load failed:",e);
   status.textContent="Library loading failed";
-  box.innerHTML='<div class="empty"><b>Library could not load the questions.</b><br><small>'+esc(e?.message||"Unknown error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry Library</button></div>';
+  if(box)box.innerHTML='<div class="empty"><b>Library could not load the questions.</b><br><small>'+esc(e?.message||"Unknown error")+'</small><br><button class="btn blue" style="margin-top:10px" onclick="loadQuestions()">↻ Retry Library</button></div>';
  }
 };
 
@@ -287,10 +284,6 @@ window.clearSelection=function(){
 };
 function getModeQuestions(){
  const filtered=window.builderData.filter(q=>belongs(q,window.builderMode));
- // Safety fallback: if the selected Library mode has no matching records,
- // do not leave the Builder blank. Show the loaded Library records instead.
- // This keeps older/legacy question records visible even when they do not
- // carry the newer libraryMode/central/group flags.
  if(!filtered.length && window.builderData.length) return window.builderData;
  return filtered;
 }
@@ -440,9 +433,55 @@ window.previewImage=function(src){
 };
 
 window.expandedFolders=window.expandedFolders||new Set();
+window.builderFolderTrees=window.builderFolderTrees||{private:[],central:[],group:[]};
+
+function builderTeacherEmail(){return (localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();}
+function builderTeacherDocId(email){return String(email||"").replace(/[^a-zA-Z0-9]/g,"_");}
+function builderLegacyTree(data){
+ const tree=Array.isArray(data?.libraryTree)?data.libraryTree:[];
+ if(tree.length)return tree;
+ const mains=Array.isArray(data?.mainFolders)?data.mainFolders:[];
+ const subs=data?.subFolders&&typeof data.subFolders==="object"?data.subFolders:{};
+ return mains.map(name=>({name:String(name).trim(),path:String(name).trim(),children:(Array.isArray(subs[name])?subs[name]:[]).map(x=>({name:String(x).trim(),children:[]}))})).filter(x=>x.name);
+}
+function builderTreePaths(tree,prefix=""){
+ const out=[];
+ (Array.isArray(tree)?tree:[]).forEach(n=>{const name=String(n?.name||"").trim();if(!name)return;const path=prefix?prefix+" / "+name:name;out.push(path);out.push(...builderTreePaths(n.children,path));});
+ return out;
+}
+async function loadBuilderFolderTree(mode){
+ const email=builderTeacherEmail();
+ let col="folder_configs_private",id=builderTeacherDocId(email);
+ if(mode==="central"){col="folder_configs_central";id="global_central_tree";}
+ if(mode==="group"){col="folder_configs_group";id=builderTeacherDocId(email)+"_group";}
+ try{
+  if(!email && mode!=="central") return [];
+  const snap=await getDoc(doc(db,col,id));
+  const data=snap.exists()?snap.data():{};
+  const tree=builderLegacyTree(data);
+  window.builderFolderTrees[mode]=tree;
+  return tree;
+ }catch(e){console.warn("Builder folder tree load failed",mode,e);return [];}
+}
+async function loadAllBuilderFolderTrees(){
+ await Promise.all(["private","central","group"].map(loadBuilderFolderTree));
+}
 
 function renderTree(){
  const root={name:"Library",path:"",children:{},count:0};
+ const modeTree=window.builderFolderTrees[window.builderMode]||[];
+ const addFolderPath=(p,count=0)=>{
+  const parts=String(p||"").split(" / ").map(x=>x.trim()).filter(Boolean);
+  if(!parts.length)return;
+  let n=root,cur="";
+  parts.forEach(part=>{
+   cur=cur?cur+" / "+part:part;
+   if(!n.children[part])n.children[part]={name:part,path:cur,children:{},count:0};
+   n=n.children[part];
+   n.count=Math.max(n.count,count);
+  });
+ };
+ builderTreePaths(modeTree).forEach(p=>addFolderPath(p,0));
  getModeQuestions().forEach(q=>{
   const p=folderOf(q),parts=p?p.split(" / "):[];
   root.count++;
