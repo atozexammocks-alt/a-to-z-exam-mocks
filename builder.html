@@ -255,7 +255,11 @@ window.loadQuestions=async function(){
    await loadQuestionsDirect();
   }
 
-  status.textContent="Library connected • "+window.builderData.length+" questions";
+  if(window.builderData.length){
+   status.textContent="Library connected • "+window.builderData.length+" questions";
+  }else{
+   status.textContent="Library connected • 0 questions";
+  }
   renderTree();
   renderQuestions(previousScroll);
   renderSelected();
@@ -281,7 +285,15 @@ window.clearSelection=function(){
  updateVisibleSelectionUI();
  renderSelected();
 };
-function getModeQuestions(){return window.builderData.filter(q=>belongs(q,window.builderMode))}
+function getModeQuestions(){
+ const filtered=window.builderData.filter(q=>belongs(q,window.builderMode));
+ // Safety fallback: if the selected Library mode has no matching records,
+ // do not leave the Builder blank. Show the loaded Library records instead.
+ // This keeps older/legacy question records visible even when they do not
+ // carry the newer libraryMode/central/group flags.
+ if(!filtered.length && window.builderData.length) return window.builderData;
+ return filtered;
+}
 function getVisible(){
  const term=(document.getElementById("search")?.value||"").trim().toLowerCase(),type=document.getElementById("typeFilter")?.value||"ALL";
  return getModeQuestions().filter(q=>{
