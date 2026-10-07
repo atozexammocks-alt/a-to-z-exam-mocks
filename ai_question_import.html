@@ -3,7 +3,7 @@
 <style>
 body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 12px}.nav a{color:#cbd5e1;text-decoration:none;border:1px solid #334155;padding:7px 10px;border-radius:6px;font-weight:800}.wrap{max-width:1400px;margin:auto;padding:14px}.hero,.card{background:#0b1120;border:1px solid #334155;border-radius:10px;padding:12px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}.btn,input,select,textarea{background:#0f172a;color:#fff;border:1px solid #334155;border-radius:7px;padding:8px}.btn{font-weight:800;cursor:pointer}.blue{background:#0369a1;border-color:#38bdf8}.green{background:#047857;border-color:#10b981}.red{background:#991b1b;border-color:#ef4444}.purple{background:#6d28d9;border-color:#a78bfa}.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin-top:12px}.q{font-size:14px;line-height:1.6;white-space:pre-wrap;margin-top:8px}.opt{padding:6px;background:#07101f;border:1px solid #1e293b;border-radius:5px;margin-top:5px}.muted{color:#94a3b8}.pathbox{margin-top:8px;padding:8px;background:#07101f;border:1px solid #334155;border-radius:7px}.pathrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.pathrow select{flex:1;min-width:220px}.pathhint{font-size:10px;color:#94a3b8}.figure-required{margin-top:8px;padding:8px;border:1px solid #f59e0b;background:#451a03;color:#fde68a;border-radius:7px;font-weight:900}.figure-preview{margin-top:8px;padding:8px;border:1px dashed #f59e0b;background:#1c1917;border-radius:7px}.figure-preview img{max-width:100%;max-height:360px;display:block;margin:auto;border-radius:5px}.suggestbox{margin-top:7px;padding:7px;border:1px dashed #38bdf8;background:#082f49;border-radius:7px}.flag-suggest{margin-top:7px;padding:6px;border:1px solid #334155;background:#07101f;border-radius:7px}.flag-suggest-title{font-size:10px;color:#cbd5e1;font-weight:900;margin-bottom:5px}.flag-suggest-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.flag-suggest-btn{padding:5px 3px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;border-radius:5px;font-size:9px;font-weight:800;cursor:pointer;text-align:center}.flag-suggest-btn.active{border-color:#38bdf8;box-shadow:0 0 0 1px #38bdf8 inset}.flag-suggest-btn.easy.active{background:#064e3b;color:#a7f3d0;border-color:#10b981}.flag-suggest-btn.hard.active{background:#7f1d1d;color:#fecaca;border-color:#ef4444}.flag-suggest-btn.important.active{background:#78350f;color:#fde68a;border-color:#f59e0b}.flag-suggest-btn.normal.active{background:#1e3a8a;color:#bfdbfe;border-color:#3b82f6}.flag-suggest-btn.nonimportant.active{background:#334155;color:#e2e8f0;border-color:#64748b}@media(max-width:700px){.flag-suggest-actions{grid-template-columns:repeat(3,1fr)}}.suggest-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.import-progress{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:1001;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 20px);padding:7px 8px;background:rgba(11,17,32,.96);border:1px solid #475569;border-radius:11px;box-shadow:0 10px 30px rgba(0,0,0,.45);backdrop-filter:blur(6px)}.progress-chip{background:#07101f;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;white-space:nowrap}.progress-chip b{color:#38bdf8}@media(max-width:700px){.import-progress{top:58px;gap:5px;padding:5px;max-width:calc(100vw - 10px)}.progress-chip{padding:6px 7px;font-size:10px}}.toast{position:fixed;right:16px;bottom:16px;z-index:1000;min-width:260px;max-width:calc(100vw - 32px);background:#052e1b;border:1px solid #10b981;color:#ecfdf5;border-radius:10px;padding:10px 13px;box-shadow:0 12px 35px rgba(0,0,0,.45);font-weight:800;display:none}.toast.show{display:block;animation:toastIn .18s ease-out}.toast.error{background:#450a0a;border-color:#ef4444}.save-progress{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:800;z-index:10050;opacity:0;pointer-events:none;transition:.18s}.save-progress.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .saved-popup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);z-index:3000;display:none;min-width:280px;max-width:calc(100vw - 40px);padding:18px 24px;text-align:center;background:#052e1b;border:2px solid #10b981;color:#ecfdf5;border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.55);font-size:17px;font-weight:900;pointer-events:none}.saved-popup.show{display:block;animation:savedPopupIn .16s ease-out}.saved-popup.error{background:#450a0a;border-color:#ef4444;color:#fef2f2}@keyframes savedPopupIn{from{opacity:0;transform:translate(-50%,-50%) scale(.90)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}@keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}.settings{display:grid;grid-template-columns:180px 1fr 180px;gap:8px;margin-top:10px}.aiq-review-card{padding:0;overflow:hidden}.review-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0}.review-left{padding:16px;background:#08101d;min-width:0}.student-review{min-width:0;padding:16px;border-left:1px solid #334155}.review-left,.student-review{width:100%;box-sizing:border-box}.review-left{padding:16px;background:#08101d;min-width:0}.review-title{font-size:15px;font-weight:900;margin-bottom:8px}.student-review{min-width:0;padding:16px;border-top:1px solid #334155}.student-head{display:flex;justify-content:space-between;gap:8px;align-items:center;padding-bottom:9px;border-bottom:1px solid #334155}.student-text{padding:10px 0;border-bottom:1px solid #334155}.student-image{padding-top:10px}.student-image-title{font-weight:900;margin-bottom:6px}.student-image .figure-preview{margin-top:0}.student-image .figure-preview img{max-height:430px}.keep-tools{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f}.keep-tools b{width:100%;font-size:10px;color:#94a3b8}.keep-state{font-size:10px;font-weight:900;color:#38bdf8;width:100%}.keep-tools .btn.selected{box-shadow:0 0 0 2px #fff inset}.review-meta{padding:8px 12px;border-top:1px solid #334155}@media(max-width:850px){.review-layout{grid-template-columns:1fr}.review-left{border-right:0;border-bottom:1px solid #334155}.student-review{border-left:0}.student-head{align-items:flex-start;flex-direction:column}}textarea{width:100%;max-width:100%;box-sizing:border-box;resize:vertical;overflow:auto;white-space:pre-wrap}.field{display:flex;flex-direction:column;gap:3px}.field label{font-size:10px;color:#94a3b8;font-weight:800}@media(max-width:700px){.grid,.settings{grid-template-columns:1fr}}
-.review-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.control-block label{display:block;font-size:12px;font-weight:700;margin-bottom:4px}.control-block select,.control-block input{width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:6px;padding:8px;font-size:13px}.control-block.full{grid-column:1/-1}@media(max-width:850px){.review-controls{grid-template-columns:1fr}.control-block.full{grid-column:auto}}.visual-blocks{display:grid;gap:7px;margin-top:8px}.visual-slot{padding:8px;border:1px dashed #38bdf8;border-radius:7px;background:#061827}.visual-slot img{max-width:100%;max-height:260px;display:block;margin:6px auto}.option-visual{margin-top:5px;padding:6px;border:1px dashed #a78bfa;border-radius:6px;background:#120d24}.option-visual img{max-width:100%;max-height:220px;display:block;margin:5px auto}.inline-figure-tools{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.figure-missing{font-size:11px;color:#fbbf24;font-weight:800}.insert-figure-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px}.mini-btn{padding:5px 7px;font-size:11px}.figure-index{font-size:10px;color:#94a3b8;font-weight:800}@media(max-width:700px){.visual-slot img,.option-visual img{max-height:180px}}.table-preview{margin-top:8px;overflow:auto;border:1px solid #334155;border-radius:7px;background:#020617}.table-preview table{border-collapse:collapse;width:100%;font-size:12px}.table-preview th,.table-preview td{border:1px solid #475569;padding:6px 8px;vertical-align:top}.table-preview th{background:#172033;font-weight:900}.matrix-preview{margin-top:8px;padding:10px;overflow:auto;border:1px solid #334155;border-radius:7px;background:#020617}.visual-type-badge{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:999px;border:1px solid #475569;font-size:9px;font-weight:900;color:#cbd5e1}.visual-type-table{border-color:#10b981;color:#a7f3d0}.visual-type-matrix{border-color:#38bdf8;color:#bae6fd}.visual-type-graph{border-color:#a78bfa;color:#ddd6fe}.visual-type-diagram{border-color:#f59e0b;color:#fde68a}.visual-type-function{border-color:#60a5fa;color:#bfdbfe}.visual-region-card{margin-top:7px;padding:7px;border:1px dashed #64748b;border-radius:7px;background:#07101f}.visual-region-card img{max-width:100%;max-height:260px;display:block;margin:6px auto}.visual-region-tools{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.visual-region-missing{font-size:11px;color:#fbbf24;font-weight:800}.extraction-assets{margin-top:8px;padding:8px;border:1px solid #334155;border-radius:7px;background:#07101f}.extraction-assets-title{font-weight:900;color:#cbd5e1;margin-bottom:5px}.table-edit-grid{display:grid;gap:5px;margin-top:6px}.table-edit-grid textarea{min-height:38px}.visual-controls{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.visual-controls select{min-width:130px}.</style><script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script></head><body>
+.review-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.control-block label{display:block;font-size:12px;font-weight:700;margin-bottom:4px}.control-block select,.control-block input{width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:6px;padding:8px;font-size:13px}.control-block.full{grid-column:1/-1}@media(max-width:850px){.review-controls{grid-template-columns:1fr}.control-block.full{grid-column:auto}}.visual-blocks{display:grid;gap:7px;margin-top:8px}.visual-slot{padding:8px;border:1px dashed #38bdf8;border-radius:7px;background:#061827}.visual-slot img{max-width:100%;max-height:260px;display:block;margin:6px auto}.option-visual{margin-top:5px;padding:6px;border:1px dashed #a78bfa;border-radius:6px;background:#120d24}.option-visual img{max-width:100%;max-height:220px;display:block;margin:5px auto}.inline-figure-tools{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.figure-missing{font-size:11px;color:#fbbf24;font-weight:800}.insert-figure-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px}.mini-btn{padding:5px 7px;font-size:11px}.figure-index{font-size:10px;color:#94a3b8;font-weight:800}@media(max-width:700px){.visual-slot img,.option-visual img{max-height:180px}}.table-preview{margin-top:8px;overflow:auto;border:1px solid #334155;border-radius:7px;background:#020617}.table-preview table{border-collapse:collapse;width:100%;font-size:12px}.table-preview th,.table-preview td{border:1px solid #475569;padding:6px 8px;vertical-align:top}.table-preview th{background:#172033;font-weight:900}.matrix-preview{margin-top:8px;padding:10px;overflow:auto;border:1px solid #334155;border-radius:7px;background:#020617}.visual-type-badge{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:999px;border:1px solid #475569;font-size:9px;font-weight:900;color:#cbd5e1}.visual-type-table{border-color:#10b981;color:#a7f3d0}.visual-type-matrix{border-color:#38bdf8;color:#bae6fd}.visual-type-graph{border-color:#a78bfa;color:#ddd6fe}.visual-type-diagram{border-color:#f59e0b;color:#fde68a}.visual-type-function{border-color:#60a5fa;color:#bfdbfe}.visual-region-card{margin-top:7px;padding:7px;border:1px dashed #64748b;border-radius:7px;background:#07101f}.visual-region-card img{max-width:100%;max-height:260px;display:block;margin:6px auto}.visual-region-tools{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.visual-region-missing{font-size:11px;color:#fbbf24;font-weight:800}.extraction-assets{margin-top:8px;padding:8px;border:1px solid #334155;border-radius:7px;background:#07101f}.extraction-assets-title{font-weight:900;color:#cbd5e1;margin-bottom:5px}.table-edit-grid{display:grid;gap:5px;margin-top:6px}.table-edit-grid textarea{min-height:38px}.visual-controls{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.visual-controls select{min-width:130px}.</style><script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:false,packages:{"[+]":[]}},options:{skipHtmlTags:["script","noscript","style","textarea","pre","code"]},svg:{fontCache:"global"}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script></head><body>
 <div id="savedPopup" class="saved-popup" role="status" aria-live="polite">✓ Question Saved</div>
 <div class="nav"><a href="teacher.html">🏠 A to Z Exam Mocks</a><div><a href="teacher.html">Dashboard</a> <a href="library.html">📁 Library</a></div></div>
 <div class="wrap"><div class="hero"><h2>🤖 AI Question Import — Beta</h2><div class="muted">Upload a question-paper PDF. Gemini extracts questions directly — no coordinates, JSON file, Python or manual cropping.</div>
@@ -62,22 +62,44 @@ function getModePaths(mode){return paths(folderTrees[mode||"private"]||[])}
 function suggestedMatch(q){var mode=q&&q.libraryMode||"private",available=getModePaths(mode),sp=norm(q&&q.suggestedPath||"")||semanticSuggestedPath(q||{});if(sp&&available.indexOf(sp)>=0)return sp;if(sp){var a=sp.split(" / ").filter(Boolean);for(var i=a.length-1;i>=0;i--){var tail=a.slice(i).join(" / ").toLowerCase();var hit=available.find(function(p){return p.toLowerCase().endsWith(tail);});if(hit)return hit;}}return ""}
 function setQuestionPath(i,path){if(!qs[i])return;qs[i].folderPath=norm(path);localStorage.setItem("A2Z_AI_LIBRARY_PATH_"+(qs[i].libraryMode||"private"),qs[i].folderPath||"");renderQuestionPathSelectors(i);render();}
 function normalizeMathMarkup(s){
-  var x=String(s||"");
+  var x=String(s==null?"":s);
   if(!x)return "";
   if(x.indexOf("§§MATHLINE§§")===0)x=x.slice(12);
-  /* Safe renderer: do NOT invent or rewrite mathematical content. Only add MathJax delimiters
-     when Gemini returned a recognizable LaTeX expression without them. */
-  if(/\\\\\(|\\\\\[|\\\\\$/.test(x))return x;
-  if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)){
-    return "\\\\("+x+"\\\\)";
-  }
-  if(/(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
-    return "\\\\("+x+"\\\\)";
+  // Keep existing MathJax delimiters exactly as supplied.
+  if(/\\\(|\\\)|\\\[|\\\]|\$/.test(x))return x;
+  // Gemini sometimes returns bare LaTeX. Wrap only when a genuine LaTeX command
+  // or sub/superscript structure is present; ordinary prose/slashes stay untouched.
+  if(/\\(?:frac|dfrac|tfrac|sqrt|cbrt|int|iint|iiint|iiiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|phi|psi|rho|tau|epsilon|varepsilon|leq|geq|neq|approx|infty|lim|sin|cos|tan|log|ln|exp|cdot|times|pm|mp|vec|mathbf|mathrm|mathit|text|left|right|begin|end|binom|overline|underline|hat|dot|ddot)\b/.test(x) || /(?:[A-Za-z0-9}])\^\{[^}]+\}|(?:[A-Za-z0-9}])_\{[^}]+\}/.test(x)){
+    return "\\("+x+"\\)";
   }
   return x;
 }
 function renderMathLine(s){
-  return '<span>'+esc(normalizeMathMarkup(s))+'</span>';
+  var x=String(s==null?"":s);
+  // Escape HTML outside math while leaving MathJax input untouched inside delimiters.
+  var out="",pos=0,re=/\\\((?:.|\n)*?\\\)|\\\[(?:.|\n)*?\\\]|\$(?:[^$\n]|\\.)+\$/g,m;
+  while((m=re.exec(x))){
+    out+=esc(x.slice(pos,m.index));
+    out+=m[0];
+    pos=m.index+m[0].length;
+  }
+  var tail=x.slice(pos),n=normalizeMathMarkup(tail);
+  if(n!==tail && /^\\\(/.test(n)) out+=n;
+  else out+=esc(tail);
+  return out;
+}
+function renderMathContent(s){
+  var x=String(s==null?"":s).replace(/\r\n?/g,"\n"),out="",pos=0;
+  var re=/\\\((?:.|\n)*?\\\)|\\\[(?:.|\n)*?\\\]|\$(?:[^$\n]|\\.)+\$/g,m;
+  while((m=re.exec(x))){
+    out+=esc(x.slice(pos,m.index));
+    out+=m[0];
+    pos=m.index+m[0].length;
+  }
+  var tail=x.slice(pos);
+  var nm=normalizeMathMarkup(tail);
+  out+=(nm!==tail && /^\\\(/.test(nm))?nm:esc(tail);
+  return out.replace(/\n/g,"<br>");
 }
 function devanagariCount(s){return (String(s||"").match(/[\u0900-\u097F]/g)||[]).length;}
 function safeVerifiedText(original,verified){var a=String(original||""),b=String(verified||"");if(!b.trim())return a;var da=devanagariCount(a),db=devanagariCount(b);if(db<da)return a;if(a.length>80&&b.length<a.length*0.62)return a;return b;}
@@ -99,7 +121,9 @@ function typesetMath(){
   });
 }
 function formatQuestionText(s){
-  return String(s||"").replace(/\r\n?/g,"\n").replace(/[ \t]+\n/g,"\n").replace(/\n[ \t]+/g,"\n").trim();
+  var x=String(s==null?"":s);
+  try{x=x.normalize("NFC");}catch(_){}
+  return x.replace(/\r\n?/g,"\n").replace(/[ \t]+\n/g,"\n").replace(/\n[ \t]+/g,"\n").trim();
 }
 function uint8ToBase64(bytes){var CHUNK=0x8000,out="";for(var i=0;i<bytes.length;i+=CHUNK){out+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+CHUNK,bytes.length)));}return btoa(out);}
 function normalizeAngstromText(s){
@@ -222,7 +246,7 @@ function renderInlineVisuals(q,side){
     html+='<div class="visual-slot"><div class="figure-index">Manual Figure '+(idx+1)+(b.anchor?' • '+esc(b.anchor):'')+'</div>';
     if(img)html+='<img src="'+esc(img)+'" alt="Manual question figure '+(idx+1)+'">';
     else html+='<div class="figure-missing">⚠️ Manual figure slot ready.</div>';
-    if(side==="review")html+='<div class="inline-figure-tools"><button class="btn mini-btn purple" data-a="inline-figure" data-i="'+qs.indexOf(q)+'" data-fig-index="'+qs.indexOf(b)+'">✂ Crop / Adjust This Figure</button></div>';
+    if(side==="review")html+='<div class="inline-figure-tools"><button class="btn mini-btn purple" data-a="inline-figure" data-i="'+qs.indexOf(q)+'" data-fig-index="'+idx+'">✂ Crop / Adjust This Figure</button></div>';
     html+='</div>';
   });
   html+='</div>'; return html;
@@ -235,7 +259,7 @@ function optionNeedsVisual(q,idx){
 }
 function renderOptionHtml(q,opt,idx,review){
   var img=figureImageForOption(q,idx),needs=optionNeedsVisual(q,idx),letter=String.fromCharCode(65+idx);
-  var h='<div class="opt math-content"><b>'+letter+'.</b> '+esc(formatQuestionText(opt));
+  var h='<div class="opt math-content"><b>'+letter+'.</b> '+renderMathContent(formatQuestionText(opt));
   if(img)h+='<div class="option-visual"><img src="'+esc(img)+'" alt="Option '+letter+' figure"></div>';
   else if(review&&needs)h+='<div class="option-visual"><div class="figure-missing">⚠️ Image required for Option '+letter+'.</div></div>';
   if(review&&needs)h+='<div class="inline-figure-tools"><button class="btn mini-btn purple" data-a="option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">🖼 Insert Figure for Option '+letter+'</button>'+(img?'<button class="btn mini-btn red" data-a="remove-option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">Remove</button>':'')+'</div>';
@@ -243,8 +267,8 @@ function renderOptionHtml(q,opt,idx,review){
 }
 function renderQuestionWithInlineFigures(q){
   var text=formatQuestionText(q.text||""), blocks=Array.isArray(q.contentBlocks)?q.contentBlocks:[];
-  if(!blocks.length)return formatQuestionText(text).split("\n").map(renderMathLine).join("<br>");
-  var out=esc(text).replace(/\n/g,"<br>");
+  if(!blocks.length)return renderMathContent(text);
+  var out=renderMathContent(text);
   blocks.forEach(function(b,idx){
     var img=String(b.image||""); if(!img)return;
     var anchor=String(b.anchor||"").trim();
@@ -505,7 +529,7 @@ async function saveQ(i){
 }
 function renderEditorVisual(q){
   var t=$("editorTextPreview"),im=$("editorImagePreview");
-  if(t)t.innerHTML=esc(q.text||"").replace(/\n/g,"<br>");
+  if(t)t.innerHTML=renderMathContent(q.text||"");
   if(im)im.innerHTML=q.cropImage?'<img src="'+esc(q.cropImage)+'" alt="Cropped question image" style="width:100%;max-height:560px;object-fit:contain;image-rendering:auto">':'<span class="muted">No crop yet. Use the crop button.</span>';
   typesetMath();
 }
@@ -578,7 +602,7 @@ function parseGeminiJson(raw){
   }
 }
 async function geminiRequest(key,body){
-  const models=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash-lite"];
+  const models=["gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3.5-flash-lite","gemini-3.1-flash-lite"];
   let last="";
   for(const model of models){
     for(let attempt=0;attempt<2;attempt++){
@@ -586,7 +610,13 @@ async function geminiRequest(key,body){
         $("status").textContent="🤖 Trying "+model+"…";
         const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+encodeURIComponent(key),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
         const d=await r.json().catch(()=>({}));
-        if(r.ok)return d;
+        if(r.ok){
+          if(!d || !Array.isArray(d.candidates) || !d.candidates.length){
+            const finish=d?.promptFeedback?.blockReason||"No candidate returned";
+            throw Error(model+": Gemini returned no usable candidate ("+finish+").");
+          }
+          return d;
+        }
         const msg=d?.error?.message||("Gemini API error "+r.status);
         last=model+": "+msg;
         const transient=r.status===429||r.status===500||r.status===502||r.status===503||r.status===504||/high demand|overloaded|temporar|unavailable|capacity|resource exhausted/i.test(msg);
@@ -822,6 +852,7 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
       let list=[];
       try{
         let d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
+        if(!raw.trim())throw Error("Gemini returned an empty extraction response for this page.");
         raw=raw.trim();let fence=String.fromCharCode(96).repeat(3);
         if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim()}
         let parsed=parseGeminiJson(raw);list=Array.isArray(parsed.questions)?parsed.questions:[];
