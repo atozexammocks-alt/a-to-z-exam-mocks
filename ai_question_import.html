@@ -1160,6 +1160,10 @@ async function extract(){
       return out;
     }
     async function addPageQuestions(list,pageNo,pageImageData){
+      /* Normalize BEFORE any dedupe/continuation checks. Gemini may return
+         question_text/questionText/stem and choices/answer_options, so reading
+         q.question here before normalization can silently discard every item. */
+      list=(Array.isArray(list)?list:[]).map(function(q,idx){return normalizePageQuestion(q,all.length+idx,pageNo);});
       list=reconcilePageOrder(list);
       let added=0;
       for(let idx=0;idx<(Array.isArray(list)?list.length:0);idx++){
