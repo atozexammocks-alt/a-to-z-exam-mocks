@@ -1072,24 +1072,31 @@ async function extract(){
       return normalizeExtractedText(String(s==null?"":s));
     }
     function normalizePageQuestion(q,i,pageNo){
-      return {
-        no:q.question_number||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),
-        options:Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x))}):[],
-        answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),
-        source:String(q.source||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"mcq").trim().toLowerCase()||"mcq",answerRegion:String(q.answer_region||q.answerRegion||"").trim(),
-        flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},
-        libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),
-        diagram:String(q.diagram_description||"").trim(),visualType:(Array.isArray(q.table_rows)&&q.table_rows.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||""))),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:((!Array.isArray(q.table_rows)||!q.table_rows.length)&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired)&&isFigureVisual(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||"")),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||pageNo).trim(),sourcePage:String(pageNo).trim(),book:String(q.book||"").trim(),
-        subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
-        suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
-        tableRows:normalizeTableRows(q.table_rows),
-        matrixLatex:String(q.matrix_latex||"").trim(),cropImage:String(q.crop_image||q.image||"").trim(),cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,
-        contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks.map(function(b){return {type:String(b.type||b.visualType||"diagram"),visualType:visualTypeOf(b.visualType||b.type),anchor:String(b.anchor||b.insert_after||"").trim(),image:String(b.image||"").trim(),cropBox:b.crop_box||b.figure_crop_box||null,required:Boolean(b.required),reconstruction:b.reconstruction||b.visual_reconstruction||null};}):[],
-        optionImages:Array.isArray(q.option_images)?q.option_images.map(function(x){return String(x||"")}):[],
-        optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,
-        optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],
-        visualRegions:Array.isArray(q.visual_regions)?q.visual_regions.map(function(v){return {visualType:visualTypeOf(v.visual_type||v.visualType||v.type),type:visualTypeOf(v.visual_type||v.visualType||v.type),anchor:String(v.anchor||v.insert_after||"").trim(),image:String(v.image||"").trim(),cropBox:v.crop_box||v.figure_crop_box||null,required:Boolean(v.required||v.visual_required),reconstruction:v.reconstruction||v.visual_reconstruction||null}}):[]
-      };
+      q=q||{};
+      var n=normalizeNativeQuestionGlobal(q,i);
+      var pick=function(){for(var ai=0;ai<arguments.length;ai++){var v=q[arguments[ai]];if(v!==undefined&&v!==null&&String(v).trim()!=="")return v;}return "";};
+      n.no=String(pick("question_number","questionNumber","question_no","questionNo","no")||n.no||"Q"+(i+1)).trim();
+      n.text=normalizeBilingualText(String(pick("question","question_text","questionText","stem","text","question_stem")||n.text||"").trim());
+      n.options=Array.isArray(n.options)?n.options:[];
+      n.answer=String(pick("answer","correct_answer","correctAnswer")||n.answer||"").trim();
+      n.topic=String(pick("topic","subtopic","chapter")||n.topic||"").trim();
+      n.chapter=String(pick("chapter","topic")||n.chapter||"").trim();
+      n.qType=String(pick("question_type","questionType","qType")||n.qType||"mcq").trim().toLowerCase()||"mcq";
+      n.flagChoice=String(pick("suggested_flag","suggestedFlag","flagChoice")||n.flagChoice||suggestedFlagFromDifficulty(pick("difficulty")||n.difficulty)).trim().toLowerCase();
+      n.explanation=String(pick("explanation","solution","reasoning")||n.explanation||"").trim();
+      n.diagram=String(pick("diagram_description","diagram","figure_description")||n.diagram||"").trim();
+      n.figureReference=String(pick("figure_reference","figureReference")||n.figureReference||"").trim();
+      n.page=String(pick("page")||pageNo).trim(); n.sourcePage=String(pick("sourcePage","source_page","page")||pageNo).trim();
+      n.tableRows=normalizeTableRows(pick("table_rows","tableRows")||n.tableRows);
+      n.matrixLatex=String(pick("matrix_latex","matrixLatex")||n.matrixLatex||"").trim();
+      n.cropBox=pick("crop_box","cropBox","bounding_box","boundingBox")||n.cropBox||null;
+      n.figureCropBox=pick("figure_crop_box","figureCropBox","figure_bounding_box","figureBoundingBox")||n.figureCropBox||null;
+      n.contentBlocks=Array.isArray(pick("content_blocks","contentBlocks"))?pick("content_blocks","contentBlocks"):(n.contentBlocks||[]);
+      n.visualRegions=Array.isArray(pick("visual_regions","visualRegions"))?pick("visual_regions","visualRegions"):(n.visualRegions||[]);
+      n.optionFigureBoxes=Array.isArray(pick("option_figure_boxes","optionFigureBoxes"))?pick("option_figure_boxes","optionFigureBoxes"):n.optionFigureBoxes;
+      n.optionFigureRequired=Array.isArray(pick("option_figure_required","optionFigureRequired"))?pick("option_figure_required","optionFigureRequired").map(Boolean):(n.optionFigureRequired||[]);
+      n.figureRequired=Boolean(pick("figure_required","figureRequired")||n.figureRequired); n.visualRequired=Boolean(pick("visual_required","visualRequired")||n.visualRequired);
+      return n;
     }
     function cleanContinuationText(s){
       return String(s||"").replace(/\r\n?/g,"\n").replace(/[ \t]+/g," ").trim();
@@ -1216,7 +1223,7 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
         let d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
         raw=raw.trim();let fence=String.fromCharCode(96).repeat(3);
         if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim()}
-        let parsed=parseGeminiJson(raw);list=Array.isArray(parsed.questions)?parsed.questions:[];
+        let parsed=parseGeminiJson(raw);list=Array.isArray(parsed)?parsed:(parsed&&Array.isArray(parsed.questions)?parsed.questions:(parsed&&Array.isArray(parsed.items)?parsed.items:(parsed&&Array.isArray(parsed.data)?parsed.data:[])));
       }catch(err){
         console.warn("Page "+pageNo+" extraction failed:",err);
         $("status").textContent="⚠️ Page "+pageNo+" failed; retrying…";
@@ -1226,8 +1233,18 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
           if(nextImage)retryParts.push({inlineData:{mimeType:"image/jpeg",data:nextImage}});
           let rd=await geminiRequest(key,{contents:[{role:"user",parts:retryParts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:32768}});
           let rr=rd?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
-          let rp=parseGeminiJson(rr.trim());list=Array.isArray(rp.questions)?rp.questions:[];
+          let rp=parseGeminiJson(rr.trim());list=Array.isArray(rp)?rp:(rp&&Array.isArray(rp.questions)?rp.questions:(rp&&Array.isArray(rp.items)?rp.items:(rp&&Array.isArray(rp.data)?rp.data:[])));
         }catch(re){console.warn("Page retry failed:",re)}
+      }
+      if(!Array.isArray(list))list=[];
+      if(!list.length){
+        try{
+          var rescuePrompt="Read CURRENT PAGE "+pageNo+" from the supplied exam-page image. Extract every question that STARTS on this page. Return ONLY JSON with a questions array. Each item MUST contain a non-empty question field and may contain question_number, options, answer, explanation, visual_regions, crop_box and figure_crop_box. Preserve English, Hindi and mathematical notation exactly. If there are no question starts, return {questions:[]}.";
+          var rescue=await geminiRequest(key,{contents:[{role:"user",parts:[{text:rescuePrompt},{inlineData:{mimeType:"image/jpeg",data:currentImage}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}});
+          var rescueRaw=rescue?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
+          var rescueParsed=parseGeminiJson(rescueRaw.trim());
+          list=Array.isArray(rescueParsed)?rescueParsed:(rescueParsed&&Array.isArray(rescueParsed.questions)?rescueParsed.questions:(rescueParsed&&Array.isArray(rescueParsed.items)?rescueParsed.items:(rescueParsed&&Array.isArray(rescueParsed.data)?rescueParsed.data:[])));
+        }catch(rescueErr){console.warn("Final page rescue failed:",rescueErr);}
       }
       // Second-pass visual recovery catches figures that the main extraction missed.
       list=await recoverPageVisuals(key,currentImage,list,pageNo);
