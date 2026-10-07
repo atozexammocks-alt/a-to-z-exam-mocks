@@ -128,20 +128,33 @@ function renderMathMarkupHtml(s){
   return out;
 }
 function normalizeMathMarkup(s){
-  var x=String(s||""); if(!x)return "";
-  x=x.replace(/```(?:latex|tex|math)?\n?/gi,"").replace(/```/g,"");
+  var x=String(s==null?"":s);
+  if(!x)return "";
+  x=x.replace(/\r\n?/g,"\n");
+  x=x.replace(/```(?:latex|tex|math)?\s*/gi,"").replace(/```/g,"");
   x=normalizeLatexSlashes(x);
-  /* Normalize over-escaped MathJax delimiters without touching matrix row breaks. */
+  /* Normalize doubled delimiters produced by JSON/string escaping. */
   x=x.replace(/\\\[/g,"\\[").replace(/\\\]/g,"\\]").replace(/\\\(/g,"\\(").replace(/\\\)/g,"\\)");
-  var lines=x.split(/\n/);
+
+  var lines=x.split("\n");
+  var commands=/\\(?:frac|dfrac|tfrac|binom|sqrt|root|nthroot|int|iint|iiint|oint|sum|prod|lim|log|ln|sin|cos|tan|cot|sec|csc|sinh|cosh|tanh|partial|nabla|Delta|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|sigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|vec|mathbf|mathrm|mathbb|mathcal|mathscr|text|operatorname|begin|end|left|right|middle|cdot|times|pm|mp|leq|geq|neq|approx|sim|equiv|propto|infty|hat|bar|dot|overline|underline|overbrace|underbrace)\b/;
+  var bareMath=/[A-Za-z0-9\)\]](?:\^|_)(?:\{[^{}]+\}|[A-Za-z0-9+\-()\[\]])/;
+
   lines=lines.map(function(line){
     var t=line.trim();
     if(!t)return line;
-    /* A line containing explicit LaTeX commands but no delimiters becomes display math. */
-    if(!/\\\(|\\\[|\$/.test(t) && /\\(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|vec|mathbf|mathrm|mathbb|mathcal|text|begin|end|left|right|cdot|times|pm|leq|geq|neq|approx|sim|infty|hat|bar|dot|overline|underline)\b/.test(t)) return "\\["+t+"\\]";
+    /* Already valid MathJax: leave it alone. */
+    if(/^\\\[[\s\S]*\\\]$/.test(t)||/^\\\([\s\S]*\\\)$/.test(t)||/^\$\$[\s\S]*\$\$$/.test(t)||/^\$[^$]+\$$/.test(t))return line;
+    /* Standalone LaTeX/math lines must be display math. */
+    if(commands.test(t)||bareMath.test(t))return "\\["+t+"\\]";
     return line;
   });
-  return lines.join("\n");
+  x=lines.join("\n");
+
+  /* Fix common inline raw-LaTeX cases without turning ordinary bilingual slashes into math. */
+  x=x.replace(/(^|[\s(,:;=+\-])((?:\\(?:frac|dfrac|tfrac|binom)\s*\{[^\n{}]*\}\s*\{[^\n{}]*\}|\\sqrt\s*(?:\{[^\n{}]*\}|\[[^\n\]]*\]\s*\{[^\n{}]*\})|\\(?:alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|omega|Delta|Gamma|Theta|Lambda|Sigma|Omega)\b(?:_[A-Za-z0-9{}]+|\^[A-Za-z0-9{}]+)?))(?=$|[\s),.;:!?])/g,function(_,pre,expr){return pre+"\\("+expr+"\\)";});
+
+  return x;
 }
 function renderMathLine(s){
   return '<span>'+renderMathMarkupHtml(s)+'</span>';
@@ -151,8 +164,9 @@ function safeVerifiedText(original,verified){var a=String(original||""),b=String
 function typesetMath(){
   function go(){
     if(window.MathJax&&typeof MathJax.typesetPromise==="function"){
-      MathJax.typesetClear(document.querySelectorAll(".math-content"));
-      return MathJax.typesetPromise(Array.from(document.querySelectorAll(".math-content"))).catch(function(){});
+      var nodes=Array.from(document.querySelectorAll(".math-content"));
+      try{MathJax.typesetClear(nodes)}catch(_){}
+      return MathJax.typesetPromise(nodes).catch(function(err){console.warn("MathJax typeset failed",err);});
     }
     return Promise.resolve();
   }
@@ -359,6 +373,7 @@ function renderQuestionWithInlineFigures(q){
 
 function normalizeQuestionForRender(q,i){
   q=q||{};
+  q.text=normalizeExtractedText(q.text||q.question||q.question_text||q.stem||"");
   if(!String(q.no??"").trim())q.no="Q"+(i+1);
   if(!String(q.text??"").trim()){
     q.text=String(q.question??q.question_text??q.stem??"").trim();
@@ -715,6 +730,7 @@ function continuationFragmentCheck(q,prev){
   if(!qn&&qt&&/^(?:and|or|but|because|therefore|hence|where|when|which|that|then|thus|given|if|so|following|from|using|for|also|तथा|और|या|जहाँ|जब|जो|निम्न|दिया गया|इसके|अतः|इसलिए)\b/i.test(qt))return true;
   return false;
 }
+window.__continuationFragmentCheck=continuationFragmentCheck;
 function normalizeLatexSlashes(s){
   var x=String(s==null?"":s);
   /* Gemini sometimes double-escapes LaTeX after JSON generation. Collapse only
@@ -1127,19 +1143,6 @@ async function extract(){
       if(!x)return false;
       return /^(?:[\(\[]?[A-Ha-h]\s*[\)\].:-]|(?:option|विकल्प)\s*[A-Ha-h0-9])/i.test(x) || /(?:^|\n)\s*(?:[\(\[]?[A-Ha-h]\s*[\)\].:-])/.test(x);
     }
-    function continuationFragmentCheck(q,prev){
-      if(!q||!prev)return false;
-      if(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true||q.continuation_of_previous===true)return true;
-      let qt=cleanContinuationText(q.question), pt=cleanContinuationText(prev.text);
-      let qn=String(q.question_number||q.no||"").trim(), pn=String(prev.no||"").trim();
-      if(qn && pn && qn.toLowerCase()===pn.toLowerCase())return true;
-      if(!qn && isOptionLikeFragment(qt))return true;
-      if(!qn && Array.isArray(q.options) && q.options.length && (!prev.options||!prev.options.length))return true;
-      if(!qn && qt && /^(?:and|or|but|because|therefore|hence|where|when|which|that|then|thus|given|if|so|following|from|using|for|also|also,|तथा|और|या|जहाँ|जब|जो|निम्न|दिया गया|इसके|अतः|इसलिए)\b/i.test(qt))return true;
-      // Do not merge unnumbered numerical questions merely because the previous stem has no terminal punctuation.
-      // Cross-page merges require an explicit continuation flag, same printed number, or clear options-only fragment.
-      return false;
-    }
     async function mergeContinuationInto(existing,q,pageNo,pageImageData){
       if(!existing||!q)return;
       let qt=cleanContinuationText(q.question);
@@ -1171,7 +1174,7 @@ async function extract(){
       (Array.isArray(list)?list:[]).forEach(function(q){
         q=q||{};
         let prev=out.length?out[out.length-1]:null;
-        if(prev&&continuationFragmentCheck(q,prev)){
+        if(prev&&window.__continuationFragmentCheck(q,prev)){
           q.continuation=true;q.continuation_of_previous=true;
           prev._mergedFragments=prev._mergedFragments||[];prev._mergedFragments.push(q);
           if(Array.isArray(q.options)&&q.options.length){prev.options=prev.options||[];q.options.forEach(function(x){var v=normalizeBilingualText(String(x));if(v&&!prev.options.some(function(o){return cleanContinuationText(o).toLowerCase()===cleanContinuationText(v).toLowerCase()}))prev.options.push(v);});}
@@ -1198,7 +1201,7 @@ async function extract(){
         }
         if(!n && all.length){
           let previous=all[all.length-1];
-          if(continuationFragmentCheck(q,previous)){
+          if(window.__continuationFragmentCheck(q,previous)){
             await mergeContinuationInto(previous,q,pageNo,pageImageData);
             continue;
           }
@@ -1297,7 +1300,7 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
       let explicit=cur.continuation===true||cur.continuation_of_previous===true||cur.is_continuation===true;
       let samePrintedNo=String(cur.no||"").trim().toLowerCase()===String(prev.no||"").trim().toLowerCase();
       let fragment={question:cur.text,options:cur.options,question_number:cur.no||""};
-      if((explicit && samePrintedNo) || continuationFragmentCheck(fragment,prev)){
+      if((explicit && samePrintedNo) || window.__continuationFragmentCheck(fragment,prev)){
         await mergeContinuationInto(prev,{question:cur.text,options:cur.options,answer:cur.answer,explanation:cur.explanation,diagram:cur.diagram,figure_reference:cur.figureReference,table_rows:cur.tableRows,matrix_latex:cur.matrixLatex,visual_regions:cur.visualRegions,content_blocks:cur.contentBlocks,option_figure_boxes:cur.optionFigureBoxes},cur.sourcePage||cur.page,"");
         qs.splice(ri,1);all=qs.slice();ri--;
       }
