@@ -62,54 +62,38 @@ function getModePaths(mode){return paths(folderTrees[mode||"private"]||[])}
 function suggestedMatch(q){var mode=q&&q.libraryMode||"private",available=getModePaths(mode),sp=norm(q&&q.suggestedPath||"")||semanticSuggestedPath(q||{});if(sp&&available.indexOf(sp)>=0)return sp;if(sp){var a=sp.split(" / ").filter(Boolean);for(var i=a.length-1;i>=0;i--){var tail=a.slice(i).join(" / ").toLowerCase();var hit=available.find(function(p){return p.toLowerCase().endsWith(tail);});if(hit)return hit;}}return ""}
 function setQuestionPath(i,path){if(!qs[i])return;qs[i].folderPath=norm(path);localStorage.setItem("A2Z_AI_LIBRARY_PATH_"+(qs[i].libraryMode||"private"),qs[i].folderPath||"");renderQuestionPathSelectors(i);render();}
 function renderMathMarkupHtml(s){
-  var x=String(s==null?"":s);
-  if(!x)return "";
+  var x=String(s==null?"":s); if(!x)return "";
   x=normalizeMathMarkup(x);
-  /*
-     IMPORTANT: escape only the surrounding prose, not the MathJax delimiters.
-     The previous build escaped the whole string, turning \\( ... \\) into
-     visible text and causing \\frac, \\sqrt, subscripts/superscripts, etc.
-     to appear literally. LaTeX itself is HTML-escaped only for <, > and &.
-  */
-  var token=/\\\\\\(|\\\\\\)|\\\\\\[|\\\\\\]|\\$\\$|\\$([^$\\n]+)\\$/g;
+  var re=/(\\\[[\\s\\S]*?\\\]|\\\([\\s\\S]*?\\\)|\$\$[\\s\\S]*?\$\$|\$[^$\\n]+\$)/g;
   var out="",last=0,m;
-  while((m=token.exec(x))){
+  while((m=re.exec(x))){
     out+=esc(x.slice(last,m.index));
-    var whole=m[0];
-    if(whole==="$$"){
-      var end=x.indexOf("$$",token.lastIndex);
-      if(end>=0){
-        var body=x.slice(token.lastIndex,end);
-        out+="$$"+esc(body)+"$$";
-        token.lastIndex=end+2;last=token.lastIndex;continue;
-      }
+    var t=m[0];
+    if(t.indexOf("\\[")===0 || t.indexOf("\\(")===0 || t.indexOf("$$")===0 || t[0]==="$"){
+      var open=t.indexOf("$$")===0?"$$":t.indexOf("\\[")===0?"\\[":t.indexOf("\\(")===0?"\\(":"$";
+      var close=open==="$$"?"$$":open==="\\["?"\\]":open==="\\("?"\\)":"$";
+      var body=t.slice(open.length,t.length-close.length);
+      out+=open+body.replace(/[&<>]/g,function(c){return c==="&"?"&amp;":c==="<"?"&lt;":"&gt;"})+close;
     }
-    if(whole==="$"){
-      out+=whole;
-    }else if(whole==="\\\\("||whole==="\\\\)"||whole==="\\\\["||whole==="\\\\]"){
-      out+=whole;
-    }else if(whole.charAt(0)==="$"&&whole.charAt(whole.length-1)==="$"){
-      out+="$"+esc(whole.slice(1,-1))+"$";
-    }else out+=esc(whole);
-    last=token.lastIndex;
+    last=re.lastIndex;
   }
   out+=esc(x.slice(last));
   return out;
 }
 function normalizeMathMarkup(s){
-  var x=String(s||"");
-  if(!x)return "";
-  if(x.indexOf("§§MATHLINE§§")===0)x=x.slice(12);
-  /* Safe renderer: do NOT invent or rewrite mathematical content. Only add MathJax delimiters
-     when Gemini returned a recognizable LaTeX expression without them. */
-  if(/\\\\\(|\\\\\[|\\\\\$/.test(x))return x;
-  if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)){
-    return "\\\\("+x+"\\\\)";
-  }
-  if(/(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
-    return "\\\\("+x+"\\\\)";
-  }
-  return x;
+  var x=String(s||""); if(!x)return "";
+  x=x.replace(/```(?:latex|tex|math)?\\n?/gi,"").replace(/```/g,"");
+  /* Normalize common AI variants into MathJax delimiters. */
+  x=x.replace(/\\\\\[/g,"\\[").replace(/\\\\\]/g,"\\]").replace(/\\\\\(/g,"\\(").replace(/\\\\\)/g,"\\)");
+  var lines=x.split(/\n/);
+  lines=lines.map(function(line){
+    var t=line.trim();
+    if(!t)return line;
+    /* A line containing explicit LaTeX commands but no delimiters becomes display math. */
+    if(!/\\\(|\\\[|\$/.test(t) && /\\(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline)\b/.test(t)) return "\\["+t+"\\]";
+    return line;
+  });
+  return lines.join("\n");
 }
 function renderMathLine(s){
   return '<span>'+renderMathMarkupHtml(s)+'</span>';
@@ -349,7 +333,7 @@ function render(){
       '<button class="btn purple" data-a="generate-solution" data-i="'+i+'">'+(q.explanation?'↻ Regenerate AI Solution':'🧠 Generate AI Solution')+'</button>'+
       (q.explanation?'<button class="btn red" data-a="remove-solution" data-i="'+i+'">✕ Delete</button>':'')+'</div></div>'+
       (q.solutionGenerating?'<div style="margin-top:10px"><div class="muted">⏳ Generating solution… <span data-solution-status="'+i+'">'+Number(q.solutionProgress||0)+'%</span></div><div style="height:7px;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden;margin-top:6px"><div data-solution-progress="'+i+'" style="height:100%;width:'+Number(q.solutionProgress||0)+'%;background:#8b5cf6;transition:width .25s"></div></div></div>':'')+
-      (q.explanation?'<div class="solution-preview math-content" style="margin-top:10px;padding:12px;background:rgba(0,0,0,.16);border-radius:10px;line-height:1.65">'+esc(q.explanation).replace(/\n/g,'<br>')+'</div><textarea class="ai-solution-editor" data-solution-i="'+i+'" style="display:none;width:100%;min-height:130px;margin-top:8px">'+esc(q.explanation)+'</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="edit-solution" data-i="'+i+'">✏ Edit</button><button class="btn blue" data-a="apply-solution" data-i="'+i+'">✓ Keep Solution</button></div>':'<div class="muted" style="margin-top:7px">Optional — generate only if you want the AI solution for this question.</div>')+'</div>';
+      (q.explanation?'<div class="solution-preview math-content" style="margin-top:10px;padding:12px;background:rgba(0,0,0,.16);border-radius:10px;line-height:1.65">'+renderMathMarkupHtml(q.explanation).replace(/\n/g,'<br>')+'</div><textarea class="ai-solution-editor" data-solution-i="'+i+'" style="display:none;width:100%;min-height:130px;margin-top:8px">'+esc(q.explanation)+'</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="edit-solution" data-i="'+i+'">✏ Edit</button><button class="btn blue" data-a="apply-solution" data-i="'+i+'">✓ Keep Solution</button></div>':'<div class="muted" style="margin-top:7px">Optional — generate only if you want the AI solution for this question.</div>')+'</div>';
     return '<div class="card aiq-review-card">'+solutionBox+'<div class="review-layout">'+left+right+'</div><div class="muted review-meta">'+esc([q.topic,q.chapter,q.source,q.year,q.answer?"Answer: "+q.answer:"",q.page?"Page: "+q.page:""].filter(Boolean).join(" • "))+'</div></div>';
   }).join("");
   qs.forEach(function(_,i){renderQuestionPathSelectors(i)});
@@ -1038,7 +1022,7 @@ async function generateAISolutionForQuestion(i){
   try{
     var payload={question_number:q.no,question:q.text||"",options:q.options||[],answer:q.answer||"",table_rows:q.tableRows||[],matrix_latex:q.matrixLatex||"",content_blocks:q.contentBlocks||[]};
     q.solutionProgress=15;render();
-    var prompt="Solve ONLY this ONE exam question. Return ONLY valid JSON: {\"answer\":\"...\",\"explanation\":\"...\",\"final_answer\":\"...\"}. Give rigorous step-by-step reasoning. For Physics/Math, EVERY mathematical expression MUST use valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. Never output raw SQRT, sqrt, frac, caret notation, plain x^2, spoken symbols such as alpha/beta/integral, or slash-based fractions when mathematics is intended. Use \\frac{a}{b}, \\sqrt{x}, x^2, x_0, \\int_0^4, \\vec{E}, Greek symbols, matrices and proper units as appropriate. Do not put LaTeX commands outside MathJax delimiters. Preserve Hindi/English terminology. If a table is present, use its actual values and do not invent data. Verify any supplied answer. Do not rewrite the question. Return only JSON.\n\nQUESTION DATA:\n"+JSON.stringify(payload);
+    var prompt="You are an expert Physics/Mathematics teacher. Solve ONLY this ONE exam question. Return ONLY valid JSON with exactly these keys: {\"answer\":\"...\",\"explanation\":\"...\",\"final_answer\":\"...\"}.\n\nTEACHING FORMAT: Write the explanation line-by-line for a student. Use numbered steps: Step 1, Step 2, Step 3... Every step must contain one clear action or inference. Start by stating what is given. Then state the relevant concept/law/formula, substitute values, simplify, and finish with a clearly labelled final answer. Use simple teacher-like language such as \"Given...\", \"We know...\", \"Substituting...\", \"Therefore...\". Do not skip intermediate algebra. Do not write a compressed paragraph.\n\nMATH/PHYSICS FORMAT: Every equation MUST be real MathJax LaTeX enclosed in \( ... \) for inline equations or \[ ... \] for displayed equations. NEVER output raw words/symbols such as SQRT, sqrt, frac, backslash commands, caret notation, hash, dollar signs, slash fractions, vec, hat, alpha, beta, theta, or plain LaTeX commands as the visible mathematical representation. For example use \(\sqrt{x}\), \(\frac{a}{b}\), \(x^2\), \(\vec{E}\), \(\hat{n}\), \(\alpha\), and \[F=ma\]. Put units in proper readable form.\n\nIMPORTANT: The explanation itself must contain the delimiters \( \) or \[ \] around every mathematical expression. Never put a LaTeX command outside those delimiters. If a result needs a fraction, root, vector, exponent, subscript, integral, matrix, or Greek symbol, render it with LaTeX inside MathJax delimiters.\n\nDo not rewrite the question. Preserve the question language (Hindi/English) where practical. If a table is present, use only its actual values. Verify the final result and supplied answer.\n\nQUESTION DATA:\n"+JSON.stringify(payload);
     var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.05,responseMimeType:"application/json",maxOutputTokens:8192}});
     q.solutionProgress=65;render();
     var raw=d&&d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts?d.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
