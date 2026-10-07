@@ -618,41 +618,35 @@ function readEdit(){
 function parseGeminiJson(raw){
   raw=String(raw||"").trim();
   var fence=String.fromCharCode(96).repeat(3);
-  if(raw.startsWith(fence)){
-    raw=raw.slice(fence.length).replace(/^json/i,"").trim();
-    if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim();
-  }
-  try{return JSON.parse(raw);}
-  catch(firstErr){
-    /* Gemini sometimes returns valid LaTeX such as \\int or \\alpha inside a JSON
-       string without escaping the backslash for JSON. Repair only those invalid
-       backslashes; preserve all valid JSON escapes such as \\n, \\t, \\" and \\\\. */
-    var repaired="",inString=false,escaped=false;
-    for(var i=0;i<raw.length;i++){
-      var ch=raw[i];
-      if(!inString){
-        repaired+=ch;
-        if(ch==="\\\"")inString=true;
-        continue;
-      }
-      if(escaped){repaired+=ch;escaped=false;continue;}
-      if(ch==="\\\\"){
-        var n=raw[i+1]||"";
-        var valid=/[\\\"\\\\\\/bfnrt]/.test(n);
-        var unicode=n==="u"&&/^[0-9a-fA-F]{4}$/.test(raw.slice(i+2,i+6));
-        if(valid||unicode){repaired+=ch;escaped=true;}
-        else{repaired+="\\\\\\\\\\";}
-        continue;
-      }
-      repaired+=ch;
-      if(ch==="\\\"")inString=false;
+  if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim();}
+  try{return JSON.parse(raw);}catch(firstErr){}
+  var repaired="",inString=false,escaped=false;
+  for(var i=0;i<raw.length;i++){
+    var ch=raw[i];
+    if(!inString){repaired+=ch;if(ch==='"')inString=true;continue;}
+    if(escaped){repaired+=ch;escaped=false;continue;}
+    if(ch==='\\'){
+      var n=raw[i+1]||"";var valid=/["\\\/bfnrt]/.test(n);var unicode=n==='u'&&/^[0-9a-fA-F]{4}$/.test(raw.slice(i+2,i+6));
+      if(valid||unicode){repaired+=ch;escaped=true;}else repaired+='\\\\';continue;
     }
-    try{return JSON.parse(repaired);}
-    catch(secondErr){
-      throw firstErr;
-    }
+    repaired+=ch;if(ch==='"')inString=false;
   }
+  try{return JSON.parse(repaired);}catch(secondErr){}
+  var a=raw.indexOf('{'),b=raw.lastIndexOf('}');
+  if(a>=0&&b>a){try{return JSON.parse(repaired.slice(a,b+1));}catch(_){} }
+  throw firstErr||new Error("Gemini returned invalid JSON.");
 }
+function inferQuestionType(q){
+  q=q||{};var text=String(q.text||q.question||"");var opts=Array.isArray(q.options)?q.options.filter(function(x){return String(x||"").trim()}):[];
+  var declared=String(q.qType||q.question_type||q.questionType||"").trim().toLowerCase();var t=(text+" "+opts.join(" ")).toLowerCase();
+  if(/assertion\s*[-–—]?\s*reason|assertion and reason|statement\s*[-–—]?\s*reason/.test(t))return "assertion";
+  if(opts.length>=2)return opts.length>4||/select all|more than one|multiple correct|one or more/i.test(t)?"mcq_multi":"mcq";
+  if(/_{2,}|fill in the blank|fill\s+in|रिक्त स्थान|खाली स्थान/.test(t))return "fill_blank";
+  if(/calculate|find the value|determine|evaluate|compute|numerical answer|value of|how many|संख्या|मान ज्ञात|मान निकाल|गणना|कितना|कितने/.test(t))return "numerical";
+  if(declared&&declared!=="mcq")return declared;
+  return declared||"short";
+}
+function normalizeSolutionJson(out){out=out&&typeof out==='object'?out:{};return {answer:String(out.answer||"").trim(),explanation:String(out.explanation||out.solution||out.steps||"").trim(),final_answer:String(out.final_answer||out.finalAnswer||out.final||out.answer||"").trim()};}
 async function geminiRequest(key,body){
   // Current stable Gemini API model IDs, with a compatibility fallback.
   const models=["gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3.5-flash-lite","gemini-3.1-flash-lite"];
@@ -834,6 +828,7 @@ async function extract(){
       if(nativeList.length){
         nativeList.forEach(function(raw,i){
           var nq=normalizeNativeQuestionGlobal(raw,i);
+          nq.qType=inferQuestionType(nq);
           nq.text=questionTextWithoutDuplicatedTable(nq);
           if(!String(nq.text||"").trim())return;
           var nk=String(nq.no||"").trim().toLowerCase();
@@ -841,7 +836,10 @@ async function extract(){
           if(duplicate)return;
           qs.push(nq); all.push(nq);
         });
-        qs.forEach(function(q,i){q.sourcePage=String(q.page||q.sourcePage||1);q._chronologicalIndex=i+1;applyFlagChoice(q,q.flagChoice);});
+        qs.forEach(function(q,i){q.sourcePage=String(q.page||q.sourcePage||1);q._chronologicalIndex=i+1;q.qType=inferQuestionType(q);applyFlagChoice(q,q.flagChoice);});
+        var nativePageCache={};
+        async function nativePageImage(pageNo){var pn=String(pageNo||1);if(nativePageCache[pn])return nativePageCache[pn];var pg=await pdfDoc.getPage(Number(pageNo)||1),base=pg.getViewport({scale:1}),scale=Math.min(2.0,Math.max(1.35,1800/base.width)),vp=pg.getViewport({scale:scale}),can=document.createElement("canvas");can.width=Math.ceil(vp.width);can.height=Math.ceil(vp.height);await pg.render({canvasContext:can.getContext("2d",{willReadFrequently:true}),viewport:vp}).promise;return nativePageCache[pn]=can.toDataURL("image/jpeg",.92).split(",")[1];}
+        for(var ni=0;ni<qs.length;ni++){var nq2=qs[ni],pd=null;try{pd=await nativePageImage(nq2.sourcePage||nq2.page||1);}catch(_){}if(pd){if(!nq2.cropImage&&nq2.cropBox)nq2.cropImage=await makeAutoCrop(pd,nq2.cropBox);if(!nq2.figureImage&&nq2.figureCropBox)nq2.figureImage=await makeAutoCrop(pd,nq2.figureCropBox);if(Array.isArray(nq2.visualRegions))for(var nvi=0;nvi<nq2.visualRegions.length;nvi++){var nv=nq2.visualRegions[nvi];if(nv&&!nv.image&&nv.cropBox)nv.image=await makeAutoCrop(pd,nv.cropBox);}if(Array.isArray(nq2.optionFigureBoxes)){nq2.optionImages=nq2.optionImages||[];for(var noi=0;noi<nq2.optionFigureBoxes.length;noi++)if(nq2.optionFigureBoxes[noi]&&!nq2.optionImages[noi])nq2.optionImages[noi]=await makeAutoCrop(pd,nq2.optionFigureBoxes[noi]);}}materializeAIReconstructedVisuals(nq2);}
         totalDetected=qs.length;render();
         $("status").textContent="✔ Native PDF extraction complete — "+qs.length+" question(s). Checking math/physics…";
       }
@@ -1093,39 +1091,22 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
   }finally{$("extract").disabled=false}
 }
 async function generateAISolutionForQuestion(i){
-  var q=qs[i];if(!q)return;
-  var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!key)return alert("पहले Gemini API key डालें.");
-  if(q.solutionGenerating)return;
-  q.solutionGenerating=true;q.solutionProgress=5;render();
+  var q=qs[i];if(!q)return;var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!key)return alert("पहले Gemini API key डालें.");if(q.solutionGenerating)return;
+  q.qType=inferQuestionType(q);q.solutionGenerating=true;q.solutionProgress=5;render();
   try{
-    var payload={question_number:q.no,question:q.text||"",options:q.options||[],answer:q.answer||"",table_rows:q.tableRows||[],matrix_latex:q.matrixLatex||"",content_blocks:q.contentBlocks||[]};
-    q.solutionProgress=15;render();
-    var prompt=String.raw`You are an expert Physics/Mathematics teacher. Solve ONLY this ONE exam question. Return ONLY valid JSON with exactly these keys: {"answer":"...","explanation":"...","final_answer":"..."}.
-
-TEACHING FORMAT: Write the explanation line-by-line for a student. Use numbered steps: Step 1, Step 2, Step 3... Every step must contain one clear action or inference. Start by stating what is given. Then state the relevant concept/law/formula, substitute values, simplify, and finish with a clearly labelled final answer. Use simple teacher-like language such as "Given...", "We know...", "Substituting...", "Therefore...". Do not skip intermediate algebra. Do not write a compressed paragraph.
-
-MATH/PHYSICS FORMAT: Every equation MUST be real MathJax LaTeX enclosed in \( ... \) for inline equations or \[ ... \] for displayed equations. NEVER output raw words/symbols such as SQRT, sqrt, frac, backslash commands, caret notation, hash, dollar signs, slash fractions, vec, hat, alpha, beta, theta, or plain LaTeX commands as the visible mathematical representation. For example use \(\sqrt{x}\), \(\frac{a}{b}\), \(x^2\), \(\vec{E}\), \(\hat{n}\), \(\alpha\), and \[F=ma\]. Put units in proper readable form.
-
-IMPORTANT: The explanation itself must contain the delimiters \( \) or \[ \] around every mathematical expression. Never put a LaTeX command outside those delimiters. If a result needs a fraction, root, vector, exponent, subscript, integral, matrix, or Greek symbol, render it with LaTeX inside MathJax delimiters.
-
-Do not rewrite the question. Preserve the question language (Hindi/English) where practical. If a table is present, use only its actual values. Verify the final result and supplied answer.
-
-QUESTION DATA:
-`+JSON.stringify(payload);
-    var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.05,responseMimeType:"application/json",maxOutputTokens:8192}});
-    q.solutionProgress=65;render();
-    var raw=d&&d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts?d.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
-    var out=parseGeminiJson(raw);
-    if(!out||typeof out!=="object"||!out.explanation)throw Error("Gemini returned an empty solution.");
-    out.explanation=normalizeAISolutionMath(out.explanation);
-    q.answer=String(out.answer||q.answer||"").trim();q.finalAnswer=String(out.final_answer||"").trim();q.explanation=normalizeAngstromText(String(out.explanation||"").trim());
-    q.solutionProgress=100;q.solutionGenerating=false;render();setTimeout(typesetMath,50);
-    showSaveToast("✔ AI solution generated for Q"+q.no+". Review it, then Keep or Delete.");
-    $("status").textContent="✔ Solution generated for Q"+q.no+". Review it before saving to Library.";
-  }catch(e){
-    q.solutionGenerating=false;q.solutionProgress=0;render();
-    console.error("AI solution generation failed",e);$("status").textContent="❌ Solution failed for Q"+q.no+": "+(e.message||e);alert("AI solution failed for Q"+q.no+": "+(e.message||e));
-  }
+    var payload={question_number:q.no,question:q.text||"",question_type:q.qType||"",options:q.options||[],answer:q.answer||"",table_rows:q.tableRows||[],matrix_latex:q.matrixLatex||"",content_blocks:q.contentBlocks||[],visual_regions:q.visualRegions||[]};q.solutionProgress=15;render();
+    var prompt=`You are an expert Physics/Mathematics teacher solving ONE exam question for a beginner student. Return ONLY valid JSON with exactly these keys: {"answer":"...","explanation":"...","final_answer":"..."}.
+Teaching requirements: start with Given and What is asked; define every symbol/variable before using it; state the relevant law/concept/formula and why it applies; substitute supplied values explicitly; show every important intermediate algebra/calculation step; include units and check the final unit for Physics; finish with Final Answer. Never invent missing data. For conceptual questions explain the reasoning simply.
+Math rendering: every mathematical expression MUST be inside MathJax delimiters \( ... \) or \[ ... \]. Use real LaTeX such as \frac{a}{b}, \sqrt{x}, x^2, x_0, \vec{E}, \hat{n}, \alpha, \int_0^4 f(x)dx. Never write SQRT, sqrt, frac, INT, alpha, beta, theta, vec, hat, slash fractions, or raw LaTeX commands as visible math.
+Question type: ${q.qType||inferQuestionType(q)}
+Question data:
+${JSON.stringify(payload)}
+Solve exactly this question without changing its meaning.`;
+    var schema={type:"OBJECT",properties:{answer:{type:"STRING"},explanation:{type:"STRING"},final_answer:{type:"STRING"}},required:["answer","explanation","final_answer"]};
+    var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0,responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:8192}});
+    q.solutionProgress=65;render();var raw=d&&d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts?d.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";var out=normalizeSolutionJson(parseGeminiJson(raw));if(!out.explanation)throw Error("Gemini returned an empty solution.");
+    q.answer=out.answer||q.answer||"";q.finalAnswer=out.final_answer||"";q.explanation=normalizeAngstromText(normalizeAISolutionMath(out.explanation));q.solutionGenerated=true;q.solutionKept=false;q.solutionProgress=100;q.solutionGenerating=false;render();setTimeout(typesetMath,80);showSaveToast("✔ Detailed AI solution generated for Q"+q.no+". Review and Keep Solution.");$("status").textContent="✔ Detailed AI solution generated for Q"+q.no+".";
+  }catch(e){q.solutionGenerating=false;q.solutionProgress=0;render();console.error("AI solution generation failed",e);$("status").textContent="❌ Solution failed for Q"+q.no+": "+(e.message||e);alert("AI solution failed for Q"+q.no+": "+(e.message||e));}
 }
 async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;if(!cropTarget||cropTarget==="question")cropTarget="question";cropPage=Number(qs[i].sourcePage||qs[i].page)||1;$("cropPanel").style.display="block";$("cropStatus").textContent="Loading page "+cropPage+"…";try{if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;cropPage=Math.max(1,Math.min(cropPage,pdf.numPages));let page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(2.5,Math.max(1.2,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Drag over the question area."}catch(e){$("cropStatus").textContent=e.message}}
 async function cropFigure(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;cropTarget="figure";await cropQ(i);cropTarget="figure";$("cropStatus").textContent="🖼 Drag ONLY around the figure/diagram/image. Adjust it manually if AI crop was not exact. Use Next Page if needed."}
@@ -1160,7 +1141,7 @@ window.addEventListener("click",async function(e){
     else if(a==="edit-page"){openQuestionEditor(i);}
     else if(a==="flag"){applyFlagChoice(qs[i],b.dataset.flag);render();showSaveToast("🏷️ Q"+qs[i].no+" flagged as "+b.dataset.flag+".");}
     else if(a==="crop"){await cropQ(i);}else if(a==="figure"){await cropFigure(i);}else if(a==="add-inline-figure"){qs[i].contentBlocks=qs[i].contentBlocks||[];qs[i].contentBlocks.push({type:"figure",visualType:"diagram",anchor:"",image:"",required:true,manual:true});render();showSaveToast("✔ Figure slot added. Use its Crop / Adjust button.");}else if(a==="inline-figure"){cropTarget="inline:"+String(b.dataset.figIndex||0);await cropQ(i);cropTarget="inline:"+String(b.dataset.figIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around this inline figure.";}else if(a==="visual-region-crop"){cropTarget="visual:"+String(b.dataset.visIndex||0);await cropQ(i);cropTarget="visual:"+String(b.dataset.visIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around this detected "+visualTypeLabel((qs[i].visualRegions||[])[Number(b.dataset.visIndex||0)]?.visualType)+".";}else if(a==="option-figure"){cropTarget="option:"+String(b.dataset.optIndex||0);await cropQ(i);cropTarget="option:"+String(b.dataset.optIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around the figure inside option "+String.fromCharCode(65+Number(b.dataset.optIndex||0))+".";}else if(a==="remove-option-figure"){var oi=Number(b.dataset.optIndex||0);qs[i].optionImages=qs[i].optionImages||[];qs[i].optionImages[oi]="";render();showSaveToast("Option figure removed.");}
-    else if(a==="generate-solution"){await generateAISolutionForQuestion(i);}else if(a==="remove-solution"){qs[i].explanation="";qs[i].finalAnswer="";qs[i].solutionGenerating=false;render();showSaveToast("Solution removed from Q"+qs[i].no+".");}else if(a==="edit-solution"){var st=document.querySelector('textarea.ai-solution-editor[data-solution-i="'+i+'"]');if(st)st.style.display=st.style.display==="none"?"block":"none";}else if(a==="apply-solution"){var st=document.querySelector('textarea.ai-solution-editor[data-solution-i="'+i+'"]');if(st&&st.style.display!=="none")qs[i].explanation=normalizeAISolutionMath(st.value.trim());render();setTimeout(typesetMath,50);showSaveToast("✔ Q"+qs[i].no+" solution kept for Library.");}else if(a==="del"){
+    else if(a==="generate-solution"){await generateAISolutionForQuestion(i);}else if(a==="remove-solution"){qs[i].explanation="";qs[i].finalAnswer="";qs[i].solutionGenerating=false;render();showSaveToast("Solution removed from Q"+qs[i].no+".");}else if(a==="edit-solution"){var st=document.querySelector('textarea.ai-solution-editor[data-solution-i="'+i+'"]');if(st)st.style.display=st.style.display==="none"?"block":"none";}else if(a==="apply-solution"){var st=document.querySelector('textarea.ai-solution-editor[data-solution-i="'+i+'"]');if(st&&st.style.display!=="none")qs[i].explanation=normalizeAISolutionMath(st.value.trim());qs[i].solutionKept=true;render();setTimeout(typesetMath,50);showSaveToast("✔ Q"+qs[i].no+" solution kept for Library.");}else if(a==="del"){
       if(confirm("Delete this question from review?")){qs.splice(i,1);render();}
     }
     else if(a==="save"){
