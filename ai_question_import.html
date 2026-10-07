@@ -129,15 +129,16 @@ function renderMathMarkupHtml(s){
 }
 function normalizeMathMarkup(s){
   var x=String(s||""); if(!x)return "";
-  x=x.replace(/```(?:latex|tex|math)?\\n?/gi,"").replace(/```/g,"");
-  /* Normalize common AI variants into MathJax delimiters. */
-  x=x.replace(/\\\\\[/g,"\\[").replace(/\\\\\]/g,"\\]").replace(/\\\\\(/g,"\\(").replace(/\\\\\)/g,"\\)");
+  x=x.replace(/```(?:latex|tex|math)?\n?/gi,"").replace(/```/g,"");
+  x=normalizeLatexSlashes(x);
+  /* Normalize over-escaped MathJax delimiters without touching matrix row breaks. */
+  x=x.replace(/\\\[/g,"\\[").replace(/\\\]/g,"\\]").replace(/\\\(/g,"\\(").replace(/\\\)/g,"\\)");
   var lines=x.split(/\n/);
   lines=lines.map(function(line){
     var t=line.trim();
     if(!t)return line;
     /* A line containing explicit LaTeX commands but no delimiters becomes display math. */
-    if(!/\\\(|\\\[|\$/.test(t) && /\\(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline)\b/.test(t)) return "\\["+t+"\\]";
+    if(!/\\\(|\\\[|\$/.test(t) && /\\(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|vec|mathbf|mathrm|mathbb|mathcal|text|begin|end|left|right|cdot|times|pm|leq|geq|neq|approx|sim|infty|hat|bar|dot|overline|underline)\b/.test(t)) return "\\["+t+"\\]";
     return line;
   });
   return lines.join("\n");
@@ -702,10 +703,31 @@ function inferQuestionType(q){
   if(declared&&declared!=="mcq")return declared;
   return declared||"short";
 }
+function continuationFragmentCheck(q,prev){
+  if(!q||!prev)return false;
+  if(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true||q.continuation_of_previous===true)return true;
+  var clean=function(v){return String(v||"").replace(/\r\n?/g,"\n").replace(/[ \t]+/g," ").trim();};
+  var qt=clean(q.question||q.text), qn=String(q.question_number||q.no||"").trim();
+  var pn=String(prev.no||prev.question_number||"").trim();
+  if(qn&&pn&&qn.toLowerCase()===pn.toLowerCase())return true;
+  if(!qn && /^(?:[\(\[]?[A-Ha-h]\s*[\)\].:-]|(?:option|विकल्प)\s*[A-Ha-h0-9])/i.test(qt))return true;
+  if(!qn&&Array.isArray(q.options)&&q.options.length&&(!prev.options||!prev.options.length))return true;
+  if(!qn&&qt&&/^(?:and|or|but|because|therefore|hence|where|when|which|that|then|thus|given|if|so|following|from|using|for|also|तथा|और|या|जहाँ|जब|जो|निम्न|दिया गया|इसके|अतः|इसलिए)\b/i.test(qt))return true;
+  return false;
+}
+function normalizeLatexSlashes(s){
+  var x=String(s==null?"":s);
+  /* Gemini sometimes double-escapes LaTeX after JSON generation. Collapse only
+     command/delimiter escapes; NEVER collapse matrix row-break \\ blindly. */
+  x=x.replace(/\\\\(?=(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|mathcal|text|operatorname|begin|end|left|right|cdot|times|pm|mp|leq|geq|neq|approx|sim|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|rho|phi|psi|Delta|Gamma|Theta|Lambda|Sigma|Omega)\b)/g,"\\");
+  x=x.replace(/\\\\(?=[\[\]\(\)])/g,"\\");
+  return x;
+}
 function sanitizeSolutionLatex(s){
   var x=String(s==null?"":s).replace(/\r\n?/g,"\n");
   // Remove markdown fences but keep their mathematical content.
   x=x.replace(/```(?:latex|tex|math)?/gi,"").replace(/```/g,"");
+  x=normalizeLatexSlashes(x);
   // Normalize only over-escaped commands/delimiters. Matrix row-break \\ remains intact.
   x=x.replace(/\\\\(?=(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b)/g,"\\");
   x=x.split("\\[").join("\\[").split("\\]").join("\\]").split("\\(").join("\\(").split("\\)").join("\\)");
@@ -1105,7 +1127,7 @@ async function extract(){
       if(!x)return false;
       return /^(?:[\(\[]?[A-Ha-h]\s*[\)\].:-]|(?:option|विकल्प)\s*[A-Ha-h0-9])/i.test(x) || /(?:^|\n)\s*(?:[\(\[]?[A-Ha-h]\s*[\)\].:-])/.test(x);
     }
-    function looksLikeContinuationFragment(q,prev){
+    function continuationFragmentCheck(q,prev){
       if(!q||!prev)return false;
       if(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true||q.continuation_of_previous===true)return true;
       let qt=cleanContinuationText(q.question), pt=cleanContinuationText(prev.text);
@@ -1149,7 +1171,7 @@ async function extract(){
       (Array.isArray(list)?list:[]).forEach(function(q){
         q=q||{};
         let prev=out.length?out[out.length-1]:null;
-        if(prev&&looksLikeContinuationFragment(q,prev)){
+        if(prev&&continuationFragmentCheck(q,prev)){
           q.continuation=true;q.continuation_of_previous=true;
           prev._mergedFragments=prev._mergedFragments||[];prev._mergedFragments.push(q);
           if(Array.isArray(q.options)&&q.options.length){prev.options=prev.options||[];q.options.forEach(function(x){var v=normalizeBilingualText(String(x));if(v&&!prev.options.some(function(o){return cleanContinuationText(o).toLowerCase()===cleanContinuationText(v).toLowerCase()}))prev.options.push(v);});}
@@ -1176,7 +1198,7 @@ async function extract(){
         }
         if(!n && all.length){
           let previous=all[all.length-1];
-          if(looksLikeContinuationFragment(q,previous)){
+          if(continuationFragmentCheck(q,previous)){
             await mergeContinuationInto(previous,q,pageNo,pageImageData);
             continue;
           }
@@ -1275,7 +1297,7 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
       let explicit=cur.continuation===true||cur.continuation_of_previous===true||cur.is_continuation===true;
       let samePrintedNo=String(cur.no||"").trim().toLowerCase()===String(prev.no||"").trim().toLowerCase();
       let fragment={question:cur.text,options:cur.options,question_number:cur.no||""};
-      if((explicit && samePrintedNo) || looksLikeContinuationFragment(fragment,prev)){
+      if((explicit && samePrintedNo) || continuationFragmentCheck(fragment,prev)){
         await mergeContinuationInto(prev,{question:cur.text,options:cur.options,answer:cur.answer,explanation:cur.explanation,diagram:cur.diagram,figure_reference:cur.figureReference,table_rows:cur.tableRows,matrix_latex:cur.matrixLatex,visual_regions:cur.visualRegions,content_blocks:cur.contentBlocks,option_figure_boxes:cur.optionFigureBoxes},cur.sourcePage||cur.page,"");
         qs.splice(ri,1);all=qs.slice();ri--;
       }
