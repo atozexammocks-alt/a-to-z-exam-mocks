@@ -128,33 +128,19 @@ function renderMathMarkupHtml(s){
   return out;
 }
 function normalizeMathMarkup(s){
-  var x=String(s==null?"":s);
-  if(!x)return "";
-  x=x.replace(/\r\n?/g,"\n");
-  x=x.replace(/```(?:latex|tex|math)?\s*/gi,"").replace(/```/g,"");
-  x=normalizeLatexSlashes(x);
-  /* Normalize doubled delimiters produced by JSON/string escaping. */
-  x=x.replace(/\\\[/g,"\\[").replace(/\\\]/g,"\\]").replace(/\\\(/g,"\\(").replace(/\\\)/g,"\\)");
-
-  var lines=x.split("\n");
-  var commands=/\\(?:frac|dfrac|tfrac|binom|sqrt|root|nthroot|int|iint|iiint|oint|sum|prod|lim|log|ln|sin|cos|tan|cot|sec|csc|sinh|cosh|tanh|partial|nabla|Delta|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|sigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|vec|mathbf|mathrm|mathbb|mathcal|mathscr|text|operatorname|begin|end|left|right|middle|cdot|times|pm|mp|leq|geq|neq|approx|sim|equiv|propto|infty|hat|bar|dot|overline|underline|overbrace|underbrace)\b/;
-  var bareMath=/[A-Za-z0-9\)\]](?:\^|_)(?:\{[^{}]+\}|[A-Za-z0-9+\-()\[\]])/;
-
+  var x=String(s||""); if(!x)return "";
+  x=x.replace(/```(?:latex|tex|math)?\\n?/gi,"").replace(/```/g,"");
+  /* Normalize common AI variants into MathJax delimiters. */
+  x=x.replace(/\\\\\[/g,"\\[").replace(/\\\\\]/g,"\\]").replace(/\\\\\(/g,"\\(").replace(/\\\\\)/g,"\\)");
+  var lines=x.split(/\n/);
   lines=lines.map(function(line){
     var t=line.trim();
     if(!t)return line;
-    /* Already valid MathJax: leave it alone. */
-    if(/^\\\[[\s\S]*\\\]$/.test(t)||/^\\\([\s\S]*\\\)$/.test(t)||/^\$\$[\s\S]*\$\$$/.test(t)||/^\$[^$]+\$$/.test(t))return line;
-    /* Standalone LaTeX/math lines must be display math. */
-    if(commands.test(t)||bareMath.test(t))return "\\["+t+"\\]";
+    /* A line containing explicit LaTeX commands but no delimiters becomes display math. */
+    if(!/\\\(|\\\[|\$/.test(t) && /\\(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline)\b/.test(t)) return "\\["+t+"\\]";
     return line;
   });
-  x=lines.join("\n");
-
-  /* Fix common inline raw-LaTeX cases without turning ordinary bilingual slashes into math. */
-  x=x.replace(/(^|[\s(,:;=+\-])((?:\\(?:frac|dfrac|tfrac|binom)\s*\{[^\n{}]*\}\s*\{[^\n{}]*\}|\\sqrt\s*(?:\{[^\n{}]*\}|\[[^\n\]]*\]\s*\{[^\n{}]*\})|\\(?:alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|omega|Delta|Gamma|Theta|Lambda|Sigma|Omega)\b(?:_[A-Za-z0-9{}]+|\^[A-Za-z0-9{}]+)?))(?=$|[\s),.;:!?])/g,function(_,pre,expr){return pre+"\\("+expr+"\\)";});
-
-  return x;
+  return lines.join("\n");
 }
 function renderMathLine(s){
   return '<span>'+renderMathMarkupHtml(s)+'</span>';
@@ -164,9 +150,8 @@ function safeVerifiedText(original,verified){var a=String(original||""),b=String
 function typesetMath(){
   function go(){
     if(window.MathJax&&typeof MathJax.typesetPromise==="function"){
-      var nodes=Array.from(document.querySelectorAll(".math-content"));
-      try{MathJax.typesetClear(nodes)}catch(_){}
-      return MathJax.typesetPromise(nodes).catch(function(err){console.warn("MathJax typeset failed",err);});
+      MathJax.typesetClear(document.querySelectorAll(".math-content"));
+      return MathJax.typesetPromise(Array.from(document.querySelectorAll(".math-content"))).catch(function(){});
     }
     return Promise.resolve();
   }
@@ -373,7 +358,6 @@ function renderQuestionWithInlineFigures(q){
 
 function normalizeQuestionForRender(q,i){
   q=q||{};
-  q.text=normalizeExtractedText(q.text||q.question||q.question_text||q.stem||"");
   if(!String(q.no??"").trim())q.no="Q"+(i+1);
   if(!String(q.text??"").trim()){
     q.text=String(q.question??q.question_text??q.stem??"").trim();
@@ -718,32 +702,10 @@ function inferQuestionType(q){
   if(declared&&declared!=="mcq")return declared;
   return declared||"short";
 }
-function continuationFragmentCheck(q,prev){
-  if(!q||!prev)return false;
-  if(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true||q.continuation_of_previous===true)return true;
-  var clean=function(v){return String(v||"").replace(/\r\n?/g,"\n").replace(/[ \t]+/g," ").trim();};
-  var qt=clean(q.question||q.text), qn=String(q.question_number||q.no||"").trim();
-  var pn=String(prev.no||prev.question_number||"").trim();
-  if(qn&&pn&&qn.toLowerCase()===pn.toLowerCase())return true;
-  if(!qn && /^(?:[\(\[]?[A-Ha-h]\s*[\)\].:-]|(?:option|विकल्प)\s*[A-Ha-h0-9])/i.test(qt))return true;
-  if(!qn&&Array.isArray(q.options)&&q.options.length&&(!prev.options||!prev.options.length))return true;
-  if(!qn&&qt&&/^(?:and|or|but|because|therefore|hence|where|when|which|that|then|thus|given|if|so|following|from|using|for|also|तथा|और|या|जहाँ|जब|जो|निम्न|दिया गया|इसके|अतः|इसलिए)\b/i.test(qt))return true;
-  return false;
-}
-window.__continuationFragmentCheck=continuationFragmentCheck;
-function normalizeLatexSlashes(s){
-  var x=String(s==null?"":s);
-  /* Gemini sometimes double-escapes LaTeX after JSON generation. Collapse only
-     command/delimiter escapes; NEVER collapse matrix row-break \\ blindly. */
-  x=x.replace(/\\\\(?=(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|mathcal|text|operatorname|begin|end|left|right|cdot|times|pm|mp|leq|geq|neq|approx|sim|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|rho|phi|psi|Delta|Gamma|Theta|Lambda|Sigma|Omega)\b)/g,"\\");
-  x=x.replace(/\\\\(?=[\[\]\(\)])/g,"\\");
-  return x;
-}
 function sanitizeSolutionLatex(s){
   var x=String(s==null?"":s).replace(/\r\n?/g,"\n");
   // Remove markdown fences but keep their mathematical content.
   x=x.replace(/```(?:latex|tex|math)?/gi,"").replace(/```/g,"");
-  x=normalizeLatexSlashes(x);
   // Normalize only over-escaped commands/delimiters. Matrix row-break \\ remains intact.
   x=x.replace(/\\\\(?=(?:frac|dfrac|tfrac|sqrt|root|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b)/g,"\\");
   x=x.split("\\[").join("\\[").split("\\]").join("\\]").split("\\(").join("\\(").split("\\)").join("\\)");
@@ -761,7 +723,7 @@ function sanitizeSolutionLatex(s){
 function normalizeSolutionJson(out){out=out&&typeof out==='object'?out:{};return {answer:String(out.answer||"").trim(),explanation:String(out.explanation||out.solution||out.steps||"").trim(),final_answer:String(out.final_answer||out.finalAnswer||out.final||out.answer||"").trim()};}
 async function geminiRequest(key,body){
   // Current stable Gemini API model IDs, with a compatibility fallback.
-  const models=["gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3.5-flash-lite","gemini-3.1-flash-lite"];
+  const models=["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.0-flash"];
   let last="", errors=[];
   key=String(key||"").trim();
   if(!key)throw Error("Gemini API key is empty. Enter your Gemini API key first.");
@@ -859,13 +821,6 @@ function tableRowsFromHtml(html){
       return Array.from(tr.children).map(function(c){return {text:String(c.textContent||"").trim(),rowspan:Math.max(1,Number(c.getAttribute("rowspan"))||1),colspan:Math.max(1,Number(c.getAttribute("colspan"))||1),header:c.tagName.toLowerCase()==="th"};});
     }).filter(function(r){return r.length;});
   }catch(e){return [];}
-}
-function normalizeExtractedText(s){
-  try{return String(s==null?"":s).normalize("NFC");}catch(_){return String(s==null?"":s);}
-}
-function normalizeBilingualText(s){
-  /* Preserve mathematical source exactly; normalize Unicode only. */
-  return normalizeExtractedText(String(s==null?"":s));
 }
 function normalizeNativeQuestionGlobal(q,i){
   q=q||{};
@@ -1108,32 +1063,33 @@ async function extract(){
         return can.toDataURL("image/jpeg",.9);
       }catch(e){console.warn("Auto crop failed",e);return ""}
     }
+    function normalizeExtractedText(s){
+      try{return String(s==null?"":s).normalize("NFC");}catch(_){return String(s==null?"":s);}
+    }
+    function normalizeBilingualText(s){
+      /* Preserve mathematical source exactly. Unicode NFC is safe for Hindi, but
+         do not rewrite slashes, underscores, carets, fractions or LaTeX commands. */
+      return normalizeExtractedText(String(s==null?"":s));
+    }
     function normalizePageQuestion(q,i,pageNo){
-      q=q||{};
-      var n=normalizeNativeQuestionGlobal(q,i);
-      var pick=function(){for(var ai=0;ai<arguments.length;ai++){var v=q[arguments[ai]];if(v!==undefined&&v!==null&&String(v).trim()!=="")return v;}return "";};
-      n.no=String(pick("question_number","questionNumber","question_no","questionNo","no")||n.no||"Q"+(i+1)).trim();
-      n.text=normalizeBilingualText(String(pick("question","question_text","questionText","stem","text","question_stem")||n.text||"").trim());
-      n.options=Array.isArray(n.options)?n.options:[];
-      n.answer=String(pick("answer","correct_answer","correctAnswer")||n.answer||"").trim();
-      n.topic=String(pick("topic","subtopic","chapter")||n.topic||"").trim();
-      n.chapter=String(pick("chapter","topic")||n.chapter||"").trim();
-      n.qType=String(pick("question_type","questionType","qType")||n.qType||"mcq").trim().toLowerCase()||"mcq";
-      n.flagChoice=String(pick("suggested_flag","suggestedFlag","flagChoice")||n.flagChoice||suggestedFlagFromDifficulty(pick("difficulty")||n.difficulty)).trim().toLowerCase();
-      n.explanation=String(pick("explanation","solution","reasoning")||n.explanation||"").trim();
-      n.diagram=String(pick("diagram_description","diagram","figure_description")||n.diagram||"").trim();
-      n.figureReference=String(pick("figure_reference","figureReference")||n.figureReference||"").trim();
-      n.page=String(pick("page")||pageNo).trim(); n.sourcePage=String(pick("sourcePage","source_page","page")||pageNo).trim();
-      n.tableRows=normalizeTableRows(pick("table_rows","tableRows")||n.tableRows);
-      n.matrixLatex=String(pick("matrix_latex","matrixLatex")||n.matrixLatex||"").trim();
-      n.cropBox=pick("crop_box","cropBox","bounding_box","boundingBox")||n.cropBox||null;
-      n.figureCropBox=pick("figure_crop_box","figureCropBox","figure_bounding_box","figureBoundingBox")||n.figureCropBox||null;
-      n.contentBlocks=Array.isArray(pick("content_blocks","contentBlocks"))?pick("content_blocks","contentBlocks"):(n.contentBlocks||[]);
-      n.visualRegions=Array.isArray(pick("visual_regions","visualRegions"))?pick("visual_regions","visualRegions"):(n.visualRegions||[]);
-      n.optionFigureBoxes=Array.isArray(pick("option_figure_boxes","optionFigureBoxes"))?pick("option_figure_boxes","optionFigureBoxes"):n.optionFigureBoxes;
-      n.optionFigureRequired=Array.isArray(pick("option_figure_required","optionFigureRequired"))?pick("option_figure_required","optionFigureRequired").map(Boolean):(n.optionFigureRequired||[]);
-      n.figureRequired=Boolean(pick("figure_required","figureRequired")||n.figureRequired); n.visualRequired=Boolean(pick("visual_required","visualRequired")||n.visualRequired);
-      return n;
+      return {
+        no:q.question_number||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),
+        options:Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x))}):[],
+        answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),
+        source:String(q.source||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"mcq").trim().toLowerCase()||"mcq",answerRegion:String(q.answer_region||q.answerRegion||"").trim(),
+        flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},
+        libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),
+        diagram:String(q.diagram_description||"").trim(),visualType:(Array.isArray(q.table_rows)&&q.table_rows.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||""))),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:((!Array.isArray(q.table_rows)||!q.table_rows.length)&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired)&&isFigureVisual(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||"")),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||pageNo).trim(),sourcePage:String(pageNo).trim(),book:String(q.book||"").trim(),
+        subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
+        suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
+        tableRows:normalizeTableRows(q.table_rows),
+        matrixLatex:String(q.matrix_latex||"").trim(),cropImage:String(q.crop_image||q.image||"").trim(),cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,
+        contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks.map(function(b){return {type:String(b.type||b.visualType||"diagram"),visualType:visualTypeOf(b.visualType||b.type),anchor:String(b.anchor||b.insert_after||"").trim(),image:String(b.image||"").trim(),cropBox:b.crop_box||b.figure_crop_box||null,required:Boolean(b.required),reconstruction:b.reconstruction||b.visual_reconstruction||null};}):[],
+        optionImages:Array.isArray(q.option_images)?q.option_images.map(function(x){return String(x||"")}):[],
+        optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,
+        optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],
+        visualRegions:Array.isArray(q.visual_regions)?q.visual_regions.map(function(v){return {visualType:visualTypeOf(v.visual_type||v.visualType||v.type),type:visualTypeOf(v.visual_type||v.visualType||v.type),anchor:String(v.anchor||v.insert_after||"").trim(),image:String(v.image||"").trim(),cropBox:v.crop_box||v.figure_crop_box||null,required:Boolean(v.required||v.visual_required),reconstruction:v.reconstruction||v.visual_reconstruction||null}}):[]
+      };
     }
     function cleanContinuationText(s){
       return String(s||"").replace(/\r\n?/g,"\n").replace(/[ \t]+/g," ").trim();
@@ -1142,6 +1098,19 @@ async function extract(){
       let x=cleanContinuationText(s);
       if(!x)return false;
       return /^(?:[\(\[]?[A-Ha-h]\s*[\)\].:-]|(?:option|विकल्प)\s*[A-Ha-h0-9])/i.test(x) || /(?:^|\n)\s*(?:[\(\[]?[A-Ha-h]\s*[\)\].:-])/.test(x);
+    }
+    function looksLikeContinuationFragment(q,prev){
+      if(!q||!prev)return false;
+      if(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true||q.continuation_of_previous===true)return true;
+      let qt=cleanContinuationText(q.question), pt=cleanContinuationText(prev.text);
+      let qn=String(q.question_number||q.no||"").trim(), pn=String(prev.no||"").trim();
+      if(qn && pn && qn.toLowerCase()===pn.toLowerCase())return true;
+      if(!qn && isOptionLikeFragment(qt))return true;
+      if(!qn && Array.isArray(q.options) && q.options.length && (!prev.options||!prev.options.length))return true;
+      if(!qn && qt && /^(?:and|or|but|because|therefore|hence|where|when|which|that|then|thus|given|if|so|following|from|using|for|also|also,|तथा|और|या|जहाँ|जब|जो|निम्न|दिया गया|इसके|अतः|इसलिए)\b/i.test(qt))return true;
+      // Do not merge unnumbered numerical questions merely because the previous stem has no terminal punctuation.
+      // Cross-page merges require an explicit continuation flag, same printed number, or clear options-only fragment.
+      return false;
     }
     async function mergeContinuationInto(existing,q,pageNo,pageImageData){
       if(!existing||!q)return;
@@ -1174,7 +1143,7 @@ async function extract(){
       (Array.isArray(list)?list:[]).forEach(function(q){
         q=q||{};
         let prev=out.length?out[out.length-1]:null;
-        if(prev&&window.__continuationFragmentCheck(q,prev)){
+        if(prev&&looksLikeContinuationFragment(q,prev)){
           q.continuation=true;q.continuation_of_previous=true;
           prev._mergedFragments=prev._mergedFragments||[];prev._mergedFragments.push(q);
           if(Array.isArray(q.options)&&q.options.length){prev.options=prev.options||[];q.options.forEach(function(x){var v=normalizeBilingualText(String(x));if(v&&!prev.options.some(function(o){return cleanContinuationText(o).toLowerCase()===cleanContinuationText(v).toLowerCase()}))prev.options.push(v);});}
@@ -1184,10 +1153,6 @@ async function extract(){
       return out;
     }
     async function addPageQuestions(list,pageNo,pageImageData){
-      /* Normalize BEFORE any dedupe/continuation checks. Gemini may return
-         question_text/questionText/stem and choices/answer_options, so reading
-         q.question here before normalization can silently discard every item. */
-      list=(Array.isArray(list)?list:[]).map(function(q,idx){return normalizePageQuestion(q,all.length+idx,pageNo);});
       list=reconcilePageOrder(list);
       let added=0;
       for(let idx=0;idx<(Array.isArray(list)?list.length:0);idx++){
@@ -1201,7 +1166,7 @@ async function extract(){
         }
         if(!n && all.length){
           let previous=all[all.length-1];
-          if(window.__continuationFragmentCheck(q,previous)){
+          if(looksLikeContinuationFragment(q,previous)){
             await mergeContinuationInto(previous,q,pageNo,pageImageData);
             continue;
           }
@@ -1251,7 +1216,7 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
         let d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
         raw=raw.trim();let fence=String.fromCharCode(96).repeat(3);
         if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim()}
-        let parsed=parseGeminiJson(raw);list=Array.isArray(parsed)?parsed:(parsed&&Array.isArray(parsed.questions)?parsed.questions:(parsed&&Array.isArray(parsed.items)?parsed.items:(parsed&&Array.isArray(parsed.data)?parsed.data:[])));
+        let parsed=parseGeminiJson(raw);list=Array.isArray(parsed.questions)?parsed.questions:[];
       }catch(err){
         console.warn("Page "+pageNo+" extraction failed:",err);
         $("status").textContent="⚠️ Page "+pageNo+" failed; retrying…";
@@ -1261,18 +1226,8 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
           if(nextImage)retryParts.push({inlineData:{mimeType:"image/jpeg",data:nextImage}});
           let rd=await geminiRequest(key,{contents:[{role:"user",parts:retryParts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:32768}});
           let rr=rd?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
-          let rp=parseGeminiJson(rr.trim());list=Array.isArray(rp)?rp:(rp&&Array.isArray(rp.questions)?rp.questions:(rp&&Array.isArray(rp.items)?rp.items:(rp&&Array.isArray(rp.data)?rp.data:[])));
+          let rp=parseGeminiJson(rr.trim());list=Array.isArray(rp.questions)?rp.questions:[];
         }catch(re){console.warn("Page retry failed:",re)}
-      }
-      if(!Array.isArray(list))list=[];
-      if(!list.length){
-        try{
-          var rescuePrompt="Read CURRENT PAGE "+pageNo+" from the supplied exam-page image. Extract every question that STARTS on this page. Return ONLY JSON with a questions array. Each item MUST contain a non-empty question field and may contain question_number, options, answer, explanation, visual_regions, crop_box and figure_crop_box. Preserve English, Hindi and mathematical notation exactly. If there are no question starts, return {questions:[]}.";
-          var rescue=await geminiRequest(key,{contents:[{role:"user",parts:[{text:rescuePrompt},{inlineData:{mimeType:"image/jpeg",data:currentImage}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}});
-          var rescueRaw=rescue?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
-          var rescueParsed=parseGeminiJson(rescueRaw.trim());
-          list=Array.isArray(rescueParsed)?rescueParsed:(rescueParsed&&Array.isArray(rescueParsed.questions)?rescueParsed.questions:(rescueParsed&&Array.isArray(rescueParsed.items)?rescueParsed.items:(rescueParsed&&Array.isArray(rescueParsed.data)?rescueParsed.data:[])));
-        }catch(rescueErr){console.warn("Final page rescue failed:",rescueErr);}
       }
       // Second-pass visual recovery catches figures that the main extraction missed.
       list=await recoverPageVisuals(key,currentImage,list,pageNo);
@@ -1300,7 +1255,7 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
       let explicit=cur.continuation===true||cur.continuation_of_previous===true||cur.is_continuation===true;
       let samePrintedNo=String(cur.no||"").trim().toLowerCase()===String(prev.no||"").trim().toLowerCase();
       let fragment={question:cur.text,options:cur.options,question_number:cur.no||""};
-      if((explicit && samePrintedNo) || window.__continuationFragmentCheck(fragment,prev)){
+      if((explicit && samePrintedNo) || looksLikeContinuationFragment(fragment,prev)){
         await mergeContinuationInto(prev,{question:cur.text,options:cur.options,answer:cur.answer,explanation:cur.explanation,diagram:cur.diagram,figure_reference:cur.figureReference,table_rows:cur.tableRows,matrix_latex:cur.matrixLatex,visual_regions:cur.visualRegions,content_blocks:cur.contentBlocks,option_figure_boxes:cur.optionFigureBoxes},cur.sourcePage||cur.page,"");
         qs.splice(ri,1);all=qs.slice();ri--;
       }
