@@ -744,6 +744,64 @@ async function testGeminiKey(){
     $("testKey").disabled=false;
   }
 }
+function normalizeNativeQuestion(q,i,pageNo){
+  q=q||{};
+  var tableRows=normalizeTableRows(q.table_rows);
+  return {
+    no:q.question_number||q.no||"Q"+(i+1),
+    text:String(q.question||"").trim(),
+    options:Array.isArray(q.options)?q.options.map(function(x){return String(x==null?"":x)}):[],
+    answer:String(q.answer||"").trim(), explanation:String(q.explanation||"").trim(),
+    topic:String(q.topic||"").trim(), chapter:String(q.chapter||"").trim(),
+    source:String(q.source||"").trim(), year:String(q.year||"").trim(),
+    difficulty:String(q.difficulty||"Medium"), qType:String(q.question_type||q.qType||"mcq").trim().toLowerCase()||"mcq",
+    flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty), flags:{},
+    libraryMode:"private",folderPath:"", explanation:String(q.explanation||"").trim(),
+    diagram:String(q.diagram_description||q.diagram||"").trim(),
+    visualType:(tableRows.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||q.diagram_type||""))),
+    visualRequired:Boolean(q.visual_required||q.visualRequired),
+    figureRequired:Boolean(q.figure_required||q.figureRequired),
+    figureReference:String(q.figure_reference||"").trim(), figureImage:String(q.figure_image||"").trim(),
+    page:String(q.page||pageNo).trim(), sourcePage:String(q.page||pageNo).trim(), book:String(q.book||"").trim(),
+    subject:String(q.subject||"").trim(), subtopic:String(q.subtopic||"").trim(), section:String(q.section||"").trim(),
+    suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
+    tableRows:tableRows, tableHtml:String(q.table_html||q.tableHtml||"").trim(),
+    matrixLatex:String(q.matrix_latex||"").trim(), cropImage:String(q.crop_image||q.image||"").trim(),
+    cropBox:q.crop_box||q.bounding_box||null, figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,
+    contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],
+    optionImages:Array.isArray(q.option_images)?q.option_images:[], optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,
+    optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],
+    visualRegions:Array.isArray(q.visual_regions)?q.visual_regions:[]
+  };
+}
+function mergeContinuationInto(existing,q,pageNo,pageImageData){
+  if(!existing||!q)return Promise.resolve();
+  var qt=String(q.question||"").trim(), et=String(existing.text||"").trim();
+  if(qt && et.toLowerCase()!==qt.toLowerCase() && !et.toLowerCase().endsWith(qt.toLowerCase())) existing.text=(existing.text?existing.text+"\n":"")+qt;
+  existing.sourcePage=String(pageNo||existing.sourcePage||existing.page||"");
+  if(Array.isArray(q.options)&&q.options.length){existing.options=existing.options||[];q.options.forEach(function(x){var v=String(x==null?"":x);if(v&&!existing.options.some(function(o){return String(o).trim().toLowerCase()===v.trim().toLowerCase()}))existing.options.push(v);});}
+  if(q.answer && !existing.answer)existing.answer=String(q.answer);
+  if(q.explanation && !existing.explanation)existing.explanation=String(q.explanation);
+  if(Array.isArray(q.table_rows)&&q.table_rows.length){existing.tableRows=(existing.tableRows||[]).concat(normalizeTableRows(q.table_rows));existing.visualType="table";}
+  if(q.table_html){existing.tableHtml=String(q.table_html);existing.visualType="table";}
+  if(q.matrix_latex&&!existing.matrixLatex){existing.matrixLatex=String(q.matrix_latex);existing.visualType="matrix";}
+  return Promise.resolve();
+}
+function looksLikeContinuationFragment(q,prev){
+  if(!q||!prev)return false;
+  if(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true||q.continuation_of_previous===true)return true;
+  var qt=String(q.question||"").trim(), pt=String(prev.text||"").trim();
+  var qn=String(q.question_number||q.no||"").trim(), pn=String(prev.no||"").trim();
+  if(qn&&pn&&qn.toLowerCase()===pn.toLowerCase())return true;
+  if(!qn&&/^(?:[\(\[]?[A-Ha-h]\s*[\)\].:-]|[\(\[]?[1-8]\s*[\)\].:-]|(?:option|विकल्प)\s*[A-Ha-h0-9])/i.test(qt))return true;
+  if(!qn&&Array.isArray(q.options)&&q.options.length&&(!prev.options||!prev.options.length))return true;
+  if(!qn&&qt&&/^(?:and|or|but|because|therefore|hence|where|when|which|that|then|thus|given|if|so|following|from|using|for|also|तथा|और|या|जहाँ|जब|जो|निम्न|दिया गया|इसके|अतः|इसलिए)\b/i.test(qt))return true;
+  if(!qn&&pt&&!/[.!?।:]$/.test(pt)&&qt&&qt.length<500)return true;
+  return false;
+}
+function reconcileNativeOrder(list){
+  var out=[];(Array.isArray(list)?list:[]).forEach(function(q){q=q||{};var prev=out.length?out[out.length-1]:null;if(prev&&looksLikeContinuationFragment(q,prev)){q.continuation=true;q.continuation_of_previous=true;mergeContinuationInto(prev,q,q.page||prev.page||1,"");}else out.push(q);});return out;
+}
 async function extractNativePdf(key,pdfB64,totalPages,limit,libraryList){
   var wanted=limit?Math.min(limit,250):250;
   var prompt=`Extract exam questions from the supplied ORIGINAL PDF. This is a faithful transcription task, not summarization. Return ONLY valid JSON in exactly this shape: {"questions":[...]}. Extract every logical question in printed order, preserving BOTH English and Hindi/Devanagari when the PDF is bilingual. Never translate, transliterate, paraphrase, shorten or omit text. Preserve punctuation, option labels, numbers, units and line structure. Preserve mathematical notation as valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. A visible fraction must be \\frac{...}{...}, a root \\sqrt{...}, powers/subscripts/superscripts must remain structured, Greek letters must remain symbols, and integrals/limits/matrices/vectors/derivatives must remain mathematical notation. Never output words such as SQRT, INT, alpha, raised power or subscript when the PDF visibly contains the corresponding mathematical symbol. Preserve Å/Å, °C, μ, Ω and other units exactly. Do not confuse a literal slash in prose with a fraction. KEEP TABLES EXACTLY. For every real printed table, set visual_type="table", visual_required=false, figure_required=false, and return BOTH table_rows and table_html. table_html must be a complete <table>...</table> using only <tr>, <th>, <td>, rowspan and colspan; preserve the exact row/column structure, merged cells, header cells, ordering, labels, units, blank cells and mathematical expressions inside cells. Do NOT turn a table into a prose sentence, a matrix, an image description, or a guessed/reconstructed "scale". If the PDF table has a visual border/grid, reproduce the cell structure from the PDF. Put LaTeX/MathJax inside table cells exactly as in question text, e.g. \(v_1\), \(\frac{1}{2}mv^2\). table_rows is a fallback structural representation and MUST contain cell objects when rowspan/colspan/header information matters: {"text":"...","rowspan":1,"colspan":1,"header":false}. NEVER invent rows, columns or values. If a table cell is unreadable, preserve the visible text as closely as possible and do not fabricate data. Keep real mathematical matrices in matrix_latex, not table_html. Do not invent figures or equations. For each question return: question_number, question, options (array), answer, explanation, topic, chapter, subject, subtopic, source, year, difficulty, suggested_flag, suggested_library_path, table_rows, matrix_latex, visual_type, visual_required, figure_required, figure_reference, page, is_continuation, continuation_of_previous. Use the deepest reliable library path in this hierarchy: Class/Grade / Chapter / Topic / Subtopic / Concept. Existing library paths: ${libraryList}. Maximum questions: ${wanted}. If a question continues across pages, merge the continuation into the same question. Do not create a new question from an option-only or continuation fragment. Return the complete question text and all options.`;
@@ -783,8 +841,17 @@ async function extract(){
       $("status").textContent="🤖 Gemini is reading the original PDF directly…";
       let nativeList=await extractNativePdf(key,pdfB64,totalPages,lim,libraryList);
       if(nativeList.length){
-        await addPageQuestions(nativeList,1,"");
-        qs.forEach(function(q,i){q.sourcePage=String(q.page||q.sourcePage||1);q._chronologicalIndex=i+1;});
+        nativeList=reconcileNativeOrder(nativeList);
+        nativeList.forEach(function(raw,i){
+          var nq=normalizeNativeQuestion(raw,i,raw.page||1);
+          var keyNo=String(nq.no||"").trim().toLowerCase();
+          var keyText=String(nq.text||"").replace(/\s+/g," ").trim().toLowerCase();
+          if(!keyText)return;
+          var existing=keyNo?qs.find(function(x){return String(x.no||"").trim().toLowerCase()===keyNo}):null;
+          if(existing&&(raw.is_continuation||raw.continuation||raw.continuation_of_previous)){mergeContinuationInto(existing,raw,raw.page||1,"");return;}
+          if(!existing){qs.push(nq);all.push(nq);}
+        });
+        qs.forEach(function(q,i){q.sourcePage=String(q.page||q.sourcePage||1);q._chronologicalIndex=i+1;applyFlagChoice(q,q.flagChoice);});
         totalDetected=qs.length;render();
         $("status").textContent="✔ Native PDF extraction complete — "+qs.length+" question(s). Checking math/physics…";
       }
