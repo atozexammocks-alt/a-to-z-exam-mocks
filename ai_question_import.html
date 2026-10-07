@@ -723,7 +723,7 @@ function sanitizeSolutionLatex(s){
 function normalizeSolutionJson(out){out=out&&typeof out==='object'?out:{};return {answer:String(out.answer||"").trim(),explanation:String(out.explanation||out.solution||out.steps||"").trim(),final_answer:String(out.final_answer||out.finalAnswer||out.final||out.answer||"").trim()};}
 async function geminiRequest(key,body){
   // Current stable Gemini API model IDs, with a compatibility fallback.
-  const models=["gemini-2.5-flash","gemini-2.5-flash-lite","gemini-2.0-flash"];
+  const models=["gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3.5-flash-lite","gemini-3.1-flash-lite"];
   let last="", errors=[];
   key=String(key||"").trim();
   if(!key)throw Error("Gemini API key is empty. Enter your Gemini API key first.");
