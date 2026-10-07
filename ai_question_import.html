@@ -822,6 +822,13 @@ function tableRowsFromHtml(html){
     }).filter(function(r){return r.length;});
   }catch(e){return [];}
 }
+function normalizeExtractedText(s){
+  try{return String(s==null?"":s).normalize("NFC");}catch(_){return String(s==null?"":s);}
+}
+function normalizeBilingualText(s){
+  /* Preserve mathematical source exactly; normalize Unicode only. */
+  return normalizeExtractedText(String(s==null?"":s));
+}
 function normalizeNativeQuestionGlobal(q,i){
   q=q||{};
   var pick=function(){
@@ -1062,14 +1069,6 @@ async function extract(){
         can.getContext("2d").drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
         return can.toDataURL("image/jpeg",.9);
       }catch(e){console.warn("Auto crop failed",e);return ""}
-    }
-    function normalizeExtractedText(s){
-      try{return String(s==null?"":s).normalize("NFC");}catch(_){return String(s==null?"":s);}
-    }
-    function normalizeBilingualText(s){
-      /* Preserve mathematical source exactly. Unicode NFC is safe for Hindi, but
-         do not rewrite slashes, underscores, carets, fractions or LaTeX commands. */
-      return normalizeExtractedText(String(s==null?"":s));
     }
     function normalizePageQuestion(q,i,pageNo){
       q=q||{};
