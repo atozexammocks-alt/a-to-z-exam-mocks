@@ -7,7 +7,7 @@ body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:5
 <div id="savedPopup" class="saved-popup" role="status" aria-live="polite">✓ Question Saved</div>
 <div class="nav"><a href="teacher.html">🏠 A to Z Exam Mocks</a><div><a href="teacher.html">Dashboard</a> <a href="library.html">📁 Library</a></div></div>
 <div class="wrap"><div class="hero"><h2>🤖 AI Question Import — Beta</h2><div class="muted">Upload a question-paper PDF. Gemini extracts questions directly — no coordinates, JSON file, Python or manual cropping.</div>
-<div class="row"><input id="geminiKey" type="password" placeholder="Gemini API key" style="min-width:280px"><button id="saveKey" class="btn">Save Key on This Device</button><button id="testKey" class="btn purple" type="button">🔑 Test Gemini Key</button><span class="muted">Key stays in this browser only; never put it in GitHub.</span></div><div class="row"><div class="suggestbox" style="width:100%"><b>🧠 Faithful Reconstruction:</b> AI will separately reconstruct readable tables as HTML, matrices as LaTeX, and graphs/diagrams as inline SVG when possible. Complex photos remain available as exact PDF crops.</div></div><div class="row"><input id="pdf" type="file" accept=".pdf,application/pdf"><button id="extract" class="btn blue">🤖 Extract Questions with AI</button><button id="generateSolutions" class="btn purple" type="button" disabled>🧠 Generate AI Solutions</button><span id="status" class="muted">Waiting for PDF…</span></div>
+<div class="row"><input id="geminiKey" type="password" placeholder="Gemini API key" style="min-width:280px"><button id="saveKey" class="btn">Save Key on This Device</button><button id="testKey" class="btn purple" type="button">🔑 Test Gemini Key</button><span class="muted">Key stays in this browser only; never put it in GitHub.</span></div><div class="row"><div class="suggestbox" style="width:100%"><b>🧠 Faithful Reconstruction:</b> AI will separately reconstruct readable tables as HTML, matrices as LaTeX, and graphs/diagrams as inline SVG when possible. Complex photos remain available as exact PDF crops.</div></div><div class="row"><input id="pdf" type="file" accept=".pdf,application/pdf"><button id="extract" class="btn blue">🤖 Extract Questions with AI</button><span id="generateSolutions" style="display:none"></span><span id="status" class="muted">Waiting for PDF…</span></div>
 <div class="settings"><div class="field"><label>Maximum</label><select id="max"><option value="0">All</option><option>25</option><option>50</option><option>100</option></select></div></div>
 <div class="row"><button id="import" class="btn green" disabled>☁ Import Reviewed Questions</button><button id="clear" class="btn red" disabled>✕ Clear</button></div><div id="stats" class="muted" style="margin-top:8px"></div><div class="import-progress"><div class="progress-chip">Total Questions: <b id="totalCount">0</b></div><div class="progress-chip">Uploaded: <b id="uploadedCount">0</b></div><div class="progress-chip">Remaining: <b id="remainingCount">0</b></div></div></div>
 <div id="grid" class="grid"><div class="card muted">Your extracted questions will appear here.</div></div></div>
@@ -344,7 +344,12 @@ function render(){
     var right='<div class="student-review"><div class="student-head"><b>🎓 Student View</b><span class="muted">Live preview</span></div>'+
       '<div class="student-text"><b style="color:#38bdf8">'+esc(q.no)+'</b><div class="q math-content">'+renderQuestionWithInlineFigures(q)+'</div>'+opts+(q.tableRows&&q.tableRows.length?renderTableHtml(q.tableRows):'')+(q.matrixLatex?renderMatrixHtml(q.matrixLatex):'')+renderVisualRegions(q,false)+'</div>'+
       '<div class="student-image">'+image+figure+'</div></div>';
-    var solutionBox=q.explanation?('<div class="ai-solution-box" style="margin:0 0 14px;padding:12px;border:1px solid rgba(139,92,246,.45);border-radius:12px;background:rgba(139,92,246,.07)"><div class="row" style="justify-content:space-between;align-items:center"><b>🧠 AI Solution</b><div class="row" style="margin:0"><button class="btn purple" data-a="generate-solution" data-i="'+i+'">↻ Regenerate AI Solution</button><button class="btn red" data-a="remove-solution" data-i="'+i+'">✕ Remove Solution</button></div></div><textarea class="ai-solution-editor math-content" data-solution-i="'+i+'" style="width:100%;min-height:130px;margin-top:8px">'+esc(q.explanation||"")+'</textarea><div class="row" style="margin-top:6px"><button class="btn blue" data-a="apply-solution" data-i="'+i+'">✓ Keep / Apply Solution</button></div></div>'):('<div class="ai-solution-box" style="margin:0 0 14px;padding:10px 12px;border:1px dashed rgba(139,92,246,.45);border-radius:12px;background:rgba(139,92,246,.04)"><button class="btn purple" data-a="generate-solution" data-i="'+i+'">🧠 Generate AI Solution</button><span class="muted" style="margin-left:8px">Optional — generate only if you want a solution for this question.</span></div>');
+    var solutionBox='<div class="ai-solution-box" style="margin:0 0 14px;padding:12px;border:1px '+(q.explanation?'solid':'dashed')+' rgba(139,92,246,.55);border-radius:12px;background:rgba(139,92,246,.06)">'+
+      '<div class="row" style="justify-content:space-between;align-items:center;gap:8px"><b>🧠 AI Solution</b><div class="row" style="margin:0;gap:6px">'+
+      '<button class="btn purple" data-a="generate-solution" data-i="'+i+'">'+(q.explanation?'↻ Regenerate AI Solution':'🧠 Generate AI Solution')+'</button>'+
+      (q.explanation?'<button class="btn red" data-a="remove-solution" data-i="'+i+'">✕ Delete</button>':'')+'</div></div>'+
+      (q.solutionGenerating?'<div style="margin-top:10px"><div class="muted">⏳ Generating solution… <span data-solution-status="'+i+'">'+Number(q.solutionProgress||0)+'%</span></div><div style="height:7px;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden;margin-top:6px"><div data-solution-progress="'+i+'" style="height:100%;width:'+Number(q.solutionProgress||0)+'%;background:#8b5cf6;transition:width .25s"></div></div></div>':'')+
+      (q.explanation?'<div class="solution-preview math-content" style="margin-top:10px;padding:12px;background:rgba(0,0,0,.16);border-radius:10px;line-height:1.65">'+esc(q.explanation).replace(/\n/g,'<br>')+'</div><textarea class="ai-solution-editor" data-solution-i="'+i+'" style="display:none;width:100%;min-height:130px;margin-top:8px">'+esc(q.explanation)+'</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="edit-solution" data-i="'+i+'">✏ Edit</button><button class="btn blue" data-a="apply-solution" data-i="'+i+'">✓ Keep Solution</button></div>':'<div class="muted" style="margin-top:7px">Optional — generate only if you want the AI solution for this question.</div>')+'</div>';
     return '<div class="card aiq-review-card">'+solutionBox+'<div class="review-layout">'+left+right+'</div><div class="muted review-meta">'+esc([q.topic,q.chapter,q.source,q.year,q.answer?"Answer: "+q.answer:"",q.page?"Page: "+q.page:""].filter(Boolean).join(" • "))+'</div></div>';
   }).join("");
   qs.forEach(function(_,i){renderQuestionPathSelectors(i)});
@@ -1028,50 +1033,25 @@ FAITHFUL RECONSTRUCTION MODE: Do not stop at calling something a figure. For EVE
 async function generateAISolutionForQuestion(i){
   var q=qs[i];if(!q)return;
   var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!key)return alert("पहले Gemini API key डालें.");
-  var buttons=document.querySelectorAll('button[data-a="generate-solution"][data-i="'+i+'"]');buttons.forEach(function(b){b.disabled=true;b.textContent="⏳ Generating…";});
+  if(q.solutionGenerating)return;
+  q.solutionGenerating=true;q.solutionProgress=5;render();
   try{
-    $("status").textContent="🧠 Generating AI solution for Q"+q.no+"…";
-    var payload={question_number:q.no,question:q.text||"",options:q.options||[],answer:q.answer||"",table_rows:q.tableRows||[],table_html:q.tableHtml||"",matrix_latex:q.matrixLatex||""};
-    var prompt='Solve ONLY this one exam question. Return ONLY JSON: {"answer":"...","explanation":"...","final_answer":"..."}. Give rigorous step-by-step reasoning. For Physics/Math use valid MathJax LaTeX inside \( ... \) or \[ ... \]. Never output raw SQRT, frac, caret notation or spoken math when LaTeX is appropriate. Preserve Hindi/English terminology. Use actual table values. Do not invent missing data.\n\n'+JSON.stringify(payload);
-    var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.1,responseMimeType:"application/json",maxOutputTokens:8192}});
-    var raw=d?.candidates?.[0]?.content?.parts?.map(function(p){return p.text||""}).join("")||"";var out=parseGeminiJson(raw);
-    if(!out||typeof out!=="object")throw Error("Gemini returned an invalid solution.");
-    q.explanation=String(out.explanation||"").trim();q.finalAnswer=String(out.final_answer||"").trim();if(out.answer!==undefined&&String(out.answer).trim())q.answer=String(out.answer).trim();
-    render();$("status").textContent="✔ AI solution generated for Q"+q.no+". Review it and keep or remove it.";showSaveToast("✔ Q"+q.no+" solution generated.");
-  }catch(e){console.error(e);$("status").textContent="❌ Solution failed for Q"+q.no+": "+(e.message||e);alert("AI solution failed for Q"+q.no+": "+(e.message||e));}
-  finally{buttons.forEach(function(b){b.disabled=false;});}
-}
-async function generateAISolutions(){
-  var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
-  if(!key)return alert("पहले Gemini API key डालें.");
-  if(!qs.length)return alert("पहले questions extract करें.");
-  var btn=$("generateSolutions");btn.disabled=true;
-  try{
-    for(var start=0;start<qs.length;start+=6){
-      var batch=qs.slice(start,start+6);
-      $("status").textContent="🧠 Generating solutions "+(start+1)+"–"+Math.min(start+6,qs.length)+" of "+qs.length+"…";
-      var payload=batch.map(function(q,i){return {index:i+1,question_number:q.no,question:q.text,options:q.options||[],table_rows:q.tableRows||[],matrix_latex:q.matrixLatex||"",answer:q.answer||""};});
-      var prompt='You are an expert exam-solution writer. Solve each supplied question independently and accurately. Preserve the original question wording; do not rewrite it. For each item return: index, answer (for MCQ give the correct option label and value), explanation (clear step-by-step reasoning suitable for a teacher/student), and final_answer. For Physics/Math use valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. Never output raw SQRT, frac, caret notation, or spoken mathematical symbols when proper LaTeX is appropriate. Preserve Hindi/English terminology when explaining; do not invent missing data. If a table is present, use its actual values. Return ONLY JSON: {"solutions":[...]}.\n\nQUESTIONS:\n'+JSON.stringify(payload);
-      var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.1,responseMimeType:"application/json",maxOutputTokens:24576}});
-      var raw=d?.candidates?.[0]?.content?.parts?.map(function(p){return p.text||""}).join("")||"";
-      var out=parseGeminiJson(raw);
-      if(!Array.isArray(out.solutions))throw Error("Gemini did not return a solutions array.");
-      out.solutions.forEach(function(sol){
-        var idx=Number(sol.index)-1;if(idx<0||idx>=batch.length)return;
-        var q=qs[start+idx];
-        if(sol.answer!==undefined)q.answer=String(sol.answer||"").trim();
-        if(sol.final_answer!==undefined)q.finalAnswer=String(sol.final_answer||"").trim();
-        if(sol.explanation!==undefined)q.explanation=String(sol.explanation||"").trim();
-      });
-      render();
-    }
-    $("status").textContent="✔ AI solutions generated for "+qs.length+" question(s).";
-    showSaveToast("✔ AI solutions generated. Review them before importing.");
+    var payload={question_number:q.no,question:q.text||"",options:q.options||[],answer:q.answer||"",table_rows:q.tableRows||[],matrix_latex:q.matrixLatex||"",content_blocks:q.contentBlocks||[]};
+    q.solutionProgress=15;render();
+    var prompt="Solve ONLY this ONE exam question. Return ONLY valid JSON: {\"answer\":\"...\",\"explanation\":\"...\",\"final_answer\":\"...\"}. Give rigorous step-by-step reasoning. For Physics/Math, EVERY mathematical expression MUST use valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. Never output raw SQRT, sqrt, frac, caret notation, plain x^2, spoken symbols such as alpha/beta/integral, or slash-based fractions when mathematics is intended. Use \\frac{a}{b}, \\sqrt{x}, x^2, x_0, \\int_0^4, \\vec{E}, Greek symbols, matrices and proper units as appropriate. Do not put LaTeX commands outside MathJax delimiters. Preserve Hindi/English terminology. If a table is present, use its actual values and do not invent data. Verify any supplied answer. Do not rewrite the question. Return only JSON.\n\nQUESTION DATA:\n"+JSON.stringify(payload);
+    var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.05,responseMimeType:"application/json",maxOutputTokens:8192}});
+    q.solutionProgress=65;render();
+    var raw=d&&d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts?d.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
+    var out=parseGeminiJson(raw);
+    if(!out||typeof out!=="object"||!out.explanation)throw Error("Gemini returned an empty solution.");
+    q.answer=String(out.answer||q.answer||"").trim();q.finalAnswer=String(out.final_answer||"").trim();q.explanation=normalizeAngstromText(String(out.explanation||"").trim());
+    q.solutionProgress=100;q.solutionGenerating=false;render();setTimeout(typesetMath,50);
+    showSaveToast("✔ AI solution generated for Q"+q.no+". Review it, then Keep or Delete.");
+    $("status").textContent="✔ Solution generated for Q"+q.no+". Review it before saving to Library.";
   }catch(e){
-    console.error("AI solution generation failed",e);
-    $("status").textContent="❌ Solution generation failed: "+(e.message||e);
-    alert("AI solution generation failed: "+(e.message||e));
-  }finally{btn.disabled=false;}
+    q.solutionGenerating=false;q.solutionProgress=0;render();
+    console.error("AI solution generation failed",e);$("status").textContent="❌ Solution failed for Q"+q.no+": "+(e.message||e);alert("AI solution failed for Q"+q.no+": "+(e.message||e));
+  }
 }
 async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;if(!cropTarget||cropTarget==="question")cropTarget="question";cropPage=Number(qs[i].sourcePage||qs[i].page)||1;$("cropPanel").style.display="block";$("cropStatus").textContent="Loading page "+cropPage+"…";try{if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;cropPage=Math.max(1,Math.min(cropPage,pdf.numPages));let page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(2.5,Math.max(1.2,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Drag over the question area."}catch(e){$("cropStatus").textContent=e.message}}
 async function cropFigure(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;cropTarget="figure";await cropQ(i);cropTarget="figure";$("cropStatus").textContent="🖼 Drag ONLY around the figure/diagram/image. Adjust it manually if AI crop was not exact. Use Next Page if needed."}
@@ -1095,7 +1075,7 @@ $("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("
     else if(a==="edit-page"){openQuestionEditor(i);}
     else if(a==="flag"){applyFlagChoice(qs[i],b.dataset.flag);render();showSaveToast("🏷️ Q"+qs[i].no+" flagged as "+b.dataset.flag+".");}
     else if(a==="crop"){await cropQ(i);}else if(a==="figure"){await cropFigure(i);}else if(a==="add-inline-figure"){qs[i].contentBlocks=qs[i].contentBlocks||[];qs[i].contentBlocks.push({type:"figure",visualType:"diagram",anchor:"",image:"",required:true,manual:true});render();showSaveToast("✔ Figure slot added. Use its Crop / Adjust button.");}else if(a==="inline-figure"){cropTarget="inline:"+String(b.dataset.figIndex||0);await cropQ(i);cropTarget="inline:"+String(b.dataset.figIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around this inline figure.";}else if(a==="visual-region-crop"){cropTarget="visual:"+String(b.dataset.visIndex||0);await cropQ(i);cropTarget="visual:"+String(b.dataset.visIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around this detected "+visualTypeLabel((qs[i].visualRegions||[])[Number(b.dataset.visIndex||0)]?.visualType)+".";}else if(a==="option-figure"){cropTarget="option:"+String(b.dataset.optIndex||0);await cropQ(i);cropTarget="option:"+String(b.dataset.optIndex||0);$("cropStatus").textContent="🖼 Drag ONLY around the figure inside option "+String.fromCharCode(65+Number(b.dataset.optIndex||0))+".";}else if(a==="remove-option-figure"){var oi=Number(b.dataset.optIndex||0);qs[i].optionImages=qs[i].optionImages||[];qs[i].optionImages[oi]="";render();showSaveToast("Option figure removed.");}
-    else if(a==="generate-solution"){await generateAISolutionForQuestion(i);}else if(a==="remove-solution"){qs[i].explanation="";qs[i].finalAnswer="";render();showSaveToast("Solution removed from Q"+qs[i].no+".");}else if(a==="apply-solution"){var st=document.querySelector('textarea.ai-solution-editor[data-solution-i="'+i+'"]');if(st){qs[i].explanation=st.value.trim();render();showSaveToast("✔ Q"+qs[i].no+" solution kept.");}}else if(a==="del"){
+    else if(a==="generate-solution"){await generateAISolutionForQuestion(i);}else if(a==="remove-solution"){qs[i].explanation="";qs[i].finalAnswer="";qs[i].solutionGenerating=false;render();showSaveToast("Solution removed from Q"+qs[i].no+".");}else if(a==="edit-solution"){var st=document.querySelector('textarea.ai-solution-editor[data-solution-i="'+i+'"]');if(st)st.style.display=st.style.display==="none"?"block":"none";}else if(a==="apply-solution"){var st=document.querySelector('textarea.ai-solution-editor[data-solution-i="'+i+'"]');if(st&&st.style.display!=="none")qs[i].explanation=st.value.trim();render();setTimeout(typesetMath,50);showSaveToast("✔ Q"+qs[i].no+" solution kept for Library.");}else if(a==="del"){
       if(confirm("Delete this question from review?")){qs.splice(i,1);render();}
     }
     else if(a==="save"){
