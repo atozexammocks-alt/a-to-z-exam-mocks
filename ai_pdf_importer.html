@@ -325,45 +325,199 @@ async function combineVerticalImages(a,b){
   const out=document.createElement("canvas");out.width=w;out.height=h;const ctx=out.getContext("2d");
   ctx.drawImage(ia,0,0);ctx.drawImage(ib,0,ia.naturalHeight+gap);return out.toDataURL("image/png");
 }
+
+function isSolutionMarkerText(t){
+  const s=String(t||"").replace(/\s+/g," ").trim().toLowerCase();
+  if(!s || s.length>90)return false;
+  // Standalone headings commonly used before worked solutions/answers.
+  return /^(?:solution|solutions|sol\.?|answer|answers|ans\.?|explanation|detailed solution|detailed solutions|working|workings|solution\s*[:\-–—]|answer\s*[:\-–—]|ans\s*[:\-–—]|explanation\s*[:\-–—]|sol\s*[:\-–—])$/i.test(s)
+      || /^(?:solution|answer|ans\.?|explanation)\s*(?:to|of|for)\s*(?:question|q\.?|ques\.?)/i.test(s);
+}
+
+function boxCenterX(b){return b.x+b.width/2}
+
+function boxesOverlapColumn(a,b,pageWidth){
+  if(!a||!b)return true;
+  const ax1=a.x, ax2=a.x+a.width, bx1=b.x, bx2=b.x+b.width;
+  const overlap=Math.max(0,Math.min(ax2,bx2)-Math.max(ax1,bx1));
+  const minw=Math.max(1,Math.min(a.width,b.width));
+  return overlap/minw>=0.15 || Math.abs(boxCenterX(a)-boxCenterX(b))<pageWidth*0.18;
+}
+
+function findSolutionBoundary(boxes,startBox,nextBox,pageWidth,topLimit){
+  const candidates=boxes.filter(b=>{
+    if(b.top<=startBox.top+2)return false;
+    if(nextBox && b.top>=nextBox.top-2)return false;
+    if(b.top>=topLimit)return false;
+    return isSolutionMarkerText(b.text);
+  });
+  if(!candidates.length)return null;
+  // Prefer a marker that belongs to the same visual column as the question.
+  const same=candidates.filter(b=>boxesOverlapColumn(startBox,b,pageWidth));
+  const list=same.length?same:candidates;
+  return list.sort((a,b)=>a.top-b.top)[0];
+}
+
+function likelyQuestionStart(box,prevBox,pageHeight){
+  if(!questionStartFromText(box.text))return false;
+  // Avoid treating numbered lines inside a dense block as new questions.
+  // A real question number normally starts a fresh line with visible vertical separation.
+  if(prevBox){
+    const gap=box.top-(prevBox.top+prevBox.height);
+    if(gap<1 && box.x>prevBox.x+prevBox.width*0.5)return false;
+  }
+  return box.top>=0 && box.top<pageHeight;
+}
+
 async function autoExtractFromPdf(){
-  const f=$("autoPdfFile").files[0];if(!f)return alert("पहले Original PDF select करो.");
+  const f=$("autoPdfFile").files[0];
+  if(!f)return alert("पहले Original PDF select करो.");
   const btn=$("autoExtractPdf");btn.disabled=true;
   try{
-    st("Opening PDF…");sourcePdf=new Uint8Array(await f.arrayBuffer());
+    st("Opening PDF…");
+    sourcePdf=new Uint8Array(await f.arrayBuffer());
     pdfDoc=await pdfjsLib.getDocument({data:sourcePdf}).promise;
     if(pdfDoc.numPages>5)throw new Error("Maximum 5 PDF pages allowed here.");
-    items=[];let detected=0;
+
+    items=[];
+    let detected=0;
+
     for(let pageNo=1;pageNo<=pdfDoc.numPages;pageNo++){
       st("🔎 Reading page "+pageNo+" / "+pdfDoc.numPages+"…");
-      const p=await pdfDoc.getPage(pageNo),v=p.getViewport({scale:2.5}),tc=await p.getTextContent();
+      const p=await pdfDoc.getPage(pageNo);
+      const v=p.getViewport({scale:2.5});
+      const tc=await p.getTextContent();
       const boxes=tc.items.map(x=>textItemBox(x,v)).filter(x=>x.text);
-      if(!boxes.length){if(items.length){items[items.length-1].image=await combineVerticalImages(items[items.length-1].image,await renderPdfCrop(pageNo,0,0,v.width,v.height));}continue}
-      const starts=boxes.filter(b=>questionStartFromText(b.text)).sort((a,b)=>a.top-b.top);
-      if(!starts.length){if(items.length){items[items.length-1].image=await combineVerticalImages(items[items.length-1].image,await renderPdfCrop(pageNo,0,0,v.width,v.height));}continue}
-      detected+=starts.length;
+
+      if(!boxes.length){
+        // A text-less continuation page is retained with the previous question.
+        if(items.length){
+          items[items.length-1].image=await combineVerticalImages(
+            items[items.length-1].image,
+            await renderPdfCrop(pageNo,0,0,v.width,v.height)
+          );
+        }
+        continue;
+      }
+
+      // Detect only genuine question-number candidates.
+      const starts=[];
+      let prev=null;
+      for(const b of boxes){
+        if(likelyQuestionStart(b,prev,v.height))starts.push(b);
+        prev=b;
+      }
+
+      if(!starts.length){
+        // Do not blindly attach an entire page to a question if it contains
+        // an explicit Solution/Answer heading. Only attach it when there is
+        // no such heading at all.
+        const hasSolutionHeading=boxes.some(b=>isSolutionMarkerText(b.text));
+        if(items.length && !hasSolutionHeading){
+          items[items.length-1].image=await combineVerticalImages(
+            items[items.length-1].image,
+            await renderPdfCrop(pageNo,0,0,v.width,v.height)
+          );
+        }
+        continue;
+      }
+
+      // A question-book page can have one or two columns.
       const spread=Math.max(...starts.map(s=>s.x))-Math.min(...starts.map(s=>s.x));
-      const twoColumn=starts.length>=4&&spread>v.width*0.30,mid=v.width/2;
-      // Continuation material before the first numbered question belongs to the previous question.
-      if(items.length&&starts[0].top>v.height*0.10){
-        items[items.length-1].image=await combineVerticalImages(items[items.length-1].image,await renderPdfCrop(pageNo,0,0,v.width,starts[0].top-6));
-      }
+      const twoColumn=starts.length>=4 && spread>v.width*0.30;
+      const mid=v.width/2;
+
+      // Process each detected question independently. Crucially, the crop
+      // ends at the FIRST Solution/Answer/Explanation heading OR the next
+      // question in the same column, whichever comes first.
       for(let i=0;i<starts.length;i++){
-        const s=starts[i],col=twoColumn?(s.x<mid?"L":"R"):"ALL";
-        const next=starts.slice(i+1).find(n=>!twoColumn||(n.x<mid?"L":"R")===col);
-        const left=twoColumn?(col==="L"?0:mid):0,right=twoColumn?(col==="L"?mid:v.width):v.width;
-        const top=Math.max(0,s.top-12),bottom=next?Math.max(top+30,next.top-7):v.height-8;
+        const s=starts[i];
+        const col=twoColumn?(s.x<mid?"L":"R"):"ALL";
+
+        const next=starts.slice(i+1).find(n=>{
+          if(!twoColumn)return true;
+          return (n.x<mid?"L":"R")===col;
+        });
+
+        const left=twoColumn?(col==="L"?0:mid):0;
+        const right=twoColumn?(col==="L"?mid:v.width):v.width;
+
+        const solutionMarker=findSolutionBoundary(
+          boxes,
+          s,
+          next,
+          right-left,
+          next?next.top:v.height
+        );
+
+        // If the next question appears before a solution marker, next question
+        // is the hard boundary. Otherwise the Solution heading is the boundary.
+        let boundary=next?next.top:v.height;
+        let boundaryReason="next question";
+        if(solutionMarker && solutionMarker.top<boundary){
+          boundary=solutionMarker.top;
+          boundaryReason="solution heading";
+        }
+
+        // Continuation material above the first question remains attached only
+        // when it is clearly before the first question and not a solution section.
+        if(i===0 && items.length && s.top>v.height*0.10){
+          const leading=boxes.filter(b=>b.top<s.top && isSolutionMarkerText(b.text));
+          if(!leading.length){
+            items[items.length-1].image=await combineVerticalImages(
+              items[items.length-1].image,
+              await renderPdfCrop(pageNo,0,0,v.width,Math.max(1,s.top-8))
+            );
+          }
+        }
+
+        const top=Math.max(0,s.top-12);
+        const bottom=Math.max(top+30,boundary-8);
+
+        // Never allow a question crop to cross into the solution heading.
+        const img=await renderPdfCrop(
+          pageNo,
+          left,
+          top,
+          right-left,
+          Math.min(v.height-top,bottom-top)
+        );
+
         const qNo="Q"+String(questionStartFromText(s.text)).padStart(3,"0");
-        const img=await renderPdfCrop(pageNo,left,top,right-left,Math.min(v.height-top,bottom-top));
-        items.push({qNo,page:pageNo,qText:s.text,image:img,blob:null});
+        items.push({
+          qNo,
+          page:pageNo,
+          qText:s.text,
+          image:img,
+          blob:null,
+          boundaryReason,
+          containsSolution:false
+        });
+        detected++;
       }
+
       st("✂️ Extracted "+items.length+" question block(s)…");
     }
-    if(!detected)throw new Error("No readable question-number text was found. This PDF may be scanned/image-only; use OCR/manual crop for it.");
-    const lim=Number($("limit").value);if(lim>0)items=items.slice(0,lim);
-    render();st("✔ Auto extraction complete — "+items.length+" question(s) ready for review.");
-  }catch(e){console.error(e);st("❌ "+e.message);alert("Auto extraction failed: "+e.message)}
-  finally{btn.disabled=false}
+
+    if(!detected)throw new Error(
+      "No readable question-number text was found. This PDF may be scanned/image-only; use OCR/manual crop for it."
+    );
+
+    const lim=Number($("limit").value);
+    if(lim>0)items=items.slice(0,lim);
+
+    render();
+    st("✔ Question-only extraction complete — "+items.length+
+       " question(s) ready. Solution/Answer sections are excluded when a heading is detected.");
+  }catch(e){
+    console.error(e);
+    st("❌ "+e.message);
+    alert("Auto extraction failed: "+e.message);
+  }finally{
+    btn.disabled=false;
+  }
 }
+
 $("generateFromJson").onclick=generateFromCoordinates;
 
 async function saveItems(){
