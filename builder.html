@@ -586,9 +586,12 @@ window.folderRowClick=function(path,hasChildren){
  renderTree();
 };
 function renderSelected(){
- const list=document.getElementById("selectedList"),ids=[...window.selected],items=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
- document.getElementById("selectedCount").textContent="("+items.length+")";
- list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(displayTextOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
+ // The review-first Builder layout may not include the optional selected-list sidebar.
+ // Update it only when those legacy elements exist; never let missing UI stop Library loading.
+ const list=document.getElementById("selectedList"),count=document.getElementById("selectedCount");
+ const ids=[...window.selected],items=ids.map(id=>window.builderData.find(q=>String(q.id)===id)).filter(Boolean);
+ if(count) count.textContent="("+items.length+")";
+ if(list) list.innerHTML=items.length?items.map((q,i)=>'<div class="selitem"><b>'+(i+1)+'.</b> '+esc(displayTextOf(q).replace(/\s+/g," ").slice(0,120)||"Image question")+'</div>').join(""):'<div class="print-note">No questions selected.</div>';
 }
 window.selectedToSections=function(){if(!window.selected.size)return alert("Select questions first.");if(!window.sections.length)addSection();alert(window.selected.size+" question(s) are ready for the paper. Use Print.");renderSelected()};
 window.addSection=function(){const n=window.sections.length+1;window.sections.push({name:"Section "+String.fromCharCode(64+n),type:"MCQ",marks:1});renderSections()};
