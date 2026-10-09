@@ -42,7 +42,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 
 .question-view-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:10000;display:none;align-items:center;justify-content:center;padding:14px}.question-view{width:min(900px,96vw);max-height:92vh;overflow:auto;background:#0b1120;border:1px solid #334155;border-radius:14px;box-shadow:0 20px 70px rgba(0,0,0,.6);padding:16px}.question-view-head{display:flex;align-items:center;gap:8px;border-bottom:1px solid #1e293b;padding-bottom:10px;margin-bottom:12px}.question-view-title{font-weight:900;color:#38bdf8;flex:1;font-size:13px}.question-view-meta{font-size:10px;color:#94a3b8}.question-view-content{background:#080d17;border:1px solid #1e293b;border-radius:10px;padding:16px}.question-view-text{color:#f8fafc;white-space:pre-wrap;overflow-wrap:anywhere}.question-view-image{width:100%;max-height:360px;background:#fff;border-radius:9px;border:1px solid #e2e8f0;margin:12px 0;display:flex;justify-content:center;align-items:center;overflow:hidden}.question-view-image img{display:block;max-width:100%;max-height:350px;object-fit:contain}.question-view-options{border-top:1px solid #1e293b;margin-top:12px;padding-top:12px;color:#cbd5e1;overflow-wrap:anywhere}.question-view-options>div{margin:7px 0}.question-view-empty{color:#94a3b8;text-align:center;padding:30px}@media(max-width:600px){.question-view{padding:11px}.question-view-content{padding:11px}.question-view-image{max-height:260px}.question-view-image img{max-height:250px}}
 .text-editor-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9999;display:none;align-items:center;justify-content:center;padding:14px}
-.text-editor{width:min(760px,96vw);max-height:92vh;overflow:auto;background:#0b1120;border:1px solid #334155;border-radius:14px;box-shadow:0 20px 70px rgba(0,0,0,.55);padding:14px}
+.text-editor{width:min(1180px,98vw);max-height:94vh;overflow:auto;background:#0b1120;border:1px solid #334155;border-radius:14px;box-shadow:0 20px 70px rgba(0,0,0,.55);padding:14px}.live-editor-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.live-editor-pane{min-width:0;border:1px solid #334155;border-radius:10px;padding:12px;background:#080d17}.live-editor-pane h4{margin:0 0 9px;color:#38bdf8;font-size:12px}.student-live-preview{background:#fff;color:#111;border-radius:8px;padding:16px;min-height:260px;overflow:auto;line-height:1.55}.student-live-preview .live-figure{display:block;max-width:100%;max-height:300px;object-fit:contain;margin:12px auto}.student-live-preview .live-option{margin:7px 0}.restore-original-btn{display:none}@media(max-width:800px){.live-editor-grid{grid-template-columns:1fr}}
 .text-editor h3{margin:0 0 10px;color:#38bdf8;font-size:14px}
 .text-editor textarea{width:100%;min-height:190px;resize:vertical;background:#060911;color:#fff;border:1px solid #334155;border-radius:8px;padding:10px;font:14px/1.6 inherit}
 .editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
@@ -91,7 +91,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
       <select id="typeFilter" class="field" style="width:130px" onchange="renderQuestions()">
         <option value="ALL">All Types</option><option value="MCQ">MCQ</option><option value="NUMERICAL">Numerical</option><option value="SHORT">Short</option><option value="LONG">Long</option>
       </select>
-      <button class="btn" onclick="selectedToSections()">➜ Add Selected</button><button class="btn red" onclick="deleteSelectedLibraryQuestions()">🗑 Delete from Library (<span id="deleteSelectedCount">0</span>)</button><button class="btn" onclick="resetSelectedTextEdits()">↩ Restore Original Text</button><button class="btn red" onclick="openDuplicateReview()">✖ Find Duplicates</button>
+      <button class="btn" onclick="selectedToSections()">➜ Add Selected</button><button class="btn red" onclick="deleteSelectedLibraryQuestions()">🗑 Delete from Library (<span id="deleteSelectedCount">0</span>)</button><button class="btn red" onclick="openDuplicateReview()">✖ Find Duplicates</button>
     </div>
     <div id="questions" class="questions"><div class="empty">Loading Library questions…</div></div>
   </main>
@@ -129,10 +129,20 @@ window.sections=[{name:"Section A",type:"MCQ",marks:1}];
 
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function imageOf(q){
- const keys=["question","questionImage","image","img","imageData","croppedImage","questionImageData","imageUrl","imageURL","diagram","imageSrc","src","base64Image"];
- for(const k of keys){const v=q?.[k];if(typeof v==="string"&&v.trim()&&!/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())===false)return v.trim();}
- for(const k of keys){const v=q?.[k];if(typeof v==="string"&&/^((https?:\/\/)|(data:image\/)|(blob:))/i.test(v.trim()))return v.trim();}
- return "";
+ // Preserve figures saved by the Library/importer, including nested image metadata.
+ const preferred=["questionImage","questionImageUrl","question_image","imageUrl","imageURL","image_url","imageData","base64Image","croppedImage","questionImageData","figureImage","figureUrl","figureURL","figure","diagramImage","diagramUrl","imageSrc","src","downloadURL","downloadUrl","storageUrl","url","image","img"];
+ const seen=new Set();
+ function valid(v){return typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())?v.trim():"";}
+ function walk(obj,depth){
+  if(!obj||typeof obj!=="object"||depth>5||seen.has(obj))return "";seen.add(obj);
+  for(const k of preferred){const v=valid(obj[k]);if(v)return v;}
+  for(const [k,v] of Object.entries(obj)){
+   if(v&&typeof v==="object"){const found=walk(v,depth+1);if(found)return found;}
+   else if(typeof v==="string"&&/(image|figure|diagram|crop|visual|media)/i.test(k)){const found=valid(v);if(found)return found;}
+  }
+  return "";
+ }
+ return walk(q,0);
 }
 function textOf(q){
  const keys=["qText","text","questionText","question_text","content","questionTextHtml","prompt","question"];
@@ -386,13 +396,14 @@ window.closeQuestionView=function(){
  const content=document.getElementById("questionViewContent");
  if(content)content.innerHTML="";
 };
+window.editorOriginalSnapshot=null;
+window.editorOriginalChanged=false;
 window.openTextEditor=function(encodedId){
  const id=decodeURIComponent(String(encodedId||""));
- const q=window.builderData.find(x=>String(x.id)===id);
- if(!q)return;
- const existing=window.textEdits[id]||{};
- const opts=displayOptionsOf(q);
+ const q=window.builderData.find(x=>String(x.id)===id);if(!q)return;
+ const existing=window.textEdits[id]||{};const opts=displayOptionsOf(q);
  window.activeTextEditId=id;
+ window.editorOriginalSnapshot={text:textOf(q),options:optionsOf(q).map(String),edit:JSON.parse(JSON.stringify(existing||{}))};
  document.getElementById("textEditorMain").value=existing.text!==undefined?existing.text:textOf(q);
  document.getElementById("textEditorFontSize").value=String(existing.fontSize||14);
  document.getElementById("textEditorWeight").value=String(existing.weight||400);
@@ -400,7 +411,40 @@ window.openTextEditor=function(encodedId){
  document.getElementById("textEditorLine").value=String(existing.lineHeight||1.65);
  document.getElementById("textEditorHideOptions").checked=existing.hideOptions===true;
  document.getElementById("textEditorOptions").innerHTML=opts.map((o,i)=>'<div class="editor-option"><b>'+String.fromCharCode(65+i)+'.</b><input type="text" data-opt="'+i+'" value="'+esc(o)+'"></div>').join("");
+ const restore=document.getElementById("restoreOriginalQuestionBtn");if(restore)restore.style.display="none";
  document.getElementById("textEditorBackdrop").style.display="flex";
+ bindLiveQuestionEditor();renderLiveQuestionPreview();
+};
+function bindLiveQuestionEditor(){
+ const ids=["textEditorMain","textEditorFontSize","textEditorWeight","textEditorAlign","textEditorLine","textEditorHideOptions"];
+ ids.forEach(id=>{const el=document.getElementById(id);if(el)el.oninput=el.onchange=()=>renderLiveQuestionPreview();});
+ document.querySelectorAll("#textEditorOptions input[data-opt]").forEach(el=>{el.oninput=()=>renderLiveQuestionPreview();});
+}
+function editorHasChanges(){
+ const id=window.activeTextEditId;if(!id)return false;const q=window.builderData.find(x=>String(x.id)===String(id));if(!q)return false;
+ const original=window.editorOriginalSnapshot||{text:textOf(q),options:optionsOf(q).map(String)};
+ const text=document.getElementById("textEditorMain").value;
+ const options=[...document.querySelectorAll("#textEditorOptions input[data-opt]")].map(x=>x.value);
+ return text!==String(original.text||"")||JSON.stringify(options)!==JSON.stringify(original.options||[])||document.getElementById("textEditorHideOptions").checked===true;
+}
+function renderLiveQuestionPreview(){
+ const id=window.activeTextEditId;if(!id)return;const q=window.builderData.find(x=>String(x.id)===String(id));if(!q)return;
+ const txt=document.getElementById("textEditorMain").value;
+ const opts=[...document.querySelectorAll("#textEditorOptions input[data-opt]")].map(x=>x.value).filter(x=>x.trim());
+ const img=imageOf(q);const preview=document.getElementById("studentQuestionLivePreview");if(!preview)return;
+ const fs=Number(document.getElementById("textEditorFontSize").value)||14,weight=Number(document.getElementById("textEditorWeight").value)||400,align=document.getElementById("textEditorAlign").value||"left",line=Number(document.getElementById("textEditorLine").value)||1.65;
+ const showOptions=!document.getElementById("textEditorHideOptions").checked;
+ preview.innerHTML='<div style="font-size:'+fs+'px;font-weight:'+weight+';text-align:'+align+';line-height:'+line+';white-space:pre-wrap;overflow-wrap:anywhere">'+renderLibraryText(txt)+'</div>'+(img?'<div style="text-align:center"><img class="live-figure" src="'+esc(img)+'" alt="Original question figure" onerror="this.parentElement.innerHTML='<span style=\'color:#b91c1c\'>Question image could not load from its saved URL.</span>'"></div>':'')+(showOptions&&opts.length?'<div style="margin-top:12px;border-top:1px solid #ddd;padding-top:9px">'+opts.map((o,i)=>'<div class="live-option"><b>'+String.fromCharCode(65+i)+'.</b> '+renderLibraryText(o)+'</div>').join("")+'</div>':'');
+ if(window.MathJax?.typesetPromise){window.MathJax.typesetClear?.([preview]);window.MathJax.typesetPromise([preview]).catch(()=>{});}
+ const restore=document.getElementById("restoreOriginalQuestionBtn");if(restore)restore.style.display=editorHasChanges()?"inline-flex":"none";
+}
+window.restoreOriginalQuestionInEditor=function(){
+ const id=window.activeTextEditId;if(!id)return;const q=window.builderData.find(x=>String(x.id)===String(id));if(!q)return;
+ document.getElementById("textEditorMain").value=textOf(q);
+ document.getElementById("textEditorHideOptions").checked=false;
+ const opts=optionsOf(q).map(String);
+ document.getElementById("textEditorOptions").innerHTML=opts.map((o,i)=>'<div class="editor-option"><b>'+String.fromCharCode(65+i)+'.</b><input type="text" data-opt="'+i+'" value="'+esc(o)+'"></div>').join("");
+ bindLiveQuestionEditor();renderLiveQuestionPreview();
 };
 window.closeTextEditor=function(){document.getElementById("textEditorBackdrop").style.display="none";window.activeTextEditId=null;};
 window.saveTextEdit=function(){
@@ -805,9 +849,10 @@ document.addEventListener("DOMContentLoaded",()=>{
 </div>
 <div id="textEditorBackdrop" class="text-editor-backdrop" onclick="if(event.target===this)closeTextEditor()">
   <div class="text-editor">
-    <h3>✏️ Edit Question Text — Paper Only</h3>
-    <div class="print-note">Changes made here are temporary. They are NOT saved to the Library or Firebase and affect only this Test Builder window/paper.</div>
-    <textarea id="textEditorMain" placeholder="Question text…"></textarea>
+    <h3>✏️ Edit Question — Live Student Preview</h3>
+    <div class="print-note">Left side: edit question/options. Right side: live student view, including the saved figure. Changes are temporary for this Test Builder paper only.</div>
+    <div class="live-editor-grid"><section class="live-editor-pane"><h4>✏️ Edit Question</h4>
+    <textarea id="textEditorMain" placeholder="Question text…" oninput="renderLiveQuestionPreview()"></textarea>
     <div class="editor-grid">
       <label>Font Size<select id="textEditorFontSize"><option value="12">12 px</option><option value="13">13 px</option><option value="14">14 px</option><option value="15">15 px</option><option value="16">16 px</option><option value="18">18 px</option><option value="20">20 px</option></select></label>
       <label>Weight<select id="textEditorWeight"><option value="400">Normal</option><option value="500">Medium</option><option value="600">Semi Bold</option><option value="700">Bold</option><option value="800">Extra Bold</option></select></label>
@@ -817,10 +862,10 @@ document.addEventListener("DOMContentLoaded",()=>{
     <div class="editor-options">
       <label class="editor-check"><input id="textEditorHideOptions" type="checkbox"> Hide options for this paper</label>
       <div id="textEditorOptions"></div>
-    </div>
+    </div></section><section class="live-editor-pane"><h4>👁 Student Preview — Live</h4><div id="studentQuestionLivePreview" class="student-live-preview"></div></section></div>
     <div class="editor-actions">
+      <button id="restoreOriginalQuestionBtn" class="btn restore-original-btn" onclick="restoreOriginalQuestionInEditor()">↩ Restore Original Question</button>
       <button class="btn" onclick="closeTextEditor()">Cancel</button>
-      <button class="btn red" onclick="resetTextEdit()">Reset This Question</button>
       <button class="btn primary" onclick="saveTextEdit()">✓ Apply to This Paper</button>
     </div>
   </div>
