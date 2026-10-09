@@ -444,6 +444,21 @@ function builderTreePaths(tree,prefix=""){
  (Array.isArray(tree)?tree:[]).forEach(n=>{const name=String(n?.name||"").trim();if(!name)return;const path=prefix?prefix+" / "+name:name;out.push(path);out.push(...builderTreePaths(n.children,path));});
  return out;
 }
+// Ensure every question's folder path exists in the folder tree, including nested paths.
+function treeInsertPath(tree, rawPath){
+ const parts=String(rawPath||"").split(" / ").map(x=>x.trim()).filter(Boolean);
+ if(!parts.length)return;
+ let nodes=tree, prefix="";
+ for(const name of parts){
+  prefix=prefix?prefix+" / "+name:name;
+  if(!Array.isArray(nodes))nodes=[];
+  let node=nodes.find(n=>String(n?.name||"").trim()===name);
+  if(!node){node={name,path:prefix,children:[]};nodes.push(node);}
+  if(!Array.isArray(node.children))node.children=[];
+  node.path=prefix;
+  nodes=node.children;
+ }
+}
 async function firestoreRestGetDocument(path){
  const base="https://firestore.googleapis.com/v1/projects/physicsvault-80a10/databases/(default)/documents/";
  const url=base+path.split('/').map(encodeURIComponent).join('/')+"?key="+encodeURIComponent("AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0");
