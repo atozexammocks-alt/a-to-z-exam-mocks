@@ -101,7 +101,7 @@ button,input,select{font:inherit}.app{height:100vh;display:flex;flex-direction:c
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import {getFirestore,collection,getDocs,getDoc,doc,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import {getFirestore,collection,getDocs,getDoc,doc,addDoc,deleteDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig);
@@ -636,7 +636,37 @@ window.closeDuplicateReview=function(){document.getElementById('duplicateReviewB
 window.duplicateReviewPrev=function(){if(duplicateReviewGroups.length){duplicateReviewIndex=(duplicateReviewIndex-1+duplicateReviewGroups.length)%duplicateReviewGroups.length;renderDuplicateReview()}};
 window.duplicateReviewNext=function(){if(duplicateReviewGroups.length){duplicateReviewIndex=(duplicateReviewIndex+1)%duplicateReviewGroups.length;renderDuplicateReview()}};
 window.setDuplicateDecision=function(encodedId,decision){const id=decodeURIComponent(String(encodedId));duplicateReviewDecisions[id]=decision;renderDuplicateReview()};
-function renderDuplicateReview(){const box=document.getElementById('duplicateReviewContent'),summary=document.getElementById('duplicateReviewSummary'),progress=document.getElementById('duplicateReviewProgress');if(!duplicateReviewGroups.length){summary.textContent='No duplicate groups found in the loaded Library.';box.innerHTML='<div class="empty">No duplicate groups were found across the available Library questions.</div>';progress.textContent='0 groups';return}const g=duplicateReviewGroups[duplicateReviewIndex];summary.textContent=(duplicateReviewIndex+1)+' of '+duplicateReviewGroups.length+' duplicate groups · '+g.questions.length+' matching copies · all folders';progress.textContent='Group '+(duplicateReviewIndex+1)+' / '+duplicateReviewGroups.length;box.innerHTML='<section class="dup-review-group"><h4>✖ '+(g.questions.length-1)+' potential duplicate'+(g.questions.length-1===1?'':'s')+' found · '+g.questions.length+' copies in this group</h4><div class="dup-review-grid">'+g.questions.map((q,i)=>{const id=String(q.id),decision=duplicateReviewDecisions[id]||'pending',txt=cleanQuestionText(displayTextOf(q)),img=imageOf(q),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),folder=folderOf(q)||'(No folder path saved)',type=typeOf(q);return '<article class="dup-review-card '+(decision==='keep'?'keep':decision==='delete'?'delete':'')+'"><h5>Copy '+(i+1)+' · '+esc(type)+' · '+esc(folder)+'</h5><div class="dup-review-question">'+(txt?renderLibraryText(txt):'<em>No text</em>')+'</div>'+(img?'<img class="dup-review-image" src="'+esc(img)+'" alt="Question figure">':'')+(opts.length?'<div class="dup-review-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderLibraryText(o)+'</div>').join('')+'</div>':'')+'<div class="dup-state">Status: '+(decision==='pending'?'Not reviewed':decision==='keep'?'Keep / Not a duplicate':'Marked for deletion')+'</div><div class="dup-review-actions"><button class="btn review-keep" onclick="setDuplicateDecision(\''+encodeURIComponent(id)+'\',\'keep\')">✓ Keep / Not Duplicate</button><button class="btn review-delete" onclick="setDuplicateDecision(\''+encodeURIComponent(id)+'\',\'delete\')">✖ Mark to Delete</button><button class="btn" onclick="setDuplicateDecision(\''+encodeURIComponent(id)+'\',\'pending\')">Reset</button></div></article>'}).join('')+'</div><p style="font-size:10px;color:#94a3b8;margin:10px 0 0">“Mark to Delete” only records your review choice in this open session; it does not delete anything yet. Folder path is shown for each copy.</p></section>';if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([box]).catch(()=>{})}
+window.permanentlyDeleteDuplicate=async function(encodedId){
+ const id=decodeURIComponent(String(encodedId||''));
+ const q=fullLibraryQuestions().find(x=>String(x.id)===id);
+ if(!q){alert('Question not found in the loaded Library. Reload and try again.');return;}
+ const preview=cleanQuestionText(displayTextOf(q)).slice(0,180)||'(Question text unavailable)';
+ if(!confirm('PERMANENTLY DELETE this question from the Library?\n\n'+preview+'\n\nThis cannot be undone.'))return;
+ const btn=document.querySelector('[data-delete-question="'+CSS.escape(id)+'"]');
+ if(btn){btn.disabled=true;btn.textContent='Deleting…';}
+ try{
+   await deleteDoc(doc(db,'questions',id));
+   window.builderAllLibraryQuestions=(window.builderAllLibraryQuestions||[]).filter(x=>String(x.id)!==id);
+   window.builderData=(window.builderData||[]).filter(x=>String(x.id)!==id);
+   if(window.selected)window.selected.delete(id);
+   delete duplicateReviewDecisions[id];
+   const notice=document.getElementById('duplicateDeleteNotice');
+   if(notice){notice.style.display='block';notice.textContent='✓ Permanently deleted from Firestore Library: '+id;}
+   duplicateReviewGroups=buildDuplicateGroups();
+   if(duplicateReviewIndex>=duplicateReviewGroups.length)duplicateReviewIndex=Math.max(0,duplicateReviewGroups.length-1);
+   renderDuplicateReview();
+   const summaryEl=document.getElementById('duplicateReviewSummary');if(summaryEl){summaryEl.textContent='✓ PERMANENTLY DELETED · '+id+' · Firebase confirmed';summaryEl.style.color='#6ee7b7';}
+   try{renderTree();}catch(e){}
+   try{renderQuestions();}catch(e){}
+   try{renderSelected();}catch(e){}
+   const status=document.getElementById('status');if(status)status.textContent='Question permanently deleted · Library refreshed';
+ }catch(err){
+   console.error('[A2Z Builder] Permanent duplicate deletion failed:',err);
+   alert('Delete failed. The question was NOT confirmed deleted.\n\n'+(err?.code||'')+' '+(err?.message||err)+'\n\nCheck Firebase Authentication and Firestore Rules.');
+   if(btn){btn.disabled=false;btn.textContent='🗑 Permanently Delete';}
+ }
+};
+function renderDuplicateReview(){const box=document.getElementById('duplicateReviewContent'),summary=document.getElementById('duplicateReviewSummary'),progress=document.getElementById('duplicateReviewProgress');if(!duplicateReviewGroups.length){summary.textContent='No duplicate groups found in the loaded Library.';box.innerHTML='<div class="empty">✓ No duplicate groups remain in the loaded Library.</div>';progress.textContent='0 groups';return}const g=duplicateReviewGroups[duplicateReviewIndex];summary.textContent=(duplicateReviewIndex+1)+' of '+duplicateReviewGroups.length+' duplicate groups · '+g.questions.length+' matching copies · all folders';progress.textContent='Group '+(duplicateReviewIndex+1)+' / '+duplicateReviewGroups.length;box.innerHTML='<div id="duplicateDeleteNotice" style="display:none;padding:10px;border:1px solid #10b981;background:#064e3b;color:#d1fae5;border-radius:8px;margin-bottom:10px;font-weight:800"></div><section class="dup-review-group"><h4>✖ '+(g.questions.length-1)+' potential duplicate'+(g.questions.length-1===1?'':'s')+' found · '+g.questions.length+' copies in this group</h4><div class="dup-review-grid">'+g.questions.map((q,i)=>{const id=String(q.id),decision=duplicateReviewDecisions[id]||'pending',txt=cleanQuestionText(displayTextOf(q)),img=imageOf(q),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),folder=folderOf(q)||'(No folder path saved)',type=typeOf(q);return '<article class="dup-review-card '+(decision==='keep'?'keep':decision==='delete'?'delete':'')+'"><h5>Copy '+(i+1)+' · '+esc(type)+' · '+esc(folder)+'</h5><div class="dup-review-question">'+(txt?renderLibraryText(txt):'<em>No text</em>')+'</div>'+(img?'<img class="dup-review-image" src="'+esc(img)+'" alt="Question figure">':'')+(opts.length?'<div class="dup-review-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderLibraryText(o)+'</div>').join('')+'</div>':'')+'<div class="dup-state">Status: '+(decision==='pending'?'Not reviewed':decision==='keep'?'Keep / Not a duplicate':'Marked for deletion')+'</div><div class="dup-review-actions"><button class="btn red" data-delete-question="'+esc(id)+'" onclick="permanentlyDeleteDuplicate(\''+encodeURIComponent(id)+'\')">🗑 Permanently Delete</button><button class="btn review-keep" onclick="setDuplicateDecision(\''+encodeURIComponent(id)+'\',\'keep\')">✓ Keep / Not Duplicate</button><button class="btn review-delete" onclick="setDuplicateDecision(\''+encodeURIComponent(id)+'\',\'delete\')">✖ Mark to Delete</button><button class="btn" onclick="setDuplicateDecision(\''+encodeURIComponent(id)+'\',\'pending\')">Reset</button></div></article>'}).join('')+'</div><p style="font-size:10px;color:#94a3b8;margin:10px 0 0">Permanent Delete removes the Firestore question document immediately after confirmation. A green confirmation appears only after Firebase confirms the delete. Folder path is shown for each copy.</p></section>';if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([box]).catch(()=>{})}
 
 function questionHTML(q,num){
  const img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),edit=window.textEdits[String(q.id)]||{};
