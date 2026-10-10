@@ -864,7 +864,36 @@ function customHtml(){
 }
 window.previewCustomized=function(){const w=window.open("","_blank");if(!w)return alert("Allow popups for preview.");w.document.open();w.document.write(customHtml());w.document.close()};
 window.printCustomized=function(){const w=window.open("","_blank");if(!w)return alert("Allow popups for printing.");w.document.open();w.document.write(customHtml());w.document.close();setTimeout(()=>w.print(),900)};
-window.publishNow=async function(){if(!window.selected.size)return alert("Select questions first.");try{const ref=await addDoc(collection(db,"published_tests"),{title:document.getElementById("paperTitle").value||"Physics Test",questionIds:[...window.selected],createdBy:(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase(),createdAt:new Date().toISOString(),price:0});const link=location.origin+"/test_player.html?id="+ref.id;try{await navigator.clipboard.writeText(link)}catch(e){}alert("✔ Test Published!\n\nStudent link:\n"+link)}catch(e){alert("Publish failed: "+(e?.message||e))}};
+window.publishNow=async function(){
+ const selectedIds=[...window.selected].map(String).filter(Boolean);
+ if(!selectedIds.length){alert("पहले Test Builder में questions select करें।");return;}
+ const teacherEmail=(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
+ const defaultTitle=(document.getElementById("paperTitle")?.value||"").trim()||"Physics Test";
+ const title=prompt("Test का नाम लिखें:",defaultTitle);if(title===null)return;
+ if(!title.trim()){alert("Test का नाम खाली नहीं हो सकता।");return;}
+ const durationInput=prompt("Test duration कितने minutes की हो?", "60");if(durationInput===null)return;
+ const duration=Number(durationInput);if(!Number.isFinite(duration)||duration<=0){alert("Duration positive minutes में लिखें।");return;}
+ const intervalInput=prompt("Test availability / interval (उदा. 1 attempt, या 2026-10-10 to 2026-10-15):","1 attempt");if(intervalInput===null)return;
+ const className=prompt("Class / exam name लिखें (उदा. Class 12 / UPPSC Physics):","Class 12");if(className===null)return;
+ const btn=document.querySelector('button[onclick="publishNow()"]');if(btn){btn.disabled=true;btn.textContent="Publishing…";}
+ try{
+   if(typeof window.ensureBuilderAuth==="function")await window.ensureBuilderAuth();
+   const questions=selectedQuestions();
+   const missing=selectedIds.filter(id=>!questions.some(q=>String(q.id)===id));
+   if(missing.length){throw new Error(missing.length+" selected question(s) could not be found in the currently loaded Builder library. Reload the library and select again.");}
+   const ref=await addDoc(collection(db,"published_tests"),{
+     title:title.trim(),time:Math.round(duration),duration:Math.round(duration),interval:intervalInput.trim(),
+     className:className.trim(),questionIds:selectedIds,questionCount:selectedIds.length,
+     totalMarks:questions.reduce((sum,q)=>sum+Number(q.marks??q.mark??1),0),
+     createdBy:teacherEmail,teacherEmail,createdAt:new Date().toISOString(),
+     status:"published",visibility:"public",price:0
+   });
+   const link=new URL("test_player.html?id="+encodeURIComponent(ref.id),location.href).href;
+   try{await navigator.clipboard.writeText(link)}catch(e){}
+   alert("✔ Test Published successfully!\n\nTest: "+title.trim()+"\nQuestions: "+selectedIds.length+"\nDuration: "+Math.round(duration)+" minutes\n\nStudent link:\n"+link+"\n\nLink clipboard में copy करने की कोशिश की गई है।");
+ }catch(e){console.error("Publish test failed:",e);alert("Publish failed: "+(e?.message||String(e)));}
+ finally{if(btn){btn.disabled=false;btn.textContent="🚀 Publish Now";}}
+};
 
 window.saveBlueprint=function(){const data={title:document.getElementById("paperTitle").value,school:document.getElementById("schoolName").value,logo:document.getElementById("logoUrl").value,selected:[...window.selected],date:new Date().toISOString()};localStorage.setItem("AZ_TEST_BUILDER_BLUEPRINT",JSON.stringify(data));alert("Blueprint saved on this device.")};
 
