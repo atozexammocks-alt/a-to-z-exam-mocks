@@ -289,38 +289,44 @@ function ensureQuestionFigureSlot(i){
   q.figureRequired=true;
   return 0;
 }
+function normalizeGeneratedFigureSvg(svg){
+  svg=String(svg||"").replace(/<script[\s\S]*?<\/script>/gi,"").replace(/<foreignObject\b[\s\S]*?<\/foreignObject>/gi,"").replace(/\son\w+\s*=\s*(['"]).*?\1/gi,"").replace(/(?:href|xlink:href)\s*=\s*(['"])https?:[\s\S]*?\1/gi,"");
+  svg=svg.replace(/(fill\s*=\s*['"])(?:#(?:000|000000|020617|07101f|0f172a|172554|1e3a8a|001f3f|00008b)|navy|black)(['"])/gi,"$1#ffffff$2");
+  svg=svg.replace(/(stroke\s*=\s*['"])(?:#(?:0000ff|0000cc|00008b|1d4ed8|2563eb|1e40af)|blue|navy)(['"])/gi,"$1#111827$2");
+  if(!/<svg\b[^>]*\bviewBox\s*=/.test(svg))svg=svg.replace(/<svg\b/i,'<svg viewBox="0 0 800 450"');
+  svg=svg.replace(/<svg\b([^>]*)>/i,function(_,attrs){return '<svg'+attrs+' style="background:#ffffff;color:#111827" preserveAspectRatio="xMidYMid meet">';});
+  return svg.replace(/(<svg\b[^>]*>)/i,'$1<rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/>');
+}
 async function generateFigureSvg(i,visIndex){
   var q=qs[i]; if(!q) return;
   var list=canonicalVisuals(q),v=list[visIndex]; if(!v)throw Error("Figure slot not found.");
   var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
   if(!key)throw Error("Enter/save your Gemini API key first.");
   var desc=[q.figureReference,q.diagram,v.anchor,v.visualType].filter(Boolean).join(" | ");
-  var prompt='Create a clean, bright, high-contrast educational SVG figure for this exam question. Do not include the full page or question text. Draw only the referenced diagram, with white background, dark readable strokes, labels and arrows as appropriate. If information is insufficient, make a simple schematic and do not invent numeric values. Return ONLY raw SVG markup, no markdown. Question: '+String(q.text||"").slice(0,1800)+' Figure description: '+desc;
+  var prompt='Create a clean, bright, high-contrast educational SVG figure for this exam question. REQUIRED: pure white (#ffffff) background, black or dark charcoal (#111827) lines/text, no blue or dark background, no gradients, no shadows, no decorative fills. Draw only the referenced diagram, with clear labels and arrows. If information is insufficient, make a simple schematic and do not invent numeric values. Return ONLY raw SVG markup, no markdown. Question: '+String(q.text||"").slice(0,1800)+' Figure description: '+desc;
   showSaveToast("✨ Generating figure for Q"+q.no+"…");
   var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0.2,maxOutputTokens:5000}});
   var raw=(d?.candidates?.[0]?.content?.parts||[]).map(function(p){return p.text||""}).join("").trim();
-  raw=raw.replace(/^```(?:svg|xml|html)?\s*/i,"").replace(/```$/,"").trim();
+  raw=raw.replace(/^\x60{3}(?:svg|xml|html)?\s*/i,"").replace(/\x60{3}$/,"").trim();
   var m=raw.match(/<svg\b[\s\S]*<\/svg>/i); if(!m)throw Error("AI did not return a usable SVG. Try cropping the original PDF figure.");
-  var svg=m[0].replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son\w+\s*=\s*(['"]).*?\1/gi,"").replace(/javascript:/gi,"");
+  var svg=normalizeGeneratedFigureSvg(m[0]);
   var data="data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(svg)));
-  if(v._legacyFigure){q.figureImage=data;q.figureRequired=false;}
-  else {var actual=(q.visualRegions||[]).indexOf(v);if(actual<0){q.visualRegions=q.visualRegions||[];actual=visIndex;q.visualRegions[actual]=q.visualRegions[actual]||{visualType:v.visualType||"diagram",type:v.visualType||"diagram",anchor:v.anchor||"",required:false};}q.visualRegions[actual].image=data;q.visualRegions[actual].required=false;}
-  render();showSaveToast("✔ Generated figure added to Q"+q.no+". Review before saving.");
+  if(v._legacyFigure){q.figureImage=data;q.figureRequired=false;q._generatedFigurePending=true;}
+  else {var actual=(q.visualRegions||[]).indexOf(v);if(actual<0){q.visualRegions=q.visualRegions||[];actual=visIndex;q.visualRegions[actual]=q.visualRegions[actual]||{visualType:v.visualType||"diagram",type:v.visualType||"diagram",anchor:v.anchor||"",required:false};}q.visualRegions[actual].image=data;q.visualRegions[actual].required=false;q.visualRegions[actual].aiGeneratedPending=true;}
+  render();showSaveToast("✔ Generated figure added to Q"+q.no+". Choose Keep Generated Figure or Discard Figure.");
 }
-
 function renderVisualRegions(q,review){
   var a=canonicalVisuals(q);if(!a.length)return "";
   var html='<div class="extraction-assets"><div class="extraction-assets-title">🖼 Figure slots — optional to save</div>';
   a.forEach(function(v,idx){
     var type=visualTypeOf(v.visualType||v.type),img=String(v.image||"");
-    // Keep the canonical image mirrored to figureImage for old save/Builder compatibility.
-    if(idx===0 && img && !q.figureImage)q.figureImage=img;
-    html+='<div class="visual-region-card"><b>Figure '+(idx+1)+'</b><span class="visual-type-badge visual-type-'+type+'">'+visualTypeLabel(type)+'</span>';
-    if(v.anchor)html+='<div class="muted" style="margin-top:3px">Anchor: '+esc(v.anchor)+'</div>';
-    var recon=renderReconstruction(v);
-    if(recon)html+=recon;
-    if(img)html+='<img src="'+esc(img)+'" alt="Figure '+(idx+1)+'">';
+    if(idx===0&&img&&!q.figureImage)q.figureImage=img;
+    html+='<div class="visual-region-card" style="background:#fff;color:#111827;border:1px solid #cbd5e1;border-radius:10px;padding:10px;margin:8px 0"><b>Figure '+(idx+1)+'</b><span class="visual-type-badge visual-type-'+type+'">'+visualTypeLabel(type)+'</span>';
+    if(v.anchor)html+='<div class="muted" style="margin-top:3px;color:#475569">Anchor: '+esc(v.anchor)+'</div>';
+    var recon=renderReconstruction(v);if(recon)html+=recon;
+    if(img)html+='<div style="background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:8px"><img src="'+esc(img)+'" alt="Figure '+(idx+1)+'" style="background:#fff;max-width:100%;height:auto"></div>';
     else html+='<div class="visual-region-missing">⚠️ NEED FIGURE '+(idx+1)+' — optional placeholder; save question with or without figure.</div>';
+    if(review&&(v.aiGeneratedPending||(v._legacyFigure&&q._generatedFigurePending)))html+='<div class="visual-region-tools"><button type="button" class="btn mini-btn green" data-a="keep-generated-figure" data-i="'+qs.indexOf(q)+'" data-vis-index="'+idx+'">✓ Keep Generated Figure</button><button type="button" class="btn mini-btn red" data-a="discard-generated-figure" data-i="'+qs.indexOf(q)+'" data-vis-index="'+idx+'">✕ Discard Figure</button></div>';
     if(review)html+='<div class="visual-region-tools"><button type="button" class="btn mini-btn purple" data-a="visual-region-crop" data-i="'+qs.indexOf(q)+'" data-vis-index="'+idx+'">✂ Crop Figure</button><button type="button" class="btn mini-btn blue" data-a="generate-figure" data-i="'+qs.indexOf(q)+'" data-vis-index="'+idx+'">✨ Generate Figure (AI)</button><button type="button" class="btn mini-btn red" data-a="remove-visual" data-i="'+qs.indexOf(q)+'" data-vis-index="'+idx+'">Remove Slot</button></div>';
     html+='</div>';
   });
@@ -941,6 +947,9 @@ async function extract(){
     function normalizeExtractedText(s){
       try{return String(s==null?"":s).normalize("NFC");}catch(_){return String(s==null?"":s);}
     }
+    // Backward-compatible alias for older regenerate/save call sites.
+    function normalizeExtractText(s){ return normalizeExtractedText(s); }
+    window.normalizeExtractText=normalizeExtractText;
     function normalizeBilingualText(s){
       /* Preserve mathematical source exactly. Unicode NFC is safe for Hindi, but
          do not rewrite slashes, underscores, carets, fractions or LaTeX commands. */
@@ -1288,7 +1297,16 @@ Solve exactly this question without changing its meaning.`;
     q.answer=out.answer||q.answer||"";q.finalAnswer=out.final_answer||"";q.explanation=normalizeAngstromText(formatAISolutionStructure(out.explanation));q.solutionGenerated=true;q.solutionKept=false;q.solutionProgress=100;q.solutionGenerating=false;render();setTimeout(typesetMath,80);showSaveToast("✔ Detailed AI solution generated for Q"+q.no+". Review and Keep Solution.");$("status").textContent="✔ Detailed AI solution generated for Q"+q.no+".";
   }catch(e){q.solutionGenerating=false;q.solutionProgress=0;render();console.error("AI solution generation failed",e);$("status").textContent="❌ Solution failed for Q"+q.no+": "+(e.message||e);alert("AI solution failed for Q"+q.no+": "+(e.message||e));}
 }
-async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;if(!cropTarget||cropTarget==="question")cropTarget="question";cropPage=Number(qs[i].sourcePage||qs[i].page)||1;$("cropPanel").style.display="block";$("cropStatus").textContent="Loading page "+cropPage+"…";try{if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;cropPage=Math.max(1,Math.min(cropPage,pdf.numPages));let page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(2.5,Math.max(1.2,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Drag over the question area."}catch(e){$("cropStatus").textContent=e.message}}
+async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;if(!cropTarget||cropTarget==="question")cropTarget="question";
+  // When the teacher starts a PDF figure crop, prefer the source crop over generated art.
+  if(cropTarget==="figure"||String(cropTarget).indexOf("visual:")===0){
+    var cq=qs[i],vi=String(cropTarget).indexOf("visual:")===0?Number(String(cropTarget).split(":")[1]||0):-1;
+    if(cq){if(cropTarget==="figure"){cq.figureImage="";cq._generatedFigurePending=false;(cq.visualRegions||[]).forEach(function(v){if(v&&v.aiGeneratedPending){v.image="";v.aiGeneratedPending=false;}});}
+      else {var vv=(cq.visualRegions||[])[vi];if(vv){if(cq.figureImage&&cq.figureImage===vv.image)cq.figureImage="";vv.image="";vv.aiGeneratedPending=false;}}
+      render();
+    }
+  }
+  cropPage=Number(qs[i].sourcePage||qs[i].page)||1;$("cropPanel").style.display="block";$("cropStatus").textContent="Loading page "+cropPage+"…";try{if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;cropPage=Math.max(1,Math.min(cropPage,pdf.numPages));let page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(2.5,Math.max(1.2,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Drag over the question area."}catch(e){$("cropStatus").textContent=e.message}}
 async function cropFigure(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;cropTarget="figure";await cropQ(i);cropTarget="figure";$("cropStatus").textContent="🖼 Drag ONLY around the figure/diagram/image. Adjust it manually if AI crop was not exact. Use Next Page if needed."}
 async function navigateCropPage(delta){if(editing<0||!sourcePdfFile)return;var target=(Number(cropPage)||1)+Number(delta||0);try{var pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;if(target<1||target>pdf.numPages)return;cropPage=target;var page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(1.5,Math.max(.8,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=cropVisualStart=cropVisualEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Page "+cropPage+" loaded — drag over this question/continuation.";}catch(e){$("cropStatus").textContent=e.message}}
 window.addEventListener("error",function(e){
@@ -1313,6 +1331,18 @@ window.addEventListener("click",async function(e){
     var a=b.dataset.a;
     if(a==="refresh-question"){await reextractSingleQuestion(i);}
     else if(a==="generate-figure"){await generateAIQuestionFigure(i);}
+    else if(a==="keep-generated-figure"){
+      var ki=Number(b.dataset.visIndex||0),kv=canonicalVisuals(qs[i])[ki];
+      if(kv&&kv._legacyFigure){qs[i]._generatedFigurePending=false;}
+      else if(kv){var ka=(qs[i].visualRegions||[]).indexOf(kv);if(ka<0)ka=ki;if(qs[i].visualRegions[ka])qs[i].visualRegions[ka].aiGeneratedPending=false;}
+      render();showSaveToast("✔ Generated figure kept for Q"+qs[i].no+".");
+    }
+    else if(a==="discard-generated-figure"){
+      var di=Number(b.dataset.visIndex||0),dv=canonicalVisuals(qs[i])[di];
+      if(dv&&dv._legacyFigure){qs[i].figureImage="";qs[i]._generatedFigurePending=false;qs[i].figureRequired=false;}
+      else if(dv){var da=(qs[i].visualRegions||[]).indexOf(dv);if(da<0)da=di;if(qs[i].visualRegions[da]){qs[i].visualRegions[da].image="";qs[i].visualRegions[da].aiGeneratedPending=false;}if(qs[i].figureImage===dv.image)qs[i].figureImage="";}
+      render();showSaveToast("Generated figure discarded. You can crop the original PDF instead.");
+    }
     else if(a==="apply-text"){
       var ta=document.querySelector('textarea.main-ocr-editor[data-ocr-i="'+i+'"]');
       if(ta){qs[i].text=normalizeAngstromText(ta.value);render();showSaveToast("✔ Q"+qs[i].no+" text updated.");}
