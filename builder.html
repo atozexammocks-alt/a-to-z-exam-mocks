@@ -881,9 +881,52 @@ window.publishNow=async function(){
    const questions=selectedQuestions();
    const missing=selectedIds.filter(id=>!questions.some(q=>String(q.id)===id));
    if(missing.length){throw new Error(missing.length+" selected question(s) could not be found in the currently loaded Builder library. Reload the library and select again.");}
+   // Publish a compact question snapshot as well as IDs. This preserves the exact
+   // Builder text/options even if a legacy/custom question ID cannot be resolved later.
+   const snapshotFields=[
+    "id","questionId","docId","questionKey","qNo","question_number",
+    "qText","questionText","question_text","questionTextHtml","question_text_html","prompt","question","text","content",
+    "options","choices","answerOptions","optionList","optionTexts","optionsText","choicesText","option_texts",
+    "optionA","optionB","optionC","optionD","option_a","option_b","option_c","option_d",
+    "optA","optB","optC","optD","option1","option2","option3","option4","option_1","option_2","option_3","option_4",
+    "opt1","opt2","opt3","opt4","A","B","C","D",
+    "type","questionType","qType","answerType","answer","correctAnswer","correctKey","key",
+    "solution","explanation","topic","subject","chapter","source","questionSource","origin","examSource",
+    "isPYQ","isPyq","pyq","previousYearQuestion","isPreviousYear","pyqYear","examYear","yearAsked","previousYear",
+    "marks","mark","difficulty","level","table_rows","tableRows","matrix_latex","matrixLatex","content_blocks","contentBlocks",
+    "visual_regions","visualRegions","diagram_description","diagramDescription","diagram","figure_reference","figureReference",
+    "questionImageUrl","question_image","imageUrl","imageURL","image_url","figureUrl","figureURL","diagramUrl","downloadURL","downloadUrl","storageUrl",
+    "questionImage","questionImageData","imageData","base64Image","croppedImage","figureImage","figure","diagramImage","image","img",
+    "optAImg","optBImg","optCImg","optDImg","keepOptions","folderPath","libraryPath","path"
+   ];
+   const compactValue=(v,depth=0)=>{
+    if(v==null||typeof v==="number"||typeof v==="boolean")return v;
+    if(typeof v==="string"){
+     const x=v.trim();
+     if(/^data:image\//i.test(x)&&x.length>8000)return "";
+     return v;
+    }
+    if(depth>5)return undefined;
+    if(Array.isArray(v))return v.map(x=>compactValue(x,depth+1)).filter(x=>x!==undefined);
+    if(typeof v==="object"){
+     const out={};
+     for(const [k,x] of Object.entries(v)){const y=compactValue(x,depth+1);if(y!==undefined)out[k]=y;}
+     return out;
+    }
+    return undefined;
+   };
+   const publishedQuestions=questions.map(q=>{
+    const out={};
+    for(const key of snapshotFields){if(q[key]!==undefined){const value=compactValue(q[key]);if(value!==undefined&&value!=="")out[key]=value;}}
+    // The real Firestore document ID must be retained separately from any custom "id" field.
+    out.sourceQuestionId=String(q.id??"");
+    return out;
+   });
+   const snapshotBytes=new TextEncoder().encode(JSON.stringify(publishedQuestions)).length;
+   if(snapshotBytes>650000)console.warn("Question snapshot is large; image payloads were trimmed where possible:",snapshotBytes);
    const ref=await addDoc(collection(db,"published_tests"),{
      title:title.trim(),time:Math.round(duration),duration:Math.round(duration),interval:intervalInput.trim(),
-     className:className.trim(),questionIds:selectedIds,questionCount:selectedIds.length,
+     className:className.trim(),questionIds:selectedIds,questions:publishedQuestions,questionCount:selectedIds.length,
      totalMarks:questions.reduce((sum,q)=>sum+Number(q.marks??q.mark??1),0),
      createdBy:teacherEmail,teacherEmail,createdAt:new Date().toISOString(),
      status:"published",visibility:"public",price:0
