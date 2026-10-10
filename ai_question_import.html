@@ -861,7 +861,7 @@ function normalizeOptionList(value){
     var x=String(item).replace(/\r\n?/g,"\n").trim();if(!x)return;
     /* Split a merged option string only when it has a clear ordered A, B, C… label run. */
     var re=/(?:^|\s)(?:\(([A-H])\)|\[([A-H])\]|([A-H])[.)])\s+/g,hits=[],m;
-    while((m=re.exec(x)))hits.push({index:m.index,letter:(m[1]||m[2]||m[3]||"").toUpperCase(),end:re.lastIndex});
+    while((m=re.exec(x))){hits.push({index:m.index,letter:(m[1]||m[2]||m[3]||"").toUpperCase(),end:re.lastIndex});if(/\s$/.test(m[0]))re.lastIndex=Math.max(m.index+1,re.lastIndex-1);}
     hits=collapseOptionMarkers(hits);
     var split=hits.length>=2&&hits.length<=8&&hits.every(function(h,j){return h.letter===String.fromCharCode(65+j)});
     if(split){for(var i=0;i<hits.length;i++){var part=x.slice(hits[i].end,i+1<hits.length?hits[i+1].index:x.length).trim().replace(/[;\s]+$/,"").replace(/\s+(?:\([A-H]\)|\[[A-H]\]|[A-H][.)])\s*$/,"");if(part)expanded.push(part);}}
@@ -874,7 +874,7 @@ function collapseOptionMarkers(hits){
 }
 function recoverOptionsFromStem(text,options){
   var stem=String(text||""),opts=normalizeOptionList(options),re=/(?:^|\s)(?:\(([A-D])\)|\[([A-D])\]|([A-D])[.)])\s+/g,hits=[],m;
-  while((m=re.exec(stem)))hits.push({index:m.index,letter:(m[1]||m[2]||m[3]||"").toUpperCase(),end:re.lastIndex});
+  while((m=re.exec(stem))){hits.push({index:m.index,letter:(m[1]||m[2]||m[3]||"").toUpperCase(),end:re.lastIndex});if(/\s$/.test(m[0]))re.lastIndex=Math.max(m.index+1,re.lastIndex-1);}
   hits=collapseOptionMarkers(hits);
   var ordered=hits.length>=2&&hits.length<=4&&hits.every(function(h,j){return h.letter===String.fromCharCode(65+j)});
   if((!opts.length||opts.length===1)&&ordered){
