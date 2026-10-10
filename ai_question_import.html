@@ -75,7 +75,15 @@ function normalizeAISolutionMath(s){
   x=x.replace(/\b(?:SQRT|sqrt)\s*\(\s*([^()\n]+)\s*\)/g,"\\(\\sqrt{$1}\\)");
   x=x.replace(/(^|[^\\])\bfrac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g,"$1\\(\\frac{$2}{$3}\\)");
   x=x.replace(/\b(?:alpha|α)\b/gi,"\\(\\alpha\\)").replace(/\b(?:beta|β)\b/gi,"\\(\\beta\\)").replace(/\b(?:gamma|γ)\b/gi,"\\(\\gamma\\)").replace(/\b(?:theta|θ)\b/gi,"\\(\\theta\\)").replace(/\b(?:omega|ω)\b/gi,"\\(\\omega\\)");
-  x=x.split(/\n/).map(function(line){var t=line.trim();if(!t)return line;if(!/\\\(|\\\[|\$/.test(t)&&/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b/.test(t))return "\\["+t+"\\]";return line;}).join("\n");
+  x=x.split(/\n/).map(function(line){
+    var t=line.trim();if(!t)return line;
+    if(!/\\\(|\\\[|\$/.test(t)){
+      var sm=t.match(/^(Given\s*\/\s*Parameters|What is asked|Concept\s*\/\s*Law|Final Answer|Parameters|Substitution|Calculation|Reasoning|Diagram|Formula|Working|To find|Concept|Given|Law)\s*:\s*(.+)$/i);
+      if(sm&&/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b/.test(sm[2]))return sm[1]+":\n\\["+sm[2]+"\\]";
+      if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b/.test(t))return "\\["+t+"\\]";
+    }
+    return line;
+  }).join("\n");
   var normalized=x.replace(/\n{3,}/g,"\n\n").trim();
   protectedCode.forEach(function(code,i){normalized=normalized.replace("__A2Z_CODE_BLOCK_"+i+"__",code);});
   return normalized;
