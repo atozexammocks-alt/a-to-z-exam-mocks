@@ -130,8 +130,22 @@ function textOf(q){
  return "";
 }
 function imageOf(q){
- for(const k of ["questionImage","image","img","imageData","croppedImage","croppedImageData","questionImageData","base64Image","imageUrl","imageURL","diagram","imageSrc","src","question"]) {const v=q?.[k];if(typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim()))return v.trim();if(v&&typeof v==="object"){for(const kk of ["data","url","src","image","dataUrl","base64"]){const z=v[kk];if(typeof z==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(z.trim()))return z.trim()}}}
- return "";
+ // Match Test Builder's recursive image lookup so nested Firebase/importer
+ // metadata (figureImage, crop data, storage URL, etc.) is preserved.
+ const preferred=["questionImage","questionImageUrl","question_image","imageUrl","imageURL","image_url","imageData","base64Image","croppedImage","questionImageData","figureImage","figureUrl","figureURL","figure","diagramImage","diagramUrl","imageSrc","src","downloadURL","downloadUrl","storageUrl","url","image","img","dataUrl","dataURL","downloadUrl","base64"];
+ const seen=new Set();
+ const valid=v=>typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())?v.trim():"";
+ function walk(obj,depth){
+  if(!obj||typeof obj!=="object"||depth>6||seen.has(obj))return "";
+  seen.add(obj);
+  for(const k of preferred){const found=valid(obj[k]);if(found)return found;}
+  for(const [k,v] of Object.entries(obj)){
+   if(v&&typeof v==="object"){const found=walk(v,depth+1);if(found)return found;}
+   else if(typeof v==="string"&&/(image|figure|diagram|crop|visual|media)/i.test(k)){const found=valid(v);if(found)return found;}
+  }
+  return "";
+ }
+ return walk(q,0);
 }
 function mathMarkup(v){
  var x=String(v||"");
@@ -144,6 +158,30 @@ function mathMarkup(v){
  return x;
 }
 function renderText(v){return esc(mathMarkup(v)).replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/\r?\n/g,"<br>")}
+function renderQuestionWithVisual(q,txt,img){
+ const tag=src=>'<div class="qimg"><img src="'+esc(src)+'" alt="Question figure"></div>';
+ const valid=v=>typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())?v.trim():"";
+ const blocks=Array.isArray(q?.content_blocks)?q.content_blocks:[];
+ if(blocks.length){
+  let remaining=String(txt||""),html="";
+  for(const b of blocks){
+   const anchor=String(b?.anchor||b?.figure_reference||b?.figureReference||"").trim();
+   const src=valid(b?.image)||valid(b?.src)||valid(b?.url)||valid(b?.data)||imageOf(b?.visual||b?.crop||b?.figureImage||b)||(!html?img:"");
+   if(!src)continue;
+   if(anchor){
+    const idx=remaining.toLowerCase().indexOf(anchor.toLowerCase());
+    if(idx>=0){const end=idx+anchor.length;html+=renderText(remaining.slice(0,end))+tag(src);remaining=remaining.slice(end);continue;}
+   }
+   if(!html)html=renderText(remaining)+tag(src);
+  }
+  if(html)return html+renderText(remaining);
+ }
+ const anchor=String(q?.figure_reference||q?.figureReference||"").trim();
+ if(img&&anchor){const idx=String(txt||"").toLowerCase().indexOf(anchor.toLowerCase());if(idx>=0){const end=idx+anchor.length;return renderText(String(txt).slice(0,end))+tag(img)+renderText(String(txt).slice(end));}}
+ const placeholder=/\[\s*(?:figure|image|diagram)[^\]]*\]|\{\{\s*(?:figure|image|diagram)[^}]*\}\}/i;
+ if(img&&placeholder.test(String(txt||"")))return renderText(txt).replace(placeholder,tag(img));
+ return renderText(txt)+(img?tag(img):"");
+}
 function typeset(){if(!window.MathJax?.typesetPromise)return;MathJax.startup?.promise?.then(()=>MathJax.typesetPromise([document.getElementById("questions")]).catch(()=>{}))}
 function toast(s){const t=document.getElementById("toast");t.textContent=s;t.style.display="block";clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.style.display="none",2200)}
 
@@ -205,8 +243,7 @@ function renderQuestions(){
   const visibleOpts=ed.hideOptions?[]:opts;
   return '<div class="card '+(s?'assigned':'')+'"><div class="qtop"><b>Q.'+(i+1)+'</b><span class="mini">'+esc(q.type||"Question")+'</span><span class="mini" style="margin-left:auto">'+(Number(q.marks)||0)+' marks</span></div>'+
    '<div class="row" style="margin-top:6px"><button class="btn" onclick="editQuestion(\''+esc(id)+'\')">'+editLabel+'</button><span class="mini">'+(ed.hideOptions?'Options Hidden':'Options Visible')+'</span></div>'+
-   (txt?'<div class="qtext">'+renderText(txt)+'</div>':'')+
-   (img?'<div class="qimg"><img src="'+esc(img)+'" alt="Question"></div>':'')+
+   (txt||img?'<div class="qtext">'+renderQuestionWithVisual(q,txt,img)+'</div>':'')+
    (visibleOpts.length?'<div class="opts">'+visibleOpts.map((o,j)=>'<div class="opt"><b>'+String.fromCharCode(65+j)+'.</b><span>'+renderText(o)+'</span></div>').join("")+'</div>':'')+
    '<div class="assign"><label>Paper Section</label><select class="field" onchange="assign(\''+esc(id)+'\',this.value)"><option value="">Not assigned</option>'+sections.map(x=>'<option value="'+esc(x.id)+'" '+(s?.id===x.id?'selected':'')+'>'+esc(x.name)+' — '+esc(x.type)+'</option>').join("")+'</select></div></div>'
  }).join("");
