@@ -817,8 +817,34 @@ window.printPaper=function(layout){
 };
 
 window.goToPaperDesigner=function(){
- const ids=[...window.selected].join(",");
- const url="paper_designer.html"+(ids?("?selected="+encodeURIComponent(ids)):"");
+ const ids=[...window.selected].map(String);
+ if(!ids.length){alert("पहले Test Builder में कम-से-कम एक question select करें।");return;}
+ // Pass the selected question objects as well as IDs. Paper Designer must not
+ // depend on a separate Firebase query to reconstruct the Builder selection.
+ const byId=new Map((window.builderData||[]).map(q=>[String(q.id),q]));
+ const missing=ids.filter(id=>!byId.has(id));
+ if(missing.length){
+  alert("कुछ selected questions Builder की current list में नहीं मिले ("+missing.length+")। कृपया Reload करके फिर select करें।");
+  return;
+ }
+ const handoff=ids.map(id=>{
+  const q=byId.get(id);
+  const edit=(window.textEdits||{})[id]||{};
+  const copy={...q,id:String(q.id)};
+  // Carry temporary Builder text/options edits into the paper copy only.
+  if(typeof edit.text==="string"){copy.qText=edit.text;copy.text=edit.text;copy.questionText=edit.text;}
+  if(Array.isArray(edit.options))copy.options=edit.options.slice();
+  if(edit.image)copy.questionImage=edit.image;
+  return copy;
+ });
+ try{
+  localStorage.setItem("AZ_BUILDER_SELECTED_IDS",JSON.stringify(ids));
+  localStorage.setItem("AZ_BUILDER_SELECTED_QUESTIONS",JSON.stringify(handoff));
+ }catch(e){
+  alert("Selected questions transfer नहीं हो पाया: "+(e?.message||e));
+  return;
+ }
+ const url="paper_designer.html?selected="+encodeURIComponent(ids.join(","));
  location.href=url;
 };
 window.openCustomize=function(){window.goToPaperDesigner()};
