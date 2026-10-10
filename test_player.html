@@ -6,14 +6,14 @@
 <script>window.MathJax={tex:{inlineMath:[['\\(','\\)'],['$','$']],displayMath:[['\\[','\\]'],['$$','$$']]},svg:{fontCache:'global'}};</script>
 <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}body{background:#060911;color:#f8fafc;height:100vh;display:flex;flex-direction:column;overflow:hidden}header{background:#0b1120;border-bottom:1px solid #1e293b;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}.brand{font-size:16px;font-weight:900;color:#38bdf8}.timer-badge{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444;padding:6px 14px;border-radius:20px;font-weight:800;font-size:13px}.test-workspace{flex:1;display:flex;height:calc(100vh - 56px);overflow:hidden}.q-panel{flex:1;display:flex;flex-direction:column;background:#060911;padding:24px;overflow-y:auto}.q-container{background:#0b1120;border:1.5px solid #1e293b;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px;max-width:800px;width:100%;margin:0 auto}.q-img-box{background:white;border-radius:8px;padding:16px;display:flex;justify-content:center}.q-img-box img{max-width:100%;height:auto;display:block}.q-text{font-size:14px;color:#f8fafc;font-weight:700;line-height:1.65;overflow-wrap:anywhere}.options-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}.opt-btn{background:#0f172a;border:1.5px solid #334155;color:white;padding:12px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;text-align:left;line-height:1.55;overflow-wrap:anywhere}.opt-btn:hover{border-color:#38bdf8}.opt-btn.selected{background:#2563eb;border-color:#38bdf8}.palette-panel{width:300px;background:#0b1120;border-left:1px solid #1e293b;padding:20px;display:flex;flex-direction:column;gap:16px;flex-shrink:0}.palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;overflow-y:auto;max-height:300px}.p-box{background:#0f172a;border:1px solid #334155;color:#94a3b8;height:38px;border-radius:6px;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}.p-box.answered{background:#10b981;border-color:#059669;color:white}.p-box.skipped{background:#eab308;border-color:#ca8a04;color:#111827}.p-box.current{border-color:#38bdf8}.btn-action{background:#2563eb;border:none;color:white;padding:12px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;width:100%;text-align:center}.btn-action:disabled{opacity:.55;cursor:not-allowed}.answer-state{font-size:12px;font-weight:800;color:#94a3b8}.numerical-wrap{display:none;gap:10px;margin-top:10px}.numerical-input{width:100%;background:#0f172a;border:1.5px solid #334155;color:#fff;padding:13px;border-radius:8px;font-weight:700;font-size:14px;outline:none}.numerical-input:focus{border-color:#38bdf8}.skip-btn{background:#eab308;color:#111827;border:none;padding:11px 16px;border-radius:8px;font-weight:900;cursor:pointer;min-width:90px}.skip-btn.active{background:#ca8a04}#result-overlay{position:fixed;inset:0;background:rgba(6,9,17,.95);display:none;align-items:center;justify-content:center;z-index:999999;padding:20px}.result-card{background:#0b1120;border:2px solid #38bdf8;border-radius:20px;width:100%;max-width:450px;padding:30px;text-align:center}#loading{position:fixed;inset:0;background:#060911;z-index:99999;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px;color:#cbd5e1;font-weight:700}.error-card{max-width:700px;background:#0b1120;border:1px solid #7f1d1d;border-radius:14px;padding:24px}.error-card h2{color:#ef4444;margin-bottom:12px}.error-card p{color:#cbd5e1;line-height:1.6;white-space:pre-wrap;word-break:break-word}@media(max-width:760px){body{overflow:auto;height:auto;min-height:100vh}.test-workspace{height:auto;display:block;overflow:visible}.q-panel{padding:10px;overflow:visible}.q-container{padding:15px}.palette-panel{width:auto;border-left:0;border-top:1px solid #1e293b}.options-row{grid-template-columns:1fr}}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}body{background:#060911;color:#f8fafc;height:100vh;display:flex;flex-direction:column;overflow:hidden}header{background:#0b1120;border-bottom:1px solid #1e293b;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}.brand{font-size:16px;font-weight:900;color:#38bdf8}.timer-badge{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.35);color:#34d399;padding:6px 14px;border-radius:20px;font-weight:800;font-size:13px;min-width:100px;text-align:center;font-variant-numeric:tabular-nums}.timer-badge.timer-warning{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.55);color:#f87171;animation:timerPulse 1s infinite}@keyframes timerPulse{50%{opacity:.72}}.test-workspace{flex:1;display:flex;height:calc(100vh - 56px);overflow:hidden}.q-panel{flex:1;display:flex;flex-direction:column;background:#060911;padding:24px;overflow-y:auto}.q-container{background:#0b1120;border:1.5px solid #1e293b;border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px;max-width:800px;width:100%;margin:0 auto}.q-img-box{background:white;border-radius:8px;padding:16px;display:flex;justify-content:center}.q-img-box img{max-width:100%;height:auto;display:block}.q-text{font-size:14px;color:#f8fafc;font-weight:700;line-height:1.65;overflow-wrap:anywhere}.options-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}.opt-btn{background:#0f172a;border:1.5px solid #334155;color:white;padding:12px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;text-align:left;line-height:1.55;overflow-wrap:anywhere}.opt-btn:hover{border-color:#38bdf8}.opt-btn.selected{background:#2563eb;border-color:#38bdf8}.palette-panel{width:300px;background:#0b1120;border-left:1px solid #1e293b;padding:20px;display:flex;flex-direction:column;gap:16px;flex-shrink:0}.palette-legend{display:flex;flex-wrap:wrap;gap:8px 12px;color:#94a3b8;font-size:10px;font-weight:700}.palette-legend span{display:inline-flex;align-items:center;gap:5px}.legend-dot{width:9px;height:9px;border-radius:3px;display:inline-block}.legend-current{background:#0f172a;border:2px solid #38bdf8}.legend-answered{background:#10b981}.legend-skipped{background:#eab308}.palette-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;overflow-y:auto;max-height:300px}.p-box{background:#0f172a;border:1px solid #334155;color:#94a3b8;height:38px;border-radius:6px;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}.p-box:hover{transform:translateY(-1px)}.p-box.answered{background:#10b981;border-color:#059669;color:white}.p-box.skipped{background:#eab308;border-color:#ca8a04;color:#111827}.p-box.current{outline:2px solid #38bdf8;outline-offset:1px}.btn-action{background:#2563eb;border:none;color:white;padding:12px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;width:100%;text-align:center}.btn-action:disabled{opacity:.55;cursor:not-allowed}.answer-state{font-size:12px;font-weight:800;color:#94a3b8}.numerical-wrap{display:none;gap:10px;margin-top:10px}.numerical-input{width:100%;background:#0f172a;border:1.5px solid #334155;color:#fff;padding:13px;border-radius:8px;font-weight:700;font-size:14px;outline:none}.numerical-input:focus{border-color:#38bdf8}.skip-btn{background:#eab308;color:#111827;border:none;padding:11px 16px;border-radius:8px;font-weight:900;cursor:pointer;min-width:90px}.skip-btn.active{background:#ca8a04}#result-overlay{position:fixed;inset:0;background:rgba(6,9,17,.95);display:none;align-items:center;justify-content:center;z-index:999999;padding:20px}.result-card{background:#0b1120;border:2px solid #38bdf8;border-radius:20px;width:100%;max-width:450px;padding:30px;text-align:center}#loading{position:fixed;inset:0;background:#060911;z-index:99999;display:flex;align-items:center;justify-content:center;text-align:center;padding:25px;color:#cbd5e1;font-weight:700}.error-card{max-width:700px;background:#0b1120;border:1px solid #7f1d1d;border-radius:14px;padding:24px}.error-card h2{color:#ef4444;margin-bottom:12px}.error-card p{color:#cbd5e1;line-height:1.6;white-space:pre-wrap;word-break:break-word}@media(max-width:760px){body{overflow:auto;height:auto;min-height:100vh}.test-workspace{height:auto;display:block;overflow:visible}.q-panel{padding:10px;overflow:visible}.q-container{padding:15px}.palette-panel{width:auto;border-left:0;border-top:1px solid #1e293b}.options-row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div id="loading">Loading mock test…</div>
 <div id="result-overlay"><div class="result-card"><h2>🏆 Test Submitted!</h2><p style="margin:12px 0;color:#94a3b8">Here is your performance summary:</p><div style="background:#0f172a;padding:16px;border-radius:12px;display:flex;flex-direction:column;gap:8px"><div>Total Questions: <strong id="res-total">0</strong></div><div>Correct Answers: <strong id="res-correct">0</strong></div><div>Final Score: <strong id="res-score">0 Marks</strong></div></div><div style="display:flex;gap:10px;margin-top:16px"><a href="mock_tests.html" class="btn-action" style="text-decoration:none;background:#10b981">Return to Portal ➔</a></div></div></div>
 <header><div class="brand" id="test-title-header">A to Z Exam Mocks - Live Test</div><div class="timer-badge" id="timer-display">⏱️ 00:00</div></header>
-<div class="test-workspace" id="test-workspace" style="display:none"><div class="q-panel"><div class="q-container"><div style="display:flex;justify-content:space-between;align-items:center"><strong id="q-indicator" style="color:#38bdf8;font-size:15px">Question 1 of 0</strong><span id="q-subject-tag" style="font-size:11px;background:#1e293b;padding:3px 8px;border-radius:4px;color:#cbd5e1">General</span></div><div class="q-img-box" id="q-img-wrapper" style="display:none"><img id="current-q-img" src="" alt="Question Image"></div><div id="q-text-note" class="q-text"></div><div id="answer-state" class="answer-state"></div><div class="options-row"><button class="opt-btn" id="btn-opt-A"></button><button class="opt-btn" id="btn-opt-B"></button><button class="opt-btn" id="btn-opt-C"></button><button class="opt-btn" id="btn-opt-D"></button></div><div id="numerical-wrap" class="numerical-wrap"><input id="numerical-input" class="numerical-input" type="text" inputmode="decimal" placeholder="Enter numerical value"></div><div style="display:flex;gap:10px;margin-top:10px"><button class="btn-action" id="prev-btn" style="background:#334155">◀ Previous</button><button class="skip-btn" id="skip-btn">Skip</button><button class="btn-action" id="next-btn">Save &amp; Next ▶</button></div></div></div><div class="palette-panel"><h3 style="font-size:14px;font-weight:800;color:#38bdf8">Question Palette</h3><div class="palette-grid" id="palette-grid"></div><button class="btn-action" id="submit-btn" style="background:#ef4444;margin-top:auto">Submit Test</button></div></div>
+<div class="test-workspace" id="test-workspace" style="display:none"><div class="q-panel"><div class="q-container"><div style="display:flex;justify-content:space-between;align-items:center"><strong id="q-indicator" style="color:#38bdf8;font-size:15px">Question 1 of 0</strong><span id="q-subject-tag" style="font-size:11px;background:#1e293b;padding:3px 8px;border-radius:4px;color:#cbd5e1">General</span></div><div class="q-img-box" id="q-img-wrapper" style="display:none"><img id="current-q-img" src="" alt="Question Image"></div><div id="q-text-note" class="q-text"></div><div id="answer-state" class="answer-state"></div><div class="options-row"><button class="opt-btn" id="btn-opt-A"></button><button class="opt-btn" id="btn-opt-B"></button><button class="opt-btn" id="btn-opt-C"></button><button class="opt-btn" id="btn-opt-D"></button></div><div id="numerical-wrap" class="numerical-wrap"><input id="numerical-input" class="numerical-input" type="text" inputmode="decimal" placeholder="Enter numerical value"></div><div style="display:flex;gap:10px;margin-top:10px"><button class="btn-action" id="prev-btn" style="background:#334155">◀ Previous</button><button class="skip-btn" id="skip-btn">Skip</button><button class="btn-action" id="next-btn">Save &amp; Next ▶</button></div></div></div><div class="palette-panel"><h3 style="font-size:14px;font-weight:800;color:#38bdf8">Question Palette</h3><div class="palette-legend"><span><i class="legend-dot legend-current"></i>Current</span><span><i class="legend-dot legend-answered"></i>Attempted</span><span><i class="legend-dot legend-skipped"></i>Skipped / Visited</span></div><div class="palette-grid" id="palette-grid"></div><button class="btn-action" id="submit-btn" style="background:#ef4444;margin-top:auto">Submit Test</button></div></div>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {getFirestore,doc,getDoc,collection,getDocs,addDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -24,7 +24,7 @@ import {getStorage,ref as storageRef,getDownloadURL} from "https://www.gstatic.c
 const firebaseConfig={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZQF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
 const app=initializeApp(firebaseConfig),db=getFirestore(app),auth=getAuth(app);
 const $=id=>document.getElementById(id),norm=v=>String(v??"").replace(/\r\n?/g,"\n").trim();
-let testData=null,currentIdx=0,userResponses={},timerInterval=null,timeLeftSeconds=0,isSubmitting=false,testStartTimestamp=0;
+let testData=null,currentIdx=0,userResponses={},timerInterval=null,timeLeftSeconds=0,isSubmitting=false,testStartTimestamp=0,testEndTimestamp=0;const visitedQuestions=new Set();
 function escapeHtml(s){return String(s??"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function getTestId(){const p=new URLSearchParams(location.search);return String(p.get("id")||p.get("testId")||"").trim()}
 function showError(title,details=""){clearInterval(timerInterval);$("loading").innerHTML=`<div class="error-card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(details)}</p><button class="btn-action" style="margin-top:16px" onclick="location.href='mock_tests.html'">Return to Mock Tests</button></div>`;console.error(title,details)}
@@ -54,7 +54,7 @@ async function resolveImageURL(candidate){
 }
 function findImage(v,depth=0){return imageCandidate(v,depth)}
 function textOf(q){
- const keys=["qText","text","questionText","question_text","content","questionTextHtml","prompt","question","question_text_html"];
+ const keys=["questionText","question_text","qText","questionTextHtml","question_text_html","prompt","question","text","content"];
  for(const k of keys){
   const v=q?.[k];
   if(typeof v==='string'&&v.trim()&&!/^(data:image\/|https?:\/\/|blob:|gs:\/\/)/i.test(v.trim()))return v.trim();
@@ -62,18 +62,35 @@ function textOf(q){
  return '';
 }
 function displayTextOf(q){return textOf(q)}
+function cleanOptionText(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
+function parseLabeledOptions(source){
+ const text=String(source??'').replace(/\r\n?/g,'\n').trim();if(!text)return null;
+ const re=/(?:^|[\n\r]|\s)(?:\(([A-Da-d])\)|([A-Da-d])[.)])\s*/g;
+ const marks=[];let m;
+ while((m=re.exec(text))!==null){const letter=(m[1]||m[2]||'').toUpperCase();if(!letter)continue;marks.push({letter,start:m.index+(m[0].length-(m[0].trimStart().length)),end:re.lastIndex});}
+ if(marks.length<2||marks[0].letter!=='A')return null;
+ const unique=[];for(const mark of marks){if(!unique.some(x=>x.letter===mark.letter))unique.push(mark)}
+ const order=unique.map(x=>x.letter);if(order.length<2||order.some((x,i)=>'ABCD'.indexOf(x)!==i))return null;
+ const first=unique[0],stem=text.slice(0,first.start).trim().replace(/[\s:;,-]+$/,'');
+ const options=unique.map((x,i)=>cleanOptionText(text.slice(x.end,(unique[i+1]||{start:text.length}).start))).filter(Boolean);
+ return options.length>=2?{stem,options}:null;
+}
 function optionsOf(q){
- const v=q?.options??q?.choices??q?.answers??q?.answerOptions??q?.optionList;
- if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??x.option??''):x).filter(x=>String(x??'').trim());
- if(v&&typeof v==='object')return Object.values(v).map(x=>typeof x==='object'?(x.text??x.value??x.label??x.option??''):x).filter(x=>String(x??'').trim());
+ // Prefer explicit option fields; don't treat a scalar answer/correct-answer field as four choices.
+ let v=q?.options??q?.choices??q?.answerOptions??q?.optionList;
+ if(Array.isArray(v))return v.map(x=>typeof x==='object'?(x.text??x.value??x.label??x.option??''):x).map(cleanOptionText).filter(x=>String(x??'').trim());
+ if(v&&typeof v==='object')return Object.keys(v).sort((a,b)=>{const aa=a.match(/[A-D]/i)?.[0]||a,bb=b.match(/[A-D]/i)?.[0]||b;return 'ABCD'.indexOf(aa.toUpperCase())-'ABCD'.indexOf(bb.toUpperCase())}).map(k=>{const x=v[k];return cleanOptionText(typeof x==='object'?(x.text??x.value??x.label??x.option??''):x)}).filter(x=>String(x??'').trim());
  if(typeof v==='string'){
-  try{return optionsOf({...q,options:JSON.parse(v)})}catch(_){return v.split(/\s*\|\s*/).map(x=>x.trim()).filter(Boolean)}
+  try{const parsed=JSON.parse(v);if(Array.isArray(parsed)||parsed&&typeof parsed==='object')return optionsOf({...q,options:parsed})}catch(_){}
+  const labeled=parseLabeledOptions(v);if(labeled)return labeled.options;
+  const split=v.split(/\s*\|\s*/).map(cleanOptionText).filter(Boolean);if(split.length>1)return split;
  }
- const out=['A','B','C','D'].map(k=>q?.['option'+k]??q?.['opt'+k]??q?.['option_'+k]??q?.[k]).filter(x=>String(x??'').trim());
- return out;
+ const keys=['A','B','C','D'].map(k=>q?.['option'+k]??q?.['option_'+k]??q?.['opt'+k]??q?.['option'+k.toLowerCase()]??q?.[k]).map(cleanOptionText).filter(x=>String(x??'').trim());
+ if(keys.length>1)return keys;
+ // Some older records store the choices as one labeled block inside the question text.
+ const parsed=parseLabeledOptions(textOf(q));return parsed?.options||[];
 }
 function displayOptionsOf(q){return optionsOf(q)}
-function cleanOptionText(v){return String(v??'').trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,'').trim()}
 
 function normalizeMathSource(v){
  let x=String(v??'');
@@ -143,21 +160,37 @@ async function init(){try{
  if(Number(raw.price||0)>0){const purchaseId=encodeURIComponent(email.toLowerCase())+"_"+encodeURIComponent(testId);const ps=await getDoc(doc(db,"purchases",purchaseId));if(!ps.exists()||ps.data().status!=="paid"){alert("This is a paid mock test. Please purchase it before starting.");location.href="mock_tests.html";return}}
  testData={...raw,questions};timeLeftSeconds=(parseInt(raw.time)||parseInt(raw.duration)||60)*60;testStartTimestamp=Date.now();startTest();await authPromise;
  }catch(e){showError("Error loading test.",e?.message||String(e))}}
-function startTest(){$("test-title-header").textContent=testData.title||"Live Test";$('loading').style.display="none";$('test-workspace').style.display="flex";renderPalette();loadQuestion(0);updateTimer();timerInterval=setInterval(()=>{if(timeLeftSeconds<=0){clearInterval(timerInterval);submitTest(true);return}timeLeftSeconds--;updateTimer()},1000)}
-function updateTimer(){const m=Math.floor(timeLeftSeconds/60),s=timeLeftSeconds%60;$('timer-display').textContent=`⏱️ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`}
+function startTest(){
+ $("test-title-header").textContent=testData.title||"Live Test";$('loading').style.display="none";$('test-workspace').style.display="flex";
+ renderPalette();loadQuestion(0);
+ testEndTimestamp=Date.now()+Math.max(0,timeLeftSeconds)*1000;updateTimer();
+ clearInterval(timerInterval);timerInterval=setInterval(()=>{timeLeftSeconds=Math.max(0,Math.ceil((testEndTimestamp-Date.now())/1000));updateTimer();if(timeLeftSeconds<=0){clearInterval(timerInterval);submitTest(true)}},250);
+}
+function updateTimer(){
+ const m=Math.floor(Math.max(0,timeLeftSeconds)/60),s=Math.max(0,timeLeftSeconds)%60;
+ $('timer-display').textContent=`⏱️ ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+ $('timer-display').classList.toggle('timer-warning',timeLeftSeconds<=300&&timeLeftSeconds>0);
+}
 function questionType(q){return String(q?.type??q?.questionType??q?.qType??q?.answerType??"MCQ").toUpperCase()}
 function isNumerical(q){const t=questionType(q);return t.includes("NUM")||t==="INTEGER"||t==="DECIMAL"||t==="NUMERICAL"}
 function responseFor(q,i){return userResponses[i]}
-function responseStatus(q,i){const r=responseFor(q,i);if(r===undefined||r===null||r==="")return "";if(r==="__SKIPPED__")return "skipped";return "answered"}
+function responseStatus(q,i){const r=responseFor(q,i);if(r==="__SKIPPED__")return "skipped";if(r!==undefined&&r!==null&&r!=="")return "answered";return visitedQuestions.has(i)?"skipped":""}
 function normalizeNumber(v){return String(v??"").trim().replace(/,/g,"")}
 function loadQuestion(i){
- const q=testData.questions[i];if(!q)return;currentIdx=i;
+ const q=testData.questions[i];if(!q)return;currentIdx=i;visitedQuestions.add(i);
  $("q-indicator").textContent=`Question ${i+1} of ${testData.questions.length}`;
  $("q-subject-tag").textContent=q.topic||q.subject||q.chapter||questionType(q)||"General";
  const im=findImage(q),tw=$("q-img-wrapper"),img=$("current-q-img");
  if(im){tw.style.display='flex';img.onerror=()=>tw.style.display='none';img.onload=()=>tw.style.display='flex';resolveImageURL(im).then(u=>{if(u)img.src=u;else tw.style.display='none'})}else{tw.style.display='none';img.removeAttribute('src')}
- const txt=textOf(q);$("q-text-note").style.display=txt?'block':'none';$("q-text-note").innerHTML=txt?safeRich(txt):'';
- const numerical=isNumerical(q), opts=optionsOf(q), nw=$("numerical-wrap"), ni=$("numerical-input"), skip=$("skip-btn");
+ let txt=textOf(q);let opts=optionsOf(q);
+ const inlineParsed=parseLabeledOptions(txt);
+ if(inlineParsed){
+   if(opts.length<2)opts=inlineParsed.options;
+   txt=inlineParsed.stem||txt;
+ }
+ opts=opts.slice(0,4);
+ $("q-text-note").style.display=txt?'block':'none';$("q-text-note").innerHTML=txt?safeRich(txt):'';
+ const numerical=isNumerical(q), nw=$("numerical-wrap"), ni=$("numerical-input"), skip=$("skip-btn");
  nw.style.display=numerical?'flex':'none';
  $(".options-row").style.display=(!numerical && opts.length)?'grid':'none';
  if(numerical){ni.value=(userResponses[i]&&userResponses[i]!="__SKIPPED__")?String(userResponses[i]):'';ni.oninput=()=>{const v=normalizeNumber(ni.value);if(v){userResponses[i]=v}else delete userResponses[i];highlightPalette();updateAnswerState()};ni.onkeydown=e=>{if(e.key==='Enter')goNext()}}
