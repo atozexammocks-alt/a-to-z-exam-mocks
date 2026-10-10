@@ -65,18 +65,18 @@ function normalizeAISolutionMath(s){
   var x=String(s==null?"":s);
   if(!x)return "";
   var protectedCode=[],ticks=String.fromCharCode(96).repeat(3);
-  var codeRe=new RegExp(ticks+"(python|py|javascript|js|typescript|ts|c\\\\+\\\\+|cpp|java|c|console|text)\\\\s*\\\\n([\\\\s\\\\S]*?)"+ticks,"gi");
-  x=x.replace(codeRe,function(_,lang,body){var token="\\\\n__A2Z_CODE_BLOCK_"+protectedCode.length+"__\\\\n";protectedCode.push(ticks+lang+"\\\\n"+body+ticks);return token;});
-  x=x.replace(new RegExp(ticks+"(?:latex|tex|math|markdown)?\\\\s*","gi"),"").replace(new RegExp(ticks,"g"),"");
-  x=x.replace(/\\\\r\\\\n?/g,"\\\\n").replace(/\\\\\\\\n/g,"\\\\n");
-  x=x.replace(/\\\\\\\\\\\\\\\\\\\\[/g,"\\\\\\\\[").replace(/\\\\\\\\\\\\\\\\\\\\]/g,"\\\\\\\\]").replace(/\\\\\\\\\\\\\\\\\\\\(/g,"\\\\\\\\(").replace(/\\\\\\\\\\\\\\\\\\\\)/g,"\\\\\\\\)");
-  x=x.replace(/\\\\$\\\\$([\\\\s\\\\S]*?)\\\\$\\\\$/g,"\\\\\\\\[$1\\\\\\\\]");
-  x=x.replace(/\\\\$([^$\\\\n]+)\\\\$/g,"\\\\\\\\($1\\\\\\\\)");
-  x=x.replace(/\\\\b(?:SQRT|sqrt)\\\\s*\\\\(\\\\s*([^()\\\\n]+)\\\\s*\\\\)/g,"\\\\\\\\(\\\\\\\\sqrt{$1}\\\\\\\\)");
-  x=x.replace(/(^|[^\\\\\\\\])\\\\bfrac\\\\s*\\\\{([^{}]+)\\\\}\\\\s*\\\\{([^{}]+)\\\\}/g,"$1\\\\\\\\(\\\\\\\\frac{$2}{$3}\\\\\\\\)");
-  x=x.replace(/\\\\b(?:alpha|α)\\\\b/gi,"\\\\\\\\(\\\\\\\\alpha\\\\\\\\)").replace(/\\\\b(?:beta|β)\\\\b/gi,"\\\\\\\\(\\\\\\\\beta\\\\\\\\)").replace(/\\\\b(?:gamma|γ)\\\\b/gi,"\\\\\\\\(\\\\\\\\gamma\\\\\\\\)").replace(/\\\\b(?:theta|θ)\\\\b/gi,"\\\\\\\\(\\\\\\\\theta\\\\\\\\)").replace(/\\\\b(?:omega|ω)\\\\b/gi,"\\\\\\\\(\\\\\\\\omega\\\\\\\\)");
-  x=x.split(/\\\\n/).map(function(line){var t=line.trim();if(!t)return line;if(!/\\\\\\\\\\\\(|\\\\\\\\\\\\[|\\\\$/.test(t)&&/\\\\\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\\\\b/.test(t))return "\\\\\\\\["+t+"\\\\\\\\]";return line;}).join("\\\\n");
-  var normalized=x.replace(/\\\\n{3,}/g,"\\\\n\\\\n").trim();
+  var codeRe=new RegExp(ticks+"(python|py|javascript|js|typescript|ts|c\\+\\+|cpp|java|c|console|text)\\s*\\n([\\s\\S]*?)"+ticks,"gi");
+  x=x.replace(codeRe,function(_,lang,body){var token="\n__A2Z_CODE_BLOCK_"+protectedCode.length+"__\n";protectedCode.push(ticks+lang+"\n"+body+ticks);return token;});
+  x=x.replace(new RegExp(ticks+"(?:latex|tex|math|markdown)?\\s*","gi"),"").replace(new RegExp(ticks,"g"),"");
+  x=x.replace(/\r\n?/g,"\n").replace(/\\n/g,"\n");
+  x=x.replace(/\\\\\[/g,"\\[").replace(/\\\\\]/g,"\\]").replace(/\\\\\(/g,"\\(").replace(/\\\\\)/g,"\\)");
+  x=x.replace(/\$\$([\s\S]*?)\$\$/g,"\\[$1\\]");
+  x=x.replace(/\$([^$\n]+)\$/g,"\\($1\\)");
+  x=x.replace(/\b(?:SQRT|sqrt)\s*\(\s*([^()\n]+)\s*\)/g,"\\(\\sqrt{$1}\\)");
+  x=x.replace(/(^|[^\\])\bfrac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g,"$1\\(\\frac{$2}{$3}\\)");
+  x=x.replace(/\b(?:alpha|α)\b/gi,"\\(\\alpha\\)").replace(/\b(?:beta|β)\b/gi,"\\(\\beta\\)").replace(/\b(?:gamma|γ)\b/gi,"\\(\\gamma\\)").replace(/\b(?:theta|θ)\b/gi,"\\(\\theta\\)").replace(/\b(?:omega|ω)\b/gi,"\\(\\omega\\)");
+  x=x.split(/\n/).map(function(line){var t=line.trim();if(!t)return line;if(!/\\\(|\\\[|\$/.test(t)&&/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b/.test(t))return "\\["+t+"\\]";return line;}).join("\n");
+  var normalized=x.replace(/\n{3,}/g,"\n\n").trim();
   protectedCode.forEach(function(code,i){normalized=normalized.replace("__A2Z_CODE_BLOCK_"+i+"__",code);});
   return normalized;
 }
@@ -127,10 +127,16 @@ function normalizeMathMarkup(s){
 function renderMathLine(s){return '<span>'+renderMathMarkupHtml(s)+'</span>';}
 function renderFormattedSolution(s){
   var x=String(s==null?"":s),out="",last=0,ticks=String.fromCharCode(96).repeat(3);
-  var re=new RegExp(ticks+"(python|py|javascript|js|typescript|ts|c\\\\+\\\\+|cpp|java|c|console|text)\\\\s*\\\\n([\\\\s\\\\S]*?)"+ticks,"gi"),m;
-  while((m=re.exec(x))){var before=x.slice(last,m.index);if(before.trim())out+=renderMathMarkupHtml(formatAISolutionStructure(before)).replace(/\\\\n/g,"<br>");out+='<pre class="solution-code"><code>'+esc(m[2].replace(/\\\\n$/,""))+'</code></pre>';last=re.lastIndex;}
-  var tail=x.slice(last);if(tail.trim())out+=renderMathMarkupHtml(formatAISolutionStructure(tail)).replace(/\\\\n/g,"<br>");
-  return out||renderMathMarkupHtml(formatAISolutionStructure(x)).replace(/\\\\n/g,"<br>");
+  var re=new RegExp(ticks+"(python|py|javascript|js|typescript|ts|c\\+\\+|cpp|java|c|console|text)\\s*\\n([\\s\\S]*?)"+ticks,"gi"),m;
+  while((m=re.exec(x))){
+    var before=x.slice(last,m.index);
+    if(before.trim())out+=renderMathMarkupHtml(formatAISolutionStructure(before)).replace(/\n/g,"<br>");
+    out+='<pre class="solution-code"><code>'+esc(m[2].replace(/\n$/,""))+'</code></pre>';
+    last=re.lastIndex;
+  }
+  var tail=x.slice(last);
+  if(tail.trim())out+=renderMathMarkupHtml(formatAISolutionStructure(tail)).replace(/\n/g,"<br>");
+  return out||renderMathMarkupHtml(formatAISolutionStructure(x)).replace(/\n/g,"<br>");
 }
 function devanagariCount(s){return (String(s||"").match(/[\u0900-\u097F]/g)||[]).length;}
 function safeVerifiedText(original,verified){var a=String(original||""),b=String(verified||"");if(!b.trim())return a;var da=devanagariCount(a),db=devanagariCount(b);if(db<da)return a;if(a.length>80&&b.length<a.length*0.62)return a;return b;}
