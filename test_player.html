@@ -123,12 +123,12 @@ function libraryMathMarkup(v){
  if(!x)return '';
  // Existing MathJax delimiters stay untouched.
  if(/\\\(|\\\[|\\\)|\\\]/.test(x)||/(^|[^$])\$[^$]+\$(?!$)/.test(x)||/\$\$[\s\S]+?\$\$/.test(x))return x;
- // Recognize LaTeX commands and grouped superscripts/subscripts.
- if(/\\\\[A-Za-z]+\\b/.test(x)
-   ||/[A-Za-z0-9)}]\\^\{[^}]+\}/.test(x)
+ // Wrap any LaTeX command, as well as plain grouped powers/subscripts, like the Builder.
+ if(/\\[A-Za-z]+\b/.test(x)
+   ||/[A-Za-z0-9)}]\^\{[^}]+\}/.test(x)
    ||/[A-Za-z0-9)}]_\{[^}]+\}/.test(x)
-   ||/\\[A-Za-z]+_[0-9A-Za-z]/.test(x)
-   ||/\\[A-Za-z]+\^/.test(x)) return '\\('+x+'\\)';
+   ||/[A-Za-z0-9)}]\^[A-Za-z0-9]/.test(x)
+   ||/[A-Za-z0-9)}]_[A-Za-z0-9]/.test(x)) return '\\('+x+'\\)';
  return x;
 }
 function renderLibraryText(v){
