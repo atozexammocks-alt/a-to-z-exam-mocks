@@ -854,7 +854,7 @@ function normalizeNativeQuestionGlobal(q,i){
   q=q||{};
   var tr=normalizeTableRows(q.table_rows);
   if(!tr.length) tr=tableRowsFromHtml(q.table_html||q.tableHtml||"");
-  return {no:q.question_number||q.no||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),options:normalizeOptionList(Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x==null?"":x))}):q.options),answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"mcq").trim().toLowerCase()||"mcq",flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||q.diagram||"").trim(),visualType:tr.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||"")),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:!tr.length&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||1).trim(),sourcePage:String(q.page||1).trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:tr,tableHtml:String(q.table_html||q.tableHtml||"").trim(),matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],optionImages:Array.isArray(q.option_images)?q.option_images:[],optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],visualRegions:Array.isArray(q.visual_regions)?q.visual_regions:[]};
+  return {no:q.question_number||q.no||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),options:normalizeOptionList(Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x==null?"":x))}):q.options),answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"mcq").trim().toLowerCase()||"mcq",flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||q.diagram||"").trim(),visualType:tr.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||"")),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:!tr.length&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||1).trim(),sourcePage:String(q.page||1).trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:tr,tableHtml:String(q.table_html||q.tableHtml||"").trim(),matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],optionImages:Array.isArray(q.option_images)?q.option_images:[],optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],visualRegions:normalizeOwnedVisualRegions(q)};
 }
 async function mergeContinuationInto(existing,q,pageNo,pageImageData){
   if(!existing||!q)return;
@@ -993,7 +993,27 @@ async function extract(){
          do not rewrite slashes, underscores, carets, fractions or LaTeX commands. */
       return normalizeExtractedText(String(s==null?"":s));
     }
-    function normalizePageQuestion(q,i,pageNo){
+    function normalizeOwnedVisualRegions(q){
+  q=q||{};
+  var no=String(q.question_number||q.no||"").trim();
+  var text=String(q.question||q.text||"");
+  var reference=String(q.figure_reference||q.figureReference||"").trim();
+  var declared=q.figure_required===true||q.figureRequired===true||q.visual_required===true||q.visualRequired===true||!!reference;
+  var textualCue=/(?:figure|diagram|graph|chart|plot|circuit|ray diagram|shown below|shown in|as shown|given figure|following figure|चित्र|आकृति|रेखाचित्र|ग्राफ|परिपथ|दिए गए चित्र|चित्र में)/i.test(text);
+  if(!declared&&!textualCue)return [];
+  var list=Array.isArray(q.visual_regions)?q.visual_regions:(Array.isArray(q.visualRegions)?q.visualRegions:[]);
+  return list.filter(function(v){
+    if(!v)return false;
+    var owner=String(v.owner_question_number||v.ownerQuestionNumber||v.question_number||"").trim();
+    if(!owner||!no)return true;
+    var od=owner.match(/\d+/),nd=no.match(/\d+/);
+    if(od&&nd)return od[0]===nd[0];
+    return owner.toLowerCase()===no.toLowerCase();
+  }).map(function(v){
+    return {visualType:visualTypeOf(v.visual_type||v.visualType||v.type),type:visualTypeOf(v.visual_type||v.visualType||v.type),anchor:String(v.anchor||v.insert_after||"").trim(),image:"",cropBox:v.crop_box||v.figure_crop_box||null,required:Boolean(v.required||v.visual_required),reconstruction:v.reconstruction||v.visual_reconstruction||null};
+  });
+}
+function normalizePageQuestion(q,i,pageNo){
       return {
         no:q.question_number||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),
         options:normalizeOptionList(q.options),
@@ -1010,7 +1030,7 @@ async function extract(){
         optionImages:Array.isArray(q.option_images)?q.option_images.map(function(x){return String(x||"")}):[],
         optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,
         optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],
-        visualRegions:Array.isArray(q.visual_regions)?q.visual_regions.map(function(v){return {visualType:visualTypeOf(v.visual_type||v.visualType||v.type),type:visualTypeOf(v.visual_type||v.visualType||v.type),anchor:String(v.anchor||v.insert_after||"").trim(),image:String(v.image||"").trim(),cropBox:v.crop_box||v.figure_crop_box||null,required:Boolean(v.required||v.visual_required),reconstruction:v.reconstruction||v.visual_reconstruction||null}}):[]
+        visualRegions:normalizeOwnedVisualRegions(q)
       };
     }
     function cleanContinuationText(s){
