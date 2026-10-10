@@ -817,11 +817,13 @@ function stripRepeatedOptionLabel(value,index){
 function normalizeOptionList(value){
   var input=Array.isArray(value)?value.slice():(value==null?[]:[String(value)]),expanded=[];
   input.forEach(function(item){
-    if(item==null)return;var x=String(item).replace(/\\r\\n?/g,"\\n").trim();if(!x)return;
-    var re=/(?:^|\\s)(?:\\(?([A-D])\\)?[.)\\]:]|\\(([A-D])\\))\\s+/g,hits=[],m;
+    if(item==null)return;
+    var x=String(item).replace(/\r\n?/g,"\n").trim();
+    if(!x)return;
+    var re=/(?:^|\s)(?:\(?([A-D])\)?[.)]|\(([A-D])\))\s+/g,hits=[],m;
     while((m=re.exec(x)))hits.push({index:m.index,letter:(m[1]||m[2]||"").toUpperCase(),end:re.lastIndex});
     var order=["A","B","C","D"],split=hits.length>=2&&hits.length<=4&&hits.every(function(h,j){return h.letter===order[j]});
-    if(split){for(var i=0;i<hits.length;i++){var part=x.slice(hits[i].end,i+1<hits.length?hits[i+1].index:x.length).trim().replace(/[;\\s]+$/,"");if(part)expanded.push(part);}}
+    if(split){for(var i=0;i<hits.length;i++){var part=x.slice(hits[i].end,i+1<hits.length?hits[i+1].index:x.length).trim().replace(/[;\s]+$/,"");if(part)expanded.push(part);}}
     else expanded.push(x);
   });
   return expanded.map(function(v,i){return stripRepeatedOptionLabel(v,i)}).filter(function(v){return !!String(v||"").trim()}).slice(0,8);
