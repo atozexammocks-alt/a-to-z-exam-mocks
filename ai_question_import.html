@@ -91,6 +91,9 @@ function normalizeAISolutionMath(s){
 function formatAISolutionStructure(s){
   var x=normalizeAISolutionMath(s);
   if(!x)return "";
+  var protectedCode=[],ticks=String.fromCharCode(96).repeat(3);
+  var codeRe=new RegExp(ticks+"([a-zA-Z0-9_+#.-]*)\\s*\\n([\\s\\S]*?)"+ticks,"g");
+  x=x.replace(codeRe,function(_,lang,body){var token="__A2Z_FORMAT_CODE_"+protectedCode.length+"__";protectedCode.push(ticks+lang+"\n"+body+ticks);return token;});
   // Force common section labels onto their own lines even if the model returned one paragraph.
   var labels=[
     "Given / Parameters","What is asked","Concept / Law","Final Answer",
@@ -103,7 +106,9 @@ function formatAISolutionStructure(s){
   });
   // Numbered teaching steps should also start on fresh lines.
   x=x.replace(/\s+(Step\s+\d+\s*[:.])/gi,"\n\n$1");
-  return x.replace(/\n{3,}/g,"\n\n").trim();
+  var formatted=x.replace(/\n{3,}/g,"\n\n").trim();
+  protectedCode.forEach(function(code,i){formatted=formatted.replace("__A2Z_FORMAT_CODE_"+i+"__",code);});
+  return formatted;
 }
 function renderMathMarkupHtml(s){
   var x=String(s==null?"":s); if(!x)return "";
