@@ -636,7 +636,13 @@ function firestoreSafePayload(payload){
   return out;
 }
 async function saveQ(i){
-  if(qs[i]&&qs[i]._generatedFigureCandidate){qs[i]._generatedFigureCandidate="";qs[i]._generatedFigurePending=false;}
+  if(qs[i]){
+    var pendingQuestion=qs[i];
+    if(pendingQuestion._generatedFigureCandidate){pendingQuestion._generatedFigureCandidate="";pendingQuestion._generatedFigurePending=false;}
+    if(pendingQuestion.cropImage&&pendingQuestion.cropImageKept!==true){pendingQuestion.cropImage="";}
+    if(pendingQuestion._generatedFigurePending){pendingQuestion.figureImage="";pendingQuestion._generatedFigurePending=false;}
+    if(Array.isArray(pendingQuestion.visualRegions))pendingQuestion.visualRegions.forEach(function(v){if(v&&v.aiGeneratedPending){if(pendingQuestion.figureImage===v.image)pendingQuestion.figureImage="";v.image="";v.aiGeneratedPending=false;}});
+  }
   let q=qs[i];if(!q||!q.text)throw Error("Question text is empty.");if(!q.folderPath)throw Error("Select a Library folder.");let em=email();
   if(!em)throw Error("Teacher login not found. Please log in through Teacher Portal first.");
   let db=await firebaseReady(),authUser=firebase.auth().currentUser;
@@ -1005,7 +1011,7 @@ async function extract(){
   return list.filter(function(v){
     if(!v)return false;
     var owner=String(v.owner_question_number||v.ownerQuestionNumber||v.question_number||"").trim();
-    if(!owner||!no)return true;
+    if(!owner||!no)return false;
     var od=owner.match(/\d+/),nd=no.match(/\d+/);
     if(od&&nd)return od[0]===nd[0];
     return owner.toLowerCase()===no.toLowerCase();
