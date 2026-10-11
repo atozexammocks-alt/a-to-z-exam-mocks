@@ -1026,16 +1026,17 @@ async function extract(){
     }
     function normalizeExtractedText(s){
       var text=String(s==null?"":s);try{text=text.normalize("NFC")}catch(_){}
-      // Repair common OCR pseudo-math (SQRT(x), FRAC(a,b)) before preview/save.
-      // Existing MathJax delimiters are respected; ordinary surrounding prose is left untouched.
-      function fixMath(part,inside){
-        part=part.replace(/\\bSQRT\\s*\\(([^()\\n]{1,160})\\)/gi,function(_,x){return inside?"\\\\sqrt{"+x.trim()+"}":"\\\\(\\\\sqrt{"+x.trim()+"}\\\\)"});
-        part=part.replace(/\\bFRAC\\s*\\(([^(),\\n]{1,100})\\s*,\\s*([^()\\n]{1,100})\\)/gi,function(_,a,b){return inside?"\\\\frac{"+a.trim()+"}{"+b.trim()+"}":"\\\\(\\\\frac{"+a.trim()+"}{"+b.trim()+"}\\\\)"});
-        return part;
-      }
-      var mathSpan=/\\\\\\([\\s\\S]*?\\\\\\)|\\\\\\[[\\s\\S]*?\\\\\\]|\\$\\$[\\s\\S]*?\\$\\$|\\$[^$\\n]+\\$/g, out="",last=0,m;
-      while((m=mathSpan.exec(text))!==null){out+=fixMath(text.slice(last,m.index),false)+fixMath(m[0],true);last=m.index+m[0].length;}
-      return out+fixMath(text.slice(last),false);
+      // Repair common OCR pseudo-math before preview/save. Avoid nested MathJax delimiters.
+      var hasMathDelimiters=/\\\(|\\\[|\$\$|\$[^$\n]+\$/.test(text);
+      text=text.replace(/\bSQRT\s*\(([^()\n]{1,160})\)/gi,function(_,x){
+        var root="\\sqrt{"+x.trim()+"}";
+        return hasMathDelimiters?root:"\\("+root+"\\)";
+      });
+      text=text.replace(/\bFRAC\s*\(([^(),\n]{1,100})\s*,\s*([^()\n]{1,100})\)/gi,function(_,a,b){
+        var frac="\\frac{"+a.trim()+"}{"+b.trim()+"}";
+        return hasMathDelimiters?frac:"\\("+frac+"\\)";
+      });
+      return text;
     }
     // Backward-compatible alias for older regenerate/save call sites.
     function normalizeExtractText(s){ return normalizeExtractedText(s); }
