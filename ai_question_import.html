@@ -23,7 +23,7 @@ body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:5
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script><script>
 const cfg={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"},$=id=>document.getElementById(id),email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase(),tid=e=>e.replace(/[^a-zA-Z0-9_-]/g,"_"),norm=v=>String(v||"").split("/").map(x=>x.trim()).filter(Boolean).join(" / "),esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])),KEY="A2Z_GEMINI_API_KEY";
-let qs=[],editing=-1,sourcePdfFile=null,sourcePdfDoc=null,sourcePdfBytes=null,cropStart=null,cropEnd=null,cropPage=1,folderPaths=[],folderTrees={private:[],central:[],group:[]},cropSelecting=false,cropVisualStart=null,cropVisualEnd=null,cropTarget="question",totalDetected=0,uploadedCount=0,toastTimer=null;
+let qs=[],editing=-1,sourcePdfFile=null,lastExtractedPdfFile=null,sourcePdfDoc=null,sourcePdfBytes=null,cropStart=null,cropEnd=null,cropPage=1,folderPaths=[],folderTrees={private:[],central:[],group:[]},cropSelecting=false,cropVisualStart=null,cropVisualEnd=null,cropTarget="question",totalDetected=0,uploadedCount=0,toastTimer=null;
 async function getSourcePdfDoc(){if(sourcePdfDoc)return sourcePdfDoc;if(!sourcePdfFile)throw Error("Original PDF is not available. Select the same PDF again.");if(!window.pdfjsLib)throw Error("PDF.js failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";if(!sourcePdfBytes)sourcePdfBytes=await sourcePdfFile.arrayBuffer();sourcePdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(sourcePdfBytes.slice(0))}).promise;return sourcePdfDoc;}
 function tree(d){if(Array.isArray(d.libraryTree)&&d.libraryTree.length)return d.libraryTree;return(Array.isArray(d.mainFolders)?d.mainFolders:[]).map(n=>({name:String(n),children:(d.subFolders&&Array.isArray(d.subFolders[n])?d.subFolders[n]:[]).map(x=>({name:String(x),children:[]}))}));}
 function paths(ns,p="",o=[]){(ns||[]).forEach(n=>{let x=String(n.name||"").trim(),z=p?p+" / "+x:x;if(x){o.push(z);paths(n.children,z,o)}});return o}
@@ -965,7 +965,15 @@ async function extract(){
   sourcePdfFile=f;
   let key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
   if(!key)return alert("पहले Gemini API key डालें.");
-  $("extract").disabled=true;qs=[];totalDetected=0;uploadedCount=0;render();
+  // In manual-range mode, subsequent clicks on the same loaded PDF append new
+  // page ranges to the current review list instead of clearing earlier questions.
+  // Automatic 5-page mode starts a fresh full-document extraction.
+  var appendManualRange=(($("pageMode").value||"batches")==="range" && qs.length>0 && lastExtractedPdfFile===f);
+  $("extract").disabled=true;
+  if(!appendManualRange){qs=[];totalDetected=0;uploadedCount=0;}
+  else {totalDetected=qs.length;}
+  lastExtractedPdfFile=f;
+  render();
   try{
     if(f.size>250*1024*1024)throw Error("This PDF is over 250 MB. Split it into smaller parts (about 100–300 pages each) to avoid browser memory failure.");
     $("status").textContent="📄 Opening PDF once (large files may take a little while)…";
@@ -986,7 +994,8 @@ async function extract(){
       var selectedEnd=Math.max(selectedStart,Math.min(totalPages,Number($("pageEnd").value)||5));
       var ranges=[];
       if(mode==="range"){ranges.push([selectedStart,selectedEnd]);}
-      else{for(var rs=1;rs<=totalPages;rs+=5)ranges.push([rs,Math.min(totalPages,rs+4)]);}
+      else{for(var rs=1;rs<=totalPages;rs+=5)ranges.push([rs,Math.min(totalPages,rs+4)]);} 
+      if(mode==="range" && appendManualRange){$("status").textContent="➕ Adding pages "+selectedStart+"–"+selectedEnd+" to the existing question list…";}
       var remainingLimit=lim||0;
       for(var bi=0;bi<ranges.length;bi++){
         if(remainingLimit&&qs.length>=remainingLimit)break;
@@ -1321,43 +1330,52 @@ FIGURE RULE (STRICT SEPARATION): Do not generate any image, SVG, screenshot or p
 }
 async function reextractSingleQuestion(i){
   var q=qs[i]; if(!q)return;
-  if(!sourcePdfFile)throw Error("Original PDF is not available. Select the same source PDF again first.");
+  if(!sourcePdfFile || !sourcePdfBytes)throw Error("Original PDF is not available. Select the same source PDF again first.");
   var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
   if(!key)throw Error("Enter/save your Gemini API key first.");
   if(q._refreshing)return;
   q._refreshing=true;
-  var oldStatus=$("status").textContent;
   var btn=document.querySelector('button[data-a="refresh-question"][data-i="'+i+'"]');
   if(btn){btn.disabled=true;btn.textContent="⏳ Re-extracting…";}
-  $("status").textContent="↻ Re-extracting only Q"+q.no+" from its original PDF page…";
+  $("status").textContent="↻ Re-reading Q"+q.no+" from the ORIGINAL PDF (not a screenshot)…";
   try{
     if(!window.pdfjsLib)throw Error("PDF.js failed to load.");
+    if(!window.PDFLib||!PDFLib.PDFDocument)throw Error("PDF splitter failed to load. Refresh and try again.");
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
     var pdf=await getSourcePdfDoc();
     var pageNo=Math.max(1,Math.min(pdf.numPages,Number(q.sourcePage||q.page)||1));
-    var page=await pdf.getPage(pageNo),base=page.getViewport({scale:1});
-    var scale=Math.min(2.1,Math.max(1.5,1900/base.width)),vp=page.getViewport({scale});
-    var can=document.createElement("canvas");can.width=Math.ceil(vp.width);can.height=Math.ceil(vp.height);
-    await page.render({canvasContext:can.getContext("2d",{willReadFrequently:true}),viewport:vp}).promise;
-    var fullPageData=can.toDataURL("image/jpeg",.96).split(",")[1];
-    var pageData=fullPageData;
-    // If the first extraction supplied a reliable normalized question box, ask
-    // Gemini to read that crop first; otherwise retain the complete page context.
-    if(q.cropBox){var crop=await makeAutoCrop(fullPageData,q.cropBox);if(crop)pageData=crop.split(",")[1];}
-    can.width=1;can.height=1;
-    var before=qs.slice(Math.max(0,i-1),Math.min(qs.length,i+2)).filter(function(n,j){return n!==q;}).map(function(n){return "Q"+n.no+": "+String(n.text||"").slice(0,300)}).join("\n");
-    var prompt=`You are transcribing a scanned exam paper, not composing or improving it. Re-extract ONLY the single logical question identified below from the supplied original PDF page/crop. Do not solve, paraphrase, summarize, translate, complete missing text, invent values, or rewrite the question in cleaner language. Copy every visible word, punctuation mark, number, unit, sign, subpart and option exactly. Do not hallucinate unreadable portions: mark uncertainty minimally and preserve the rest. Do not extract or rewrite neighboring questions. Target printed question number: ${q.no}. Known OCR text for target (may contain errors): ${String(q.text||"").slice(0,1800)}. Nearby questions for boundary context only (DO NOT return these): ${before}.
-Return ONLY valid JSON with one object under "question". Fields: question_number, question, options (array), answer, explanation, topic, chapter, subject, subtopic, question_type, table_rows, matrix_latex, diagram_description, figure_reference, visual_type, figure_required, is_continuation, continuation_of_previous.
-Read the target's full stem and all options, including any continuation across columns visible on this page. If its beginning/end is cut by a page boundary, preserve the visible part and mark is_continuation=true; do not attach neighboring question text. Use correct LaTeX: wrap inline math in \\( ... \\), display math in \\[ ... \\]. Use \\frac{a}{b}, \\sqrt{x}, superscripts/subscripts; never output SQRT or raw slash-style pseudo equations. Do not put ordinary prose inside math delimiters. Preserve Hindi and English exactly as printed. Return options as a JSON array with EXACTLY one string per printed option, in order. NEVER combine several options into one string. Split at A./B./C./D. labels even if they appear on the same visual line. Return option text WITHOUT the printed option label because the UI adds labels itself. Do not invent unreadable symbols. JSON format: {"question":{...}}`;
-    var body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"image/jpeg",data:pageData}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:7000}};
+    // Re-extract from the source PDF itself. Do not rasterize the page to JPEG:
+    // that image-OCR path was degrading fractions, roots, powers and Greek symbols.
+    // Include the following page only when available so a question crossing a page
+    // boundary can be read, while the prompt still restricts output to this Q number.
+    var endPage=Math.min(pdf.numPages,pageNo+1);
+    var sourceChunk=await splitPdfRangeBase64(pageNo,endPage);
+    var nearby=qs.slice(Math.max(0,i-1),Math.min(qs.length,i+2)).filter(function(n){return n!==q;}).map(function(n){return "Q"+n.no+": "+String(n.text||"").slice(0,220)}).join("\n");
+    var prompt=`You are a precision exam-PDF transcription engine. Re-extract ONLY printed question number ${q.no} from the attached ORIGINAL PDF page(s) ${pageNo}-${endPage}. This is a correction/transcription task, NOT question generation, rewriting, solving, summarizing, translating or beautifying.
+
+SOURCE OF TRUTH: the attached original PDF is the ONLY authority. The existing OCR text below is possibly wrong and is supplied ONLY to help locate the target; do not copy it if it disagrees with the PDF.
+Existing OCR locator text (may contain LaTeX/OCR errors): ${String(q.text||"").slice(0,1200)}
+Other nearby questions for boundary identification only (DO NOT return or merge them): ${nearby}
+
+STRICT RULES:
+1. Return exactly ONE question object for printed question ${q.no}. Do not return any other question, even if visible on the same page.
+2. Transcribe only what is visibly printed for this question. Preserve wording, Hindi/English, punctuation, numbers, signs, units, subparts and option order. Do not infer missing words or symbols. If a symbol is genuinely unreadable, mark only that small part as [unclear]; do not invent a likely equation.
+3. Preserve mathematics structurally as valid MathJax LaTeX: use \\( ... \\) for inline math and \\[ ... \\] for display math. Use \\frac{a}{b}, \\sqrt{x}, proper superscripts/subscripts, Greek commands/symbols, vectors, matrices, integrals, limits and derivatives as appropriate. Never output pseudo-text such as SQRT, INT, alpha, x^2 typed as ordinary prose, or fractions converted to slash-separated OCR text when the printed expression is mathematical.
+4. Keep the stem and options separate. Return options as an array with exactly one string per printed option in order, without A/B/C/D labels. If there are no options, return []. Do not omit visible options.
+5. Do not add a figure, table, answer, explanation, topic or metadata that is not visible/known. Do not turn a figure description into a generated figure.
+6. If the target question continues onto the next supplied page, include only its continuation. Do not absorb the next numbered question. Set is_continuation/continuation_of_previous only when the visible layout supports it.
+7. Output JSON only, with exactly this shape: {"question":{"question_number":"${String(q.no).replace(/"/g,'\\"')}","question":"...","options":[],"answer":"","explanation":"","topic":"","chapter":"","subject":"","subtopic":"","question_type":"","table_rows":[],"matrix_latex":"","diagram_description":"","figure_reference":"","visual_type":"","figure_required":false,"is_continuation":false,"continuation_of_previous":false}}`;
+    var body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:sourceChunk.base64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:7000}};
     var d=await geminiRequest(key,body);
     var raw=(d?.candidates?.[0]?.content?.parts||[]).map(function(p){return p.text||""}).join("");
+    if(!raw.trim())throw Error("AI returned no transcription for Q"+q.no+". Original question was kept unchanged.");
     var parsed=parseGeminiJson(raw),fresh=parsed&&parsed.question;
-    if(!fresh&&parsed&&Array.isArray(parsed.questions))fresh=parsed.questions.find(function(x){return String(x.question_number||"").trim().toLowerCase()===String(q.no||"").trim().toLowerCase()})||parsed.questions[0];
-    if(!fresh||!String(fresh.question||"").trim())throw Error("AI did not return the target question. Try again or use Crop/Re-crop from PDF.");
-    var freshText=String(fresh.question||"").trim(),oldText=String(q.text||"").trim();
+    if(!fresh&&parsed&&Array.isArray(parsed.questions))fresh=parsed.questions.find(function(x){return String(x.question_number||x.no||"").trim().toLowerCase()===String(q.no||"").trim().toLowerCase()})|| (parsed.questions.length===1?parsed.questions[0]:null);
+    if(!fresh||!String(fresh.question||fresh.text||"").trim())throw Error("AI did not return the target question Q"+q.no+". Original question was kept unchanged.");
+    var freshText=String(fresh.question||fresh.text||"").trim(),oldText=String(q.text||"").trim();
     if(freshText.length<Math.min(18,Math.max(8,oldText.length*.18)))throw Error("AI returned an unusually short fragment, not a complete question. Original question was kept unchanged.");
     if(q.options&&q.options.length>=2&&Array.isArray(fresh.options)&&fresh.options.length===0)throw Error("AI omitted all existing options. Original question was kept unchanged.");
+    // Build a separate candidate. Never overwrite the existing question automatically.
     var original=JSON.parse(JSON.stringify(q));
     var candidate=JSON.parse(JSON.stringify(q));
     candidate.text=normalizeAngstromText(normalizeExtractedText(freshText));
@@ -1374,10 +1392,10 @@ Read the target's full stem and all options, including any continuation across c
     if(fresh.diagram_description)candidate.diagram=String(fresh.diagram_description);
     if(fresh.figure_reference)candidate.figureReference=String(fresh.figure_reference);
     if(fresh.visual_type)candidate.visualType=visualTypeOf(fresh.visual_type);
-    // Preserve all existing cropped question/option figures unless a teacher explicitly replaces them.
+    // Keep existing cropped/generated assets and question metadata unless explicitly reviewed.
     cleanQuestionOptions(candidate);candidate.qType=inferQuestionType(candidate);delete candidate._refreshing;
     qs[i]=original;delete qs[i]._refreshing;
-    $("status").textContent="✔ AI returned a candidate for Q"+q.no+". Compare it with the original before accepting.";
+    $("status").textContent="✔ Original-PDF re-extraction ready for Q"+q.no+". Review both versions; nothing has been changed yet.";
     showQuestionRefreshCompare(i,original,candidate);
   }catch(err){
     q._refreshing=false;render();$("status").textContent="❌ Re-extract Q"+q.no+" failed: "+(err.message||err);
