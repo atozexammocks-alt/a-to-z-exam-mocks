@@ -1,640 +1,341 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>A to Z Exam Mocks — AI PDF Extractor Import</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-<script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]]},svg:{fontCache:"global"}};</script>
-<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-<script>window.pdfjsLib && (pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js");</script>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI Question Import</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}nav{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 12px}.brand{color:#38bdf8;font-weight:900;text-decoration:none}.nav a{color:#cbd5e1;text-decoration:none;border:1px solid #334155;background:#0f172a;border-radius:6px;padding:7px 10px;font-weight:800;font-size:11px}.wrap{padding:14px;max-width:1400px;margin:auto}.hero{background:#0b1120;border:1px solid #1e293b;border-radius:12px;padding:14px}.hero h2{margin:0 0 5px}.muted{color:#94a3b8}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}.btn{background:#0f172a;color:#cbd5e1;border:1px solid #334155;border-radius:7px;padding:8px 11px;font-weight:800;cursor:pointer}.btn.blue{background:#0369a1;color:#fff;border-color:#38bdf8}.btn.green{background:#047857;color:#fff;border-color:#10b981}.btn.red{background:#991b1b;color:#fff;border-color:#ef4444}.btn.purple{background:#6d28d9;color:#fff;border-color:#a78bfa}.btn:disabled{opacity:.45;cursor:not-allowed}input,select{background:#07101f;color:#fff;border:1px solid #334155;border-radius:6px;padding:8px}.settings{display:grid;grid-template-columns:180px 1fr 180px;gap:8px;margin-top:10px}.settings label{font-size:10px;color:#94a3b8;font-weight:800}.field{display:flex;flex-direction:column;gap:3px}.stats{margin-top:10px;color:#10b981;font-weight:900}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}.card{background:#0b1120;border:1px solid #334155;border-radius:10px;padding:8px;position:relative}.card img{width:100%;height:250px;object-fit:contain;background:#fff;border-radius:6px;display:block}.card .top{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px}.card .actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.tag{font-weight:900;color:#38bdf8}.text{font-size:10px;color:#cbd5e1;margin-top:5px;max-height:38px;overflow:hidden}.modalbg{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:10000;padding:8px}.modal{width:min(1100px,98vw);height:min(94vh,900px);background:#0b1120;border:1px solid #334155;border-radius:10px;display:flex;flex-direction:column;overflow:hidden}.mh{height:46px;padding:8px 10px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center}.cropstage{flex:1;overflow:auto;text-align:center;padding:10px;background:#020617}.pagewrap{position:relative;display:inline-block;background:#fff}.pagewrap canvas{display:block;max-width:100%}.sel{position:absolute;border:3px dashed #10b981;background:#10b98122;display:none;pointer-events:none}.mf{padding:8px;border-top:1px solid #334155;display:flex;gap:7px;justify-content:flex-end}.empty{padding:35px;text-align:center;color:#64748b;border:1px dashed #334155;border-radius:10px;margin-top:12px}
-@media(max-width:800px){.grid{grid-template-columns:1fr 1fr}.settings{grid-template-columns:1fr 1fr}.card img{height:210px}}
-@media(max-width:520px){.grid{grid-template-columns:1fr}.settings{grid-template-columns:1fr}}
-
-.reviewbar{margin-top:12px;padding:10px;border:1px solid #334155;border-radius:10px;background:#07101f;display:flex;gap:8px;flex-wrap:wrap;align-items:center}.reviewbar b{color:#38bdf8}.reviewbar .count{color:#10b981;font-weight:900}.card.review{border-color:#475569}.card.review.disabled{opacity:.55}.cardHead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}.masterCheck,.saveCheck{display:flex;align-items:center;gap:6px;font-weight:900;color:#f8fafc;cursor:pointer}.masterCheck input,.saveCheck input,.assetCheck input{width:17px;height:17px;accent-color:#10b981}.assetGrid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}.asset{border:1px solid #334155;border-radius:8px;padding:7px;background:#07101f}.assetHead{display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:5px}.assetTitle{font-weight:900;color:#cbd5e1}.asset img{width:100%;height:190px;object-fit:contain;background:#fff;border-radius:5px}.asset.generated img{filter:brightness(1.35) contrast(1.08)}.asset.selectedAsset{border:2px solid #10b981;box-shadow:0 0 0 1px #10b98133}.sourceChoice{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}.choiceBtn{display:flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid #334155;border-radius:7px;background:#0f172a;cursor:pointer;font-weight:800}.choiceBtn input{accent-color:#10b981}.mathPreview{margin-top:5px;padding:7px;border:1px dashed #334155;border-radius:6px;background:#020617;color:#f8fafc;min-height:28px;overflow:auto}.solutionEditor{margin-top:8px;border:1px solid #334155;border-radius:8px;padding:7px;background:#07101f}.solutionEditor textarea{width:100%;min-height:110px;resize:vertical;background:#07101f;color:#fff;border:1px solid #334155;border-radius:6px;padding:7px}.asset.none{min-height:70px;display:flex;align-items:center;justify-content:center;color:#64748b;font-size:11px}.optionEditor{margin-top:8px;border:1px solid #334155;border-radius:8px;padding:7px;background:#07101f}.optionRow{display:grid;grid-template-columns:28px 1fr 30px;gap:5px;align-items:center;margin-top:5px}.optionRow input{width:100%}.tiny{font-size:10px}.qTextEditor{width:100%;min-height:70px;resize:vertical;background:#07101f;color:#fff;border:1px solid #334155;border-radius:6px;padding:7px}.previewLabel{font-size:10px;color:#94a3b8;font-weight:900;text-transform:uppercase;letter-spacing:.04em}.assetActions{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}@media(max-width:800px){.asset img{height:170px}}
-</style></head>
-<body>
-<nav><a class="brand" href="teacher.html">🏠 A to Z Exam Mocks</a><div class="nav"><a href="teacher.html">Dashboard</a><a href="library.html">📁 Library</a><a href="teacher.html">Dashboard</a></div></nav>
-<div class="wrap">
-<div class="hero"><h2>🤖 AI PDF Extractor — Package Import</h2><div class="muted">Two ways to import: (1) direct Original PDF + AI coordinate JSON, or (2) a ZIP package containing manifest/images. Maximum 5 source-PDF pages per package.</div>
-<div class="row"><input id="zipFile" type="file" accept=".zip,application/zip"><button id="loadZip" class="btn blue">📦 Load ZIP</button><span id="status" class="muted">Waiting for package…</span></div>
-<div style="margin-top:12px;padding:12px;border:1px solid #334155;border-radius:10px;background:#07101f;">
-  <div style="font-weight:900;color:#38bdf8;margin-bottom:4px;">🚀 Automatic PDF Question Extractor</div>
-  <div class="muted" style="font-size:11px;">No Gemini/DeepSeek JSON required. The website reads the PDF's own text positions, detects question numbers, handles 1/2-column pages, and crops each complete block from the original PDF.</div>
-  <div class="row">
-    <input id="autoPdfFile" type="file" accept=".pdf,application/pdf">
-    <button id="autoExtractPdf" class="btn blue" type="button">🚀 Auto Extract Questions</button>
-  </div>
-  <div class="muted" style="font-size:10px;margin-top:6px;">Best for normal text PDFs. Scanned/image-only PDFs will report that they need OCR/manual cropping.</div>
-</div>
-<div style="margin-top:10px;padding:10px;border:1px solid #334155;border-radius:10px;background:#07101f;">
-  <div style="font-weight:900;color:#a78bfa;margin-bottom:4px;">🧩 Advanced: PDF + Coordinate JSON</div>
-  <div class="muted" style="font-size:10px;margin-bottom:5px;">Fallback only — you no longer need Gemini/DeepSeek for normal text PDFs.</div><div style="margin-top:12px;padding:12px;border:1px solid #334155;border-radius:10px;background:#07101f;">
-  <div style="font-weight:900;color:#10b981;margin-bottom:4px;">🎯 Direct PDF + Coordinate JSON</div>
-  <div class="muted" style="font-size:11px;">Use this when Gemini/ChatGPT gives you a JSON file containing question crop coordinates. No ZIP creation or Python is required.</div>
-  <div class="row">
-    <input id="sourcePdfFile" type="file" accept=".pdf,application/pdf">
-    <input id="coordJsonFile" type="file" accept=".json,application/json">
-    <button id="generateFromJson" class="btn green">✂️ Extract from PDF + JSON</button>
-  </div>
-  <div class="row" style="margin-top:7px;">
-    <button id="copyAiPrompt" class="btn purple">📋 Copy AI Extraction Prompt</button>
-    <span class="muted" style="font-size:10px;">Copy the prompt and paste to AI assistant</span>
-  </div>
-  <div id="jsonHint" class="muted" style="font-size:10px;margin-top:6px;">Expected: questions[] with source_page and crop {x,y,width,height}. Optional coordinate_reference {width,height}.</div>
-</div>
-<div class="settings">
-<div class="field"><label>Library</label><select id="libraryMode"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select></div>
-<div class="field"><label>Exact Folder Path</label><input id="folderPath" placeholder="e.g. Class 12 / Physics / Optics"></div>
-<div class="field"><label>Import limit</label><select id="limit"><option value="0">All questions in package</option><option value="5">Maximum 5 questions</option><option value="10">Maximum 10 questions</option><option value="25">Maximum 25 questions</option></select></div>
-</div>
-<div id="stats" class="stats"></div>
-<div class="reviewbar">
-  <b>👁 Review Before Save</b>
-  <button class="btn" type="button" onclick="selectAllItems(true)">✓ Select All</button>
-  <button class="btn" type="button" onclick="selectAllItems(false)">☐ Unselect All</button>
-  <span id="selectedCount" class="count">0 selected</span>
-  <span class="muted tiny">हर question में Question Text, Cropped Image, Generated Image और Figure को अलग-अलग select करो।</span>
-</div>
-<div class="row"><button id="saveAll" class="btn green" disabled>☁ Save Selected to Library</button><button id="clearAll" class="btn red" disabled>✕ Clear Package</button></div>
-</div>
-<div id="grid" class="grid"><div class="empty">ZIP upload करो। फिर हर question यहाँ अलग card में दिखाई देगा — Delete, Editor और Original PDF से Re-crop available होंगे.</div></div>
-</div>
-
-<div id="cropModal" class="modalbg"><div class="modal"><div class="mh"><b style="color:#38bdf8">✂️ Crop from Original PDF</b><span id="cropInfo" class="muted"></span><button id="closeCrop" class="btn">✕</button></div><div class="cropstage"><div id="pagewrap" class="pagewrap"><canvas id="pdfcanvas"></canvas><div id="sels" class="sel"></div></div></div><div class="mf"><button id="cancelCrop" class="btn">Cancel</button><button id="applyCrop" class="btn green">✓ Apply Crop</button></div></div></div>
-
-<script>
-const cfg={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
-let items=[],sourcePdf=null,pdfDoc=null,cropIndex=-1,cropState={drag:false,sx:0,sy:0,sel:null};
-const $=id=>document.getElementById(id),email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase();
-const esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
-function st(s){$("status").textContent=s}
-function normalizePath(s){return String(s||"").trim().replace(/\\+/g," / ").split("/").map(x=>x.trim()).filter(Boolean).join(" / ")}
-function selectedItemsCount(){return items.filter(q=>q.selected!==false).length}
-function updateSelectedCount(){
- const n=selectedItemsCount();
- $("selectedCount").textContent=n+" selected • "+items.length+" loaded";
- $("saveAll").disabled=!n;
+body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 12px}.nav a{color:#cbd5e1;text-decoration:none;border:1px solid #334155;padding:7px 10px;border-radius:6px;font-weight:800}.wrap{max-width:1400px;margin:auto;padding:14px}.hero,.card{background:#0b1120;border:1px solid #334155;border-radius:10px;padding:12px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}.btn,input,select,textarea{background:#0f172a;color:#fff;border:1px solid #334155;border-radius:7px;padding:8px}.btn{font-weight:800;cursor:pointer}.blue{background:#0369a1;border-color:#38bdf8}.green{background:#047857;border-color:#10b981}.red{background:#991b1b;border-color:#ef4444}.purple{background:#6d28d9;border-color:#a78bfa}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.q{font-size:14px;line-height:1.6;white-space:pre-wrap;margin-top:8px}.opt{padding:6px;background:#07101f;border:1px solid #1e293b;border-radius:5px;margin-top:5px}.muted{color:#94a3b8}.pathbox{margin-top:8px;padding:8px;background:#07101f;border:1px solid #334155;border-radius:7px}.pathrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.pathrow select{flex:1;min-width:220px}.pathhint{font-size:10px;color:#94a3b8}.figure-required{margin-top:8px;padding:8px;border:1px solid #f59e0b;background:#451a03;color:#fde68a;border-radius:7px;font-weight:900}.figure-preview{margin-top:8px;padding:8px;border:1px dashed #f59e0b;background:#1c1917;border-radius:7px}.figure-preview img{max-width:100%;max-height:360px;display:block;margin:auto;border-radius:5px}.suggestbox{margin-top:7px;padding:7px;border:1px dashed #38bdf8;background:#082f49;border-radius:7px}.suggest-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.import-progress{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:1001;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 20px);padding:7px 8px;background:rgba(11,17,32,.96);border:1px solid #475569;border-radius:11px;box-shadow:0 10px 30px rgba(0,0,0,.45);backdrop-filter:blur(6px)}.progress-chip{background:#07101f;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;white-space:nowrap}.progress-chip b{color:#38bdf8}@media(max-width:700px){.import-progress{top:58px;gap:5px;padding:5px;max-width:calc(100vw - 10px)}.progress-chip{padding:6px 7px;font-size:10px}}.toast{position:fixed;right:16px;bottom:16px;z-index:1000;min-width:260px;max-width:calc(100vw - 32px);background:#052e1b;border:1px solid #10b981;color:#ecfdf5;border-radius:10px;padding:10px 13px;box-shadow:0 12px 35px rgba(0,0,0,.45);font-weight:800;display:none}.toast.show{display:block;animation:toastIn .18s ease-out}.toast.error{background:#450a0a;border-color:#ef4444}@keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}.settings{display:grid;grid-template-columns:180px 1fr 180px;gap:8px;margin-top:10px}.field{display:flex;flex-direction:column;gap:3px}.field label{font-size:10px;color:#94a3b8;font-weight:800}@media(max-width:700px){.grid,.settings{grid-template-columns:1fr}}
+</style><script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script></head><body>
+<div class="nav"><a href="teacher.html">🏠 A to Z Exam Mocks</a><div><a href="teacher.html">Dashboard</a> <a href="library.html">📁 Library</a></div></div>
+<div class="wrap"><div class="hero"><h2>🤖 AI Question Import — Beta</h2><div class="muted">Upload a question-paper PDF. Gemini extracts questions directly — no coordinates, JSON file, Python or manual cropping.</div>
+<div class="row"><input id="geminiKey" type="password" placeholder="Gemini API key" style="min-width:280px"><button id="saveKey" class="btn">Save Key on This Device</button><span class="muted">Key stays in this browser only; never put it in GitHub.</span></div><div class="row"><input id="pdf" type="file" accept=".pdf,application/pdf"><button id="extract" class="btn blue">🤖 Extract Questions with AI</button><span id="status" class="muted">Waiting for PDF…</span></div>
+<div class="settings"><div class="field"><label>Maximum</label><select id="max"><option value="0">All</option><option>25</option><option>50</option><option>100</option></select></div></div>
+<div class="row"><button id="import" class="btn green" disabled>☁ Import Reviewed Questions</button><button id="clear" class="btn red" disabled>✕ Clear</button></div><div id="stats" class="muted" style="margin-top:8px"></div><div class="import-progress"><div class="progress-chip">Total Questions: <b id="totalCount">0</b></div><div class="progress-chip">Uploaded: <b id="uploadedCount">0</b></div><div class="progress-chip">Remaining: <b id="remainingCount">0</b></div></div></div>
+<div id="grid" class="grid"><div class="card muted">Your extracted questions will appear here.</div></div></div>
+<div id="editor" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:20;padding:12px;overflow:auto"><div style="max-width:900px;margin:20px auto;background:#0b1120;border:1px solid #475569;border-radius:12px;padding:14px"><h3>✏️ Question Editor</h3><div class="settings"><div class="field"><label>QUESTION NUMBER</label><input id="eNo"></div><div class="field"><label>LIBRARY FOLDER</label><select id="ePath"><option value="">📁 Select Library Folder…</option></select></div><div class="field"><label>LIBRARY</label><select id="eMode"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select></div></div><div class="field" style="margin-top:8px"><label>COMPLETE QUESTION</label><textarea id="eText" style="width:100%;min-height:180px"></textarea></div><div class="field" style="margin-top:8px"><label>OPTIONS — one per line</label><textarea id="eOptions" style="width:100%;min-height:110px"></textarea></div><div class="settings" style="margin-top:8px"><div class="field"><label>ANSWER</label><input id="eAnswer"></div><div class="field"><label>TOPIC / CHAPTER</label><input id="eTopic"></div><div class="field"><label>SOURCE / YEAR</label><input id="eSource"></div></div><div class="field" style="margin-top:8px"><label>FIGURE / GRAPH / TABLE DESCRIPTION</label><textarea id="eDiagram" style="width:100%;min-height:90px"></textarea></div><div class="row"><button id="eCrop" class="btn">✂ Insert Figure from PDF</button><button id="eSave" class="btn green">💾 Save Changes</button><button id="eSaveLib" class="btn blue">☁ Save This Question to Library</button><span id="eStatus" class="muted"></span><button id="eClose" class="btn gray">Close</button></div></div></div>
+<div id="cropPanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:30;padding:10px;overflow:auto"><div style="max-width:1100px;margin:auto;background:#0b1120;border:1px solid #475569;border-radius:12px;padding:10px"><div class="row"><b>📄 PDF Page Crop</b><button id="cropClose" class="btn red" style="margin-left:auto">Close</button></div><div class="muted" style="margin:6px 0">Drag over the exact question area on the original PDF page.</div><div style="position:relative;display:inline-block;max-width:100%;background:#fff"><canvas id="pdfCanvas" style="max-width:100%;display:block;touch-action:none"></canvas><div id="cropRect" style="display:none;position:absolute;border:2px solid #10b981;background:rgba(16,185,129,.12);pointer-events:none"></div></div><div class="row"><button id="cropSave" class="btn green">✂ Use This Crop for Question</button><span id="cropStatus" class="muted"></span></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script><script>
+const cfg={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"},$=id=>document.getElementById(id),email=()=>String(localStorage.getItem("ExamVault_Teacher_Email")||"").trim().toLowerCase(),tid=e=>e.replace(/[^a-zA-Z0-9_-]/g,"_"),norm=v=>String(v||"").split("/").map(x=>x.trim()).filter(Boolean).join(" / "),esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m])),KEY="A2Z_GEMINI_API_KEY";
+let qs=[],editing=-1,sourcePdfFile=null,cropStart=null,cropEnd=null,cropPage=1,folderPaths=[],folderTrees={private:[],central:[],group:[]},cropSelecting=false,totalDetected=0,uploadedCount=0,toastTimer=null;
+function tree(d){if(Array.isArray(d.libraryTree)&&d.libraryTree.length)return d.libraryTree;return(Array.isArray(d.mainFolders)?d.mainFolders:[]).map(n=>({name:String(n),children:(d.subFolders&&Array.isArray(d.subFolders[n])?d.subFolders[n]:[]).map(x=>({name:String(x),children:[]}))}));}
+function paths(ns,p="",o=[]){(ns||[]).forEach(n=>{let x=String(n.name||"").trim(),z=p?p+" / "+x:x;if(x){o.push(z);paths(n.children,z,o)}});return o}
+function pathOptions(selected){var h='<option value="">📁 Select Library Folder…</option>';folderPaths.forEach(function(p){h+='<option value="'+esc(p)+'"'+(p===selected?' selected':'')+'>📁 '+esc(p)+'</option>';});return h}
+function semanticSuggestedPath(q){
+  var sp=norm(q.suggestedPath||""); if(sp)return sp;
+  var subject=String(q.subject||"").trim(), chapter=String(q.chapter||"").trim(), topic=String(q.topic||"").trim();
+  var s=(subject||"Physics").replace(/\s+/g," ").trim();
+  var t=(topic||chapter||"General").replace(/\s+/g," ").trim();
+  var low=(t+" "+chapter).toLowerCase();
+  if(/integration|integral|calculus/.test(low)) return s+" / Calculus / Integration";
+  if(/differentiation|derivative|differential/.test(low)) return s+" / Calculus / Differentiation";
+  if(/fourier/.test(low)) return s+" / Calculus / Fourier Transform";
+  if(/laplace/.test(low)) return s+" / Calculus / Laplace Transform";
+  if(/matrix|matrices/.test(low)) return s+" / Algebra / Matrices";
+  if(/complex/.test(low)) return s+" / Algebra / Complex Numbers";
+  if(/mechanics|kinematics|dynamics|motion|work|energy|momentum/.test(low)) return s+" / Mechanics / "+t;
+  if(/optic|lens|mirror|tir|refraction|interference|diffraction/.test(low)) return s+" / Optics / "+t;
+  if(/electromagnet|electrostat|magnet|current|circuit/.test(low)) return s+" / Electromagnetism / "+t;
+  if(/quantum/.test(low)) return s+" / Quantum Mechanics / "+t;
+  if(/thermo|thermal|statistical/.test(low)) return s+" / Thermal Physics / "+t;
+  if(/differential equation/.test(low)) return s+" / Differential Equations / Differential Equations";
+  return s+" / "+(chapter||"General")+" / "+t;
 }
-window.selectAllItems=on=>{items.forEach(q=>q.selected=!!on);render();};
-window.toggleItem=(i,v)=>{if(items[i])items[i].selected=!!v;render();};
-window.toggleAsset=(i,key,v)=>{if(items[i])items[i][key]=!!v;updateSelectedCount();};
-window.updateQText=(i,v)=>{if(items[i])items[i].qText=v;};
-window.updateOpt=(i,k,v)=>{if(items[i]){items[i][k]=v;queueMathTypeset();}};
-window.updateSolution=(i,v)=>{if(items[i]){items[i].solution=v;queueMathTypeset();}};
-window.setImageChoice=(i,v)=>{if(items[i]){items[i].imageChoice=v;render();}};
-window.deleteOpt=(i,k)=>{if(items[i]){items[i][k]="";render();}};
-window.addOpt=()=>{};
-function escapeHtml(s){return esc(s).replace(/\n/g,"<br>");}
-function queueMathTypeset(){clearTimeout(window.__mjTimer);window.__mjTimer=setTimeout(()=>{if(window.MathJax?.typesetPromise)MathJax.typesetPromise();},80);}
-function brightenedDataUrl(src){return new Promise((resolve,reject)=>{if(!src)return resolve("");const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;const x=c.getContext("2d");x.filter="brightness(1.35) contrast(1.08)";x.drawImage(im,0,0);resolve(c.toDataURL("image/png"));};im.onerror=reject;im.src=src;});}
-function chosenFigure(q){if(q.imageChoice==="generated")return q.generatedImage||"";if(q.imageChoice==="pdf")return q.pdfFigureImage||"";return "";}
-function assetBlock(i,key,title,src,checked,emptyText,actions){
- const has=!!src;
- return '<div class="asset"><div class="assetHead"><label class="assetCheck"><input type="checkbox" '+(checked?'checked':'')+' '+(has?'':'disabled')+' onchange="toggleAsset('+i+',\''+key+'\',this.checked)"><span class="assetTitle">'+esc(title)+'</span></label><span class="muted tiny">'+(has?'Available':'Not available')+'</span></div>'+(has?'<img src="'+src+'" alt="'+esc(title)+'">':'<div class="asset none">'+esc(emptyText)+'</div>')+(actions?'<div class="assetActions">'+actions+'</div>':'')+'</div>';
+function suggestedMatch(q){var sp=norm(q.suggestedPath||"")||semanticSuggestedPath(q);if(sp&&folderPaths.indexOf(sp)>=0)return sp;if(sp){var a=sp.split(" / ").filter(Boolean);for(var i=a.length-1;i>=0;i--){var tail=a.slice(i).join(" / ").toLowerCase();var hit=folderPaths.find(function(p){return p.toLowerCase().endsWith(tail);});if(hit)return hit;}}return ""}
+function normalizeMathMarkup(s){
+  var x=String(s||"");
+  if(!x)return "";
+  if(x.indexOf("§§MATHLINE§§")===0)x=x.slice(12);
+  /* Safe renderer: do NOT invent or rewrite mathematical content. Only add MathJax delimiters
+     when Gemini returned a recognizable LaTeX expression without them. */
+  if(/\\\\\(|\\\\\[|\\\\\$/.test(x))return x;
+  if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)){
+    return "\\\\("+x+"\\\\)";
+  }
+  if(/(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
+    return "\\\\("+x+"\\\\)";
+  }
+  return x;
 }
-function optsPreview(i,q){const arr=[q.a,q.b,q.c,q.d];return '<div class="mathPreview" data-math="o'+i+'">'+arr.map((x,k)=>x?'<div><b>'+'ABCD'[k]+'.</b> '+escapeHtml(x)+'</div>':'').join('')+'</div>';}
-
+function renderMathLine(s){
+  return '<span>'+esc(normalizeMathMarkup(s))+'</span>';
+}
+function typesetMath(){
+  function go(){
+    if(window.MathJax&&typeof MathJax.typesetPromise==="function"){
+      MathJax.typesetClear(document.querySelectorAll(".math-content"));
+      return MathJax.typesetPromise(Array.from(document.querySelectorAll(".math-content"))).catch(function(){});
+    }
+    return Promise.resolve();
+  }
+  if(window.MathJax&&MathJax.startup&&MathJax.startup.promise)return MathJax.startup.promise.then(go).catch(go);
+  return new Promise(function(resolve){
+    var n=0,t=setInterval(function(){
+      n++;
+      if(window.MathJax&&typeof MathJax.typesetPromise==="function"){clearInterval(t);go().then(resolve);}
+      else if(n>100){clearInterval(t);resolve();}
+    },100);
+  });
+}
+function formatQuestionText(s){
+  var x=String(s||"").replace(/\r\n?/g,"\n").trim();
+  if(!x)return "";
+  var lines=x.split("\n"),out=[],buf="";
+  lines.forEach(function(line){
+    var t=line.trim();
+    if(!t)return;
+    if(/^(?:\(?[A-Ha-h1-9][\).]|\(?[ivxlcdmIVXLCDM]+[\).])\s+/.test(t)){
+      if(buf){out.push(buf.trim());buf="";}
+      out.push(t);
+    }else if(/^(?:Question\s*)?\d+[\).:]\s+/.test(t)){
+      if(buf){out.push(buf.trim());buf="";}
+      out.push(t);
+    }else{
+      buf+=(buf?" ":"")+t;
+    }
+  });
+  if(buf)out.push(buf.trim());
+  return out.join("\n");
+}
+function renderQuestionPathSelectors(i){
+  var wrap=$("qpath-"+i),q=qs[i];if(!wrap||!q)return;
+  var mode=q.libraryMode||"private",nodes=folderTrees[mode]||[],selected=norm(q.folderPath||suggestedMatch(q)),parts=selected.split(" / ").filter(Boolean),level=0;
+  wrap.innerHTML="";
+  while(nodes.length){
+    var row=document.createElement("div");row.style.cssText="display:flex;flex-direction:column;gap:3px;min-width:170px;flex:1";
+    var lab=document.createElement("span");lab.className="pathhint";lab.textContent=level===0?"Main Folder":"Sub Folder "+level;
+    var sel=document.createElement("select");sel.dataset.qpathLevel=String(level);
+    sel.innerHTML='<option value="">'+(level===0?"📁 Select Main Folder…":"↳ Select Sub Folder…")+"</option>";
+    nodes.forEach(function(n){var name=String(n.name||"").trim();if(name){var o=document.createElement("option");o.value=name;o.textContent="📁 "+name;sel.appendChild(o)}});
+    var chosen=parts[level]||"";
+    if(chosen&&nodes.some(function(n){return String(n.name||"").trim().toLowerCase()===chosen.toLowerCase()}))sel.value=chosen;
+    sel.onchange=function(){
+      var vals=Array.from(wrap.querySelectorAll("select[data-qpath-level]")).slice(0,level+1).map(function(x){return String(x.value||"").trim()}).filter(Boolean);
+      q.folderPath=vals.join(" / ");renderQuestionPathSelectors(i);
+    };
+    row.appendChild(lab);row.appendChild(sel);wrap.appendChild(row);
+    if(!chosen)break;
+    var next=nodes.find(function(n){return String(n.name||"").trim().toLowerCase()===chosen.toLowerCase()});
+    nodes=next&&Array.isArray(next.children)?next.children:[];level++;
+  }
+}
+function showSaveToast(message,error){var t=$("saveToast");if(!t)return;clearTimeout(toastTimer);t.className="toast show"+(error?" error":"");t.textContent=message;toastTimer=setTimeout(function(){t.className="toast";},1800)}
+function updateProgress(){var r=qs.length;$("totalCount").textContent=totalDetected;$("uploadedCount").textContent=uploadedCount;$("remainingCount").textContent=r}
 function render(){
- const n=items.length;
- $("stats").textContent=n?(n+" question"+(n===1?"":"s")+" loaded • "+(sourcePdf?"Original PDF attached":"No source PDF in package")):"";
- $("clearAll").disabled=!n;
- if(!n){$("grid").innerHTML='<div class="empty">No questions loaded.</div>';updateSelectedCount();return;}
- $("grid").innerHTML=items.map((q,i)=>{
-   const opts=[['a','A'],['b','B'],['c','C'],['d','D']];
-   const optRows=opts.map(([k,l])=>'<div class="optionRow"><b>'+l+'</b><input value="'+esc(q[k]||'')+'" placeholder="Option '+l+'" oninput="updateOpt('+i+',\''+k+'\',this.value)"><button class="btn red" type="button" title="Delete option" onclick="deleteOpt('+i+',\''+k+'\')">✕</button></div>').join('');
-   const cropActions=sourcePdf?'<button class="btn green" type="button" onclick="openCrop('+i+')">✂️ Crop from Main PDF</button>':'';
-   const generated=q.generatedImage||q.generated_image||q.aiImage||'';
-   const solutionImg=q.solutionImage||q.solution_image||'';
-   const pdfFig=q.pdfFigureImage||'';
-   const choice=q.imageChoice||(generated?'generated':(pdfFig?'pdf':'none'));
-   const figurePreview=choice==='generated'?generated:(choice==='pdf'?pdfFig:'');
-   const figureLabel=choice==='generated'?'Generated image selected':choice==='pdf'?'PDF crop selected':'No figure image will be saved';
-   return '<div class="card review '+(q.selected===false?'disabled':'')+'">'+
-     '<div class="cardHead"><label class="masterCheck"><input type="checkbox" '+(q.selected!==false?'checked':'')+' onchange="toggleItem('+i+',this.checked)"> Save Q'+esc(q.qNo||i+1)+'</label><span class="muted">Page '+esc(q.page||'—')+' • '+esc(q.qtype||'MCQ')+'</span></div>'+
-     '<div class="previewLabel">Question Text</div><textarea class="qTextEditor" oninput="updateQText('+i+',this.value)">'+esc(q.qText||'')+'</textarea><div class="mathPreview" data-math="q'+i+'">'+escapeHtml(q.qText||'')+'</div>'+
-     '<div class="assetGrid">'+
-       assetBlock(i,'saveQuestionImage','Cropped Question Image',q.image,q.saveQuestionImage!==false,'No cropped question image yet',cropActions)+
-       '<div class="asset '+(choice!=='none'?'selectedAsset':'')+'"><div class="assetHead"><span class="assetTitle">Figure / Image to Save</span><span class="muted tiny">'+esc(figureLabel)+'</span></div>'+
-       '<div class="sourceChoice"><label class="choiceBtn"><input type="radio" name="imgsrc'+i+'" '+(choice==='generated'?'checked':'')+' '+(generated?'':'disabled')+' onchange="setImageChoice('+i+',\'generated\')"> ✓ Keep Generated Image</label>'+
-       '<label class="choiceBtn"><input type="radio" name="imgsrc'+i+'" '+(choice==='pdf'?'checked':'')+' '+(pdfFig?'':'disabled')+' onchange="setImageChoice('+i+',\'pdf\')"> ✓ Keep PDF-Cropped Image</label>'+
-       '<label class="choiceBtn"><input type="radio" name="imgsrc'+i+'" '+(choice==='none'?'checked':'')+' onchange="setImageChoice('+i+',\'none\')"> ☐ Keep None</label></div>'+
-       (figurePreview?'<img src="'+figurePreview+'" alt="Selected figure/image">':'<div class="asset none">No image selected</div>')+
-       '<div class="assetActions">'+(sourcePdf?'<button class="btn purple" type="button" onclick="openPdfFigureCrop('+i+')">✂️ Crop Figure from PDF</button>':'')+'</div></div>'+
-       assetBlock(i,'saveSolutionImage','Solution Image',solutionImg,q.saveSolutionImage!==false,'No separate solution image supplied','')+
-     '</div>'+
-     '<div class="optionEditor"><div class="assetHead"><span class="assetTitle">Options — edit/delete before save</span><span class="muted tiny">'+(q.qtype||'MCQ')+'</span></div>'+optRows+optsPreview(i,q)+'</div>'+
-     '<div class="solutionEditor"><div class="assetHead"><span class="assetTitle">Solution — edit before save</span></div><textarea oninput="updateSolution('+i+',this.value)">'+esc(q.solution||'')+'</textarea><div class="mathPreview" data-math="s'+i+'">'+escapeHtml(q.solution||'')+'</div></div>'+
-     '<div class="text">'+esc(q.boundaryReason?('Boundary: '+q.boundaryReason):'Review required')+'</div>'+
-     '<div class="actions"><button class="btn red" onclick="removeItem('+i+')">🗑 Delete Question</button><button class="btn purple" onclick="openEditor('+i+')">✏️ Editor</button>'+(sourcePdf?'<button class="btn green" onclick="openCrop('+i+')">✂️ Crop Main Question PDF</button>':'')+'</div>'+
-   '</div>';
- }).join('');
- updateSelectedCount();
- queueMathTypeset();
+  updateProgress();
+  $("stats").textContent=qs.length?qs.length+" question(s) remaining for review.":(totalDetected?"All detected questions have been processed.":"");
+  $("import").disabled=!qs.length;$("clear").disabled=!qs.length;
+  if(!qs.length){$("grid").innerHTML='<div class="card muted">No questions loaded.</div>';return}
+  $("grid").innerHTML=qs.map(function(q,i){
+    var aiPath=norm(q.suggestedPath||"")||semanticSuggestedPath(q),auto=suggestedMatch(q),chosen=q.folderPath||auto;if(!q.folderPath&&auto)q.folderPath=auto;
+    var opts=(q.options||[]).map(function(o){return '<div class="opt math-content">'+esc(formatQuestionText(o))+'</div>'}).join("");
+    var hasFigure=!!(q.diagram||q.cropImage);
+    var figureNote=q.diagram?'<div class="figure-required">⚠️ FIGURE / IMAGE REQUIRED — '+esc(q.diagram)+'<br><span style="font-weight:600">Use “✂ Insert Figure from PDF” to crop the original figure into this question.</span></div>':"";
+    var figure=q.cropImage?'<div class="figure-preview"><b>🖼 Inserted Figure</b><img src="'+esc(q.cropImage)+'" alt="Inserted question figure"></div>':"";
+    var path='<div class="pathbox"><b>📁 Library Location — THIS Question</b>'+
+      (q.suggestedPath?'<div class="pathhint">🤖 AI suggested: '+esc(q.suggestedPath)+'</div>':"")+
+      '<div id="qpath-'+i+'" class="pathrow" style="align-items:flex-start"></div>'+
+      '<div class="pathhint">Main → Sub Folder → Sub Folder…</div>'+
+      '<div class="suggestbox"><b>🤖 Suggested Library Path:</b> '+esc(aiPath)+'<div class="suggest-actions">'+(folderPaths.indexOf(norm(aiPath))>=0?'<button class="btn blue" data-a="use-suggest" data-i="'+i+'">✓ Confirm Path</button>':'<button class="btn purple" data-a="create-suggest" data-i="'+i+'">＋ Confirm & Create Folder Path</button>')+'<button class="btn" data-a="add-main" data-i="'+i+'">＋ Add Main Folder</button><button class="btn" data-a="add-sub" data-i="'+i+'">＋ Add Sub Folder</button></div><div class="pathhint">Confirming a missing path automatically creates the full Main → Sub Folder → Sub Folder path in this question’s Library.</div></div>'+'</div>';
+    var table=q.tableRows&&q.tableRows.length?'<div style="overflow:auto"><table style="border-collapse:collapse;width:100%">'+q.tableRows.map(function(r,ri){return '<tr>'+r.map(function(x){return (ri?"<td":"<th")+' style="border:1px solid #334155;padding:6px">'+esc(x)+'</'+(ri?"td":"th")+'>';}).join("")+'</tr>'}).join("")+'</table></div>':"";
+    var matrix=q.matrixLatex?'<div class="muted math-content" style="text-align:center;margin:8px 0">'+esc("\\("+q.matrixLatex+"\\)")+'</div>':"";
+    return '<div class="card"><b style="color:#38bdf8">'+esc(q.no)+'</b><div class="q math-content">'+formatQuestionText(q.text).split("\n").map(renderMathLine).join("<br>")+'</div>'+opts+figureNote+figure+table+matrix+path+'<div class="muted" style="font-size:10px">'+esc([q.topic,q.chapter,q.source,q.year,q.answer?"Answer: "+q.answer:"",q.page?"Page: "+q.page:""].filter(Boolean).join(" • "))+'</div><div class="row"><button class="btn purple" data-a="edit" data-i="'+i+'">👁 View / Edit</button><button class="btn" data-a="crop" data-i="'+i+'">✂ Insert Figure from PDF</button><button class="btn green" data-a="save" data-i="'+i+'">☁ Save to Library</button><button class="btn red" data-a="del" data-i="'+i+'">🗑 Delete</button></div></div>';
+  }).join("");
+  qs.forEach(function(_,i){renderQuestionPathSelectors(i)});
+  typesetMath();
 }
 
-window.removeItem=i=>{items.splice(i,1);render();st("Question removed from import package.")};
-window.openEditor=i=>{
- const q=items[i];localStorage.setItem("Temp_Editor_Image",q.image||q.generatedImage||"");localStorage.setItem("Temp_QText",q.qText||"");localStorage.setItem("Temp_Opt_A",q.a||"");localStorage.setItem("Temp_Opt_B",q.b||"");localStorage.setItem("Temp_Opt_C",q.c||"");localStorage.setItem("Temp_Opt_D",q.d||"");localStorage.setItem("AZ_AI_IMPORT_QNO",String(q.qNo||i+1));localStorage.setItem("AZ_AI_IMPORT_QTYPE",q.qtype||"mcq");window.open("editor.html?aiImport=1","_blank","noopener,noreferrer");
-};
-async function loadZip(){
- const f=$("zipFile").files[0];if(!f)return alert("ZIP file select करो.");
- try{
-  st("Reading ZIP…");const z=await JSZip.loadAsync(f),mf=z.file("manifest.json")||z.file("package.json");let manifest={};
-  if(mf){try{manifest=JSON.parse(await mf.async("string"))}catch(e){throw new Error("manifest.json is not valid JSON.")}}
-  const pdfEntry=z.file("source.pdf")||z.file("original.pdf")||Object.values(z.files).find(x=>/\.(pdf)$/i.test(x.name));
-  sourcePdf=pdfEntry?await pdfEntry.async("uint8array"):null;
-  if(manifest.pageCount&&Number(manifest.pageCount)>5)throw new Error("This importer is limited to maximum 5 source-PDF pages per package.");
-  if(sourcePdf){pdfDoc=await pdfjsLib.getDocument({data:sourcePdf}).promise;if(pdfDoc.numPages>5)throw new Error("Source PDF has "+pdfDoc.numPages+" pages. Maximum allowed here is 5 pages per package.");}
-  const list=Array.isArray(manifest.questions)?manifest.questions:null;items=[];
-  if(list){
-   async function zipAsset(ref){if(!ref)return "";if(typeof ref!=="string"||/^data:|^blob:|^https?:/i.test(ref))return ref;const e=z.file(ref);if(!e)return "";return URL.createObjectURL(await e.async("blob"));}
-   for(let i=0;i<list.length;i++){const m=list[i],name=m.image||m.image_filename||m.file||m.path;if(!name)continue;const e=z.file(name);if(!e)continue;const blob=await e.async("blob");const generatedImage=await zipAsset(m.generatedImage||m.generated_image||m.aiImage||m.ai_image||"");const solutionImage=await zipAsset(m.solutionImage||m.solution_image||"");items.push({qNo:m.qNo||m.question_number||m.questionNo||i+1,page:m.page||m.source_page||"",qText:m.qText||m.question_text||m.text||"",a:m.a||m.optA||m.optionA||"",b:m.b||m.optB||m.optionB||"",c:m.c||m.optC||m.optionC||"",d:m.d||m.optD||m.optionD||"",qtype:m.qtype||m.question_type||m.type||"mcq",answer:m.answer||m.final_answer||m.correct_answer||m.numerical_answer||"",solution:m.solution||m.explanation||m.detailed_solution||"",image:URL.createObjectURL(blob),generatedImage,solutionImage,blob,selected:true,saveQuestionImage:true,saveGeneratedImage:!!generatedImage,saveFigureImage:false,saveSolutionImage:!!solutionImage,imageChoice:generatedImage?'generated':'none',pdfFigureImage:""});}
-  }else{
-   const files=Object.values(z.files).filter(x=>!x.dir&&/\.(png|jpe?g|webp)$/i.test(x.name)).sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true}));
-   for(let i=0;i<files.length;i++){const blob=await files[i].async("blob");items.push({qNo:i+1,page:"",qText:"",qtype:"mcq",image:URL.createObjectURL(blob),generatedImage:"",solutionImage:"",blob,selected:true,saveQuestionImage:true,saveGeneratedImage:false,saveFigureImage:false,saveSolutionImage:false});}
+function firebaseReady(){if(!firebase.apps.length)firebase.initializeApp(cfg);let a=firebase.auth(),db=firebase.firestore();return a.currentUser?Promise.resolve(db):a.signInAnonymously().then(()=>db).catch(()=>db)}
+async function loadFolders(mode,sel,status){sel.innerHTML='<option value="">📁 Select Library Folder…</option>';let em=email();if(!em){status.textContent="Login required to load Library folders.";return}try{let db=await firebaseReady(),col=mode==="private"?"folder_configs_private":mode==="central"?"folder_configs_central":"folder_configs_group",id=mode==="private"?tid(em):mode==="central"?"global_central_tree":tid(em)+"_group",snap=await db.collection(col).doc(id).get(),rawTree=tree(snap.exists?snap.data():{}),ps=paths(rawTree);folderTrees[mode]=rawTree;folderPaths=ps.slice();ps.forEach(p=>{let o=document.createElement("option");o.value=p;o.textContent="📁 "+p;sel.appendChild(o)});let saved=norm(localStorage.getItem("A2Z_AI_LIBRARY_PATH_"+mode)||"");if(ps.includes(saved))sel.value=saved;status.textContent=ps.length?ps.length+" Library folder(s) loaded.":"No folders found. Create folders in Library first."}catch(e){status.textContent="Could not load Library folders: "+e.message}}
+async function saveFolderPath(mode,path){
+  path=norm(path);if(!path)throw Error("Folder path is empty.");
+  let em=email();if(!em)throw Error("Teacher login not found.");
+  let db=await firebaseReady(),col=mode==="private"?"folder_configs_private":mode==="central"?"folder_configs_central":"folder_configs_group",id=mode==="private"?tid(em):mode==="central"?"global_central_tree":tid(em)+"_group";
+  let snap=await db.collection(col).doc(id).get(),raw=tree(snap.exists?snap.data():{}),parts=path.split(" / ").filter(Boolean),nodes=raw;
+  parts.forEach(function(part){let hit=nodes.find(function(n){return String(n.name||"").trim().toLowerCase()===part.toLowerCase()});if(!hit){hit={name:part,children:[]};nodes.push(hit)}nodes=hit.children||(hit.children=[])});
+  await db.collection(col).doc(id).set({ownerEmail:em,libraryTree:raw,folderPdfs:snap.exists&&snap.data().folderPdfs?snap.data().folderPdfs:{},updatedAt:new Date().toISOString()},{merge:true});
+  folderTrees[mode]=raw;folderPaths=paths(raw);return path;
+}
+async function addFolderFromUI(mode,parentPath){
+  var name=prompt(parentPath?"Enter sub-folder name:":"Enter main folder name:");
+  name=String(name||"").trim(); if(!name)return "";
+  var full=parentPath?norm(parentPath+" / "+name):norm(name);
+  await saveFolderPath(mode,full);
+  return full;
+}
+async function saveQ(i){let q=qs[i];if(!q||!q.text)throw Error("Question text is empty.");if(!q.folderPath)throw Error("Select a Library folder.");let em=email();if(!em)throw Error("Teacher login not found.");let db=await firebaseReady(),m=q.libraryMode||"private",p=q.folderPath;await db.collection("questions").add({ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text,question:q.text,solution:q.explanation||"",options:q.options||[],keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:"mcq",level:q.difficulty||"Medium",answer:q.answer||"",source:q.source||"",sourceExam:q.source||"",sourceYear:q.year||"",sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",questionImage:q.cropImage||"",image:q.cropImage||"",createdAt:new Date().toISOString()})}
+function editQ(i){editing=i;let q=qs[i];$("eNo").value=q.no||"";$("eText").value=q.text||"";$("eOptions").value=(q.options||[]).join("\n");$("eAnswer").value=q.answer||"";$("eTopic").value=q.topic||q.chapter||"";$("eSource").value=q.source||"";$("eDiagram").value=q.diagram||"";$("eMode").value=q.libraryMode||"private";$("editor").style.display="block";loadFolders($("eMode").value,$("ePath"),$("eStatus"));$("eStatus").textContent=q.cropImage?"🖼 Figure already inserted.":q.diagram?"⚠️ Figure required — crop it from the PDF.":""}
+function readEdit(){let q=qs[editing];q.no=$("eNo").value.trim()||q.no;q.text=$("eText").value.trim();q.options=$("eOptions").value.split("\n").map(x=>x.trim()).filter(Boolean);q.answer=$("eAnswer").value.trim();q.topic=$("eTopic").value.trim();q.chapter=q.topic;q.source=$("eSource").value.trim();q.diagram=$("eDiagram").value.trim();q.libraryMode=$("eMode").value;q.folderPath=norm($("ePath").value)}
+function parseGeminiJson(raw){
+  raw=String(raw||"").trim();
+  var fence=String.fromCharCode(96).repeat(3);
+  if(raw.startsWith(fence)){
+    raw=raw.slice(fence.length).replace(/^json/i,"").trim();
+    if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim();
   }
-  const lim=Number($("limit").value);if(lim>0)items=items.slice(0,lim);
-  st("✔ Package loaded.");render();
- }catch(e){console.error(e);st("❌ "+e.message);alert("Package load failed: "+e.message)}
-}
-$("loadZip").onclick=loadZip;$("limit").onchange=()=>{if(items.length){st("Limit changed — reload ZIP to apply it.")}};
-$("clearAll").onclick=()=>{items=[];sourcePdf=null;pdfDoc=null;render();st("Package cleared.")};
-
-function point(e){const c=$("pdfcanvas"),r=c.getBoundingClientRect();return{x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
-window.openCrop=async i=>{
- if(!pdfDoc)return alert("Original PDF is not attached in this ZIP.");cropIndex=i;assetCropSource="pdf";const pageNo=Math.max(1,Number(items[i].page)||1);if(pageNo>pdfDoc.numPages)return alert("Page "+pageNo+" is not available in the source PDF.");
- const p=await pdfDoc.getPage(pageNo),v=p.getViewport({scale:2});const c=$("pdfcanvas");c.width=Math.ceil(v.width);c.height=Math.ceil(v.height);await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;$("cropInfo").textContent="Q"+items[i].qNo+" • Page "+pageNo+" • Drag corrected rectangle";$("sels").style.display="none";cropState={drag:false,sx:0,sy:0,sel:null};$("cropModal").style.display="flex";
-};
-$("pdfcanvas").onpointerdown=e=>{e.preventDefault();const p=point(e);cropState={drag:true,sx:p.x,sy:p.y,sel:{x:p.x,y:p.y,w:1,h:1}};$("pdfcanvas").setPointerCapture?.(e.pointerId);$("sels").style.display="block"};
-$("pdfcanvas").onpointermove=e=>{if(!cropState.drag)return;const p=point(e),s=cropState; s.sel={x:Math.min(s.sx,p.x),y:Math.min(s.sy,p.y),w:Math.abs(p.x-s.sx),h:Math.abs(p.y-s.sy)};const c=$("pdfcanvas"),r=c.getBoundingClientRect(),el=$("sels");el.style.left=s.sel.x/c.width*r.width+"px";el.style.top=s.sel.y/c.height*r.height+"px";el.style.width=s.sel.w/c.width*r.width+"px";el.style.height=s.sel.h/c.height*r.height+"px"};
-$("pdfcanvas").onpointerup=()=>cropState.drag=false;
-let assetCropIndex=-1,assetCropMode="figure",assetCropSource="pdf";
-window.openPdfFigureCrop=async(i)=>{
- const q=items[i];if(!pdfDoc)return alert("Original PDF is not attached.");assetCropIndex=i;assetCropSource="pdfFigure";const pageNo=Math.max(1,Number(q.page)||1);
- const p=await pdfDoc.getPage(pageNo),v=p.getViewport({scale:2.5}),c=$("pdfcanvas");c.width=Math.ceil(v.width);c.height=Math.ceil(v.height);await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;
- $("cropInfo").textContent="Q"+q.qNo+" • Page "+pageNo+" • Select ONLY the figure/image to keep";$("sels").style.display="none";cropState={drag:false,sx:0,sy:0,sel:null};$("cropModal").style.display="flex";
-};
-window.openAssetCrop=async(i,mode="figure")=>{
- const q=items[i];if(!q||!q.image)return alert("Question crop is not available.");
- assetCropIndex=i;assetCropMode=mode;assetCropSource="image";
- const im=new Image();im.src=q.image;await new Promise((r,j)=>{im.onload=r;im.onerror=j});
- const c=$("pdfcanvas");c.width=im.naturalWidth;c.height=im.naturalHeight;c.getContext("2d").drawImage(im,0,0);
- $("cropInfo").textContent="Q"+q.qNo+" • Crop figure from question image";$('sels').style.display="none";cropState={drag:false,sx:0,sy:0,sel:null};$("cropModal").style.display="flex";
-};
-
-function closeCrop(){$("cropModal").style.display="none";cropIndex=-1}
-$("closeCrop").onclick=closeCrop;$("cancelCrop").onclick=closeCrop;
-$("applyCrop").onclick=()=>{const s=cropState.sel;if((cropIndex<0&&assetCropIndex<0)||!s||s.w<5||s.h<5)return alert("Select the crop area first.");const src=$("pdfcanvas"),o=document.createElement("canvas");o.width=Math.round(s.w);o.height=Math.round(s.h);o.getContext("2d").drawImage(src,s.x,s.y,s.w,s.h,0,0,o.width,o.height);const data=o.toDataURL("image/png");if(assetCropSource==="image"){items[assetCropIndex].figureImage=data;items[assetCropIndex].saveFigureImage=true;items[assetCropIndex].imageChoice="pdf";st("✔ Figure crop created.");}else if(assetCropSource==="pdfFigure"){items[assetCropIndex].pdfFigureImage=data;items[assetCropIndex].imageChoice="pdf";st("✔ PDF figure crop created and selected.");}else{items[cropIndex].image=data;items[cropIndex].saveQuestionImage=true;items[cropIndex].blob=null;st("✔ Corrected question image captured from original PDF.");}closeCrop();render();};
-
-
-const AI_EXTRACTION_PROMPT = `You are extracting QUESTION BLOCKS from the uploaded ORIGINAL PDF for an exam question-bank importer.
-
-Your job is NOT merely to OCR the page and NOT to make one crop per line or per option. You must first visually inspect each page and identify the exact start and end of EVERY complete QUESTION BLOCK.
-
-Return a REAL DOWNLOADABLE JSON FILE named "questions_coordinates.json" if your interface supports file creation. If file creation is supported, attach/provide that JSON file for download.
-If your interface cannot create an attachment, return ONLY the raw JSON document so the user can save it as questions_coordinates.json.
-
-ABSOLUTELY DO NOT return a code block. Do not wrap the JSON in \`\`\`json or \`\`\`.
-Do not write "Here is the JSON", explanations, notes, comments, or any other text.
-The response must be machine-readable.
-
-HARD LIMIT: maximum 5 PDF pages.
-
-Required JSON structure:
-{
-  "source_pdf": "source.pdf",
-  "processed_pages": [1,2,3],
-  "coordinate_reference": {"width": 1200, "height": 1600, "coordinate_system": "normalized", "origin": "top-left"},
-  "total_questions": 0,
-  "questions": [
-    {
-      "question_number": "Q001",
-      "source_page": 1,
-      "image_filename": "Q001.png",
-      "block_type": "question",
-      "question_text": "...",
-      "crop": {"x":0.0,"y":0.0,"width":0.0,"height":0.0,"coordinate_system":"normalized","origin":"top-left"},
-      "contains_options": true,
-      "contains_figure": false,
-      "crop_confidence": 0.0,
-      "continuation_info": null
-    }
-  ]
-}
-
-MOST IMPORTANT BOUNDARY RULES:
-1. A QUESTION BLOCK starts at the question number/label (for example 1., Q1, Q.1, 01, (1)) and ends immediately BEFORE the next question starts.
-2. Options such as (A), (B), (C), (D), a/b/c/d, numbered choices, statements, assertion-reason pairs, and answer choices are PART OF THE CURRENT QUESTION. NEVER output an option as a separate question.
-3. If the question has a diagram, graph, table, circuit, ray diagram, figure, equation, or image beside/below the text, include that visual in the SAME crop.
-4. If options are below the question, extend the crop downward until ALL options belonging to that question are included.
-5. If options are in two columns, include both columns when they belong to the same question.
-6. If a figure is to the right of the question text, extend the crop sideways to include it.
-7. NEVER stop the crop after the question sentence alone when options/figure/formulae continue below or beside it.
-8. NEVER start a new crop at (A)/(B)/(C)/(D). These are option markers, not question numbers.
-9. Do NOT include any part of the NEXT question. The top/bottom boundary must be placed between complete question blocks.
-10. Preserve the original page exactly; do not rewrite, redraw, summarize, or reconstruct the question.
-
-COORDINATE ACCURACY:
-11. FIRST CHOICE: use NORMALIZED coordinates only. Set coordinate_system to "normalized" and x/y/width/height MUST each be between 0 and 1 relative to the FULL original page.
-12. Do NOT invent pixel dimensions such as 600x800 or 1200x1600. Do not use a fixed-width grid.
-13. If you cannot reliably measure normalized coordinates, use pixel coordinates ONLY when you can state the exact rendered page width/height actually used. Never guess.
-14. Do NOT assume equal question widths, equal question heights, equal spacing, fixed margins, or a regular grid. Every question must have its own measured rectangle.
-15. Measure each question block independently from visible page content.
-16. Add only a small safety margin (roughly 1-3% of page dimension) around the complete block.
-
-READING / COMPLETENESS:
-17. Process every page in order and identify EVERY question, including questions with poor OCR, figures, tables, or unusual numbering.
-18. If a question continues onto the next page, DO NOT create a fake new question for the continuation. Use continuation_info.parts with one crop per page, preserving the same question_number.
-19. A continuation part must contain the remaining text/options/figures for the SAME question.
-20. If a page contains a question whose number is visually unclear, still create the question block and use the best visible number/text; do not drop it.
-21. question_text is only an aid. The crop boundaries and original visual content are authoritative.
-22. IMPORTANT: Never create coordinates from a fixed grid, guessed page size, or regular spacing.
-23. Every question must have independently measured x, y, width and height values.
-24. The crop MUST start at the actual visual question number and MUST include the complete current question through its final option/visual.
-25. If you cannot confidently determine the bottom boundary, extend the crop downward until all current options/visuals are included, but stop before the next question.
-
-SELF-CHECK BEFORE RETURNING JSON:
-26. Count the question blocks independently from the page before finalizing JSON.
-27. Check every crop visually: question number + complete stem + every option + every figure/formula/table.
-28. Check the top boundary: it must NOT contain the previous question's tail.
-29. Check the bottom boundary: it must NOT cut off the current question's options/figure.
-30. Check that no option-only crop exists. Every questions[] item MUST be a complete question block.
-31. Check that the number of JSON questions matches the number of visually detected question blocks.
-32. Check that no two unrelated questions have identical or suspiciously similar rectangles unless they genuinely occupy the same geometry.
-33. Check that x/y/width/height are NOT copied from the previous question unless the visual boundaries are actually identical.
-34. If coordinates are uncertain, widen the crop slightly rather than cutting content, but still stop before the next question.
-35. Validate the final JSON one last time before returning/providing the file.
-
-Do not generate image files in the response. The importer will crop the ORIGINAL PDF using the coordinates in this JSON file.
-`;
-
-function copyAiExtractionPrompt(){
-  navigator.clipboard?.writeText(AI_EXTRACTION_PROMPT).then(()=>st("✔ AI extraction prompt copied. Paste it into Gemini/ChatGPT with the PDF.")).catch(()=>{
-    const ta=document.createElement("textarea");ta.value=AI_EXTRACTION_PROMPT;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();st("✔ AI extraction prompt copied.");
-  });
-}
-$("copyAiPrompt").onclick=copyAiExtractionPrompt;
-
-async function readJsonFile(file){
-  const raw=String(await file.text()||"").replace(/^\uFEFF/,"").trim();
-  if(!raw)throw new Error("Coordinate JSON file is empty.");
-  const candidates=[]; const add=s=>{s=String(s||"").trim();if(s&&!candidates.includes(s))candidates.push(s)};
-  add(raw);
-  add(raw.replace(/```(?:json)?/gi,"").replace(/```/g,"").trim());
-  function extractBalanced(s){
-    let start=-1,depth=0,inString=false,escaped=false;
-    for(let i=0;i<s.length;i++){const ch=s[i];
-      if(inString){if(escaped)escaped=false;else if(ch==="\\")escaped=true;else if(ch==='"')inString=false;continue}
-      if(ch==='"'){inString=true;continue}
-      if(ch==="{"){if(depth===0)start=i;depth++;}
-      else if(ch==="}"&&depth>0){depth--;if(depth===0)return s.slice(start,i+1)}
-    } return "";
-  }
-  add(extractBalanced(raw.replace(/```(?:json)?/gi,"").replace(/```/g,"")));
-  for(const candidate of candidates){try{const parsed=JSON.parse(candidate);return Array.isArray(parsed)?{questions:parsed}:parsed}catch(e){}}
-  throw new Error("Coordinate JSON could not be parsed. Extra text and code fences are accepted, but the JSON itself must be valid.");
-}
-function clampCrop(c,w,h){
-  const x=Math.max(0,Number(c?.x)||0), y=Math.max(0,Number(c?.y)||0);
-  const cw=Math.max(1,Number(c?.width)||1), ch=Math.max(1,Number(c?.height)||1);
-  return {x:Math.min(x,w-1),y:Math.min(y,h-1),width:Math.min(cw,w-x),height:Math.min(ch,h-y)};
-}
-async function canvasCropFromPage(pageNo,crop,refW,refH,defaultCoordSystem){
-  const p=await pdfDoc.getPage(pageNo), v=p.getViewport({scale:2.5});
-  const src=document.createElement("canvas");src.width=Math.ceil(v.width);src.height=Math.ceil(v.height);
-  await p.render({canvasContext:src.getContext("2d"),viewport:v}).promise;
-  const coordSystem=String(crop?.coordinate_system||crop?.coordinateSystem||defaultCoordSystem||"").toLowerCase();
-  let sx,sy,sw,sh;
-  if(coordSystem==="normalized"||coordSystem==="relative"){
-    const x=Number(crop?.x),y=Number(crop?.y),w=Number(crop?.width),h=Number(crop?.height);
-    if(![x,y,w,h].every(Number.isFinite)||x<0||y<0||w<=0||h<=0||x+w>1.001||y+h>1.001) throw new Error("Invalid normalized crop coordinates on page "+pageNo);
-    sx=x*src.width;sy=y*src.height;sw=w*src.width;sh=h*src.height;
-  }else if(coordSystem==="pixel"){
-    if(!Number.isFinite(Number(refW))||!Number.isFinite(Number(refH))||Number(refW)<=0||Number(refH)<=0)
-      throw new Error("Pixel crop is missing an exact coordinate_reference width/height. Use normalized coordinates instead.");
-    const c=clampCrop(crop,Number(refW),Number(refH));
-    sx=c.x/Number(refW)*src.width;sy=c.y/Number(refH)*src.height;sw=c.width/Number(refW)*src.width;sh=c.height/Number(refH)*src.height;
-  }else{
-    throw new Error("Unknown coordinate_system. Use normalized (recommended) or pixel with exact coordinate_reference.");
-  }
-  const out=document.createElement("canvas");out.width=Math.max(1,Math.round(sw));out.height=Math.max(1,Math.round(sh));
-  const ctx=out.getContext("2d");ctx.imageSmoothingEnabled=false;ctx.drawImage(src,sx,sy,sw,sh,0,0,out.width,out.height);
-  return out.toDataURL("image/png");
-}
-function parsePageNumber(v,fallback=1){const m=String(v??"").match(/\d+/);return m?Number(m[0]):fallback}
-function getCropObject(q){return q?.crop||q?.crop_coordinates||q?.cropCoordinates||q?.coordinates||q?.bbox||q?.bounding_box||null}
-async function generateFromCoordinates(){
-  const pf=$("sourcePdfFile").files[0], jf=$("coordJsonFile").files[0];
-  if(!pf||!jf)return alert("Select both the original PDF and the coordinate JSON.");
-  const btn=$("generateFromJson");
-  btn.disabled=true;
-  try{
-    st("Reading PDF + coordinate JSON…");
-    const json=await readJsonFile(jf);
-    const pages=Array.isArray(json.processed_pages)?json.processed_pages:[];
-    if(json.pageCount&&Number(json.pageCount)>5)throw new Error("Maximum 5 PDF pages per package.");
-    sourcePdf=new Uint8Array(await pf.arrayBuffer());
-    pdfDoc=await pdfjsLib.getDocument({data:sourcePdf}).promise;
-    if(pdfDoc.numPages>5)throw new Error("Source PDF has "+pdfDoc.numPages+" pages. Maximum allowed is 5 pages.");
-    const list=Array.isArray(json.questions)?json.questions:[];
-    if(!list.length)throw new Error("JSON does not contain questions[].");
-    const ref=json.coordinate_reference||json.coordinateReference||json.coordinateReferenceSize||{};
-    const defaultCoordSystem=String(ref.coordinate_system||ref.coordinateSystem||json.coordinate_system||json.coordinateSystem||"").toLowerCase();
-    const refW=Number(ref.width), refH=Number(ref.height);
-    const suspicious=[];
-    const pixelMissingRef=list.some(q=>{const cr=getCropObject(q);const cs=String(cr?.coordinate_system||cr?.coordinateSystem||defaultCoordSystem||"").toLowerCase();return cs==="pixel"&&(!Number.isFinite(refW)||!Number.isFinite(refH))});
-    if(pixelMissingRef) throw new Error("JSON uses pixel coordinates but has no exact coordinate_reference. Generate normalized coordinates with the new prompt.");
-
-    items=[];
-    for(let i=0;i<list.length;i++){
-      const q=list[i], qNo=q.question_number||q.qNo||q.questionNo||q.number||("Q"+String(i+1).padStart(3,"0"));
-      const page=parsePageNumber(q.source_page??q.page??q.page_number??q.pageNo??1,1);
-      const crop=getCropObject(q);
-      if(page<1||page>pdfDoc.numPages)continue;
-      if(q.continuation_info?.continues && Array.isArray(q.continuation_info.parts) && q.continuation_info.parts.length){
-        const parts=[];
-        for(const part of q.continuation_info.parts){
-          const partCrop=getCropObject(part);
-          if(!partCrop)continue;
-          parts.push(await canvasCropFromPage(parsePageNumber(part.page??part.source_page??page,page),partCrop,refW,refH,defaultCoordSystem));
-        }
-        if(parts.length){
-          const imgs=[];
-          for(const src of parts){const im=new Image();im.src=src;await new Promise(r=>im.onload=r);imgs.push(im);}
-          const w=Math.max(...imgs.map(x=>x.naturalWidth)), gap=12, h=imgs.reduce((s,x)=>s+x.naturalHeight,0)+gap*(imgs.length-1);
-          const out=document.createElement("canvas");out.width=w;out.height=h;const ctx=out.getContext("2d");let y=0;
-          imgs.forEach((im,k)=>{ctx.drawImage(im,0,y);y+=im.naturalHeight+(k<imgs.length-1?gap:0)});
-          items.push({qNo,page,qText:q.question_text||q.qText||"",a:q.a||q.optA||q.optionA||"",b:q.b||q.optB||q.optionB||"",c:q.c||q.optC||q.optionC||"",d:q.d||q.optD||q.optionD||"",qtype:q.qtype||q.question_type||q.type||"mcq",answer:q.answer||q.final_answer||q.correct_answer||q.numerical_answer||"",solution:q.solution||q.explanation||q.detailed_solution||"",image:out.toDataURL("image/png"),generatedImage:q.generatedImage||q.generated_image||q.aiImage||"",solutionImage:q.solutionImage||q.solution_image||"",blob:null,selected:true,saveQuestionImage:true,saveGeneratedImage:!!(q.generatedImage||q.generated_image||q.aiImage),saveFigureImage:false,saveSolutionImage:!!(q.solutionImage||q.solution_image)});
-        }
-      }else if(crop){
-        const localRefW=Number(crop.page_width||crop.pageWidth||refW);
-        const localRefH=Number(crop.page_height||crop.pageHeight||refH);
-        items.push({qNo,page,qText:q.question_text||q.qText||q.questionText||q.text||"",a:q.a||q.optA||q.optionA||"",b:q.b||q.optB||q.optionB||"",c:q.c||q.optC||q.optionC||"",d:q.d||q.optD||q.optionD||"",qtype:q.qtype||q.question_type||q.type||"mcq",answer:q.answer||q.final_answer||q.correct_answer||q.numerical_answer||"",solution:q.solution||q.explanation||q.detailed_solution||"",image:await canvasCropFromPage(page,crop,localRefW,localRefH,defaultCoordSystem),generatedImage:q.generatedImage||q.generated_image||q.aiImage||"",solutionImage:q.solutionImage||q.solution_image||"",blob:null,containsOptions:q.contains_options!==false,containsFigure:!!q.contains_figure,cropConfidence:Number(q.crop_confidence)||0,selected:true,saveQuestionImage:true,saveGeneratedImage:!!(q.generatedImage||q.generated_image||q.aiImage),saveFigureImage:false,saveSolutionImage:!!(q.solutionImage||q.solution_image)});
-      }
-      st("✂️ Extracting "+(i+1)+" / "+list.length+"…");
-    }
-    $("stats").textContent=items.length+" question(s) extracted from coordinate JSON • Original PDF attached";
-    render();st(items.length?("✔ Coordinate extraction complete. "+items.length+" question(s) loaded. Review the cards before importing."):("⚠ Coordinate JSON was read, but no usable question crop was found. Check the JSON structure."));
-  }catch(e){console.error(e);st("❌ "+e.message);alert("Coordinate extraction failed: "+e.message)}
-  finally{btn.disabled=false}
-}
-
-$("autoExtractPdf").onclick=autoExtractFromPdf;
-function questionStartFromText(t){
-  const s=String(t||"").replace(/\s+/g," ").trim();
-  let m=s.match(/^(?:Q(?:uestion)?\.?\s*)?\(?(\d{1,3})\)?[.)](?:\s|$)/i);
-  if(!m)m=s.match(/^Q(?:uestion)?\s*(\d{1,3})(?:\s|$)/i);
-  return m?m[1]:null;
-}
-function textItemBox(item,viewport){
-  const tr=pdfjsLib.Util.transform(viewport.transform,item.transform);
-  const h=Math.max(8,Math.hypot(tr[2],tr[3]));
-  return {x:tr[4],top:tr[5]-h,width:Math.max(1,item.width*viewport.scale),height:h,text:String(item.str||"").trim()};
-}
-async function renderPdfCrop(pageNo,x,y,w,h,scale=2.5){
-  const p=await pdfDoc.getPage(pageNo),v=p.getViewport({scale});
-  const src=document.createElement("canvas");src.width=Math.ceil(v.width);src.height=Math.ceil(v.height);
-  await p.render({canvasContext:src.getContext("2d"),viewport:v}).promise;
-  x=Math.max(0,Math.min(x,src.width-1));y=Math.max(0,Math.min(y,src.height-1));
-  w=Math.max(1,Math.min(w,src.width-x));h=Math.max(1,Math.min(h,src.height-y));
-  const out=document.createElement("canvas");out.width=Math.round(w);out.height=Math.round(h);
-  out.getContext("2d").drawImage(src,x,y,w,h,0,0,out.width,out.height);return out.toDataURL("image/png");
-}
-async function combineVerticalImages(a,b){
-  const ia=new Image();ia.src=a;await new Promise((r,j)=>{ia.onload=r;ia.onerror=j});
-  const ib=new Image();ib.src=b;await new Promise((r,j)=>{ib.onload=r;ib.onerror=j});
-  const gap=12,w=Math.max(ia.naturalWidth,ib.naturalWidth),h=ia.naturalHeight+ib.naturalHeight+gap;
-  const out=document.createElement("canvas");out.width=w;out.height=h;const ctx=out.getContext("2d");
-  ctx.drawImage(ia,0,0);ctx.drawImage(ib,0,ia.naturalHeight+gap);return out.toDataURL("image/png");
-}
-
-function isSolutionMarkerText(t){
-  const s=String(t||"").replace(/\s+/g," ").trim().toLowerCase();
-  if(!s || s.length>90)return false;
-  // Standalone headings commonly used before worked solutions/answers.
-  return /^(?:solution|solutions|sol\.?|answer|answers|ans\.?|explanation|detailed solution|detailed solutions|working|workings|solution\s*[:\-–—]|answer\s*[:\-–—]|ans\s*[:\-–—]|explanation\s*[:\-–—]|sol\s*[:\-–—])$/i.test(s)
-      || /^(?:solution|answer|ans\.?|explanation)\s*(?:to|of|for)\s*(?:question|q\.?|ques\.?)/i.test(s);
-}
-
-function boxCenterX(b){return b.x+b.width/2}
-
-function boxesOverlapColumn(a,b,pageWidth){
-  if(!a||!b)return true;
-  const ax1=a.x, ax2=a.x+a.width, bx1=b.x, bx2=b.x+b.width;
-  const overlap=Math.max(0,Math.min(ax2,bx2)-Math.max(ax1,bx1));
-  const minw=Math.max(1,Math.min(a.width,b.width));
-  return overlap/minw>=0.15 || Math.abs(boxCenterX(a)-boxCenterX(b))<pageWidth*0.18;
-}
-
-function findSolutionBoundary(boxes,startBox,nextBox,pageWidth,topLimit){
-  const candidates=boxes.filter(b=>{
-    if(b.top<=startBox.top+2)return false;
-    if(nextBox && b.top>=nextBox.top-2)return false;
-    if(b.top>=topLimit)return false;
-    return isSolutionMarkerText(b.text);
-  });
-  if(!candidates.length)return null;
-  // Prefer a marker that belongs to the same visual column as the question.
-  const same=candidates.filter(b=>boxesOverlapColumn(startBox,b,pageWidth));
-  const list=same.length?same:candidates;
-  return list.sort((a,b)=>a.top-b.top)[0];
-}
-
-function likelyQuestionStart(box,prevBox,pageHeight){
-  if(!questionStartFromText(box.text))return false;
-  // Avoid treating numbered lines inside a dense block as new questions.
-  // A real question number normally starts a fresh line with visible vertical separation.
-  if(prevBox){
-    const gap=box.top-(prevBox.top+prevBox.height);
-    if(gap<1 && box.x>prevBox.x+prevBox.width*0.5)return false;
-  }
-  return box.top>=0 && box.top<pageHeight;
-}
-
-async function autoExtractFromPdf(){
-  const f=$("autoPdfFile").files[0];
-  if(!f)return alert("पहले Original PDF select करो.");
-  const btn=$("autoExtractPdf");btn.disabled=true;
-  try{
-    st("Opening PDF…");
-    sourcePdf=new Uint8Array(await f.arrayBuffer());
-    pdfDoc=await pdfjsLib.getDocument({data:sourcePdf}).promise;
-    if(pdfDoc.numPages>5)throw new Error("Maximum 5 PDF pages allowed here.");
-
-    items=[];
-    let detected=0;
-
-    for(let pageNo=1;pageNo<=pdfDoc.numPages;pageNo++){
-      st("🔎 Reading page "+pageNo+" / "+pdfDoc.numPages+"…");
-      const p=await pdfDoc.getPage(pageNo);
-      const v=p.getViewport({scale:2.5});
-      const tc=await p.getTextContent();
-      const boxes=tc.items.map(x=>textItemBox(x,v)).filter(x=>x.text);
-
-      if(!boxes.length){
-        // A text-less continuation page is retained with the previous question.
-        if(items.length){
-          items[items.length-1].image=await combineVerticalImages(
-            items[items.length-1].image,
-            await renderPdfCrop(pageNo,0,0,v.width,v.height)
-          );
-        }
+  try{return JSON.parse(raw);}
+  catch(firstErr){
+    /* Gemini sometimes returns valid LaTeX such as \\int or \\alpha inside a JSON
+       string without escaping the backslash for JSON. Repair only those invalid
+       backslashes; preserve all valid JSON escapes such as \\n, \\t, \\" and \\\\. */
+    var repaired="",inString=false,escaped=false;
+    for(var i=0;i<raw.length;i++){
+      var ch=raw[i];
+      if(!inString){
+        repaired+=ch;
+        if(ch==="\\\"")inString=true;
         continue;
       }
-
-      // Detect only genuine question-number candidates.
-      const starts=[];
-      let prev=null;
-      for(const b of boxes){
-        if(likelyQuestionStart(b,prev,v.height))starts.push(b);
-        prev=b;
-      }
-
-      if(!starts.length){
-        // Do not blindly attach an entire page to a question if it contains
-        // an explicit Solution/Answer heading. Only attach it when there is
-        // no such heading at all.
-        const hasSolutionHeading=boxes.some(b=>isSolutionMarkerText(b.text));
-        if(items.length && !hasSolutionHeading){
-          items[items.length-1].image=await combineVerticalImages(
-            items[items.length-1].image,
-            await renderPdfCrop(pageNo,0,0,v.width,v.height)
-          );
-        }
+      if(escaped){repaired+=ch;escaped=false;continue;}
+      if(ch==="\\\\"){
+        var n=raw[i+1]||"";
+        var valid=/[\\\"\\\\\\/bfnrt]/.test(n);
+        var unicode=n==="u"&&/^[0-9a-fA-F]{4}$/.test(raw.slice(i+2,i+6));
+        if(valid||unicode){repaired+=ch;escaped=true;}
+        else{repaired+="\\\\\\\\\\";}
         continue;
       }
-
-      // A question-book page can have one or two columns.
-      const spread=Math.max(...starts.map(s=>s.x))-Math.min(...starts.map(s=>s.x));
-      const twoColumn=starts.length>=4 && spread>v.width*0.30;
-      const mid=v.width/2;
-
-      // Process each detected question independently. Crucially, the crop
-      // ends at the FIRST Solution/Answer/Explanation heading OR the next
-      // question in the same column, whichever comes first.
-      for(let i=0;i<starts.length;i++){
-        const s=starts[i];
-        const col=twoColumn?(s.x<mid?"L":"R"):"ALL";
-
-        const next=starts.slice(i+1).find(n=>{
-          if(!twoColumn)return true;
-          return (n.x<mid?"L":"R")===col;
-        });
-
-        const left=twoColumn?(col==="L"?0:mid):0;
-        const right=twoColumn?(col==="L"?mid:v.width):v.width;
-
-        const solutionMarker=findSolutionBoundary(
-          boxes,
-          s,
-          next,
-          right-left,
-          next?next.top:v.height
-        );
-
-        // If the next question appears before a solution marker, next question
-        // is the hard boundary. Otherwise the Solution heading is the boundary.
-        let boundary=next?next.top:v.height;
-        let boundaryReason="next question";
-        if(solutionMarker && solutionMarker.top<boundary){
-          boundary=solutionMarker.top;
-          boundaryReason="solution heading";
-        }
-
-        // Continuation material above the first question remains attached only
-        // when it is clearly before the first question and not a solution section.
-        if(i===0 && items.length && s.top>v.height*0.10){
-          const leading=boxes.filter(b=>b.top<s.top && isSolutionMarkerText(b.text));
-          if(!leading.length){
-            items[items.length-1].image=await combineVerticalImages(
-              items[items.length-1].image,
-              await renderPdfCrop(pageNo,0,0,v.width,Math.max(1,s.top-8))
-            );
-          }
-        }
-
-        const top=Math.max(0,s.top-12);
-        const bottom=Math.max(top+30,boundary-8);
-
-        // Never allow a question crop to cross into the solution heading.
-        const img=await renderPdfCrop(
-          pageNo,
-          left,
-          top,
-          right-left,
-          Math.min(v.height-top,bottom-top)
-        );
-
-        const qNo="Q"+String(questionStartFromText(s.text)).padStart(3,"0");
-        items.push({
-          qNo,
-          page:pageNo,
-          qText:s.text,
-          image:img,
-          generatedImage:"",
-          solutionImage:"",
-          solution:"",
-          a:"",b:"",c:"",d:"",
-          qtype:"mcq",
-          answer:"",
-          blob:null,
-          boundaryReason,
-          containsSolution:false,
-          selected:true,
-          saveQuestionImage:true,
-          saveGeneratedImage:false,
-          saveFigureImage:false,
-          saveSolutionImage:false
-        });
-        detected++;
-      }
-
-      st("✂️ Extracted "+items.length+" question block(s)…");
+      repaired+=ch;
+      if(ch==="\\\"")inString=false;
     }
-
-    if(!detected)throw new Error(
-      "No readable question-number text was found. This PDF may be scanned/image-only; use OCR/manual crop for it."
-    );
-
-    const lim=Number($("limit").value);
-    if(lim>0)items=items.slice(0,lim);
-
-    render();
-    st("✔ Question-only extraction complete — "+items.length+
-       " question(s) ready. Solution/Answer sections are excluded when a heading is detected.");
-  }catch(e){
-    console.error(e);
-    st("❌ "+e.message);
-    alert("Auto extraction failed: "+e.message);
-  }finally{
-    btn.disabled=false;
+    try{return JSON.parse(repaired);}
+    catch(secondErr){
+      throw firstErr;
+    }
   }
 }
-
-$("generateFromJson").onclick=generateFromCoordinates;
-
-async function saveItems(){
- if(!email())return alert("Teacher login not found. Please log in again.");
- const path=normalizePath($("folderPath").value);if(!path)return alert("Exact Folder Path भरें.");
- const selected=items.filter(q=>q.selected!==false);if(!selected.length)return alert("पहले कम से कम एक question select करें.");
- const mode=$("libraryMode").value;const btn=$("saveAll");btn.disabled=true;st("Saving "+selected.length+" selected question(s) to Library…");
- try{
-  const a=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"),f=await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");let app;try{app=a.initializeApp(cfg,"ai-package-import")}catch(e){app=a.getApps().find(x=>x.name==="ai-package-import")}const db=f.getFirestore(app);
-  for(let i=0;i<selected.length;i++){
-   const q=selected[i];
-   let questionImage="",generatedImage=q.generatedImage||"",figureImage=chosenFigure(q),solutionImage=q.solutionImage||"";
-   if(q.saveQuestionImage!==false)questionImage=q.image||"";
-   if(q.imageChoice==="generated" && generatedImage) generatedImage=await brightenedDataUrl(generatedImage);
-   if(q.blob && q.saveQuestionImage!==false && !questionImage){questionImage=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(q.blob)})}
-   const options=[q.a||"",q.b||"",q.c||"",q.d||""];
-   const doc={ownerEmail:email(),creatorEmail:email(),questionKey:"",qNo:String(q.qNo||i+1),qText:q.qText||"",question:questionImage,questionImage:questionImage,generatedQuestionImage:q.imageChoice==="generated"?generatedImage:"",figureImage:figureImage,solutionImage:q.saveSolutionImage!==false?solutionImage:"",imageSource:q.imageChoice||"none",solution:q.solution||"",optAImg:"",optBImg:"",optCImg:"",optDImg:"",options,keepOptions:options.some(Boolean),libraryType:mode==="central"?"Central Library":mode==="group"?"Group Library":"Personal Library",libraryMode:mode,central:mode==="central",group:mode==="group",targetLibrary:mode,folderPath:path,folder:path.split(" / ")[0]||"",subfolder:path.split(" / ").slice(1).join(" / "),topic:q.topic||"Physics",qType:q.qtype||"mcq",level:q.level||"Medium",answer:q.answer||"",sourcePage:q.page||"",sourceFile:"AI Package Import",splitMode:q.splitMode||"none",createdAt:new Date().toISOString()};
-   await f.addDoc(f.collection(db,"questions"),doc);st("☁ Saved "+(i+1)+" / "+selected.length+"…");
+async function geminiRequest(key,body){
+  const models=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash-lite"];
+  let last="";
+  for(const model of models){
+    for(let attempt=0;attempt<2;attempt++){
+      try{
+        $("status").textContent="🤖 Trying "+model+"…";
+        const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent?key="+encodeURIComponent(key),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+        const d=await r.json().catch(()=>({}));
+        if(r.ok)return d;
+        const msg=d?.error?.message||("Gemini API error "+r.status);
+        last=model+": "+msg;
+        const transient=r.status===429||r.status===500||r.status===502||r.status===503||r.status===504||/high demand|overloaded|temporar|unavailable|capacity|resource exhausted/i.test(msg);
+        if(!transient)throw Error(msg);
+        if(attempt===0)await new Promise(res=>setTimeout(res,1500));
+      }catch(e){
+        last=e.message||String(e);
+        if(!/high demand|overloaded|temporar|unavailable|capacity|resource exhausted|429|500|502|503|504/i.test(last))throw e;
+        if(attempt===0)await new Promise(res=>setTimeout(res,1500));
+      }
+    }
   }
-  alert("✔ "+selected.length+" selected question(s) imported to Library.\n\nOnly the checked assets were saved.");
-  st("✔ Import complete — "+selected.length+" selected saved.");
-  items=items.filter(q=>q.selected===false);render();
- }catch(e){console.error(e);st("❌ Save failed: "+e.message);alert("Save failed: "+e.message)}finally{btn.disabled=!selectedItemsCount()}
+  throw Error("Gemini is temporarily busy on the available Flash models. Please retry in a moment. Last response: "+last);
 }
-$("saveAll").onclick=saveItems;render();
+async function repairMathWithVision(key,pdfB64,items){
+  if(!items||!items.length)return items;
+  var candidate=JSON.stringify(items.map(function(q){return {
+    question_number:q.no,question:q.text,options:q.options,answer:q.answer,explanation:q.explanation,
+    topic:q.topic,chapter:q.chapter,diagram_description:q.diagram,page:q.page,
+    table_rows:q.tableRows,matrix_latex:q.matrixLatex
+  }}));
+  var prompt='You are the FINAL MATHEMATICS AND PHYSICS TRANSCRIPTION CHECKER. Inspect the ORIGINAL PDF visually and compare it with the candidate JSON below. Correct mathematical notation wherever the candidate is wrong, incomplete, verbalized, or OCR-corrupted. This is NOT a summarization task. Do not rewrite normal prose. Preserve every word, number, sign, option, subpart and equation.\n\nCRITICAL: NEVER write mathematics as spoken words such as alpha, T naught, zero to four, INT, SQRT, raised power, or bracket when those words represent visible mathematical symbols. Read the glyphs in the PDF and reproduce them as proper LaTeX with MathJax delimiters. A visible alpha glyph must become \\(\\alpha\\), T with subscript zero must become \\(T_0\\), and an integral with lower limit 0 and upper limit 4 must become \\(\\int_0^4 ...\\). Preserve parentheses and brackets exactly, fractions, roots, powers, subscripts, derivatives, partial derivatives, vectors, Greek letters, infinity, summation, matrices and Fourier/Laplace notation. Do not turn a real mathematical matrix into a prose table, and do not turn a real table into a matrix. Every mathematical expression MUST be enclosed in \\( ... \\) or \\[ ... \\]. Keep the complete question as one logical block; never split a formula across lines.\n\nReturn ONLY valid JSON: {"questions":[...]} with exactly the same question order and count as the candidate. If a mathematical expression is already correct, leave it unchanged. If the candidate contains a verbal transcription but the PDF clearly shows the symbols, replace the verbal transcription with the actual mathematical LaTeX.\n\nCANDIDATE JSON:\n' + candidate;  var body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json"}};
+  var d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(function(p){return p.text||""}).join("")||"";
+  raw=raw.trim();
+  var fence=String.fromCharCode(96).repeat(3);
+  if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim();}
+  var out=parseGeminiJson(raw);
+  if(!Array.isArray(out.questions)||out.questions.length!==items.length)throw Error("Math verification returned an incomplete question set.");
+  return items.map(function(q,i){
+    var v=out.questions[i]||{};
+    if(String(v.question||"").trim())q.text=String(v.question).trim();
+    if(Array.isArray(v.options))q.options=v.options.map(String);
+    if(v.answer!==undefined)q.answer=String(v.answer||"").trim();
+    if(v.explanation!==undefined)q.explanation=String(v.explanation||"").trim();
+    if(v.topic!==undefined)q.topic=String(v.topic||"").trim();
+    if(v.chapter!==undefined)q.chapter=String(v.chapter||"").trim();
+    if(v.diagram_description!==undefined)q.diagram=String(v.diagram_description||"").trim();
+    if(v.page!==undefined)q.page=String(v.page||"").trim();
+    if(Array.isArray(v.table_rows))q.tableRows=v.table_rows.filter(Array.isArray);
+    if(v.matrix_latex!==undefined)q.matrixLatex=String(v.matrix_latex||"").trim();
+    return q;
+  });
+}
+async function extract(){let f=$("pdf").files[0];if(!f)return alert("पहले PDF select करो.");sourcePdfFile=f;let key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!key)return alert("पहले Gemini API key डालें.");$("extract").disabled=true;qs=[];totalDetected=0;uploadedCount=0;render();try{if(f.size>20*1024*1024)throw Error("PDF is larger than 20 MB.");$("status").textContent="🤖 Gemini is reading the PDF…";let u=new Uint8Array(await f.arrayBuffer()),bin="";for(let i=0;i<u.length;i+=32768)bin+=String.fromCharCode(...u.subarray(i,i+32768));if(!folderPaths.length){try{await loadFolders("private",$("ePath"),$("eStatus"))}catch(_){}}
+let libraryList=folderPaths.length?folderPaths.join(" | "):"(No Library folders available yet)";
+let prompt="Extract EVERY COMPLETE QUESTION BLOCK. Return ONLY JSON with a questions array. Never split options/assertions/subparts. Preserve wording, numbers, units, equations, powers, subscripts, superscripts, Greek symbols and figures. CRITICAL MATHEMATICS RULE: every mathematical expression MUST be valid LaTeX enclosed in MathJax delimiters \\( ... \\) for inline math or \\[ ... \\] for display math. NEVER output raw LaTeX commands such as \\int, \\frac, \\sqrt, ^, _, \\partial, \\nabla, \\sum, \\begin, SQRT or the word INT as plain text when they represent mathematics. Preserve exponents as x^{2}, subscripts as a_{1}, fractions as \\frac{a}{b}, roots as \\sqrt{x}, integrals as \\int, derivatives as \\frac{d y}{d x}, matrices only as proper LaTeX matrices, and Fourier/Laplace symbols exactly. Do not split a mathematical expression across lines. Keep parenthetical conditions and values attached to the sentence when they naturally belong there (for example, “(refractive index μ = 1.5) has radius of curvature 10 cm” must stay one sentence/line, not three lines with the brackets separated). Do not put opening/closing brackets on separate lines. Do not insert artificial line breaks inside a sentence. A standalone equation or numerical result may be on its own line only when it is genuinely a separate mathematical expression. Real tables MUST be table_rows arrays; NEVER convert tables to matrices. Use matrix_latex only for actual mathematical matrices. Merge continuations. LIBRARY SUGGESTION RULE: ALWAYS provide suggested_library_path for every question, even if that folder does not currently exist. This is a semantic destination suggestion, not a check against existing folders. For Mathematics, use paths such as Mathematics / Calculus / Integration, Mathematics / Calculus / Differentiation, Mathematics / Calculus / Fourier Transform, Mathematics / Calculus / Laplace Transform, Mathematics / Algebra / Matrices, Mathematics / Algebra / Complex Numbers, Mathematics / Differential Equations / Differential Equations, or the closest specific topic. For Physics, use paths such as Physics / Mechanics / ... , Physics / Optics / ... , Physics / Electromagnetism / ... , Physics / Quantum Mechanics / ... , Physics / Mathematical Physics / ... and choose the most specific topic. For other subjects, create an equally clear Subject / Chapter / Topic semantic path. If an exact existing Library path from this list is available, prefer it; otherwise STILL return the semantic path you recommend so the teacher can choose Create This Folder or manually change it. Existing Library paths currently available are: "+libraryList+". Fields: question_number,question,options,answer,topic,chapter,source,year,difficulty,explanation,diagram_description,page,book,subject,subtopic,section,suggested_library_path,table_rows,matrix_latex.";let body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:btoa(bin)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:65536}},d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";raw=raw.trim();let fence=String.fromCharCode(96).repeat(3);if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim()}let p,list=[];try{p=parseGeminiJson(raw);list=Array.isArray(p.questions)?p.questions:[]}catch(parseErr){$("status").textContent="🤖 First JSON response was incomplete. Retrying with compact output…";const compactPrompt="Extract every complete question from the PDF, preserving all options, subparts, numbers, units and mathematics. Return ONLY a compact JSON object with a questions array. For each question use ONLY these keys: question_number, question, options, answer, topic, chapter, source, year, difficulty, explanation, diagram_description, page, suggested_library_path, table_rows, matrix_latex. Do not add commentary or markdown. Use short empty strings for unknown metadata. Keep the full question text and all options. All math must be valid LaTeX inside MathJax delimiters.";const compactBody={contents:[{role:"user",parts:[{text:compactPrompt},{inlineData:{mimeType:"application/pdf",data:btoa(bin)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:65536}};d=await geminiRequest(key,compactBody);raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";p=parseGeminiJson(raw);list=Array.isArray(p.questions)?p.questions:[];}if(!list.length){const retryPrompt='Read the PDF again carefully. Extract all visible exam questions from the first question to the last. Return JSON only with a questions array. Do not summarize. Keep each complete question with all options and subparts. All mathematics must use valid LaTeX inside MathJax delimiters.';const retryBody={contents:[{role:"user",parts:[{text:retryPrompt},{inlineData:{mimeType:"application/pdf",data:btoa(bin)}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:65536}};d=await geminiRequest(key,retryBody);raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";raw=raw.trim();let fence2=String.fromCharCode(96).repeat(3);if(raw.startsWith(fence2)){raw=raw.slice(fence2.length).replace(/^json/i,"").trim();if(raw.endsWith(fence2))raw=raw.slice(0,-fence2.length).trim()}p=parseGeminiJson(raw);list=Array.isArray(p.questions)?p.questions:[]}if(!list.length)throw Error("No questions found after retry. Gemini returned no question blocks.");let lim=Number($("max").value);qs=list.slice(0,lim||list.length).map((q,i)=>({no:q.question_number||"Q"+(i+1),text:String(q.question||"").trim(),options:Array.isArray(q.options)?q.options.map(String):[],answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||"").trim(),year:String(q.year||"").trim(),difficulty:String(q.difficulty||"Medium"),libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||"").trim(),page:String(q.page||"").trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:Array.isArray(q.table_rows)?q.table_rows.filter(Array.isArray):[],matrixLatex:String(q.matrix_latex||"").trim(),cropImage:String(q.crop_image||q.image||"").trim()}));totalDetected=qs.length;uploadedCount=0;render();$("status").textContent="🤖 Checking mathematics against the original PDF…";try{qs=await repairMathWithVision(key,btoa(bin),qs);render();$("status").textContent="✔ AI extraction + visual Math/Physics verification complete. Review before importing."}catch(mathErr){console.warn("Math verification skipped:",mathErr);$("status").textContent="✔ AI extraction complete. Math verification could not be completed; review the notation."}}catch(e){$("status").textContent="❌ "+e.message;alert("AI extraction failed: "+e.message)}finally{$("extract").disabled=false}}
+async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;cropPage=Number(qs[i].page)||1;$("cropPanel").style.display="block";$("cropStatus").textContent="Loading page "+cropPage+"…";try{if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";let pdf=await pdfjsLib.getDocument({data:await sourcePdfFile.arrayBuffer()}).promise;cropPage=Math.max(1,Math.min(cropPage,pdf.numPages));let page=await pdf.getPage(cropPage),base=page.getViewport({scale:1}),scale=Math.min(1.5,Math.max(.8,(window.innerWidth-30)/base.width)),vp=page.getViewport({scale}),can=$("pdfCanvas");can.width=vp.width;can.height=vp.height;await page.render({canvasContext:can.getContext("2d"),viewport:vp}).promise;cropStart=cropEnd=null;$("cropRect").style.display="none";$("cropStatus").textContent="Drag over the question area."}catch(e){$("cropStatus").textContent=e.message}}
+function setup(){ $("geminiKey").value=localStorage.getItem(KEY)||"";$("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("Gemini API key भरें.");localStorage.setItem(KEY,v);alert("✔ Key saved on this device.")};$("extract").onclick=extract;$("clear").onclick=()=>{qs=[];render();$("status").textContent="Cleared.";showSaveToast("Review list cleared.")};$("import").onclick=async()=>{if(!qs.length)return;$("import").disabled=true;let processed=0;try{while(qs.length){let q=qs[0];if(!q.folderPath)throw Error("Question "+q.no+": select its Library path first.");q.libraryMode=q.libraryMode||"private";await saveQ(0);uploadedCount++;processed++;qs.splice(0,1);render();$("status").textContent="☁ Saved "+processed+" question(s). "+qs.length+" remaining.";showSaveToast("✔ Question "+q.no+" saved to Library. "+qs.length+" remaining.");}}catch(e){showSaveToast("❌ Save stopped: "+e.message,true);alert("Save failed: "+e.message)}finally{$("import").disabled=!qs.length}};$("grid").addEventListener("change",e=>{let sel=e.target.closest("select[data-path-i]");if(sel)setQuestionPath(Number(sel.dataset.pathI),sel.value)});$("grid").addEventListener("click",async function(e){
+  var b=e.target.closest("button[data-a]");
+  if(!b)return;
+  var i=Number(b.dataset.i);
+  if(!Number.isFinite(i)||!qs[i])return;
+  try{
+    var a=b.dataset.a;
+    if(a==="edit"){editQ(i);}
+    else if(a==="crop"){await cropQ(i);}
+    else if(a==="del"){
+      if(confirm("Delete this question from review?")){qs.splice(i,1);render();}
+    }
+    else if(a==="save"){
+      qs[i].libraryMode=qs[i].libraryMode||"private";
+      let savedNo=qs[i].no;
+      await saveQ(i);
+      uploadedCount++;
+      qs.splice(i,1);
+      render();
+      showSaveToast("✔ Question "+savedNo+" saved to Library. "+qs.length+" remaining.");
+    }
+    else if(a==="use-suggest"){
+      var p=norm(qs[i].suggestedPath)||semanticSuggestedPath(qs[i]);
+      if(!p)throw Error("No Library path was suggested.");
+      qs[i].folderPath=p;
+      render();
+    }
+    else if(a==="create-suggest"){
+      var p=norm(qs[i].suggestedPath)||semanticSuggestedPath(qs[i]);
+      if(!p)throw Error("No Library path was suggested.");
+      var m=qs[i].libraryMode||"private";
+      if(confirm("Confirm this Library path?\\n\\n"+p+"\\n\\nIf it does not exist, it will be created automatically in the "+(m==="central"?"Central":m==="group"?"Group":"Private")+" Library.")){
+        await saveFolderPath(m,p);
+        qs[i].folderPath=p;
+        render();
+        alert("✔ Folder path created/confirmed and selected for this question.");
+      }
+    }
+    else if(a==="add-main"){
+      var m=qs[i].libraryMode||"private";
+      var p=await addFolderFromUI(m,"");
+      if(p){qs[i].folderPath=p;render();}
+    }
+    else if(a==="add-sub"){
+      var base=norm(qs[i].folderPath||"");
+      if(!base)throw Error("First select or create a Main Folder.");
+      var m=qs[i].libraryMode||"private";
+      var p=await addFolderFromUI(m,base);
+      if(p){qs[i].folderPath=p;render();}
+    }
+  }catch(err){
+    alert("Action failed: "+(err&&err.message?err.message:String(err)));
+  }
+});$("eSave").onclick=()=>{readEdit();render();$("editor").style.display="none";editing=-1};$("eClose").onclick=()=>{$("editor").style.display="none";editing=-1};$("eSaveLib").onclick=async()=>{if(editing<0)return;readEdit();try{let savedIndex=editing,savedNo=qs[savedIndex].no;await saveQ(savedIndex);uploadedCount++;qs.splice(savedIndex,1);$("editor").style.display="none";editing=-1;render();showSaveToast("✔ Question "+savedNo+" saved to Library. "+qs.length+" remaining.")}catch(e){alert("Save failed: "+e.message)}};$("eMode").onchange=()=>loadFolders($("eMode").value,$("ePath"),$("eStatus"));$("cropClose").onclick=()=>{$("cropPanel").style.display="none"};$("cropSave").onclick=()=>{if(editing<0||!cropStart||!cropEnd)return alert("Select an area first.");let c=$("pdfCanvas"),x=Math.min(cropStart.x,cropEnd.x),y=Math.min(cropStart.y,cropEnd.y),w=Math.abs(cropEnd.x-cropStart.x),h=Math.abs(cropEnd.y-cropStart.y),o=document.createElement("canvas"),s=Math.min(2,1200/w);o.width=Math.round(w*s);o.height=Math.round(h*s);o.getContext("2d").drawImage(c,x,y,w,h,0,0,o.width,o.height);qs[editing].cropImage=o.toDataURL("image/jpeg",.88);$("cropPanel").style.display="none";render();editQ(editing);$("eStatus").textContent="✔ Figure inserted from PDF."};let can=$("pdfCanvas"),rect=$("cropRect");
+can.addEventListener("pointerdown",function(e){
+  if(cropSelecting)return;
+  cropSelecting=true;
+  if(can.setPointerCapture)can.setPointerCapture(e.pointerId);
+  var r=can.getBoundingClientRect(),sx=can.width/r.width,sy=can.height/r.height;
+  cropStart={x:Math.max(0,Math.min(can.width,(e.clientX-r.left)*sx)),y:Math.max(0,Math.min(can.height,(e.clientY-r.top)*sy))};
+  cropEnd={x:cropStart.x,y:cropStart.y};rect.style.display="block";
+  rect.style.left=cropStart.x+"px";rect.style.top=cropStart.y+"px";rect.style.width="0px";rect.style.height="0px";
+});
+can.addEventListener("pointermove",function(e){
+  if(!cropSelecting||!cropStart)return;
+  var r=can.getBoundingClientRect(),sx=can.width/r.width,sy=can.height/r.height;
+  cropEnd={x:Math.max(0,Math.min(can.width,(e.clientX-r.left)*sx)),y:Math.max(0,Math.min(can.height,(e.clientY-r.top)*sy))};
+  var x=Math.min(cropStart.x,cropEnd.x),y=Math.min(cropStart.y,cropEnd.y);
+  rect.style.left=x+"px";rect.style.top=y+"px";rect.style.width=Math.abs(cropEnd.x-cropStart.x)+"px";rect.style.height=Math.abs(cropEnd.y-cropStart.y)+"px";
+});
+function finishCropGesture(e){
+  if(!cropSelecting)return;
+  cropSelecting=false;
+  if(e&&can.releasePointerCapture){try{can.releasePointerCapture(e.pointerId)}catch(_){}}
+  $("cropStatus").textContent=(cropStart&&cropEnd&&Math.abs(cropEnd.x-cropStart.x)>4&&Math.abs(cropEnd.y-cropStart.y)>4)?"Selection ready.":"Drag a larger rectangle.";
+}
+can.addEventListener("pointerup",finishCropGesture);
+can.addEventListener("pointercancel",finishCropGesture);
+loadFolders("private",$("ePath"),$("eStatus"));render()}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setup);else setup();
 </script></body></html>
