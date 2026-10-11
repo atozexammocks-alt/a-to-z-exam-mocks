@@ -444,6 +444,18 @@ function render(){
     var left='<div class="review-left"><div class="review-title">Q'+esc(q.no)+' — OCR Text</div>'+
       '<textarea class="main-ocr-editor" data-ocr-i="'+i+'" spellcheck="false">'+esc(q.text||"")+'</textarea>'+
       '<div class="row" style="margin-top:8px"><button type="button" class="btn blue" data-a="apply-text" data-i="'+i+'">✓ Apply Text</button><button type="button" class="btn purple" data-a="refresh-question" data-i="'+i+'">↻ Re-extract This Question with AI</button></div>'+
+      '<div class="review-controls"><div class="control-block full"><label>Question Type — select or correct the detected type</label><select class="q-type-control" data-i="'+i+'">'+
+      '<option value="mcq"'+(q.qType==="mcq"?" selected":"")+'>MCQ — Single Correct</option>'+
+      '<option value="mcq_multi"'+(q.qType==="mcq_multi"?" selected":"")+'>MCQ — Multiple Correct</option>'+
+      '<option value="numerical"'+(q.qType==="numerical"?" selected":"")+'>Numerical Answer Type (NAT)</option>'+
+      '<option value="ssr"'+(q.qType==="ssr"?" selected":"")+'>SSR — Short Subjective Response</option>'+
+      '<option value="reasoning"'+(q.qType==="reasoning"?" selected":"")+'>Reasoning</option>'+
+      '<option value="fill_blank"'+(q.qType==="fill_blank"?" selected":"")+'>Fill in the Blank</option>'+
+      '<option value="very_short"'+(q.qType==="very_short"?" selected":"")+'>Very Short Answer</option>'+
+      '<option value="short"'+(q.qType==="short"?" selected":"")+'>Short Answer</option>'+
+      '<option value="long"'+(q.qType==="long"?" selected":"")+'>Long Answer</option>'+
+      '<option value="passage"'+(q.qType==="passage"?" selected":"")+'>Passage / Comprehension</option>'+
+      '</select></div></div>'+
       '<div class="keep-tools"><b>KEEP IN STUDENT PAPER</b>'+
       '<button type="button" class="btn blue '+(mode==="text"?"selected":"")+'" data-a="keep-text" data-i="'+i+'">📝 Keep Text</button>'+
       '<button type="button" class="btn purple '+(mode==="image"?"selected":"")+'" data-a="keep-image" data-i="'+i+'">🖼 Keep Image</button>'+
@@ -734,20 +746,29 @@ function parseGeminiJson(raw){
   throw firstErr||new Error("Gemini returned invalid JSON.");
 }
 function inferQuestionType(q){
-  q=q||{};var text=String(q.text||q.question||"");var opts=Array.isArray(q.options)?q.options.filter(function(x){return String(x||"").trim()}):[];
-  var declared=String(q.qType||q.question_type||q.questionType||"").trim().toLowerCase();
+  q=q||{};
+  var text=String(q.text||q.question||"");
+  var opts=Array.isArray(q.options)?q.options.filter(function(x){return String(x||"").trim()}):[];
+  var declared=String(q.qType||q.question_type||q.questionType||"").trim().toLowerCase().replace(/[\s-]+/g,"_");
   var t=text.toLowerCase();
-  if(/assertion\s*[-–—]?\s*reason|assertion and reason|statement\s*[-–—]?\s*reason/.test(t))return "assertion";
-  // Strong stem cues take priority over stray OCR fragments incorrectly parsed as options.
+  // Normalize common labels returned by different AI models.
+  var aliases={"single_correct":"mcq","mcq_single":"mcq","multiple_correct":"mcq_multi","multi_select":"mcq_multi","nat":"numerical","numerical_answer_type":"numerical","short_subjective_response":"ssr","subjective":"ssr","assertion_reason":"mcq","assertion_and_reason":"mcq","fill_in_the_blank":"fill_blank","comprehension":"passage"};
+  declared=aliases[declared]||declared;
+  // Strong non-MCQ stem cues take priority over stray option fragments.
   if(/_{2,}|\bfill\s+in\s+the\s+blank\b|\bfill\s+the\s+blank\b|रिक्त स्थान|खाली स्थान|complete the sentence/.test(t))return "fill_blank";
   if(/\b(numerical answer|answer in (?:integer|decimal)|enter (?:the )?numeric|round off to|correct to \d+ decimal|find the numerical value)\b|\bcalculate the value\b|मान ज्ञात कीजिए|संख्यात्मक उत्तर/.test(t))return "numerical";
+  // Assertion–Reason and Reasoning questions with A/B/C/D choices are still MCQs.
+  // The student selects an option; do not create a separate Assertion–Reason type.
   if(opts.length>=2){
     if(/select all|more than one|multiple correct|one or more|एक से अधिक सही/.test(t)||declared==="mcq_multi")return "mcq_multi";
     return "mcq";
   }
   if(/calculate|find the value|determine|evaluate|compute|numerical answer|value of|how many|संख्या|मान ज्ञात|मान निकाल|गणना|कितना|कितने/.test(t))return "numerical";
-  if(declared&&declared!=="mcq")return declared;
-  return declared||"short";
+  if(/assertion\s*[-–—]?\s*reason|assertion and reason|statement\s*[-–—]?\s*reason/.test(t))return "mcq";
+  if(declared && ["mcq","mcq_multi","numerical","ssr","reasoning","fill_blank","very_short","short","long","passage"].indexOf(declared)>=0)return declared;
+  if(/reasoning|तर्कशक्ति|निम्न कथनों|कथन.*निष्कर्ष/.test(t))return "reasoning";
+  if(/passage|read the following|गद्यांश|अनुच्छेद/.test(t))return "passage";
+  return "short";
 }
 function normalizeSolutionJson(out){out=out&&typeof out==='object'?out:{};return {answer:String(out.answer||"").trim(),explanation:String(out.explanation||out.solution||out.steps||"").trim(),final_answer:String(out.final_answer||out.finalAnswer||out.final||out.answer||"").trim()};}
 async function geminiRequest(key,body){
@@ -894,7 +915,7 @@ function normalizeNativeQuestionGlobal(q,i){
   q=q||{};
   var tr=normalizeTableRows(q.table_rows);
   if(!tr.length) tr=tableRowsFromHtml(q.table_html||q.tableHtml||"");
-  return {no:q.question_number||q.no||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),options:normalizeOptionList(Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x==null?"":x))}):q.options),answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||"").trim(),sourceExam:String(q.source_exam||q.sourceExam||q.source||"").trim(),year:String(q.year||"").trim(),sourceYear:String(q.year||"").trim(),keepSourceLabel:true,isPYQ:!!(q.source||q.source_exam||q.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"mcq").trim().toLowerCase()||"mcq",flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||q.diagram||"").trim(),visualType:tr.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||"")),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:!tr.length&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||1).trim(),sourcePage:String(q.page||1).trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:tr,tableHtml:String(q.table_html||q.tableHtml||"").trim(),matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],optionImages:Array.isArray(q.option_images)?q.option_images:[],optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],visualRegions:normalizeOwnedVisualRegions(q)};
+  return {no:q.question_number||q.no||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),options:normalizeOptionList(Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x==null?"":x))}):q.options),answer:String(q.answer||"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||"").trim(),sourceExam:String(q.source_exam||q.sourceExam||q.source||"").trim(),year:String(q.year||"").trim(),sourceYear:String(q.year||"").trim(),keepSourceLabel:true,isPYQ:!!(q.source||q.source_exam||q.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"").trim().toLowerCase(),flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:"private",folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||q.diagram||"").trim(),visualType:tr.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||"")),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:!tr.length&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||1).trim(),sourcePage:String(q.page||1).trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:tr,tableHtml:String(q.table_html||q.tableHtml||"").trim(),matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],optionImages:Array.isArray(q.option_images)?q.option_images:[],optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],visualRegions:normalizeOwnedVisualRegions(q)};
 }
 async function mergeContinuationInto(existing,q,pageNo,pageImageData){
   if(!existing||!q)return;
@@ -951,7 +972,7 @@ async function splitPdfRangeBase64(startPage,endPage){
 }
 async function extractNativePdfBatch(key,pdfB64,startPage,endPage,totalPages,limit,libraryList){
   var wanted=limit?Math.min(limit,250):250;
-  var prompt=`Read ONLY the supplied original PDF pages ${startPage}-${endPage} of ${totalPages}. Faithful exam transcription, not summarization. Return ONLY JSON {"questions":[...]}. Each numbered/logical question must be a separate object; numerical questions without options are separate. Preserve exact English and Hindi/Devanagari wording, punctuation, numbers, units and option order. Preserve mathematics as valid MathJax LaTeX inside \( ... \) or \[ ... \]. Never replace roots, fractions, powers, subscripts, Greek symbols, integrals, vectors, matrices or derivatives with words such as SQRT/INT/alpha or slash text. Options must be separate strings without A/B/C/D labels. Do not translate, paraphrase or invent. Tables go in table_rows and matrices in matrix_latex; do not duplicate table cells in question text. Figures are optional metadata only. If a question continues across the supplied pages, keep it as one question and mark continuation fields. Include page as the absolute PDF page number. Maximum questions: ${wanted}. Existing library paths: ${libraryList}.`;
+  var prompt=`Read ONLY the supplied original PDF pages ${startPage}-${endPage} of ${totalPages}. Faithful exam transcription, not summarization. Return ONLY JSON {"questions":[...]}. Each numbered/logical question must be a separate object; numerical questions without options are separate. Preserve exact English and Hindi/Devanagari wording, punctuation, numbers, units and option order. Preserve mathematics as valid MathJax LaTeX inside \( ... \) or \[ ... \]. Never replace roots, fractions, powers, subscripts, Greek symbols, integrals, vectors, matrices or derivatives with words such as SQRT/INT/alpha or slash text. Options must be separate strings without A/B/C/D labels. Set question_type from the actual format: if the question has A/B/C/D or other selectable choices, classify it as "mcq" (or "mcq_multi" only when it explicitly says multiple answers/select all); this includes Assertion–Reason and Reasoning questions that have choices. Do NOT return a separate "assertion" or "assertion_reason" type. Use "numerical" only for answer-entry questions without selectable options, "fill_blank" for fill-in-the-blank, "ssr"/"short"/"long" for written responses, and "passage" for comprehension. Do not translate, paraphrase or invent. Tables go in table_rows and matrices in matrix_latex; do not duplicate table cells in question text. Figures are optional metadata only. If a question continues across the supplied pages, keep it as one question and mark continuation fields. Include page as the absolute PDF page number. Maximum questions: ${wanted}. Existing library paths: ${libraryList}.`;
   var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}});
   var raw=(d?.candidates?.[0]?.content?.parts||[]).map(function(p){return p.text||""}).join("").trim();
   if(!raw)throw Error("Gemini returned no data for pages "+startPage+"-"+endPage);
