@@ -1029,7 +1029,7 @@ async function extract(){
     function normalizeExtractedText(s){
       var text=String(s==null?"":s);try{text=text.normalize("NFC")}catch(_){}
       // Repair common OCR pseudo-math before preview/save. Avoid nested MathJax delimiters.
-      var hasMathDelimiters=false;
+      var hasMathDelimiters=/\\\(|\\\[|\$\$|\$[^$\n]+\$/.test(text);
       text=text.replace(/\bSQRT\s*\(([^()\n]{1,160})\)/gi,function(_,x){
         var root="\\sqrt{"+x.trim()+"}";
         return hasMathDelimiters?root:"\\("+root+"\\)";
