@@ -97,7 +97,12 @@ function sourceAwareSuggestedPath(q){
   if(sub&&(!chapter||!pathPartKey(chapter).includes(pathPartKey(sub)))&&(!topic||!pathPartKey(topic).includes(pathPartKey(sub))))add(sub);
   rawPath.forEach(function(p){
     if(/^(physics|science|mathematics|chemistry|biology|general|class\s*\d+|\d+(?:th|st|nd|rd))$/i.test(p))return;
-    if(pathPartKey(p)===pathPartKey(root)||pathPartKey(p)===pathPartKey(level)||pathPartKey(p)===pathPartKey(chapter)||pathPartKey(p)===pathPartKey(topic)||pathPartKey(p)===pathPartKey(sub))return;
+    var pk=pathPartKey(p);
+    if(pk===pathPartKey(root)||pk===pathPartKey(level)||pk===pathPartKey(chapter)||pk===pathPartKey(topic)||pk===pathPartKey(sub))return;
+    // Drop redundant generic leaves such as "... / Ray Optics and Optical Instruments / Optics".
+    if(/^[a-z]+$/i.test(String(p).trim())&&parts.some(function(existing){
+      return pathPartKey(existing).split(/[^a-z0-9]+/).filter(Boolean).indexOf(pk)>=0;
+    }))return;
     add(p);
   });
   return norm(parts.join(" / "))||root;
@@ -521,10 +526,14 @@ function render(){
     var opts=(q.options||[]).length?'<div class="options-grid">'+(q.options||[]).map(function(o,oi){return renderOptionHtml(q,o,oi,false)}).join("")+'</div>':"";
     var image=q.cropImage?'<div class="figure-preview auto-source-image"><b>🖼 Cropped Question Image</b><img src="'+esc(q.cropImage)+'" alt="Teacher-cropped question image"><div class="inline-figure-tools"><button type="button" class="btn mini-btn green" data-a="keep-crop" data-i="'+i+'">✓ Keep Cropped Image</button><button type="button" class="btn mini-btn red" data-a="discard-crop" data-i="'+i+'">✕ Discard Crop</button></div></div>':"";
     var cvs=canonicalVisuals(q);var figure=cvs.length?"":(q.figureImage?'<div class="figure-preview auto-figure-image"><b>🖼 Figure / Diagram</b><img src="'+esc(q.figureImage)+'" alt="Figure"><div class="inline-figure-tools">'+(q.figureImageCropPending?'<button type="button" class="btn mini-btn green" data-a="keep-figure-crop" data-i="'+i+'">✓ Keep Cropped Figure</button><button type="button" class="btn mini-btn red" data-a="discard-figure-crop" data-i="'+i+'">✕ Discard Crop</button>':'<button type="button" class="btn mini-btn red" data-a="discard-figure" data-i="'+i+'">✕ Remove Figure</button>')+'</div></div>':"");var generatedCandidate=q._generatedFigureCandidate?'<div class="figure-preview"><b>🧪 AI-generated figure — NOT saved unless you keep it</b><img src="'+esc(q._generatedFigureCandidate)+'" alt="AI-generated figure candidate"><div class="inline-figure-tools"><button type="button" class="btn mini-btn green" data-a="keep-generated-figure" data-i="'+i+'">✓ Keep Generated Figure</button><button type="button" class="btn mini-btn red" data-a="discard-generated-figure" data-i="'+i+'">✕ Discard Generated Figure</button></div></div>':"";
+    var activePath=norm(q.folderPath||aiPath);
     var path='<div class="pathbox"><b>📚 Save Location</b>'+
       '<div class="pathhint">Destination: '+esc((q.libraryMode||"private")==="central"?"Central Library":(q.libraryMode||"private")==="group"?"Group Library":"Private Library")+'</div>'+
-      '<div class="suggestbox"><b>🤖 AI-generated folder path:</b> '+esc(aiPath)+
-      '<div class="pathhint">This full folder path will be created automatically in the selected library when you import. No manual folder selection needed.</div>'+flagSuggestionHtml(i,q,flagChoice)+'</div></div>';
+      '<div class="suggestbox"><b>🤖 AI-suggested path:</b> '+esc(aiPath)+
+      '<div class="pathhint">You control this path. Keep the AI path unchanged, or edit any segment below; use / between folder names.</div>'+
+      '<input id="path-edit-'+i+'" type="text" value="'+esc(activePath)+'" aria-label="Editable folder path for question '+esc(q.no)+'" style="box-sizing:border-box;width:100%;margin-top:7px;background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px">'+
+      '<div class="row" style="margin-top:7px"><button type="button" class="btn purple" data-a="apply-path" data-i="'+i+'">✓ Apply Edited Path</button><button type="button" class="btn" data-a="use-ai-path" data-i="'+i+'">↩ Keep AI Path</button></div>'+
+      '<div class="pathhint">'+(q._manualFolderPath?'✏️ Manual path active; this exact path will be saved.':'🤖 AI path selected; you can override it whenever you want.')+'</div>'+flagSuggestionHtml(i,q,flagChoice)+'</div></div>';
     var left='<div class="review-left"><div class="review-title">Q'+esc(q.no)+' — OCR Text</div>'+
       '<textarea class="main-ocr-editor" data-ocr-i="'+i+'" spellcheck="false">'+esc(q.text||"")+'</textarea>'+
       '<div class="row" style="margin-top:8px"><button type="button" class="btn blue" data-a="apply-text" data-i="'+i+'">✓ Apply Text</button><button type="button" class="btn purple" data-a="refresh-question" data-i="'+i+'">↻ Re-extract This Question with AI</button></div>'+
@@ -775,9 +784,9 @@ async function saveQ(i){
   // The user chooses only the destination library. Always derive the path from AI's topic/chapter
   // and create the complete folder tree automatically; never reuse an unrelated saved/first folder.
   var saveMode=q.libraryMode||$("defaultLibraryMode").value||"private";
-  var semantic=sourceAwareSuggestedPath(q);
-  q.suggestedPath=semantic;
+  var semantic=q._manualFolderPath?norm(q.folderPath||""):sourceAwareSuggestedPath(q);
   if(!semantic)semantic="Physics";
+  q.suggestedPath=sourceAwareSuggestedPath(q);
   try{
     q.folderPath=await saveFolderPath(saveMode,semantic);
     folderTrees[saveMode]=folderTrees[saveMode]||[];
@@ -1086,13 +1095,39 @@ async function splitPdfRangeBase64(startPage,endPage){
 }
 async function extractNativePdfBatch(key,pdfB64,startPage,endPage,totalPages,limit,libraryList){
   var wanted=limit?Math.min(limit,250):250;
-  var prompt=`Read ONLY the supplied original PDF pages ${startPage}-${endPage} of ${totalPages}. Faithful exam transcription, not summarization. Return ONLY JSON {"questions":[...]}. Each numbered/logical question must be a separate object; numerical questions without options are separate. Preserve exact English and Hindi/Devanagari wording, punctuation, numbers, units and option order. Preserve mathematics as valid MathJax LaTeX inside \( ... \) or \[ ... \]. Never replace roots, fractions, powers, subscripts, Greek symbols, integrals, vectors, matrices or derivatives with words such as SQRT/INT/alpha or slash text. Options must be separate strings without A/B/C/D labels. Set question_type from the actual format: if the question has A/B/C/D or other selectable choices, classify it as "mcq" (or "mcq_multi" only when it explicitly says multiple answers/select all); this includes Assertion–Reason and Reasoning questions that have choices. Do NOT return a separate "assertion" or "assertion_reason" type. Use "numerical" only for answer-entry questions without selectable options, "fill_blank" for fill-in-the-blank, "ssr"/"short"/"long" for written responses, and "passage" for comprehension. Do not translate, paraphrase or invent. Tables go in table_rows and matrices in matrix_latex; do not duplicate table cells in question text. Figures are optional metadata only. If a question continues across the supplied pages, keep it as one question and mark continuation fields. Include page as the absolute PDF page number. Maximum questions: ${wanted}. Existing library paths: ${libraryList}.`;
+  var prompt=`Read ONLY the supplied original PDF pages ${startPage}-${endPage} of ${totalPages}. Faithful exam transcription, not summarization. Return ONLY JSON {"questions":[...]}. Each numbered/logical question MUST be a separate object; numerical questions without options are separate. If the PDF visibly contains Q1 and Q2, never combine them into one object, even when they share a page or topic. Never concatenate options from adjacent numbered questions. Each question's options array must contain only the options printed under that question; for an ordinary four-option MCQ, return exactly four options (A-D). If one extracted stem contains two separate printed question numbers, split it into separate objects before returning JSON. Preserve exact English and Hindi/Devanagari wording, punctuation, numbers, units and option order. Preserve mathematics as valid MathJax LaTeX inside \( ... \) or \[ ... \]. Never replace roots, fractions, powers, subscripts, Greek symbols, integrals, vectors, matrices or derivatives with words such as SQRT/INT/alpha or slash text. Options must be separate strings without A/B/C/D labels. Set question_type from the actual format: if the question has A/B/C/D or other selectable choices, classify it as "mcq" (or "mcq_multi" only when it explicitly says multiple answers/select all); this includes Assertion–Reason and Reasoning questions that have choices. Do NOT return a separate "assertion" or "assertion_reason" type. Use "numerical" only for answer-entry questions without selectable options, "fill_blank" for fill-in-the-blank, "ssr"/"short"/"long" for written responses, and "passage" for comprehension. Do not translate, paraphrase or invent. Tables go in table_rows and matrices in matrix_latex; do not duplicate table cells in question text. Figures are optional metadata only. If a question continues across the supplied pages, keep it as one question and mark continuation fields. Include page as the absolute PDF page number. Maximum questions: ${wanted}. Existing library paths: ${libraryList}.`;
   var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}});
   var raw=(d?.candidates?.[0]?.content?.parts||[]).map(function(p){return p.text||""}).join("").trim();
   if(!raw)throw Error("Gemini returned no data for pages "+startPage+"-"+endPage);
   var parsed=parseGeminiJson(raw);
   if(!parsed||!Array.isArray(parsed.questions))throw Error("Invalid question JSON for pages "+startPage+"-"+endPage);
   return parsed.questions.slice(0,wanted);
+}
+function repairObviousMergedQuestions(items){
+  var fixed=[];
+  (Array.isArray(items)?items:[]).forEach(function(q){
+    if(!q||typeof q!=="object"){if(q)fixed.push(q);return;}
+    var stem=String(q.question||q.qText||q.questionText||"");
+    var opts=normalizeOptionList(q.options);
+    // Only auto-split when there are exactly eight options AND exactly two consecutive
+    // numbered question starts in the same stem. This avoids splitting legitimate 5-option MCQs.
+    var re=/(?:^|\n)\s*(?:Q(?:uestion)?\s*)?(\d{1,3})[.)]\s+/gi,m,marks=[];
+    while((m=re.exec(stem))){marks.push({number:Number(m[1]),start:m.index+(m[0].length-m[0].trimStart().length),bodyStart:re.lastIndex});}
+    if(opts.length===8&&marks.length===2&&marks[1].number===marks[0].number+1&&marks[1].bodyStart-marks[0].bodyStart>25){
+      var firstText=stem.slice(marks[0].bodyStart,marks[1].start).trim();
+      var secondText=stem.slice(marks[1].bodyStart).trim();
+      if(firstText&&secondText){
+        fixed.push(
+          Object.assign({},q,{question_number:String(marks[0].number),question:firstText,options:opts.slice(0,4),answer:"",correct_answer:"",final_answer:"",explanation:"",is_continuation:false,continuation:false}),
+          Object.assign({},q,{question_number:String(marks[1].number),question:secondText,options:opts.slice(4,8),answer:"",correct_answer:"",final_answer:"",explanation:"",is_continuation:false,continuation:false})
+        );
+        console.warn("[A2Z AI Import] Repaired likely merged questions",marks[0].number,marks[1].number,"by splitting 8 options into two groups of four; answer fields were cleared for review.");
+        return;
+      }
+    }
+    fixed.push(q);
+  });
+  return fixed;
 }
 async function extract(){
   let f=$("pdf").files[0];
@@ -1140,6 +1175,7 @@ async function extract(){
         try{
           var chunk=await splitPdfRangeBase64(rg[0],rg[1]);
           var list=await extractNativePdfBatch(key,chunk.base64,rg[0],rg[1],totalPages,remainingLimit||0,libraryList);
+          list=repairObviousMergedQuestions(list);
           for(var ni=0;ni<list.length;ni++){
             var nq=normalizePageQuestion(list[ni],ni,Number(list[ni].page||rg[0]));
             nq.sourcePage=String(list[ni].page||rg[0]);
@@ -1730,7 +1766,17 @@ window.addEventListener("click",async function(e){
   if(!Number.isFinite(i)||!qs[i])return;
   try{
     var a=b.dataset.a;
-    if(a==="refresh-question"){await reextractSingleQuestion(i);}
+    if(a==="apply-path"){
+      var pathInput=$("path-edit-"+i),manual=norm(pathInput&&pathInput.value||"");
+      if(!manual)return alert("Enter a folder path. Use / between folder names.");
+      qs[i].folderPath=manual;qs[i]._manualFolderPath=true;
+      render();showSaveToast("✔ Manual folder path set for Q"+qs[i].no+".");
+    }
+    else if(a==="use-ai-path"){
+      qs[i]._manualFolderPath=false;qs[i].folderPath=sourceAwareSuggestedPath(qs[i]);
+      render();showSaveToast("✔ AI-suggested path restored for Q"+qs[i].no+".");
+    }
+    else if(a==="refresh-question"){await reextractSingleQuestion(i);}
     else if(a==="generate-figure"){await generateAIQuestionFigure(i);}
     else if(a==="keep-crop"){qs[i].cropImageKept=true;showSaveToast("✔ Cropped question image marked to keep.");}
     else if(a==="discard-crop"){qs[i].cropImage="";qs[i].cropImageKept=false;if(qs[i].contentMode==="image")qs[i].contentMode="text";render();showSaveToast("Cropped question image discarded.");}
