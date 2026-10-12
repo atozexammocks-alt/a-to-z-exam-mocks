@@ -171,9 +171,16 @@ function optionsOf(q){
 function folderOf(q){
  return String(q?.folderPath||q?.path||q?.libraryPath||q?.folder||q?.subject||q?.folderName||"").trim().replace(/\\/g,"/").split("/").map(x=>x.trim()).filter(Boolean).join(" / ");
 }
-function isCentral(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.central===true||q?.isCentral===true||x==="central"||x.includes("central")}
-function isGroup(q){const x=String(q?.libraryMode??q?.targetLibrary??q?.libraryType??"").trim().toLowerCase();return q?.group===true||x==="group"||x.includes("group")}
-function belongs(q,mode){if(mode==="central")return isCentral(q);if(mode==="group")return isGroup(q);return !isCentral(q)&&!isGroup(q)}
+function libraryModeOf(q){
+ const vals=[q?.libraryMode,q?.targetLibrary,q?.libraryType,q?.library,q?.visibility,q?.accessLevel,q?.library_name,q?.destinationLibrary]
+  .filter(v=>v!==undefined&&v!==null).map(v=>String(v).trim().toLowerCase());
+ if(q?.central===true||q?.isCentral===true||vals.some(v=>v==="central"||v.includes("central library")||v==="central"))return "central";
+ if(q?.group===true||q?.isGroup===true||vals.some(v=>v==="group"||v.includes("group library")))return "group";
+ return "private";
+}
+function isCentral(q){return libraryModeOf(q)==="central"}
+function isGroup(q){return libraryModeOf(q)==="group"}
+function belongs(q,mode){return libraryModeOf(q)===(mode==="central"?"central":mode==="group"?"group":"private")}
 function renderMath(html){
  const x=String(html??"");
  if(!x)return "";
@@ -253,11 +260,9 @@ window.loadQuestions=async function(){
   window.builderData=all.filter(q=>{
    const id=String(q.id||""); if(seen.has(id))return false; seen.add(id);
    const owner=String(q.ownerEmail||q.creatorEmail||q.createdBy||q.teacherEmail||"").trim().toLowerCase();
-   const central=q.central===true||q.isCentral===true||q.libraryMode==="central"||q.targetLibrary==="central";
-   const group=q.group===true||q.libraryMode==="group"||q.targetLibrary==="group";
-   if(window.builderMode==="central") return central;
-   if(window.builderMode==="group") return group;
-   return !central&&!group&&(!owner||!email||owner===email);
+   if(window.builderMode==="central") return belongs(q,"central");
+   if(window.builderMode==="group") return belongs(q,"group");
+   return belongs(q,"private")&&(!owner||!email||owner===email);
   });
 
   const tree=window.builderFolderTrees[window.builderMode]||[];
@@ -274,9 +279,15 @@ window.loadQuestions=async function(){
 };
 
 window.setMode=function(mode){
- window.builderMode=mode;window.folderFilter="";
+ if(!["private","central","group"].includes(mode))return;
+ if(window.builderMode===mode){renderTree();renderQuestions();return;}
+ window.builderMode=mode;
+ window.folderFilter="";
+ window.selected.clear();
  document.querySelectorAll(".mode").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
- renderTree();renderQuestions();
+ // The loader builds builderData for the active library only. Reload on every
+ // library switch so a Private snapshot can never be reused for Central/Group.
+ loadQuestions();
 };
 window.selectAllVisible=function(){
  getVisible().forEach(q=>window.selected.add(String(q.id)));
@@ -289,9 +300,8 @@ window.clearSelection=function(){
  renderSelected();
 };
 function getModeQuestions(){
- const filtered=window.builderData.filter(q=>belongs(q,window.builderMode));
- if(!filtered.length && window.builderData.length) return window.builderData;
- return filtered;
+ // Never fall back to questions from another library when this mode is empty.
+ return (window.builderData||[]).filter(q=>belongs(q,window.builderMode));
 }
 function isInFolderScope(q,path){
  if(!path)return true;
