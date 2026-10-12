@@ -648,32 +648,17 @@ function setSaveProgress(text){
   var p=$("saveProgress"); if(p){p.textContent=text;p.className="save-progress show";}
 }
 async function uploadVisualAsset(db, dataUrl, pathPart, cache){
+  // Keep the app compatible with Firebase Spark: do not require Firebase Storage.
+  // Store a compact JPEG data URL in Firestore, with a strict per-image size cap.
   if(!dataUrl || !String(dataUrl).startsWith("data:image/")) return dataUrl || "";
   cache=cache||{};var original=String(dataUrl);
   if(cache[original])return cache[original];
-  var app=firebase.app(), storage=firebase.storage(app), ref=storage.ref();
-  var safe=(String(pathPart||"visual").replace(/[^a-zA-Z0-9._-]+/g,"_").slice(0,120)||"visual");
-  var ext=/data:image\/png/i.test(original)?"png":"jpg",base64=original.split(",")[1]||"";
-  var bin=atob(base64),bytes=new Uint8Array(bin.length);for(var k=0;k<bin.length;k++)bytes[k]=bin.charCodeAt(k);
-  var blob=new Blob([bytes],{type:ext==="png"?"image/png":"image/jpeg"});
-  var uid=(firebase.auth().currentUser&&firebase.auth().currentUser.uid)||"anonymous";
-  if(!uid)throw Error("Firebase authentication is not ready for visual upload.");
-  setSaveProgress("Uploading "+safe+"…");
-  try{
-    var fileRef=ref.child("ai_question_assets/"+tid(email()||uid)+"/"+Date.now()+"_"+safe+"."+ext);
-    await withTimeout(fileRef.put(blob,{contentType:blob.type,cacheControl:"public,max-age=31536000"}),25000,"Image upload "+safe);
-    setSaveProgress("Finalizing "+safe+"…");
-    var url=await withTimeout(fileRef.getDownloadURL(),15000,"Image URL "+safe);
-    cache[original]=url;return url;
-  }catch(err){
-    // Never leave the Save button hanging indefinitely. If Storage is unavailable,
-    // compact the image and use a small Firestore fallback only when it is safe.
-    setSaveProgress("Storage unavailable; compressing "+safe+"…");
-    var compact=await withTimeout(compactImageDataUrl(original),12000,"Image compression "+safe);
-    if(!compact||compact.length>70000)throw Error("Image "+safe+" could not be uploaded safely. Storage error: "+(err&&err.message?err.message:String(err)));
-    console.warn("Storage upload unavailable; using compact Firestore image fallback for",safe,err);
-    cache[original]=compact;return compact;
-  }
+  setSaveProgress("Compressing "+String(pathPart||"question image")+" for Firestore…");
+  var compact=await withTimeout(compactImageDataUrl(original),12000,"Image compression "+String(pathPart||"visual"));
+  if(!compact || !String(compact).startsWith("data:image/")) throw Error("Could not prepare image for Firestore. Please re-crop the image and try again.");
+  if(compact.length>70000) throw Error("Image is too large after compression. Please crop a smaller area and try again.");
+  cache[original]=compact;
+  return compact;
 }
 function materializeAIReconstructedVisuals(q){
   var list=Array.isArray(q.visualRegions)?q.visualRegions:[];
@@ -775,7 +760,7 @@ async function saveQ(i){
     if(pendingQuestion._generatedFigurePending){pendingQuestion.figureImage="";pendingQuestion._generatedFigurePending=false;}
     if(Array.isArray(pendingQuestion.visualRegions))pendingQuestion.visualRegions.forEach(function(v){if(v&&v.aiGeneratedPending){if(pendingQuestion.figureImage===v.image)pendingQuestion.figureImage="";v.image="";v.aiGeneratedPending=false;}});
   }
-  let q=qs[i];if(!q||(!String(q.text||"").trim()&&!(q.cropImage&&(q.contentMode==="image"||q.contentMode==="both"))))throw Error("Question text is empty. For an image-only question, crop the complete question and select Image Only before saving.");let em=email();
+  let q=qs[i];if(!q)throw Error("Question data is missing. Please re-open this question and try again.");var primaryQuestionImage=q.cropImage||q.figureImage||(Array.isArray(q.visualRegions)&&q.visualRegions.find(function(v){return v&&v.image})||{}).image||(Array.isArray(q.contentBlocks)&&q.contentBlocks.find(function(v){return v&&v.image})||{}).image;if(!q.cropImage&&(q.contentMode==="image"||q.contentMode==="both")&&primaryQuestionImage)q.cropImage=primaryQuestionImage;if(!String(q.text||"").trim()&&!(q.cropImage&&(q.contentMode==="image"||q.contentMode==="both")))throw Error("Question text is empty. For an image-only question, crop the complete question and select Image Only before saving.");if((q.contentMode==="image"||q.contentMode==="both")&&!q.cropImage)throw Error("Image + Text is selected, but no question image was found. Use Re-crop Question or add the question figure before saving.");let em=email();
   if(!em)throw Error("Teacher login not found. Open Teacher Portal and sign in first.");
   let db=await firebaseReady(),authUser=firebase.auth().currentUser;
   if(!authUser)throw Error("Firebase session is not ready. Refresh AI Question Import and try saving again.");
@@ -795,7 +780,7 @@ async function saveQ(i){
   }
   let m=saveMode,p=q.folderPath;
   await persistVisualAssets(db,q);
-  var payload={ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text||((q.contentMode==="image"&&q.cropImage)?"[Image-based question]":""),question:q.cropImage||"",isPYQ:q.keepSourceLabel!==false&&!!(q.isPYQ||q.sourceExam||q.year),options:(q.options||[]),keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:q.qType||"mcq",answerRegion:q.answerRegion||"",contentMode:q.contentMode||"text",keepText:q.contentMode!=="image",keepImage:q.contentMode==="image"||q.contentMode==="both",level:q.difficulty||"Medium",answer:q.answer||q.finalAnswer||"",finalAnswer:q.finalAnswer||q.answer||"",source:q.keepSourceLabel===false?"":(q.source||q.sourceExam||""),sourceExam:q.keepSourceLabel===false?"":(q.sourceExam||q.source||""),sourceYear:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),pyqYear:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),keepSourceLabel:q.keepSourceLabel!==false,sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",suggestedFlag:q.flagChoice||"normal",flags:q.flags||{},questionImage:q.cropImage||"",image:q.cropImage||"",figureImage:q.figureImage||"",figureRequired:!!q.figureRequired,figureReference:q.figureReference||"",contentBlocks:Array.isArray(q.contentBlocks)?q.contentBlocks:[],optionImages:Array.isArray(q.optionImages)?q.optionImages:[],optionFigureRequired:Array.isArray(q.optionFigureRequired)?q.optionFigureRequired:[],visualStorageVersion:3,visualRegions:Array.isArray(q.visualRegions)?q.visualRegions:[],reconstructedVisuals:Array.isArray(q.visualRegions)?q.visualRegions.filter(function(v){return v&&v.reconstruction}).length:0,createdAt:new Date().toISOString()};
+  var payload={ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text||((q.contentMode==="image"&&q.cropImage)?"[Image-based question]":""),question:q.cropImage||"",isPYQ:q.keepSourceLabel!==false&&!!(q.isPYQ||q.sourceExam||q.year),options:(q.options||[]),keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:q.qType||"mcq",answerRegion:q.answerRegion||"",contentMode:q.contentMode||"text",keepText:q.contentMode!=="image",keepImage:q.contentMode==="image"||q.contentMode==="both",level:q.difficulty||"Medium",answer:q.answer||q.finalAnswer||"",finalAnswer:q.finalAnswer||q.answer||"",source:q.keepSourceLabel===false?"":(q.source||q.sourceExam||""),sourceExam:q.keepSourceLabel===false?"":(q.sourceExam||q.source||""),sourceYear:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),pyqYear:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),keepSourceLabel:q.keepSourceLabel!==false,sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",suggestedFlag:q.flagChoice||"normal",flags:q.flags||{},questionImage:q.cropImage||q.figureImage||((Array.isArray(q.visualRegions)&&q.visualRegions.find(function(v){return v&&v.image})||{}).image)||((Array.isArray(q.contentBlocks)&&q.contentBlocks.find(function(v){return v&&v.image})||{}).image)||"",image:q.cropImage||q.figureImage||((Array.isArray(q.visualRegions)&&q.visualRegions.find(function(v){return v&&v.image})||{}).image)||((Array.isArray(q.contentBlocks)&&q.contentBlocks.find(function(v){return v&&v.image})||{}).image)||"",figureImage:q.figureImage||"",figureRequired:!!q.figureRequired,figureReference:q.figureReference||"",contentBlocks:Array.isArray(q.contentBlocks)?q.contentBlocks:[],optionImages:Array.isArray(q.optionImages)?q.optionImages:[],optionFigureRequired:Array.isArray(q.optionFigureRequired)?q.optionFigureRequired:[],visualStorageVersion:3,visualRegions:Array.isArray(q.visualRegions)?q.visualRegions:[],reconstructedVisuals:Array.isArray(q.visualRegions)?q.visualRegions.filter(function(v){return v&&v.reconstruction}).length:0,createdAt:new Date().toISOString()};
   var safePayload=firestoreSafePayload(payload);
   var payloadBytes=0;
   try{payloadBytes=new Blob([JSON.stringify(safePayload)]).size}catch(_){}
