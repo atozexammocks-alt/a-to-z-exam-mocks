@@ -7,7 +7,7 @@ body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:5
 <div id="savedPopup" class="saved-popup" role="status" aria-live="polite">✓ Question Saved</div>
 <div class="nav"><a href="teacher.html">🏠 A to Z Exam Mocks</a><div><a href="teacher.html">Dashboard</a> <a href="library.html">📁 Library</a></div></div>
 <div class="wrap"><div class="hero"><h2>🤖 AI Question Import — Beta</h2><div class="muted">Upload a question-paper PDF. Gemini extracts questions directly — no coordinates, JSON file, Python or manual cropping.</div>
-<div class="row"><input id="geminiKey" type="password" placeholder="Gemini API key" style="min-width:280px"><button id="saveKey" class="btn">Save Key on This Device</button><button id="testKey" class="btn purple" type="button">🔑 Test Gemini Key</button><span class="muted">Key stays in this browser only; never put it in GitHub.</span></div><div class="row"><div class="suggestbox" style="width:100%"><b>🧠 Faithful Reconstruction:</b> AI will separately reconstruct readable tables as HTML, matrices as LaTeX, and graphs/diagrams as inline SVG when possible. Complex photos remain available as exact PDF crops.</div></div><div class="row"><label for="defaultLibraryMode"><b>📚 Save all questions to:</b></label><select id="defaultLibraryMode" style="background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select><span class="muted">AI will create the suggested folder path automatically.</span></div><div class="row"><input id="pdf" type="file" accept=".pdf,application/pdf"><button id="extract" class="btn blue">🤖 Extract Questions with AI</button><span id="generateSolutions" style="display:none"></span><span id="status" class="muted">Waiting for PDF…</span></div>
+<div class="row"><input id="geminiKey" type="password" placeholder="Gemini API key" style="min-width:280px"><button id="saveKey" class="btn">Save Key on This Device</button><button id="testKey" class="btn purple" type="button">🔑 Test Gemini Key</button><span class="muted">Key stays in this browser only; never put it in GitHub.</span></div><div class="row"><div class="suggestbox" style="width:100%"><b>🧠 Faithful Reconstruction:</b> AI will separately reconstruct readable tables as HTML, matrices as LaTeX, and graphs/diagrams as inline SVG when possible. Complex photos remain available as exact PDF crops.</div></div><div class="row"><label for="defaultLibraryMode"><b>📚 Save all questions to:</b></label><select id="defaultLibraryMode" style="background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select><span class="muted">AI will create the suggested folder path automatically.</span></div><div class="row" style="padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><label for="bankRootOverride"><b>🗂 Main Question-Bank Folder:</b></label><input id="bankRootOverride" type="text" placeholder="Auto-detect, or enter JEE Mains / CBSE / NCERT Exemplar" style="flex:1;min-width:230px;background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><button id="applyBankRoot" class="btn purple" type="button">Apply to This Import</button><span class="muted">Manual value becomes the main folder; AI creates/reuses class, chapter and topic folders only inside it.</span></div><div class="row"><label style="display:flex;align-items:center;gap:7px"><input id="autoGenerateFigures" type="checkbox" checked> 🎨 Automatically generate AI figures for questions that need a diagram</label><span class="muted">Generated separately from extraction, only for question-owned figures; tables/matrices are not converted to figures.</span></div><div class="row"><input id="pdf" type="file" accept=".pdf,application/pdf"><button id="extract" class="btn blue">🤖 Extract Questions with AI</button><span id="generateSolutions" style="display:none"></span><span id="status" class="muted">Waiting for PDF…</span></div>
 <div class="settings" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="field"><label>TOTAL PDF PAGES</label><input id="totalPagesDisplay" value="—" readonly></div><div class="field"><label>PAGE MODE</label><select id="pageMode"><option value="batches" selected>Automatic 5-page batches</option><option value="range">Manual page range</option></select></div><div class="field"><label>START PAGE</label><input id="pageStart" type="number" min="1" value="1"></div><div class="field"><label>END PAGE</label><input id="pageEnd" type="number" min="1" value="5"></div></div>
 <div class="row" style="margin-top:7px;padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><b>📚 Large-PDF Safe Mode:</b><span class="muted">PDF is split into small native-PDF batches before Gemini reads it. Default: 5 pages per batch. This avoids repeated OCR screenshots and protects equations/Hindi text.</span><span id="batchProgress" class="muted"></span></div>
 <div class="settings"><div class="field"><label>Maximum Questions</label><select id="max"><option value="0">All</option><option>25</option><option>50</option><option>100</option></select></div></div>
@@ -62,7 +62,52 @@ function semanticSuggestedPath(q){
   return s+" / "+(chapter||"General")+" / "+t;
 }
 function getModePaths(mode){return paths(folderTrees[mode||"private"]||[])}
-function suggestedMatch(q){var mode=q&&q.libraryMode||"private",available=getModePaths(mode),sp=norm(q&&q.suggestedPath||"")||semanticSuggestedPath(q||{});if(sp&&available.indexOf(sp)>=0)return sp;if(sp){var a=sp.split(" / ").filter(Boolean);for(var i=a.length-1;i>=0;i--){var tail=a.slice(i).join(" / ").toLowerCase();var hit=available.find(function(p){return p.toLowerCase().endsWith(tail);});if(hit)return hit;}}return ""}
+function bankRootOverride(){return cleanPathPart($("bankRootOverride")&&$("bankRootOverride").value||"","");}
+function inferExamBankRoot(q){
+  q=q||{};
+  var raw=[q.sourceExam,q.source,q.examSource,q.questionSource,q.origin,q.book,q.paperName,q.sourceLabel,sourcePdfFile&&sourcePdfFile.name,q.text,q.qText].map(function(x){return String(x||"")}).join(" ");
+  if(/NCERT\s*[-–—:]?\s*Exemplar|Exemplar\s+Problems/i.test(raw))return "NCERT Exemplar";
+  if(/\bNCERT\b/i.test(raw))return "NCERT";
+  if(/\bCBSE\b|Central\s+Board\s+of\s+Secondary/i.test(raw))return "CBSE";
+  if(/\bJEE\s*(?:Main|Mains)\b|Joint\s+Entrance\s+Examination\s*[-–—:]?\s*Main/i.test(raw))return "JEE Mains";
+  if(/\bJEE\s*Advanced\b|IIT\s*JEE/i.test(raw))return "JEE Advanced";
+  if(/\bNEET\b/i.test(raw))return "NEET";
+  if(/\bCUET\b/i.test(raw))return "CUET";
+  if(/\bUPPSC\b/i.test(raw))return "UPPSC";
+  if(/\bHPSC\b/i.test(raw))return "HPSC";
+  if(/\bDSSSB\b/i.test(raw))return "DSSSB";
+  return "";
+}
+function pathPartKey(x){return String(x||"").replace(/\s+/g," ").trim().toLowerCase();}
+function sourceAwareSuggestedPath(q){
+  q=q||{};
+  var root=bankRootOverride()||inferExamBankRoot(q)||cleanPathPart(q.subject,"Physics");
+  var parts=[root],level=inferAcademicLevel(q);
+  function add(x){x=cleanPathPart(x,"");if(!x)return;var key=pathPartKey(x);if(!key)return;if(parts.some(function(p){return pathPartKey(p)===key;}))return;parts.push(x);}
+  if(level)add(level);
+  var chapter=cleanPathPart(q.chapter,""),topic=cleanPathPart(q.topic||q.subtopic,"");
+  var rawPath=norm(q.suggestedPath||"").split(" / ").filter(Boolean);
+  if(!chapter&&topic)chapter=topic;
+  if(!chapter&&rawPath.length){
+    chapter=rawPath.find(function(p){return !/^(physics|science|mathematics|chemistry|biology|general|class\s*\d+|\d+(?:th|st|nd|rd))$/i.test(p)&&pathPartKey(p)!==pathPartKey(root)&&pathPartKey(p)!==pathPartKey(level);})||"";
+  }
+  add(chapter);
+  if(topic&&(!chapter||!pathPartKey(chapter).includes(pathPartKey(topic))))add(topic);
+  var sub=cleanPathPart(q.subtopic,"");
+  if(sub&&(!chapter||!pathPartKey(chapter).includes(pathPartKey(sub)))&&(!topic||!pathPartKey(topic).includes(pathPartKey(sub))))add(sub);
+  rawPath.forEach(function(p){
+    if(/^(physics|science|mathematics|chemistry|biology|general|class\s*\d+|\d+(?:th|st|nd|rd))$/i.test(p))return;
+    if(pathPartKey(p)===pathPartKey(root)||pathPartKey(p)===pathPartKey(level)||pathPartKey(p)===pathPartKey(chapter)||pathPartKey(p)===pathPartKey(topic)||pathPartKey(p)===pathPartKey(sub))return;
+    add(p);
+  });
+  return norm(parts.join(" / "))||root;
+}
+function suggestedMatch(q){
+  var mode=q&&q.libraryMode||"private",available=getModePaths(mode),sp=sourceAwareSuggestedPath(q||{});
+  // Exact full-path reuse only: suffix matching can mix JEE/CBSE into unrelated folders.
+  var hit=available.find(function(p){return pathPartKey(p)===pathPartKey(sp);});
+  return hit||"";
+}
 function setQuestionPath(i,path){if(!qs[i])return;qs[i].folderPath=norm(path);localStorage.setItem("A2Z_AI_LIBRARY_PATH_"+(qs[i].libraryMode||"private"),qs[i].folderPath||"");renderQuestionPathSelectors(i);render();}
 function normalizeAISolutionMath(s){
   var x=String(s==null?"":s);
@@ -466,7 +511,8 @@ function render(){
   $("import").disabled=!qs.length;$("clear").disabled=!qs.length;
   if(!qs.length){$("grid").innerHTML='<div class="card muted">No questions loaded.</div>';return}
   $("grid").innerHTML=qs.map(function(q,i){
-    var aiPath=norm(q.suggestedPath||"")||semanticSuggestedPath(q),auto=suggestedMatch(q);
+    var aiPath=sourceAwareSuggestedPath(q),auto=suggestedMatch(q);
+    q.suggestedPath=aiPath;
     if(!q.folderPath&&auto)q.folderPath=auto;
     var flagChoice=q.flagChoice||suggestedFlagFromDifficulty(q.difficulty);
     var mode=q.contentMode||"text";
@@ -562,9 +608,9 @@ async function saveFolderPath(mode,path){
   let em=email();if(!em)throw Error("Teacher login not found.");
   let db=await firebaseReady(),col=mode==="private"?"folder_configs_private":mode==="central"?"folder_configs_central":"folder_configs_group",id=mode==="private"?tid(em):mode==="central"?"global_central_tree":tid(em)+"_group";
   let snap=await db.collection(col).doc(id).get(),raw=tree(snap.exists?snap.data():{}),parts=path.split(" / ").filter(Boolean),nodes=raw;
-  parts.forEach(function(part){let hit=nodes.find(function(n){return String(n.name||"").trim().toLowerCase()===part.toLowerCase()});if(!hit){hit={name:part,children:[]};nodes.push(hit)}nodes=hit.children||(hit.children=[])});
+  var canonical=[];parts.forEach(function(part){let hit=nodes.find(function(n){return String(n.name||"").trim().toLowerCase()===part.toLowerCase()});if(!hit){hit={name:part,children:[]};nodes.push(hit)}canonical.push(String(hit.name||part).trim());nodes=hit.children||(hit.children=[])});
   await db.collection(col).doc(id).set({ownerEmail:em,libraryTree:raw,folderPdfs:snap.exists&&snap.data().folderPdfs?snap.data().folderPdfs:{},updatedAt:new Date().toISOString()},{merge:true});
-  folderTrees[mode]=raw;if(mode==="private")folderPaths=paths(raw);return path;
+  folderTrees[mode]=raw;if(mode==="private")folderPaths=paths(raw);return canonical.join(" / ");
 }
 async function addFolderFromUI(mode,parentPath){
   var name=prompt(parentPath?"Enter sub-folder name:":"Enter main folder name:");
@@ -728,8 +774,9 @@ async function saveQ(i){
   // The user chooses only the destination library. Always derive the path from AI's topic/chapter
   // and create the complete folder tree automatically; never reuse an unrelated saved/first folder.
   var saveMode=q.libraryMode||$("defaultLibraryMode").value||"private";
-  var semantic=norm(q.suggestedPath||"")||semanticSuggestedPath(q);
-  if(!semantic)semantic="Physics / General / General";
+  var semantic=sourceAwareSuggestedPath(q);
+  q.suggestedPath=semantic;
+  if(!semantic)semantic="Physics";
   try{
     q.folderPath=await saveFolderPath(saveMode,semantic);
     folderTrees[saveMode]=folderTrees[saveMode]||[];
@@ -1010,7 +1057,7 @@ async function extractNativePdf(key,pdfB64,totalPages,limit,libraryList){
   var wanted=limit?Math.min(limit,250):250;
   var prompt=`Extract exam questions from the supplied ORIGINAL PDF. This is a faithful transcription task, not summarization. CRITICAL: each numbered/logical question MUST be a separate object in questions[]. NEVER put the entire paper, an entire page, or multiple numbered questions into one question object. If the PDF contains Q1, Q2, Q3, return at least three separate objects. A question object may contain its own multi-line bilingual text, subparts, options and table, but it must stop before the next printed question number. NUMERICAL QUESTIONS WITHOUT OPTIONS ARE STILL SEPARATE QUESTIONS. Never merge two standalone numerical problems just because they have no options or no full stop. If you return table_rows/table_html, keep the question text limited to the question stem and the sentence introducing the table; DO NOT also copy the table cells as tab-separated, pipe-separated, or row-by-row plain text into question. Return ONLY valid JSON in exactly this shape: {"questions":[...]}. Extract every logical question in printed order, preserving BOTH English and Hindi/Devanagari when the PDF is bilingual. Never translate, transliterate, paraphrase, shorten or omit text. Preserve punctuation, option labels, numbers, units and line structure. Preserve mathematical notation as valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. A visible fraction must be \\frac{...}{...}, a root \\sqrt{...}, powers/subscripts/superscripts must remain structured, Greek letters must remain symbols, and integrals/limits/matrices/vectors/derivatives must remain mathematical notation. Never output words such as SQRT, INT, alpha, raised power or subscript when the PDF visibly contains the corresponding mathematical symbol. Preserve Å/Å, °C, μ, Ω and other units exactly. Do not confuse a literal slash in prose with a fraction. TABLE SEPARATION IS CRITICAL: the question field must contain only the printed question stem and any sentence that introduces the table. NEVER transcribe table rows/cells as plain lines inside question. Put every table cell ONLY in table_rows and table_html. Do not write a row-formatted text version before/after the HTML table. If table_rows is populated, table contents must not be repeated in question. For every real printed table, set visual_type="table" and return table_rows as a 2D array of cell objects {"text":"...","rowspan":1,"colspan":1,"header":false}; preserve exact row/column order, merged cells, headers, blank cells, labels, units and math inside cells. Also return table_html as a complete <table> with <tr>, <th>, <td>, rowspan and colspan only. NEVER reconstruct a table as a graph, scale, matrix, prose sentence or guessed values. If a cell is unreadable, preserve only what is visibly supported; never invent. Keep real mathematical matrices in matrix_latex. Do not invent figures or equations. FIGURE OWNERSHIP BOUNDARIES — ABSOLUTE RULE: First identify the printed start and end boundary of EACH question (question number through its stem, subparts, and options, stopping immediately before the next question number). Treat each question as an isolated region. A figure belongs to a question ONLY if its printed position is inside that question’s stem/options region, or the question text explicitly refers to that specific figure within the same bounded region. Never attach a nearby figure merely because it is visually close. Never attach a figure located below/inside the next numbered question to the previous question. Do not cross question-number boundaries, column boundaries, or answer/solution boundaries. Every visual_regions entry must include owner_question_number matching its question_number and a concise anchor proving where it appears (e.g. “between Q3 stem and Q3 options”). If you cannot confidently assign the figure to one question boundary, return NO visual_regions entry for it and set figure_required=false; flag uncertainty in figure_reference only. A question’s own visual_regions may contain ONLY visuals owned by that same question. Never copy, reuse, clone, or carry the same visual region into adjacent question objects. If Q1 has no figure inside Q1’s boundary, Q1 must have visual_regions=[] and figure_required=false even if Q2 has a figure.
 
-FIGURE HANDLING IS CRITICAL: Never generate or return an image, screenshot, page image, full-page image, crop image, base64 image, or SVG. Do not put the entire PDF page into any image field. Detect visual references only. Set figure_required=true ONLY when the QUESTION STEM itself requires a figure to understand/answer it. A figure appearing only in the SOLUTION/EXPLANATION must NOT make the question figure-required; keep it in explanation/solution description only. If the visual is needed, provide figure_reference such as "Need figure: circuit diagram near the question". Keep all figures optional for saving. Return empty/null image fields. For each question return: question_number, question, options (array), answer, explanation, topic, chapter, subject, subtopic, source, year, difficulty, suggested_flag, suggested_library_path, table_rows, matrix_latex, visual_type, visual_required, figure_required, figure_reference, page, is_continuation, continuation_of_previous. Use the deepest reliable library path in this hierarchy: Class/Grade / Chapter / Topic / Subtopic / Concept. Existing library paths: ${libraryList}. Maximum questions: ${wanted}. If a question continues across pages, merge the continuation into the same question. Do not create a new question from an option-only or continuation fragment. Return the complete question text and all options. For options, ALWAYS return one separate string per printed option in the options ARRAY, in printed order. NEVER combine A, B, C and D into one array item or put all options in question text. If labels are inline, split at each printed A., B., C., D. boundary before returning JSON. Return option text WITHOUT A./B./C./D. labels because the interface adds labels. If no options exist, return options:[]. SOLVE EACH QUESTION while extracting: set answer to the correct MCQ option LETTER (A/B/C/D...) for MCQs, not the option's raw numeric/text value; for numerical questions set the computed numerical answer with unit when appropriate; for fill-in-the-blank set the missing answer. Include a concise explanation only when reliably solvable; do not guess if information is insufficient. For MCQ, compare all options and choose the mathematically/conceptually correct option, even if the answer is not printed in the question paper. Treat column/page breaks as continuation, not a new question; use the next page only to finish the current question and options.`;
+FIGURE HANDLING IS CRITICAL: Never generate or return an image, screenshot, page image, full-page image, crop image, base64 image, or SVG. Do not put the entire PDF page into any image field. Detect visual references only. Set figure_required=true ONLY when the QUESTION STEM itself requires a figure to understand/answer it. A figure appearing only in the SOLUTION/EXPLANATION must NOT make the question figure-required; keep it in explanation/solution description only. If the visual is needed, provide figure_reference such as "Need figure: circuit diagram near the question". Keep all figures optional for saving. Return empty/null image fields. For each question return: question_number, question, options (array), answer, explanation, topic, chapter, subject, subtopic, source, year, difficulty, suggested_flag, suggested_library_path, table_rows, matrix_latex, visual_type, visual_required, figure_required, figure_reference, page, is_continuation, continuation_of_previous. Use a source-aware question-bank hierarchy. MAIN ROOT comes first and must match the exam/book source if identifiable: JEE Mains, JEE Advanced, CBSE, NCERT Exemplar, NCERT, NEET, etc. Then Class/Grade, Chapter, Topic, Subtopic, Concept. Examples: JEE Mains / 12th / Optics / Ray Optics; CBSE / 10th / Electricity; NCERT Exemplar / 12th / Optics / Lens Formula. Never repeat the same folder name twice in one path. Reuse the same chapter/topic folder for all questions with that concept; do not invent alternate spellings or restart an existing topic hierarchy. Existing library paths: ${libraryList}. Maximum questions: ${wanted}. If a question continues across pages, merge the continuation into the same question. Do not create a new question from an option-only or continuation fragment. Return the complete question text and all options. For options, ALWAYS return one separate string per printed option in the options ARRAY, in printed order. NEVER combine A, B, C and D into one array item or put all options in question text. If labels are inline, split at each printed A., B., C., D. boundary before returning JSON. Return option text WITHOUT A./B./C./D. labels because the interface adds labels. If no options exist, return options:[]. SOLVE EACH QUESTION while extracting: set answer to the correct MCQ option LETTER (A/B/C/D...) for MCQs, not the option's raw numeric/text value; for numerical questions set the computed numerical answer with unit when appropriate; for fill-in-the-blank set the missing answer. Include a concise explanation only when reliably solvable; do not guess if information is insufficient. For MCQ, compare all options and choose the mathematically/conceptually correct option, even if the answer is not printed in the question paper. Treat column/page breaks as continuation, not a new question; use the next page only to finish the current question and options.`;
   var body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}};
   var d=await geminiRequest(key,body);
   var raw=d?.candidates?.[0]?.content?.parts?.map(function(p){return p.text||""}).join("")||"";
@@ -1311,6 +1358,7 @@ function normalizePageQuestion(q,i,pageNo){
         if(!t||seen[k])continue;
         seen[k]=1;
         let nq=normalizePageQuestion(q,all.length,pageNo);
+        nq.suggestedPath=sourceAwareSuggestedPath(nq);
         var recoveredOptions=recoverOptionsFromStem(nq.text,nq.options);nq.text=recoveredOptions.text;nq.options=recoveredOptions.options;
         nq.qType=inferQuestionType(nq);
         nq.answer=normaliseMCQAnswer(nq,nq.answer||nq.finalAnswer||"");
@@ -1409,6 +1457,8 @@ FIGURE RULE (STRICT SEPARATION): Do not generate any image, SVG, screenshot or p
     qs.forEach(function(q,i){cleanQuestionOptions(q);q._chronologicalIndex=i+1;var recovered=recoverOptionsFromStem(q.text,q.options);q.text=recovered.text;q.options=recovered.options;q.qType=inferQuestionType(q);q.answer=normaliseMCQAnswer(q,q.answer||q.finalAnswer||"");q.finalAnswer=q.answer||q.finalAnswer||"";});
     totalDetected=qs.length;render();
     $("generateSolutions").disabled=false;
+    var figureRun={generated:0,failed:0};
+    try{figureRun=await autoGenerateDetectedFigures();}catch(figErr){console.warn("[A2Z AI Import] Automatic figure pass failed:",figErr);figureRun.failed++;}
     // Keep any answer already printed in the PDF. For every unanswered question,
     // automatically ask AI to solve it; no manual option selection or button click.
     var needsAutoAnswer=function(q){var a=normaliseMCQAnswer(q,q.answer||q.finalAnswer||"");if(q.qType==="mcq"||q.qType==="mcq_multi")return !/^[A-H]$/.test(String(a||"").trim().toUpperCase());return !String(a||"").trim();};
@@ -1421,7 +1471,7 @@ FIGURE RULE (STRICT SEPARATION): Do not generate any image, SVG, screenshot or p
       await Promise.all([autoAnswerWorker(),autoAnswerWorker()]);
     }
     totalDetected=qs.length;render();
-    $("status").textContent="✔ Extraction complete. "+qs.length+" question(s) ready. "+(pendingAuto.length?"AI auto-answer attempted for "+pendingAuto.length+" missing answer(s); "+autoFailed+" could not be verified.":"All detected PDF answers were retained.")+" No manual A/B/C/D selection is required.";
+    $("status").textContent="✔ Extraction complete. "+qs.length+" question(s) ready. "+(figureRun.generated?"AI generated "+figureRun.generated+" figure(s). ":"")+(figureRun.failed?figureRun.failed+" figure(s) need manual review. ":"")+(pendingAuto.length?"AI auto-answer attempted for "+pendingAuto.length+" missing answer(s); "+autoFailed+" could not be verified.":"All detected PDF answers were retained.")+" No manual A/B/C/D selection is required.";
   }catch(e){
     $("status").textContent="❌ "+e.message;alert("AI extraction failed: "+e.message);
   }finally{$("extract").disabled=false}
@@ -1519,7 +1569,7 @@ async function generateAIQuestionFigure(i){
   var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
   if(!key)throw Error("Enter/save your Gemini API key first.");
   if(q._generatingFigure)return;
-  var prompt="Create a clean, exam-ready scientific schematic as SVG for this question. Prefer simple black lines, white background, clear labels, correct conventional symbols and no decorative styling. Do not include a solution or answer. Do not invent numerical values. If the question already refers to a specific source figure that cannot be inferred, create only a generic schematic consistent with the described setup. Return ONLY one self-contained <svg>...</svg> document, viewBox included, no Markdown fences. Avoid scripts, foreignObject, external images, event handlers, or external links. Question: "+String(q.text||"")+"\nFigure/diagram description: "+String(q.diagram||q.figureReference||q.visualType||"A simple schematic if needed");
+  var prompt="Create a clean, exam-ready scientific schematic as SVG for this question. Prefer simple black lines, pure white background, dark labels, correct conventional symbols and no decorative styling. Do not include a solution or answer. Do not invent numerical values or labels not supported by the question. If the question explicitly depends on a specific original figure that cannot be inferred, create a faithful generic schematic only when the setup is clear; otherwise state that the source crop is needed. Return ONLY one self-contained <svg>...</svg> document with viewBox, no Markdown fences. Use valid visible SVG geometry, readable labels, black/dark strokes and white background. Avoid scripts, foreignObject, external images, event handlers, or external links. Question: "+String(q.text||"")+"\nFigure/diagram description: "+String(q.diagram||q.figureReference||q.visualType||"A simple schematic if needed");
   q._generatingFigure=true;var btn=document.querySelector('button[data-a="generate-figure"][data-i="'+i+'"]');if(btn){btn.disabled=true;btn.textContent="⏳ Generating…";}
   $("status").textContent="🎨 Asking AI to create an editable-style SVG schematic for Q"+q.no+"…";
   try{
@@ -1537,6 +1587,37 @@ async function generateAIQuestionFigure(i){
   finally{q._generatingFigure=false;}
 }
 
+async function autoGenerateDetectedFigures(){
+  var enabled=$("autoGenerateFigures");
+  if(enabled&&!enabled.checked)return {generated:0,failed:0,skipped:true};
+  var targets=qs.map(function(q,i){return {q:q,i:i};}).filter(function(x){
+    var q=x.q||{},type=String(q.visualType||q.figureType||"diagram");
+    return q.figureRequired===true && isFigureVisual(type) && !/^(table|matrix)$/i.test(type) &&
+      !String(q.figureImage||"").trim() && !String(q._generatedFigureCandidate||"").trim();
+  });
+  if(!targets.length)return {generated:0,failed:0};
+  var cursor=0,generated=0,failed=0;
+  $("status").textContent="🎨 Generating AI diagrams for "+targets.length+" question(s)…";
+  async function worker(){
+    while(cursor<targets.length){
+      var item=targets[cursor++],q=item.q;
+      try{
+        await generateAIQuestionFigure(item.i);
+        var uri=String(q._generatedFigureCandidate||"");
+        if(!uri)throw Error("No generated figure returned");
+        q.figureImage=uri;q._generatedFigureCandidate="";q._generatedFigurePending=false;q.figureImageGeneratedByAI=true;
+        if(Array.isArray(q.visualRegions)&&q.visualRegions.length){
+          var slot=q.visualRegions.find(function(v){return v&&!String(v.image||"").trim();});
+          if(slot){slot.image=uri;slot.aiGeneratedPending=false;slot.generatedByAI=true;}
+        }
+        generated++;
+      }catch(e){failed++;console.warn("[A2Z AI Import] Auto figure generation failed for Q"+q.no,e);}
+    }
+  }
+  await Promise.all([worker(),worker()]);
+  render();
+  return {generated:generated,failed:failed};
+}
 async function generateAISolutionForQuestion(i,options){
   options=options||{};var silent=!!options.silent;
   var q=qs[i];if(!q)return false;var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!key){if(!silent)alert("पहले Gemini API key डालें.");return false;}if(q.solutionGenerating)return false;
@@ -1625,7 +1706,7 @@ $("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("
   }catch(e){$("status").textContent="⚠️ Could not read page count: "+(e.message||e);}
 });
 $("pageMode").addEventListener("change",function(){var manual=this.value==="range";$("pageStart").disabled=!manual;$("pageEnd").disabled=!manual;});
-$("pageStart").disabled=true;$("pageEnd").disabled=true;$("extract").onclick=extract;if(typeof generateAISolutions === "function"){ $("generateSolutions").onclick=generateAISolutions; }$("clear").onclick=()=>{qs=[];$("generateSolutions").disabled=true;render();$("status").textContent="Cleared.";showSaveToast("Review list cleared.")};$("import").onclick=async()=>{if(!qs.length)return;$("import").disabled=true;let processed=0;try{while(qs.length){let q=qs[0];q.libraryMode=q.libraryMode||"private";$("status").textContent="☁ Preparing Q"+q.no+" for "+(q.libraryMode==="central"?"Central":q.libraryMode==="group"?"Group":"Private")+" Library save…";await saveQ(0);uploadedCount++;processed++;qs.splice(0,1);render();$("status").textContent="☁ Saved "+processed+" question(s). "+qs.length+" remaining.";showSaveToast("✔ Question "+q.no+" saved to Library. "+qs.length+" remaining.");}}catch(e){console.error("[A2Z AI Import] bulk save stopped after "+processed+" successful question(s):",e);showQuestionSavedPopup("Question Save Failed",false);showSaveToast("❌ Save stopped after "+processed+" saved: "+e.message,true);$("status").textContent="❌ Save failed after "+processed+" saved: "+e.message}finally{$("import").disabled=!qs.length}};$("defaultLibraryMode").addEventListener("change",function(){var mode=this.value||"private";qs.forEach(function(q){q.libraryMode=mode;q.folderPath="";});if($("eMode"))$("eMode").value=mode;render();});$("grid").addEventListener("change",function(e){var t=e.target,i=Number(t.dataset.i);if(!Number.isFinite(i)||!qs[i])return;if(t.classList.contains("q-type-control")){qs[i].qType=t.value;qs[i].answer=normaliseMCQAnswer(qs[i],qs[i].answer||qs[i].finalAnswer);render()}else if(t.classList.contains("q-answer-control")){qs[i].answer=t.value;qs[i].finalAnswer=t.value;}else if(t.classList.contains("q-answer-region"))qs[i].answerRegion=t.value;else if(t.classList.contains("q-source-control")){qs[i].sourceExam=t.value;qs[i].source=t.value;qs[i].isPYQ=!!(t.value||qs[i].year)}else if(t.classList.contains("q-year-control")){qs[i].year=t.value;qs[i].sourceYear=t.value;qs[i].isPYQ=!!(t.value||qs[i].sourceExam)}else if(t.classList.contains("q-keep-source-label"))qs[i].keepSourceLabel=t.checked;});
+$("pageStart").disabled=true;$("pageEnd").disabled=true;$("extract").onclick=extract;if(typeof generateAISolutions === "function"){ $("generateSolutions").onclick=generateAISolutions; }$("clear").onclick=()=>{qs=[];$("generateSolutions").disabled=true;render();$("status").textContent="Cleared.";showSaveToast("Review list cleared.")};$("import").onclick=async()=>{if(!qs.length)return;$("import").disabled=true;let processed=0;try{while(qs.length){let q=qs[0];q.libraryMode=q.libraryMode||"private";$("status").textContent="☁ Preparing Q"+q.no+" for "+(q.libraryMode==="central"?"Central":q.libraryMode==="group"?"Group":"Private")+" Library save…";await saveQ(0);uploadedCount++;processed++;qs.splice(0,1);render();$("status").textContent="☁ Saved "+processed+" question(s). "+qs.length+" remaining.";showSaveToast("✔ Question "+q.no+" saved to Library. "+qs.length+" remaining.");}}catch(e){console.error("[A2Z AI Import] bulk save stopped after "+processed+" successful question(s):",e);showQuestionSavedPopup("Question Save Failed",false);showSaveToast("❌ Save stopped after "+processed+" saved: "+e.message,true);$("status").textContent="❌ Save failed after "+processed+" saved: "+e.message}finally{$("import").disabled=!qs.length}};$("defaultLibraryMode").addEventListener("change",function(){var mode=this.value||"private";qs.forEach(function(q){q.libraryMode=mode;q.folderPath="";});if($("eMode"))$("eMode").value=mode;render();});$("applyBankRoot").addEventListener("click",function(){var root=bankRootOverride();if(!root){alert("Enter a main question-bank folder, or leave it blank to auto-detect from the source.");return;}qs.forEach(function(q){q.folderPath="";q.suggestedPath=sourceAwareSuggestedPath(q);});render();showSaveToast("✔ Main folder set to "+root+". AI will create/reuse subfolders only inside it.");});$("bankRootOverride").addEventListener("keydown",function(e){if(e.key==="Enter")$("applyBankRoot").click();});$("grid").addEventListener("change",function(e){var t=e.target,i=Number(t.dataset.i);if(!Number.isFinite(i)||!qs[i])return;if(t.classList.contains("q-type-control")){qs[i].qType=t.value;qs[i].answer=normaliseMCQAnswer(qs[i],qs[i].answer||qs[i].finalAnswer);render()}else if(t.classList.contains("q-answer-control")){qs[i].answer=t.value;qs[i].finalAnswer=t.value;}else if(t.classList.contains("q-answer-region"))qs[i].answerRegion=t.value;else if(t.classList.contains("q-source-control")){qs[i].sourceExam=t.value;qs[i].source=t.value;qs[i].isPYQ=!!(t.value||qs[i].year)}else if(t.classList.contains("q-year-control")){qs[i].year=t.value;qs[i].sourceYear=t.value;qs[i].isPYQ=!!(t.value||qs[i].sourceExam)}else if(t.classList.contains("q-keep-source-label"))qs[i].keepSourceLabel=t.checked;});
 /* REVIEW ACTION ROUTER: bind at document level so re-rendering #grid can never orphan question controls. */
 document.addEventListener("change",function(e){
   var el=e.target;if(!el||!el.classList)return;
