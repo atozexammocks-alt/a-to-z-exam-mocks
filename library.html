@@ -918,24 +918,38 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       try{rewritePdfPaths(path,newPath);await rewriteQuestionPaths(path,newPath);await saveLibraryStateForCurrentMode();if(pathIn(currentFolderPath,path))currentFolderPath=newPath+normalizeFolderPath(currentFolderPath).slice(path.length);await loadLibraryStateForCurrentMode();await loadPickerQuestions();renderLibraryBrowser();showToast('✔ Folder renamed');}catch(e){alert('Rename failed: '+e.message);}
     };
     window.deleteFolderByPath=async function(path){
-      path=normalizeFolderPath(path);const node=findFolderByPath(path);if(!node)return;
-      if(!confirm('Delete this folder and its subfolders? Questions will remain saved but will be unassigned from this folder.'))return;
-      const src=findFolderParentArray(path),idx=src.arr.findIndex(x=>x===node);if(idx<0)return;
-      const parentPath=src.parentPath||'';
+      path=normalizeFolderPath(path);
+      const node=findFolderByPath(path);
+      if(!node)return;
+      // Only delete questions belonging to the currently selected library; include all nested subfolders.
+      const affected=(libraryQuestions||[]).filter(q=>pathIn(getQuestionFolderPath(q),path));
+      const questionCount=affected.length;
+      if(!confirm('PERMANENTLY DELETE this folder and all its subfolders?\n\nThis will permanently delete '+questionCount+' question(s) stored inside this folder/subfolders. This cannot be undone.'))return;
+      const src=findFolderParentArray(path),idx=src.arr.findIndex(x=>x===node);
+      if(idx<0)return;
+      let deleted=0;
       try{
-        // Unassign saved questions first. Otherwise loadPickerQuestions() rebuilds the deleted folder from their old folderPath.
-        const affected=(pickerQuestions||[]).filter(q=>pathIn(getQuestionFolderPath(q),path));
+        // Permanently remove the folder's questions from Firestore first. If one fails, keep the folder so the remaining records are still reachable.
         for(const q of affected){
-          await window.updateDoc(window.doc(window.db,'questions',q.id),{folderPath:parentPath,path:parentPath,libraryPath:parentPath,folderUnassigned:!parentPath,updatedAt:new Date().toISOString()});
-          q.folderPath=parentPath;q.path=parentPath;q.libraryPath=parentPath;q.folderUnassigned=!parentPath;
+          await window.deleteDoc(window.doc(window.db,'questions',String(q.id)));
+          deleted++;
         }
         src.arr.splice(idx,1);
         Object.keys(folderPdfs||{}).forEach(k=>{if(pathIn(k,path))delete folderPdfs[k];});
         const saved=await saveLibraryStateForCurrentMode();
-        if(!saved)throw Error('Folder tree could not be saved to Firestore. Check permissions/network and try again.');
-        if(pathIn(currentFolderPath,path))currentFolderPath=parentPath;
-        await loadLibraryStateForCurrentMode();await loadPickerQuestions();renderLibraryBrowser();showToast('🗑️ Folder deleted; '+affected.length+' question(s) kept and unassigned/moved to parent.');
-      }catch(e){alert('Delete failed: '+e.message);await loadLibraryStateForCurrentMode();await loadPickerQuestions();renderLibraryBrowser();}
+        if(!saved)throw Error('Questions were deleted, but the folder tree could not be saved to Firestore. Refresh and retry deleting the now-empty folder.');
+        if(pathIn(currentFolderPath,path))currentFolderPath=src.parentPath||'';
+        await loadLibraryStateForCurrentMode();
+        await loadPickerQuestions();
+        renderLibraryBrowser();
+        showToast('🗑️ Folder deleted permanently; '+deleted+' question(s) deleted.');
+      }catch(e){
+        console.error('[A2Z Library] Permanent folder delete failed:',{path,deleted,total:questionCount,error:e});
+        alert('Folder deletion stopped after deleting '+deleted+' of '+questionCount+' question(s). Error: '+(e.message||String(e))+'\n\nThe folder has been kept where possible so you can retry for the remaining questions.');
+        await loadLibraryStateForCurrentMode();
+        await loadPickerQuestions();
+        renderLibraryBrowser();
+      }
     };
 
     window.editLibraryQuestion=function(id){
