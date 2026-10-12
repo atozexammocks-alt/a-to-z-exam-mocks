@@ -509,27 +509,29 @@ function firebaseReady(){
   if(!firebase.apps.length)firebase.initializeApp(cfg);
   if(__firebaseReadyPromise)return __firebaseReadyPromise;
   const a=firebase.auth(),db=firebase.firestore();
-  __firebaseReadyPromise=new Promise(function(resolve,reject){
-    let settled=false;
-    const finish=function(user){
-      if(settled)return;
-      settled=true;
-      if(user){
-        console.info("[A2Z AI Import] Firebase user ready:",user.email||"anonymous",user.uid);
-        resolve(db);
-        return;
+  __firebaseReadyPromise=(async function(){
+    // The existing Test Builder uses Firebase Anonymous Auth for the same project.
+    // Reuse that established session model instead of requiring an email/password
+    // Firebase user; the teacher's portal email remains the Library owner key.
+    try{
+      var current=a.currentUser;
+      if(!current){
+        current=await new Promise(function(resolve,reject){
+          var unsub=a.onAuthStateChanged(function(user){unsub();resolve(user||null);},function(err){try{unsub()}catch(_){}reject(err);});
+        });
       }
-      console.error("[A2Z AI Import] No authenticated teacher Firebase session is available.");
-      reject(new Error("Teacher Firebase login is not active. Open Teacher Portal, sign in with your teacher account, then reopen AI Question Import. Anonymous login is not accepted for Library saving."));
-    };
-    const unsub=a.onAuthStateChanged(function(user){
-      unsub();
-      finish(user);
-    },function(err){
-      try{unsub()}catch(_){}
-      reject(err);
-    });
-  });
+      if(!current){
+        var credential=await a.signInAnonymously();
+        current=credential&&credential.user?a.currentUser||credential.user:a.currentUser;
+      }
+      if(!current)throw new Error("Firebase could not establish a session. Check that Anonymous sign-in is enabled in Firebase Authentication.");
+      console.info("[A2Z AI Import] Firebase session ready:",current.email||"anonymous",current.uid);
+      return db;
+    }catch(err){
+      __firebaseReadyPromise=null;
+      throw new Error("Firebase session could not be established: "+(err&&err.message?err.message:String(err)));
+    }
+  })();
   return __firebaseReadyPromise;
 }
 async function loadFolders(mode,sel,status){sel.innerHTML='<option value="">📁 Select Library Folder…</option>';let em=email();if(!em){status.textContent="Login required to load Library folders.";return}try{let db=await firebaseReady(),col=mode==="private"?"folder_configs_private":mode==="central"?"folder_configs_central":"folder_configs_group",id=mode==="private"?tid(em):mode==="central"?"global_central_tree":tid(em)+"_group",snap=await db.collection(col).doc(id).get(),rawTree=tree(snap.exists?snap.data():{}),ps=paths(rawTree);folderTrees[mode]=rawTree;if(mode==="private")folderPaths=ps.slice();ps.forEach(p=>{let o=document.createElement("option");o.value=p;o.textContent="📁 "+p;sel.appendChild(o)});let saved=norm(localStorage.getItem("A2Z_AI_LIBRARY_PATH_"+mode)||"");if(ps.includes(saved))sel.value=saved;status.textContent=ps.length?ps.length+" Library folder(s) loaded.":"No folders found. Create folders in Library first."}catch(e){status.textContent="Could not load Library folders: "+e.message}}
@@ -699,8 +701,9 @@ async function saveQ(i){
   let q=qs[i];if(!q||!String(q.text||"").trim())throw Error("Question text is empty.");let em=email();
   if(!em)throw Error("Teacher login not found. Open Teacher Portal and sign in first.");
   let db=await firebaseReady(),authUser=firebase.auth().currentUser;
-  if(!authUser||!authUser.email)throw Error("Your Firebase session is anonymous or expired. Sign out and sign in again through Teacher Portal, then reopen this page.");
-  if(String(authUser.email).trim().toLowerCase()!==em)throw Error("Teacher account mismatch. Portal email is "+em+" but Firebase is signed in as "+authUser.email+". Sign in again through Teacher Portal.");
+  if(!authUser)throw Error("Firebase session is not ready. Refresh AI Question Import and try saving again.");
+  // Firebase Auth is anonymous in the existing Test Builder too. Keep the
+  // Teacher Portal email as ownerEmail for the current Library schema.
   // Recover a missing per-question folder from the selected/saved folder or the first existing folder.
   var saveMode=q.libraryMode||"private",availablePaths=getModePaths(saveMode),savedPath=norm(localStorage.getItem("A2Z_AI_LIBRARY_PATH_"+saveMode)||"");
   if(!q.folderPath){var suggested=suggestedMatch(q),semantic=norm(q.suggestedPath||"")||semanticSuggestedPath(q);q.folderPath=(suggested&&availablePaths.includes(suggested))?suggested:(savedPath&&availablePaths.includes(savedPath)?savedPath:(availablePaths[0]||""));if(!q.folderPath&&semantic){try{q.folderPath=await saveFolderPath(saveMode,semantic);availablePaths=getModePaths(saveMode);}catch(folderErr){console.warn("[A2Z AI Import] Could not create suggested folder path:",folderErr);throw Error("Could not prepare a folder in the "+(saveMode==="central"?"Central":saveMode==="group"?"Group":"Private")+" Library+".replace(" Library+"," Library")+". "+(folderErr&&folderErr.message?folderErr.message:String(folderErr)));}}}
