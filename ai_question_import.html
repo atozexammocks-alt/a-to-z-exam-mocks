@@ -752,13 +752,10 @@ async function saveQ(i){
   if(qs[i]){
     var pendingQuestion=qs[i];
     if(pendingQuestion._generatedFigureCandidate){pendingQuestion._generatedFigureCandidate="";pendingQuestion._generatedFigurePending=false;}
-    if(pendingQuestion.cropImage&&pendingQuestion.cropImageKept!==true&&pendingQuestion.contentMode!=="image"&&pendingQuestion.contentMode!=="both"){pendingQuestion.cropImage="";}
-    if(pendingQuestion.figureImageCropPending){pendingQuestion.figureImage="";pendingQuestion.figureImageCropPending=false;}
-    if(Array.isArray(pendingQuestion.optionImageCropPending))pendingQuestion.optionImageCropPending.forEach(function(p,oi){if(p&&pendingQuestion.optionImages)pendingQuestion.optionImages[oi]="";});
-    if(Array.isArray(pendingQuestion.visualRegions))pendingQuestion.visualRegions.forEach(function(v){if(v&&v.cropPending){if(pendingQuestion.figureImage===v.image)pendingQuestion.figureImage="";v.image="";v.cropPending=false;}});
-    if(Array.isArray(pendingQuestion.contentBlocks))pendingQuestion.contentBlocks.forEach(function(v){if(v&&v.cropPending){v.image="";v.cropPending=false;}});
-    if(pendingQuestion._generatedFigurePending){pendingQuestion.figureImage="";pendingQuestion._generatedFigurePending=false;}
-    if(Array.isArray(pendingQuestion.visualRegions))pendingQuestion.visualRegions.forEach(function(v){if(v&&v.aiGeneratedPending){if(pendingQuestion.figureImage===v.image)pendingQuestion.figureImage="";v.image="";v.aiGeneratedPending=false;}});
+    // Images are content, not disposable drafts: preserve crops and generated figures
+    // through compression/upload. The teacher can explicitly discard them in the review UI.
+    pendingQuestion.cropImage=pendingQuestion.cropImage||"";
+    pendingQuestion.figureImage=pendingQuestion.figureImage||"";
   }
   let q=qs[i];if(!q)throw Error("Question data is missing. Please re-open this question and try again.");var primaryQuestionImage=q.cropImage||q.figureImage||(Array.isArray(q.visualRegions)&&q.visualRegions.find(function(v){return v&&v.image})||{}).image||(Array.isArray(q.contentBlocks)&&q.contentBlocks.find(function(v){return v&&v.image})||{}).image;if(!q.cropImage&&(q.contentMode==="image"||q.contentMode==="both")&&primaryQuestionImage)q.cropImage=primaryQuestionImage;if(!String(q.text||"").trim()&&!(q.cropImage&&(q.contentMode==="image"||q.contentMode==="both")))throw Error("Question text is empty. For an image-only question, crop the complete question and select Image Only before saving.");if((q.contentMode==="image"||q.contentMode==="both")&&!q.cropImage)throw Error("Image + Text is selected, but no question image was found. Use Re-crop Question or add the question figure before saving.");let em=email();
   if(!em)throw Error("Teacher login not found. Open Teacher Portal and sign in first.");
@@ -780,7 +777,8 @@ async function saveQ(i){
   }
   let m=saveMode,p=q.folderPath;
   await persistVisualAssets(db,q);
-  var payload={ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text||((q.contentMode==="image"&&q.cropImage)?"[Image-based question]":""),question:q.cropImage||"",isPYQ:q.keepSourceLabel!==false&&!!(q.isPYQ||q.sourceExam||q.year),options:(q.options||[]),keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:q.qType||"mcq",answerRegion:q.answerRegion||"",contentMode:q.contentMode||"text",keepText:q.contentMode!=="image",keepImage:q.contentMode==="image"||q.contentMode==="both",level:q.difficulty||"Medium",answer:q.answer||q.finalAnswer||"",finalAnswer:q.finalAnswer||q.answer||"",source:q.keepSourceLabel===false?"":(q.source||q.sourceExam||""),sourceExam:q.keepSourceLabel===false?"":(q.sourceExam||q.source||""),sourceYear:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),pyqYear:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),keepSourceLabel:q.keepSourceLabel!==false,sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",suggestedFlag:q.flagChoice||"normal",flags:q.flags||{},questionImage:q.cropImage||q.figureImage||((Array.isArray(q.visualRegions)&&q.visualRegions.find(function(v){return v&&v.image})||{}).image)||((Array.isArray(q.contentBlocks)&&q.contentBlocks.find(function(v){return v&&v.image})||{}).image)||"",image:q.cropImage||q.figureImage||((Array.isArray(q.visualRegions)&&q.visualRegions.find(function(v){return v&&v.image})||{}).image)||((Array.isArray(q.contentBlocks)&&q.contentBlocks.find(function(v){return v&&v.image})||{}).image)||"",figureImage:q.figureImage||"",figureRequired:!!q.figureRequired,figureReference:q.figureReference||"",contentBlocks:Array.isArray(q.contentBlocks)?q.contentBlocks:[],optionImages:Array.isArray(q.optionImages)?q.optionImages:[],optionFigureRequired:Array.isArray(q.optionFigureRequired)?q.optionFigureRequired:[],visualStorageVersion:3,visualRegions:Array.isArray(q.visualRegions)?q.visualRegions:[],reconstructedVisuals:Array.isArray(q.visualRegions)?q.visualRegions.filter(function(v){return v&&v.reconstruction}).length:0,createdAt:new Date().toISOString()};
+  var primarySavedImage=q.cropImage||q.figureImage||((Array.isArray(q.visualRegions)&&q.visualRegions.find(function(v){return v&&v.image;})||{}).image)||((Array.isArray(q.contentBlocks)&&q.contentBlocks.find(function(v){return v&&v.image;})||{}).image)||"";
+  var payload={ownerEmail:em,creatorEmail:em,qNo:q.no,qText:q.text||((q.contentMode==="image"&&primarySavedImage)?"[Image-based question]":""),question:primarySavedImage,isPYQ:q.keepSourceLabel!==false&&!!(q.isPYQ||q.sourceExam||q.year),options:(q.options||[]),keepOptions:(q.options||[]).length>0,libraryType:m==="central"?"Central Library":m==="group"?"Group Library":"Personal Library",libraryMode:m,central:m==="central",group:m==="group",targetLibrary:m,folderPath:p,folder:p.split(" / ")[0]||"",subfolder:p.split(" / ").slice(1).join(" / "),topic:q.topic||q.chapter||"Physics",chapter:q.chapter||"",qType:q.qType||"mcq",answerRegion:q.answerRegion||"",contentMode:q.contentMode||"text",keepText:q.contentMode!=="image",keepImage:q.contentMode==="image"||q.contentMode==="both",level:q.difficulty||"Medium",answer:q.answer||q.finalAnswer||"",finalAnswer:q.finalAnswer||q.answer||"",source:q.keepSourceLabel===false?"":(q.source||q.sourceExam||""),sourceExam:q.keepSourceLabel===false?"":(q.sourceExam||q.source||""),sourceYear:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),pyqYear:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),year:q.keepSourceLabel===false?"":(q.year||q.sourceYear||""),examName:q.keepSourceLabel===false?"":(q.sourceExam||q.source||""),keepSourceLabel:q.keepSourceLabel!==false,sourcePage:q.page||"",diagramDescription:q.diagram||"",tableRows:q.tableRows||[],matrixLatex:q.matrixLatex||"",book:q.book||"",subject:q.subject||"",subtopic:q.subtopic||"",section:q.section||"",suggestedPath:q.suggestedPath||"",suggestedFlag:q.flagChoice||"normal",flags:q.flags||{},questionImage:primarySavedImage,image:primarySavedImage,figureImage:q.figureImage||primarySavedImage,figureRequired:!!q.figureRequired,figureReference:q.figureReference||"",contentBlocks:Array.isArray(q.contentBlocks)?q.contentBlocks:[],optionImages:Array.isArray(q.optionImages)?q.optionImages:[],optionFigureRequired:Array.isArray(q.optionFigureRequired)?q.optionFigureRequired:[],visualStorageVersion:3,visualRegions:Array.isArray(q.visualRegions)?q.visualRegions:[],reconstructedVisuals:Array.isArray(q.visualRegions)?q.visualRegions.filter(function(v){return v&&v.reconstruction}).length:0,createdAt:new Date().toISOString()};
   var safePayload=firestoreSafePayload(payload);
   var payloadBytes=0;
   try{payloadBytes=new Blob([JSON.stringify(safePayload)]).size}catch(_){}
@@ -1022,7 +1020,7 @@ function normalizeNativeQuestionGlobal(q,i){
   q=q||{};
   var tr=normalizeTableRows(q.table_rows);
   if(!tr.length) tr=tableRowsFromHtml(q.table_html||q.tableHtml||"");
-  return {no:q.question_number||q.no||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),options:normalizeOptionList(Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x==null?"":x))}):q.options),answer:String(q.answer??q.correct_answer??q.correctAnswer??q.answer_key??q.final_answer??q.finalAnswer??"").trim(),finalAnswer:String(q.final_answer??q.finalAnswer??q.answer??q.correct_answer??q.correctAnswer??q.answer_key??"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||"").trim(),sourceExam:String(q.source_exam||q.sourceExam||q.source||"").trim(),year:String(q.year||"").trim(),sourceYear:String(q.year||"").trim(),keepSourceLabel:true,isPYQ:!!(q.source||q.source_exam||q.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"").trim().toLowerCase(),flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:($("defaultLibraryMode").value||"private"),folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||q.diagram||"").trim(),visualType:tr.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||"")),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:!tr.length&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||1).trim(),sourcePage:String(q.page||1).trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:tr,tableHtml:String(q.table_html||q.tableHtml||"").trim(),matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],optionImages:Array.isArray(q.option_images)?q.option_images:[],optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],visualRegions:normalizeOwnedVisualRegions(q)};
+  return {no:q.question_number||q.no||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),options:normalizeOptionList(Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x==null?"":x))}):q.options),answer:String(q.answer??q.correct_answer??q.correctAnswer??q.answer_key??q.final_answer??q.finalAnswer??"").trim(),finalAnswer:String(q.final_answer??q.finalAnswer??q.answer??q.correct_answer??q.correctAnswer??q.answer_key??"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:sourceMeta.source,sourceExam:sourceMeta.source,year:sourceMeta.year,sourceYear:sourceMeta.year,keepSourceLabel:true,isPYQ:!!(sourceMeta.source||sourceMeta.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"").trim().toLowerCase(),flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:($("defaultLibraryMode").value||"private"),folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||q.diagram||"").trim(),visualType:tr.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||"")),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:!tr.length&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||1).trim(),sourcePage:String(q.page||1).trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:tr,tableHtml:String(q.table_html||q.tableHtml||"").trim(),matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],optionImages:Array.isArray(q.option_images)?q.option_images:[],optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],visualRegions:normalizeOwnedVisualRegions(q)};
 }
 async function mergeContinuationInto(existing,q,pageNo,pageImageData){
   if(!existing||!q)return;
@@ -1076,6 +1074,31 @@ async function splitPdfRangeBase64(startPage,endPage){
   var bin="",step=0x8000;
   for(var i=0;i<bytes.length;i+=step)bin+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+step,bytes.length)));
   return {base64:btoa(bin),start:startPage,end:endPage,total:total};
+}
+async function renderPdfPageJpeg(pdfDoc,pageNo){
+  var page=await pdfDoc.getPage(pageNo),base=page.getViewport({scale:1});
+  var scale=Math.min(1.8,Math.max(1.25,1650/base.width)),vp=page.getViewport({scale:scale});
+  var canvas=document.createElement("canvas");canvas.width=Math.ceil(vp.width);canvas.height=Math.ceil(vp.height);
+  await page.render({canvasContext:canvas.getContext("2d",{willReadFrequently:true}),viewport:vp}).promise;
+  var data=canvas.toDataURL("image/jpeg",.9).split(",")[1];canvas.width=1;canvas.height=1;return data;
+}
+async function cropNormalizedPdfVisual(pageData,box){
+  if(!pageData||!box)return "";
+  try{
+    var x=Math.max(0,Math.min(1,Number(box.x??box.left??0)));
+    var y=Math.max(0,Math.min(1,Number(box.y??box.top??0)));
+    var w=Math.max(0,Math.min(1-x,Number(box.width??box.w??0)));
+    var h=Math.max(0,Math.min(1-y,Number(box.height??box.h??0)));
+    if(w<.02||h<.02)return "";
+    var img=new Image();img.src="data:image/jpeg;base64,"+pageData;
+    await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
+    var px=Math.round(img.width*.012),py=Math.round(img.height*.012);
+    var sx=Math.max(0,Math.round(x*img.width)-px),sy=Math.max(0,Math.round(y*img.height)-py);
+    var sw=Math.min(img.width-sx,Math.round(w*img.width)+px*2),sh=Math.min(img.height-sy,Math.round(h*img.height)+py*2);
+    var c=document.createElement("canvas");c.width=sw;c.height=sh;
+    c.getContext("2d").drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
+    return c.toDataURL("image/jpeg",.92);
+  }catch(e){console.warn("PDF visual crop failed",e);return "";}
 }
 async function extractNativePdfBatch(key,pdfB64,startPage,endPage,totalPages,limit,libraryList){
   var wanted=limit?Math.min(limit,250):250;
@@ -1161,10 +1184,36 @@ async function extract(){
           var list=await extractNativePdfBatch(key,chunk.base64,rg[0],rg[1],totalPages,remainingLimit||0,libraryList);
           list=repairObviousMergedQuestions(list);
           for(var ni=0;ni<list.length;ni++){
-            var nq=normalizePageQuestion(list[ni],ni,Number(list[ni].page||rg[0]));
-            nq.sourcePage=String(list[ni].page||rg[0]);
+            var absolutePage=Math.max(1,Math.min(totalPages,Number(list[ni].page||rg[0])));
+            var nq=normalizePageQuestion(list[ni],ni,absolutePage);
+            nq.sourcePage=String(absolutePage);
             nq.qType=inferQuestionType(nq);
             nq.text=questionTextWithoutDuplicatedTable(nq);
+            // Native-PDF extraction returns coordinates but previously never converted
+            // them into images. Render only pages that actually contain visual crops.
+            var needsPageImage=(nq.visualRegions||[]).some(function(v){return v&&v.cropBox;})||
+              !!nq.figureCropBox||(Array.isArray(list[ni].option_figure_boxes)&&list[ni].option_figure_boxes.some(Boolean));
+            if(needsPageImage){
+              if(!nativePageImages.has(absolutePage))nativePageImages.set(absolutePage,await renderPdfPageJpeg(pdfDoc,absolutePage));
+              var pageData=nativePageImages.get(absolutePage);
+              for(var nvi=0;nvi<(nq.visualRegions||[]).length;nvi++){
+                var nv=nq.visualRegions[nvi];if(nv&&nv.cropBox&&!nv.image){
+                  nv.image=await cropNormalizedPdfVisual(pageData,nv.cropBox);
+                  nv.autoCropped=!!nv.image;
+                }
+              }
+              if(nq.figureCropBox&&!(nq.visualRegions||[]).some(function(v){return v&&v.image;})){
+                nq.figureImage=await cropNormalizedPdfVisual(pageData,nq.figureCropBox);
+                if(nq.figureImage&&!nq.visualRegions.length)nq.visualRegions.push({visualType:visualTypeOf(nq.visualType||"diagram"),type:visualTypeOf(nq.visualType||"diagram"),anchor:nq.figureReference||"Original PDF figure",image:nq.figureImage,autoCropped:true});
+              }
+              var nativeOptionBoxes=list[ni].option_figure_boxes||[];
+              nq.optionImages=nq.optionImages||[];
+              for(var noi=0;noi<nativeOptionBoxes.length;noi++)if(nativeOptionBoxes[noi]){
+                nq.optionImages[noi]=await cropNormalizedPdfVisual(pageData,nativeOptionBoxes[noi]);
+                if(nq.optionImages[noi]){nq.optionFigureRequired=nq.optionFigureRequired||[];nq.optionFigureRequired[noi]=true;}
+              }
+              if(nq.visualRegions.length&&nq.visualRegions[0].image&&!nq.figureImage)nq.figureImage=nq.visualRegions[0].image;
+            }
             if(!String(nq.text||"").trim())continue;
             var keyNo=String(nq.no||"").trim().toLowerCase();
             if(keyNo&&qs.some(function(x){return String(x.no||"").trim().toLowerCase()===keyNo;}))continue;
@@ -1263,18 +1312,51 @@ async function extract(){
   var reference=String(q.figure_reference||q.figureReference||"").trim();
   var declared=q.figure_required===true||q.figureRequired===true||q.visual_required===true||q.visualRequired===true||!!reference;
   var textualCue=/(?:figure|diagram|graph|chart|plot|circuit|ray diagram|shown below|shown in|as shown|given figure|following figure|चित्र|आकृति|रेखाचित्र|ग्राफ|परिपथ|दिए गए चित्र|चित्र में)/i.test(text);
-  if(!declared&&!textualCue)return [];
   var list=Array.isArray(q.visual_regions)?q.visual_regions:(Array.isArray(q.visualRegions)?q.visualRegions:[]);
+  if(!declared&&!textualCue&&!list.length)return [];
   return list.filter(function(v){
     if(!v)return false;
     var owner=String(v.owner_question_number||v.ownerQuestionNumber||v.question_number||"").trim();
-    if(!owner||!no)return false;
-    var od=owner.match(/\d+/),nd=no.match(/\d+/);
-    if(od&&nd)return od[0]===nd[0];
-    return owner.toLowerCase()===no.toLowerCase();
+    // This visual list is nested inside the current question object. Missing owner
+    // metadata must not discard the figure; reject only an explicit owner mismatch.
+    if(owner&&no){
+      var od=owner.match(/\d+/),nd=no.match(/\d+/);
+      if(od&&nd&&od[0]!==nd[0])return false;
+      if(!(od&&nd)&&owner.toLowerCase()!==no.toLowerCase())return false;
+    }
+    return true;
   }).map(function(v){
     return {visualType:visualTypeOf(v.visual_type||v.visualType||v.type),type:visualTypeOf(v.visual_type||v.visualType||v.type),anchor:String(v.anchor||v.insert_after||"").trim(),image:"",cropBox:v.crop_box||v.figure_crop_box||null,required:Boolean(v.required||v.visual_required),reconstruction:v.reconstruction||v.visual_reconstruction||null};
   });
+}
+function extractExamLabelFromQuestionText(text, existingSource, existingYear){
+  var x=String(text||"").replace(/\r\n?/g,"\n"), source=String(existingSource||"").trim(), year=String(existingYear||"").trim();
+  var examRe=/\b(JEE\s*(?:Main|Mains|Advanced)|NEET|CBSE|NCERT(?:\s+Exemplar)?|CUET|UPPSC|HPSC|DSSSB|ICSE|ISC|BSEB|HBSE|Haryana\s+Board)\b/i;
+  var yearRe=/\b(19|20)\d{2}\b/;
+  // Remove only clearly-labelled source captions, not ordinary question prose.
+  x=x.split("\n").filter(function(line){
+    var t=line.trim();
+    if(!t)return true;
+    var candidate=t.replace(/^[\[(【]\s*/,"").replace(/\s*[\])】]$/,"").replace(/^(?:PYQ|Previous\s+Year\s+Question|Asked\s+in|Source)\s*[:\-–—]?\s*/i,"").trim();
+    var em=candidate.match(examRe), yr=candidate.match(yearRe);
+    var captionLike=/^[\[(【]/.test(t)||/^(?:PYQ|Previous\s+Year\s+Question|Asked\s+in|Source)\b/i.test(t);
+    if(em && (yr||captionLike) && candidate.length<90){
+      if(!source)source=em[1].replace(/\s+/g," ").trim();
+      if(!year&&yr)year=yr[0];
+      return false;
+    }
+    return true;
+  }).join("\n");
+  // Also handle a short source tag printed immediately before the question statement.
+  var lead=/^\s*[\[(【]\s*((?:JEE\s*(?:Main|Mains|Advanced)|NEET|CBSE|NCERT(?:\s+Exemplar)?|CUET|UPPSC|HPSC|DSSSB|ICSE|ISC|BSEB|HBSE|Haryana\s+Board)[^\])】\n]{0,45})[\])】]\s*/i;
+  var lm=x.match(lead);
+  if(lm){
+    var em=lm[1].match(examRe),yr=lm[1].match(yearRe);
+    if(em&&!source)source=em[1].replace(/\s+/g," ").trim();
+    if(yr&&!year)year=yr[0];
+    x=x.slice(lm[0].length);
+  }
+  return {text:x.trim(),source:source,year:year};
 }
 function normalizePageQuestion(q,i,pageNo){
       var normalized={
@@ -1385,32 +1467,48 @@ function normalizePageQuestion(q,i,pageNo){
         nq.answer=normaliseMCQAnswer(nq,nq.answer||nq.finalAnswer||"");
         nq.finalAnswer=nq.answer||nq.finalAnswer||"";
         nq.keepOptions=!$("defaultKeepOptions")||$("defaultKeepOptions").checked;
-        // No automatic full-page/question/figure images; figures are user-selected optional assets.
-        nq.cropImage=""; nq.figureImage="";
-        if(Array.isArray(nq.visualRegions))nq.visualRegions.forEach(function(v){if(v)v.image="";});
-        if(Array.isArray(nq.contentBlocks))nq.contentBlocks.forEach(function(v){if(v)v.image="";});
-        nq.text=questionTextWithoutDuplicatedTable(nq);
-        nq.sourcePage=String(pageNo);
-        if(Array.isArray(q.option_figure_boxes)&&q.option_figure_boxes.length){
-          nq.optionFigureBoxes=q.option_figure_boxes;nq.optionFigureRequired=nq.optionFigureRequired||[];nq.optionImages=nq.optionImages||[];
-          for(let oi=0;oi<q.option_figure_boxes.length;oi++){
-            let ob=q.option_figure_boxes[oi];
-            if(ob){nq.optionFigureRequired[oi]=false;}
-          }
-        }
+        // Preserve the OCR text, but create real image crops from the original PDF page
+        // for every question-owned visual and every option visual. Earlier code erased all
+        // image fields and referenced a checkbox that does not exist in this HTML.
         nq.cropImage="";
         nq.figureImage="";
-        if(Array.isArray(nq.visualRegions)){
-          for(let vi=0;vi<nq.visualRegions.length;vi++){
-            let vr=nq.visualRegions[vi]||{}; vr.visualType=visualTypeOf(vr.visualType||vr.type); vr.type=vr.visualType;
-            vr.image="";
-            nq.visualRegions[vi]=vr;
+        nq.optionImages=Array.isArray(nq.optionImages)?nq.optionImages:[];
+        nq.text=questionTextWithoutDuplicatedTable(nq);
+        nq.sourcePage=String(pageNo);
+        var regions=Array.isArray(nq.visualRegions)?nq.visualRegions:[];
+        for(let vi=0;vi<regions.length;vi++){
+          let vr=regions[vi]||{};
+          vr.visualType=visualTypeOf(vr.visualType||vr.type);vr.type=vr.visualType;
+          vr.image="";
+          var vbox=vr.cropBox||vr.crop_box||null;
+          if(vbox){
+            var vimg=await makeAutoCrop(pageImageData,vbox);
+            if(vimg){vr.image=vimg;vr.cropPending=false;vr.autoCropped=true;}
+          }
+          regions[vi]=vr;
+        }
+        nq.visualRegions=regions;
+        // Legacy single-figure crop metadata is also honoured.
+        if(nq.figureCropBox&&!nq.visualRegions.some(function(v){return v&&v.image;})){
+          var legacyCrop=await makeAutoCrop(pageImageData,nq.figureCropBox);
+          if(legacyCrop){
+            nq.figureImage=legacyCrop;
+            if(!nq.visualRegions.length)nq.visualRegions.push({visualType:visualTypeOf(nq.visualType||"diagram"),type:visualTypeOf(nq.visualType||"diagram"),anchor:nq.figureReference||"Original PDF figure",image:legacyCrop,required:false,autoCropped:true});
+            else nq.visualRegions[0].image=legacyCrop;
           }
         }
-        if($("autoCropOriginalVisuals")&&$("autoCropOriginalVisuals").checked&&nq.figureCropBox&&isFigureVisual(nq.visualType)){
-          var cropCandidate=await makeAutoCrop(pageImageData,nq.figureCropBox);
-          if(cropCandidate){nq.figureImage=cropCandidate;nq.figureImageCropPending=true;nq.visualRegions=Array.isArray(nq.visualRegions)?nq.visualRegions:[];if(!nq.visualRegions.length)nq.visualRegions.push({visualType:visualTypeOf(nq.visualType||"diagram"),type:visualTypeOf(nq.visualType||"diagram"),anchor:nq.figureReference||"AI-suggested original-PDF crop",image:cropCandidate,cropPending:true,required:false});else{nq.visualRegions[0].image=cropCandidate;nq.visualRegions[0].cropPending=true;}}
+        // Option image boxes are aligned with the options array.
+        if(Array.isArray(q.option_figure_boxes)&&q.option_figure_boxes.length){
+          nq.optionFigureBoxes=q.option_figure_boxes;nq.optionFigureRequired=nq.optionFigureRequired||[];
+          for(let oi=0;oi<q.option_figure_boxes.length;oi++){
+            var ob=q.option_figure_boxes[oi];
+            if(ob){
+              var oiCrop=await makeAutoCrop(pageImageData,ob);
+              if(oiCrop){nq.optionImages[oi]=oiCrop;nq.optionFigureRequired[oi]=true;}
+            }
+          }
         }
+        if(nq.visualRegions.length&&nq.visualRegions[0].image&&!nq.figureImage)nq.figureImage=nq.visualRegions[0].image;
         // Keep normalized question crop coordinates in review state so targeted
         // re-extraction can zoom into the exact question instead of rereading the whole page.
         delete nq.figureCropBox;
