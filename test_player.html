@@ -167,8 +167,8 @@ function answerKeyOf(q){
 }
 function choiceLetterFromKey(value){
  const s=String(value??"").trim().toUpperCase();
- const m=s.match(/^(?:OPTION\s*)?[\(\[]?([A-D])[\)\] .:,-]*(?:$|\s)/);
- return m?m[1]:"";
+ const m=s.match(/^(?:OPTION\s*)?(?:\(([A-D])\)|\[([A-D])\]|([A-D])(?:[.)]|$))/);
+ return m?(m[1]||m[2]||m[3]||""):"";
 }
 function isResponseCorrect(q,response){
  const key=answerKeyOf(q);
