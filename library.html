@@ -666,12 +666,42 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     }
 
     function questionImage(q){
-      const vals=[q.question,q.image,q.img,q.questionImage,q.imageData,q.croppedImage,q.questionImageData,q.imageUrl,q.imageURL,q.diagram,q.imageSrc,q.src,q.base64Image];
-      for(const v of vals){
-        if(typeof v==='string' && /^(data:image\/|https?:\/\/|blob:)/i.test(v.trim())) return v.trim();
-        if(typeof v==='object' && v) return String(v.src||v.url||v.data||v.base64||v.image||'');
+      if(!q || typeof q!=='object') return '';
+      const preferred=[
+        'questionImage','questionImageUrl','question_image','questionImageData',
+        'imageUrl','imageURL','image_url','imageData','base64Image','croppedImage','cropImage',
+        'figureImage','figureUrl','figureURL','diagramImage','diagramUrl','imageSrc',
+        'downloadURL','downloadUrl','storageUrl','src','image','img','question','diagram','figure'
+      ];
+      const seen=new Set();
+      const valid=v=>typeof v==='string' && /^(data:image\/|https?:\/\/|blob:)/i.test(v.trim()) ? v.trim() : '';
+      function find(obj,depth){
+        if(obj==null || depth>5) return '';
+        if(typeof obj==='string') return valid(obj);
+        if(typeof obj!=='object' || seen.has(obj)) return '';
+        seen.add(obj);
+        for(const k of preferred){
+          if(Object.prototype.hasOwnProperty.call(obj,k)){
+            const v=obj[k], direct=valid(v);
+            if(direct) return direct;
+            if(v && typeof v==='object'){
+              const nested=find(v,depth+1);
+              if(nested) return nested;
+            }
+          }
+        }
+        for(const [k,v] of Object.entries(obj)){
+          if(/^(text|qText|questionText|question_text|content|answer|solution|options|choices)$/i.test(k)) continue;
+          if(v && typeof v==='object'){
+            const nested=find(v,depth+1);
+            if(nested) return nested;
+          } else if(typeof v==='string' && /(?:image|figure|diagram|crop|visual|src|url|base64)/i.test(k)){
+            const direct=valid(v); if(direct) return direct;
+          }
+        }
+        return '';
       }
-      return '';
+      return find(q,0);
     }
     async function loadPickerQuestions(){
       if(!window.db) return;
@@ -999,6 +1029,14 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       (Array.isArray(q?.optionImages)?q.optionImages:[]).forEach((v,i)=>add(typeof v==='object'?(v.src||v.url||v.image||v.data):v,'Option '+String.fromCharCode(65+i)));
       add(q?.figureImage,'Figure');
       add(q?.questionImage,'Question image');
+      add(q?.image,'Question image');
+      add(q?.croppedImage,'Cropped question image');
+      add(q?.cropImage,'Cropped question image');
+      add(q?.questionImageUrl||q?.imageUrl||q?.imageURL||q?.downloadURL||q?.downloadUrl||q?.storageUrl,'Question image');
+      if(!out.length){
+        const primary=questionImage(q);
+        add(primary,'Question image');
+      }
       return out;
     }
     function savedQuestionOptionImages(q){
