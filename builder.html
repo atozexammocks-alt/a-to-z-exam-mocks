@@ -131,7 +131,7 @@ window.sections=[{name:"Section A",type:"MCQ",marks:1}];
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 function imageOf(q){
  // Preserve figures saved by the Library/importer, including nested image metadata.
- const preferred=["questionImage","questionImageUrl","question_image","imageUrl","imageURL","image_url","imageData","base64Image","croppedImage","questionImageData","figureImage","figureUrl","figureURL","figure","diagramImage","diagramUrl","imageSrc","src","downloadURL","downloadUrl","storageUrl","url","image","img"];
+ const preferred=["questionImage","questionImageUrl","question_image","question_image_url","imageUrl","imageURL","image_url","imageData","base64Image","croppedImage","croppedImageUrl","cropImage","questionImageData","originalQuestionImage","figureImage","figure_image","figureUrl","figureURL","figure","diagramImage","diagramUrl","imageSrc","src","downloadURL","downloadUrl","storageUrl","url","image","img","question","diagram","visuals","visual_regions","contentBlocks","content_blocks"];
  const seen=new Set();
  function valid(v){return typeof v==="string"&&/^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())?v.trim():"";}
  function walk(obj,depth){
