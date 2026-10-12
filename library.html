@@ -668,8 +668,8 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     function questionImage(q){
       if(!q || typeof q!=='object') return '';
       const preferred=[
-        'questionImage','questionImageUrl','question_image','questionImageData',
-        'imageUrl','imageURL','image_url','imageData','base64Image','croppedImage','cropImage',
+        'questionImage','questionImageUrl','question_image','question_image_url','questionImageData','originalQuestionImage',
+        'imageUrl','imageURL','image_url','imageData','base64Image','croppedImage','croppedImageUrl','cropImage','pdfCrop',
         'figureImage','figureUrl','figureURL','diagramImage','diagramUrl','imageSrc',
         'downloadURL','downloadUrl','storageUrl','src','image','img','question','diagram','figure'
       ];
@@ -805,13 +805,19 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       else { renderPickerQuestions(); renderLibraryQuestions(); }
     }
 
+    function cleanQuestionText(value){
+      let s=String(value??'').replace(/\r\n?/g,'\n');
+      const meta=/^\s*(?:(?:source|reference|ref\.?|exam|paper)\s*[:\-–—]?\s*)?(?:CBSE(?:\s+(?:NCERT|Board|Class\s*\d+|Class\s*X|Class\s*10|Class\s*12))?|NCERT(?:\s+Exemplar)?|NCERT\s+Textbook|JEE\s*(?:Main|Mains|Advanced)|IIT\s*JEE|NEET(?:\s+UG)?|CUET|PYQ|Previous\s+Year\s+Question|Board\s+Exam)(?:\s*[-–—:|,()]\s*|\s+)?(?:NCERT|CBSE|Exemplar|Sample\s+Paper|Question\s+Bank|Physics|Science|Class\s*\d+)?(?:\s*[-–—:|,()]?\s*(?:19|20)\d{2}(?:\s*[-/–]\s*(?:19|20)?\d{2})?)?\s*[).\]]?\s*$/i;
+      s=s.split('\n').filter(line=>!meta.test(line.trim())).map(line=>line.replace(/\s*[\[(]\s*(?:(?:source|reference|ref\.?)[ :\-–—]*)?(?:CBSE|NCERT(?:\s+Exemplar)?|JEE\s*(?:Main|Mains|Advanced)|NEET|PYQ|Board\s+Exam)(?:\s*[-–—:|,]?\s*(?:19|20)\d{2}(?:\s*[-/–]\s*(?:19|20)?\d{2})?)?\s*[\])]\s*$/i,'').trimEnd()).join('\n');
+      return s.replace(/^\s*\n+|\n+\s*$/g,'').trim();
+    }
     function questionText(q){
       const candidates=[q.text,q.qText,q.questionText,q.question_text,q.content];
       for(const v of candidates){
-        if(typeof v==='string' && v.trim()) return v.trim();
+        if(typeof v==='string' && v.trim()) return cleanQuestionText(v);
       }
       const fallback=q.question;
-      if(typeof fallback==='string' && fallback.trim() && !/^(data:image\/|https?:\/\/|blob:)/i.test(fallback.trim())) return fallback.trim();
+      if(typeof fallback==='string' && fallback.trim() && !/^(data:image\/|https?:\/\/|blob:)/i.test(fallback.trim())) return cleanQuestionText(fallback);
       return '';
     }
     function libraryMathMarkup(v){
