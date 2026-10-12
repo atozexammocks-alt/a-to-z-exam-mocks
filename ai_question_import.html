@@ -29,7 +29,7 @@ function tree(d){if(Array.isArray(d.libraryTree)&&d.libraryTree.length)return d.
 function paths(ns,p="",o=[]){(ns||[]).forEach(n=>{let x=String(n.name||"").trim(),z=p?p+" / "+x:x;if(x){o.push(z);paths(n.children,z,o)}});return o}
 function pathOptions(selected){var h='<option value="">📁 Select Library Folder…</option>';folderPaths.forEach(function(p){h+='<option value="'+esc(p)+'"'+(p===selected?' selected':'')+'>📁 '+esc(p)+'</option>';});return h}
 function inferAcademicLevel(q){
-  var raw=[q.level,q.class,q.grade,q.standard,q.course,q.subject,q.book,q.source,String(q.question||"")].map(function(x){return String(x||"").trim()}).join(" ");
+  var raw=[q.level,q.class,q.grade,q.standard,q.course,q.subject,q.book,q.source,q.sourceExam,q.chapter,q.topic,q.subtopic,q.text,q.qText,q.question,sourcePdfFile&&sourcePdfFile.name].map(function(x){return String(x||"").trim()}).join(" ");
   var m=raw.match(/(?:class|std|standard|grade|12th|12|xi{0,2}|11th|11|10th|10|9th|9)\s*[- ]?(?:class|std|standard|grade)?\s*(11|12|10|9)\b/i);
   if(m)return m[1]==="12"?"12th":m[1]==="11"?"11th":m[1]+"th";
   if(/\b(?:xii|class\s*12|12th|12\s*class)\b/i.test(raw))return "12th";
