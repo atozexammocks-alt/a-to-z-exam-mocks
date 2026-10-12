@@ -696,10 +696,12 @@ function ensurePaperFields(){
 }
 function typeOf(q){return String(q.type??q.questionType??q.qType??"MCQ").toUpperCase()}
 function cleanQuestionText(v){
- let s=String(v??"").trim();
+ let s=String(v??"").replace(/\r\n?/g,"\n");
  s=s.replace(/^\s*(?:question|ques|q)\s*[-.:]?\s*\d+\s*[.)\-:]?\s*/i,"");
  s=s.replace(/^\s*\d+\s*[.)\-:]?\s*/,"");
- return s.trim();
+ const meta=/^\s*(?:(?:source|reference|ref\.?|exam|paper)\s*[:\-–—]?\s*)?(?:CBSE(?:\s+(?:NCERT|Board|Class\s*\d+|Class\s*X|Class\s*10|Class\s*12))?|NCERT(?:\s+Exemplar)?|NCERT\s+Textbook|JEE\s*(?:Main|Mains|Advanced)|IIT\s*JEE|NEET(?:\s+UG)?|CUET|PYQ|Previous\s+Year\s+Question|Board\s+Exam)(?:\s*[-–—:|,()]\s*|\s+)?(?:NCERT|CBSE|Exemplar|Sample\s+Paper|Question\s+Bank|Physics|Science|Class\s*\d+)?(?:\s*[-–—:|,()]?\s*(?:19|20)\d{2}(?:\s*[-/–]\s*(?:19|20)?\d{2})?)?\s*[).\]]?\s*$/i;
+ s=s.split("\n").filter(line=>!meta.test(line.trim())).map(line=>line.replace(/\s*[\[(]\s*(?:(?:source|reference|ref\.?)[ :\-–—]*)?(?:CBSE|NCERT(?:\s+Exemplar)?|JEE\s*(?:Main|Mains|Advanced)|NEET|PYQ|Board\s+Exam)(?:\s*[-–—:|,]?\s*(?:19|20)\d{2}(?:\s*[-/–]\s*(?:19|20)?\d{2})?)?\s*[\])]\s*$/i,"").trimEnd()).join("\n");
+ return s.replace(/^\s*\n+|\n+\s*$/g,"").trim();
 }
 function cleanOptionText(v){
  return String(v??"").trim().replace(/^(?:\s*(?:\([A-Da-d]\)|[A-Da-d][.)])\s*)+/,"").trim();
