@@ -154,11 +154,66 @@ function renderPalette(){const g=$("palette-grid");g.innerHTML="";testData.quest
 function highlightPalette(){testData?.questions?.forEach((q,i)=>{const b=$("palette-box-"+i);if(!b)return;const st=responseStatus(q,i);b.className="p-box"+(st==="answered"?" answered":st==="skipped"?" skipped":"")+(i===currentIdx?" current":"");b.setAttribute("aria-current",i===currentIdx?"true":"false");b.title=st==="answered"?"Attempted":st==="skipped"?"Not attempted / visited":"Not answered"})}
 function goNext(){if(currentIdx<testData.questions.length-1)loadQuestion(currentIdx+1)}
 function goPrev(){if(currentIdx>0)loadQuestion(currentIdx-1)}
-async function submitTest(auto=false){if(isSubmitting||!testData)return;if(!auto&&!confirm("Are you sure you want to submit the test?"))return;isSubmitting=true;clearInterval(timerInterval);let correct=0;
- testData.questions.forEach((q,i)=>{const r=userResponses[i];if(r===undefined||r==="__SKIPPED__")return;const key=norm(q.key??q.correctKey??q.answer??q.correctAnswer);if(isNumerical(q)){const a=Number(normalizeNumber(r)),b=Number(normalizeNumber(key));if(Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=1e-9)correct++}else if(String(r).toUpperCase()===key.toUpperCase())correct++});
- const total=testData.questions.length,totalMarks=parseInt(testData.marks)||testData.questions.reduce((s,q)=>s+(Number(q.marks??q.mark??1)||1),0),score=total?Math.round(correct*(totalMarks/total)):0;
- try{await addDoc(collection(db,"student_results"),{testId:getTestId(),testTitle:testData.title||"Mock Test",studentEmail:localStorage.getItem("ExamVault_Student_Email")||"",studentName:localStorage.getItem("ExamVault_Student_Name")||"Student",score,totalMarks,correctAnswers:correct,totalQuestions:total,percentage:totalMarks?Math.round(score/totalMarks*100):0,userResponses,submittedAt:new Date().toISOString()})}catch(e){console.error(e)}
- $("res-total").textContent=total;$("res-correct").textContent=correct;$("res-score").textContent=`${score} / ${totalMarks} Marks (${correct}/${total} Correct)`;$("result-overlay").style.display="flex"}
+function questionMarks(q){
+ const n=Number(q?.marks??q?.mark??1);
+ return Number.isFinite(n)&&n>=0?n:1;
+}
+function answerKeyOf(q){
+ for(const field of ["key","correctKey","answer","correctAnswer"]){
+  const v=q?.[field];
+  if(v!==undefined&&v!==null&&String(v).trim()!=="")return String(v).trim();
+ }
+ return "";
+}
+function choiceLetterFromKey(value){
+ const s=String(value??"").trim().toUpperCase();
+ const m=s.match(/^(?:OPTION\\s*)?[\\(\\[]?([A-D])[\\)\\] .:,-]*(?:$|\\s)/);
+ return m?m[1]:"";
+}
+function isResponseCorrect(q,response){
+ const key=answerKeyOf(q);
+ if(!key||response===undefined||response===null||response==="__SKIPPED__")return false;
+ if(isNumerical(q)){
+  const a=Number(normalizeNumber(response)),b=Number(normalizeNumber(key));
+  return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=1e-9;
+ }
+ const selected=String(response).trim().toUpperCase();
+ const letter=choiceLetterFromKey(key);
+ if(letter)return selected===letter;
+ if(selected.length===1&&/[A-D]/.test(selected)){
+  const opts=optionsOf(q),chosen=opts["ABCD".indexOf(selected)];
+  if(chosen&&String(chosen.text??"").trim().toLowerCase()===key.toLowerCase())return true;
+ }
+ return selected===key.toUpperCase();
+}
+async function submitTest(auto=false){
+ if(isSubmitting||!testData)return;
+ if(!auto&&!confirm("Are you sure you want to submit the test?"))return;
+ isSubmitting=true;clearInterval(timerInterval);
+ let correct=0,score=0;
+ testData.questions.forEach((q,i)=>{
+  const r=userResponses[i];
+  if(isResponseCorrect(q,r)){correct++;score+=questionMarks(q)}
+ });
+ const questionMarksTotal=testData.questions.reduce((sum,q)=>sum+questionMarks(q),0);
+ const configuredTotal=Number(testData.totalMarks??testData.marks);
+ const totalMarks=Number.isFinite(configuredTotal)&&configuredTotal>0?configuredTotal:questionMarksTotal;
+ score=Math.round(score*100)/100;
+ const percentage=totalMarks>0?Math.round(score/totalMarks*100):0;
+ try{
+  await addDoc(collection(db,"student_results"),{
+   testId:getTestId(),testTitle:testData.title||"Mock Test",
+   studentEmail:localStorage.getItem("ExamVault_Student_Email")||"",
+   studentName:localStorage.getItem("ExamVault_Student_Name")||"Student",
+   score,totalMarks,correctAnswers:correct,totalQuestions:testData.questions.length,
+   percentage,userResponses,submittedAt:new Date().toISOString()
+  });
+ }catch(e){console.error("Could not save mock-test result:",e)}
+ $("res-total").textContent=testData.questions.length;
+ $("res-correct").textContent=correct;
+ $("res-score").textContent=`${score} / ${totalMarks} Marks (${correct}/${testData.questions.length} Correct)`;
+ $("result-overlay").style.display="flex";
+}
 $("prev-btn").onclick=goPrev;$("next-btn").onclick=goNext;$("submit-btn").onclick=()=>submitTest(false);window.addEventListener("error",e=>console.error("Player error:",e.error||e.message));init();
 </script>
 </body>
