@@ -472,7 +472,7 @@ function render(){
       '<option value="long"'+(q.qType==="long"?" selected":"")+'>Long Answer</option>'+
       '<option value="passage"'+(q.qType==="passage"?" selected":"")+'>Passage / Comprehension</option>'+
       '</select></div><div class="control-block full"><label>'+(q.qType==="mcq"||q.qType==="mcq_multi"?'Correct Option'+(q.qType==="mcq_multi"?'(s)':''):'Correct Answer / Numerical Answer')+'</label>'+
-      ((q.qType==="mcq"||q.qType==="mcq_multi")?'<select class="q-answer-control" data-i="'+i+'"><option value="">— Choose correct option —</option>'+((q.options||[]).filter(function(o){return String(o||"").trim()}).map(function(o,oi){var letter=String.fromCharCode(65+oi),selected=normaliseMCQAnswer(q,q.answer||q.finalAnswer)===letter;return '<option value="'+letter+'"'+(selected?' selected':'')+'>'+letter+' — '+esc(String(o).slice(0,90))+'</option>'}).join(''))+'</select><div class="muted" style="margin-top:4px">AI-detected answer is preselected when available. You can change A, B, C or D here.</div>':'<input class="q-answer-control" data-i="'+i+'" value="'+esc(String(q.answer||q.finalAnswer||""))+'" placeholder="Enter numerical / text answer">')+'</div></div>'+
+      ((q.qType==="mcq"||q.qType==="mcq_multi")?'<div class="answer-auto-status" style="padding:10px 12px;border-radius:8px;background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.28)"><b>'+(normaliseMCQAnswer(q,q.answer||q.finalAnswer)?'Detected correct option: '+esc(normaliseMCQAnswer(q,q.answer||q.finalAnswer)):'AI is detecting/solving the correct option automatically…')+'</b>'+(normaliseMCQAnswer(q,q.answer||q.finalAnswer)&&q.options&&q.options[normaliseMCQAnswer(q,q.answer||q.finalAnswer).charCodeAt(0)-65]?' — '+esc(String(q.options[normaliseMCQAnswer(q,q.answer||q.finalAnswer).charCodeAt(0)-65]).slice(0,120)):'')+'</div>':'<input class="q-answer-control" data-i="'+i+'" value="'+esc(String(q.answer||q.finalAnswer||""))+'" placeholder="AI will fill the answer automatically; you may edit if needed">')+'</div></div>'+
       '<div class="keep-tools"><b>KEEP IN STUDENT PAPER</b>'+
       '<button type="button" class="btn blue '+(mode==="text"?"selected":"")+'" data-a="keep-text" data-i="'+i+'">📝 Keep Text</button>'+
       '<button type="button" class="btn purple '+(mode==="image"?"selected":"")+'" data-a="keep-image" data-i="'+i+'">🖼 Keep Image</button>'+
@@ -490,7 +490,7 @@ function render(){
       '<button type="button" class="btn purple" data-a="generate-solution" data-i="'+i+'">'+(q.explanation?'↻ Regenerate AI Solution':'🧠 Generate AI Solution')+'</button>'+
       (q.explanation?'<button type="button" class="btn red" data-a="remove-solution" data-i="'+i+'">✕ Delete</button>':'')+'</div></div>'+
       (q.solutionGenerating?'<div style="margin-top:10px"><div class="muted">⏳ Generating solution… <span data-solution-status="'+i+'">'+Number(q.solutionProgress||0)+'%</span></div><div style="height:7px;background:rgba(255,255,255,.1);border-radius:8px;overflow:hidden;margin-top:6px"><div data-solution-progress="'+i+'" style="height:100%;width:'+Number(q.solutionProgress||0)+'%;background:#8b5cf6;transition:width .25s"></div></div></div>':'')+
-      (q.explanation?'<div class="solution-preview math-content" style="margin-top:10px;padding:12px;background:rgba(0,0,0,.16);border-radius:10px;line-height:1.65">'+renderFormattedSolution(q.explanation)+'</div><textarea class="ai-solution-editor" data-solution-i="'+i+'" style="display:none;width:100%;min-height:130px;margin-top:8px">'+esc(q.explanation)+'</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="edit-solution" data-i="'+i+'">✏ Edit</button><button type="button" class="btn blue" data-a="apply-solution" data-i="'+i+'">✓ Keep Solution</button></div>':'<div class="muted" style="margin-top:7px">Optional — generate only if you want the AI solution for this question.</div>')+'</div>';
+      (q.explanation?'<div class="solution-preview math-content" style="margin-top:10px;padding:12px;background:rgba(0,0,0,.16);border-radius:10px;line-height:1.65">'+renderFormattedSolution(q.explanation)+'</div><textarea class="ai-solution-editor" data-solution-i="'+i+'" style="display:none;width:100%;min-height:130px;margin-top:8px">'+esc(q.explanation)+'</textarea><div class="row" style="margin-top:8px"><button class="btn" data-a="edit-solution" data-i="'+i+'">✏ Edit</button><button type="button" class="btn blue" data-a="apply-solution" data-i="'+i+'">✓ Keep Solution</button></div>':'<div class="muted" style="margin-top:7px">AI fills a missing answer automatically during extraction. Use regenerate only if you want to retry the solution.</div>')+'</div>';
     return '<div class="card aiq-review-card">'+solutionBox+'<div class="review-layout">'+left+right+'</div><div class="muted review-meta">'+esc([q.topic,q.chapter,q.source,q.year,q.answer?"Answer: "+q.answer:"",q.page?"Page: "+q.page:""].filter(Boolean).join(" • "))+'</div></div>';
   }).join("");
   qs.forEach(function(_,i){renderQuestionPathSelectors(i)});
@@ -1357,14 +1357,22 @@ FIGURE RULE (STRICT SEPARATION): Do not generate any image, SVG, screenshot or p
         qs.splice(ri,1);all=qs.slice();ri--;
       }
     }
-    qs.forEach(function(q,i){cleanQuestionOptions(q);q._chronologicalIndex=i+1;});
+    qs.forEach(function(q,i){cleanQuestionOptions(q);q._chronologicalIndex=i+1;var recovered=recoverOptionsFromStem(q.text,q.options);q.text=recovered.text;q.options=recovered.options;q.qType=inferQuestionType(q);q.answer=normaliseMCQAnswer(q,q.answer||q.finalAnswer||"");q.finalAnswer=q.answer||q.finalAnswer||"";});
     totalDetected=qs.length;render();
     $("generateSolutions").disabled=false;
-    $("status").textContent="🤖 All pages scanned. Questions are ready; checking mathematics against the original PDF…";
-    // Avoid sending the entire PDF repeatedly for automatic math verification; this can freeze
-    // the browser on 100–200-question papers. Targeted re-extraction is available per question.
+    // Keep any answer already printed in the PDF. For every unanswered question,
+    // automatically ask AI to solve it; no manual option selection or button click.
+    var needsAutoAnswer=function(q){var a=normaliseMCQAnswer(q,q.answer||q.finalAnswer||"");if(q.qType==="mcq"||q.qType==="mcq_multi")return !/^[A-H]$/.test(String(a||"").trim().toUpperCase());return !String(a||"").trim();};
+    var pendingAuto=qs.map(function(q,i){return {q:q,i:i};}).filter(function(x){return needsAutoAnswer(x.q);});
+    var autoDone=0,autoFailed=0;
+    if(pendingAuto.length){
+      $("status").textContent="🤖 Extraction complete. Automatically solving "+pendingAuto.length+" question(s) whose PDF answer was not detected…";
+      var cursor=0;
+      async function autoAnswerWorker(){while(cursor<pendingAuto.length){var item=pendingAuto[cursor++];try{var ok=await generateAISolutionForQuestion(item.i,{silent:true});if(!ok||needsAutoAnswer(item.q))autoFailed++;}catch(autoErr){item.q._autoAnswerError=autoErr.message||String(autoErr);autoFailed++;}autoDone++;$("status").textContent="🤖 Auto-answering missing answers: "+autoDone+"/"+pendingAuto.length+(autoFailed?" • "+autoFailed+" need review":"");}}
+      await Promise.all([autoAnswerWorker(),autoAnswerWorker()]);
+    }
     totalDetected=qs.length;render();
-    $("status").textContent="✔ Extraction complete. "+qs.length+" question(s) ready. Use ↻ Re-extract This Question with AI only on questions whose equations/options need correction.";
+    $("status").textContent="✔ Extraction complete. "+qs.length+" question(s) ready. "+(pendingAuto.length?"AI auto-answer attempted for "+pendingAuto.length+" missing answer(s); "+autoFailed+" could not be verified.":"All detected PDF answers were retained.")+" No manual A/B/C/D selection is required.";
   }catch(e){
     $("status").textContent="❌ "+e.message;alert("AI extraction failed: "+e.message);
   }finally{$("extract").disabled=false}
@@ -1480,8 +1488,9 @@ async function generateAIQuestionFigure(i){
   finally{q._generatingFigure=false;}
 }
 
-async function generateAISolutionForQuestion(i){
-  var q=qs[i];if(!q)return;var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!key)return alert("पहले Gemini API key डालें.");if(q.solutionGenerating)return;
+async function generateAISolutionForQuestion(i,options){
+  options=options||{};var silent=!!options.silent;
+  var q=qs[i];if(!q)return false;var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!key){if(!silent)alert("पहले Gemini API key डालें.");return false;}if(q.solutionGenerating)return false;
   var recovered=recoverOptionsFromStem(q.text,q.options);q.text=recovered.text;q.options=recovered.options;q.qType=inferQuestionType(q);q.answer=normaliseMCQAnswer(q,q.answer||q.finalAnswer||"");q.solutionGenerating=true;q.solutionProgress=5;render();
   try{
     var payload={question_number:q.no,question:q.text||"",question_type:q.qType||"",options:q.options||[],answer:q.answer||"",table_rows:q.tableRows||[],matrix_latex:q.matrixLatex||"",content_blocks:q.contentBlocks||[],visual_regions:q.visualRegions||[]};q.solutionProgress=15;render();
@@ -1530,8 +1539,8 @@ Solve exactly this question without changing its meaning.`;
     q.solutionProgress=65;render();
     var raw=d&&d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts?d.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
     var out=normalizeSolutionJson(parseGeminiJson(raw));if(!out.explanation)throw Error("Gemini returned an empty solution.");
-    var solvedAnswer=out.answer||out.final_answer||q.answer||"";q.answer=normaliseMCQAnswer(q,solvedAnswer);q.finalAnswer=q.answer;q.explanation=normalizeAngstromText(formatAISolutionStructure(out.explanation));q.solutionGenerated=true;q.solutionKept=false;q.solutionProgress=100;q.solutionGenerating=false;render();setTimeout(typesetMath,80);showSaveToast("✔ Detailed AI solution generated for Q"+q.no+". Review and Keep Solution.");$("status").textContent="✔ Detailed AI solution generated for Q"+q.no+".";
-  }catch(e){q.solutionGenerating=false;q.solutionProgress=0;render();console.error("AI solution generation failed",e);$("status").textContent="❌ Solution failed for Q"+q.no+": "+(e.message||e);alert("AI solution failed for Q"+q.no+": "+(e.message||e));}
+    var solvedAnswer=out.answer||out.final_answer||q.answer||"";var normalizedSolved=normaliseMCQAnswer(q,solvedAnswer);if(!String(normalizedSolved||"").trim())throw Error("AI did not return an answer.");if((q.qType==="mcq"||q.qType==="mcq_multi")&&Array.isArray(q.options)&&q.options.length>1&&!/^[A-H]$/.test(String(normalizedSolved).trim().toUpperCase()))throw Error("AI solution did not identify a correct option letter (A/B/C/D).");q.answer=normalizedSolved;q.finalAnswer=q.answer;q.explanation=normalizeAngstromText(formatAISolutionStructure(out.explanation));q.solutionGenerated=true;q.solutionKept=false;q.solutionProgress=100;q.solutionGenerating=false;render();setTimeout(typesetMath,80);if(!silent){showSaveToast("✔ Detailed AI solution generated for Q"+q.no+". Review and Keep Solution.");$("status").textContent="✔ Detailed AI solution generated for Q"+q.no+".";}return true;
+  }catch(e){q.solutionGenerating=false;q.solutionProgress=0;if(silent)q._autoAnswerError=e.message||String(e);render();console.error("AI solution generation failed",e);if(!silent){$("status").textContent="❌ Solution failed for Q"+q.no+": "+(e.message||e);alert("AI solution failed for Q"+q.no+": "+(e.message||e));}return false;}
 }
 async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;if(!cropTarget||cropTarget==="question")cropTarget="question";
   // When the teacher starts a PDF figure crop, prefer the source crop over generated art.
