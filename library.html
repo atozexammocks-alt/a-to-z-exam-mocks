@@ -829,7 +829,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       return String(v||'').trim().replace(/\\/g,'/').split('/').map(x=>x.trim()).filter(Boolean).join(' / ');
     }
     function getQuestionFolderPath(q){
-      if(!q) return '';
+      if(!q || q.folderUnassigned===true) return '';
       const explicit=normalizeFolderPath(q.folderPath || q.path || q.libraryPath || '');
       return explicit || normalizeFolderPath(q.folder || q.subject || q.folderName || '');
     }
@@ -919,10 +919,23 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     };
     window.deleteFolderByPath=async function(path){
       path=normalizeFolderPath(path);const node=findFolderByPath(path);if(!node)return;
-      if(!confirm('Delete this folder and its subfolders? Questions will remain saved but will no longer be assigned to this folder.'))return;
-      const src=findFolderParentArray(path),idx=src.arr.findIndex(x=>x===node);if(idx<0)return;src.arr.splice(idx,1);
-      Object.keys(folderPdfs||{}).forEach(k=>{if(pathIn(k,path))delete folderPdfs[k];});
-      try{await saveLibraryStateForCurrentMode();if(pathIn(currentFolderPath,path)){const parts=path.split(' / ');parts.pop();currentFolderPath=parts.join(' / ');}await loadLibraryStateForCurrentMode();renderLibraryBrowser();showToast('🗑️ Folder deleted');}catch(e){alert('Delete failed: '+e.message);}
+      if(!confirm('Delete this folder and its subfolders? Questions will remain saved but will be unassigned from this folder.'))return;
+      const src=findFolderParentArray(path),idx=src.arr.findIndex(x=>x===node);if(idx<0)return;
+      const parentPath=src.parentPath||'';
+      try{
+        // Unassign saved questions first. Otherwise loadPickerQuestions() rebuilds the deleted folder from their old folderPath.
+        const affected=(pickerQuestions||[]).filter(q=>pathIn(getQuestionFolderPath(q),path));
+        for(const q of affected){
+          await window.updateDoc(window.doc(window.db,'questions',q.id),{folderPath:parentPath,path:parentPath,libraryPath:parentPath,folderUnassigned:!parentPath,updatedAt:new Date().toISOString()});
+          q.folderPath=parentPath;q.path=parentPath;q.libraryPath=parentPath;q.folderUnassigned=!parentPath;
+        }
+        src.arr.splice(idx,1);
+        Object.keys(folderPdfs||{}).forEach(k=>{if(pathIn(k,path))delete folderPdfs[k];});
+        const saved=await saveLibraryStateForCurrentMode();
+        if(!saved)throw Error('Folder tree could not be saved to Firestore. Check permissions/network and try again.');
+        if(pathIn(currentFolderPath,path))currentFolderPath=parentPath;
+        await loadLibraryStateForCurrentMode();await loadPickerQuestions();renderLibraryBrowser();showToast('🗑️ Folder deleted; '+affected.length+' question(s) kept and unassigned/moved to parent.');
+      }catch(e){alert('Delete failed: '+e.message);await loadLibraryStateForCurrentMode();await loadPickerQuestions();renderLibraryBrowser();}
     };
 
     window.editLibraryQuestion=function(id){
