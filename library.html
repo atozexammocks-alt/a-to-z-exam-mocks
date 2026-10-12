@@ -668,9 +668,9 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     function questionImage(q){
       if(!q || typeof q!=='object') return '';
       const preferred=[
-        'questionImage','questionImageUrl','question_image','question_image_url','questionImageData','originalQuestionImage',
+        'questionImage','questionImageUrl','question_image','question_image_url','questionImageData','questionImageBase64','question_image_base64','originalQuestionImage',
         'imageUrl','imageURL','image_url','imageData','base64Image','croppedImage','croppedImageUrl','cropImage','pdfCrop',
-        'figureImage','figureUrl','figureURL','diagramImage','diagramUrl','imageSrc',
+        'figureImage','figure_image','figureUrl','figureURL','diagramImage','diagram_image','diagramUrl','imageSrc','image_source','visualImage','visual_image',
         'downloadURL','downloadUrl','storageUrl','src','image','img','question','diagram','figure'
       ];
       const seen=new Set();
