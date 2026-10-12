@@ -307,7 +307,11 @@ function getVisible(){
   const qt=String(q.type??q.questionType??q.qType??"MCQ").toUpperCase();
   if(type!=="ALL"&&qt!==type)return false;
   if(!term)return true;
-  return (displayTextOf(q)+" "+displayOptionsOf(q).join(" ")+" "+folderOf(q)+" "+String(q.topic??q.chapter??q.unit??"")).toLowerCase().includes(term);
+  const rawText=String(q.qText??q.text??q.questionText??q.question_text??q.content??"");
+  const sourceMeta=String(q.sourceExam??q.source??q.examSource??q.questionSource??q.origin??q.book??q.sourceLabel??q.paperName??"");
+  const yearMeta=String(q.sourceYear??q.pyqYear??q.examYear??q.year??q.yearAsked??"");
+  const inferredSource=(rawText.match(/^\s*(CBSE(?:\s+(?:Board|Class\s*\d+|Class\s*X|Class\s*10|Class\s*12))?|NCERT(?:\s+Exemplar)?|JEE\s*(?:Main|Mains|Advanced)|IIT\s*JEE|NEET(?:\s+UG)?|CUET(?:\s*\([^)]*\))?|UPPSC|HPSC|HPPSC|DSSSB|KVS|NTA|GATE|CSIR\s*[- ]?NET|UGC\s*NET|AIIMS|BITSAT|PYQ|Previous\s+Year\s+Question)(?:\s*[-–—:|,]?\s*(?:19|20)\d{2})?/im)||[])[0]||"";
+  return (displayTextOf(q)+" "+displayOptionsOf(q).join(" ")+" "+folderOf(q)+" "+String(q.topic??q.chapter??q.unit??"")+" "+sourceMeta+" "+yearMeta+" "+inferredSource).toLowerCase().includes(term);
  });
 }
 function updateQuestionCardUI(id){
