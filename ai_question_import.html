@@ -433,7 +433,34 @@ function normaliseMCQAnswer(q,answer){
   if(cleaned!==""&&Number.isFinite(numeric)){var idx=opts.findIndex(function(o){return String(o==null?"":o).trim()===cleaned});if(idx>=0)return String.fromCharCode(65+idx);}
   return a;
 }
+function normalizeQuestionSourceMetadata(q){
+  if(!q||typeof q!=="object")return q;
+  var raw=String(q.text||q.qText||q.questionText||"");
+  var existing=String(q.sourceExam||q.source||q.examSource||q.questionSource||q.origin||q.book||"").trim();
+  var lines=raw.split(/\r?\n/),removed=[];
+  var sourceLine=/^(?:\s*(?:CBSE(?:\s+(?:Board|Class\s*\d+|Class\s*X|Class\s*10|Class\s*12))?|NCERT(?:\s+Exemplar)?|NCERT\s+Textbook|JEE\s*(?:Main|Mains|Advanced)|IIT\s*JEE|NEET(?:\s+UG)?|CUET(?:\s*\([^)]*\))?|UPPSC|HPSC|HPPSC|DSSSB|KVS|NTA|GATE|CSIR\s*[- ]?NET|UGC\s*NET|AIIMS|BITSAT|Previous\s+Year\s+Question|PYQ|Board\s+Exam)(?:\s*[-–—:|,]\s*|\s+)?(?:Exemplar|Sample\s+Paper|Question\s+Bank)?(?:\s+(?:Physics|Science|Mathematics|Chemistry|Biology))?(?:\s*[-–—:|,]?\s*(?:19|20)\d{2}(?:\s*[-/–]\s*(?:19|20)?\d{2})?)?\s*)$/i;
+  while(lines.length&&lines[0].trim()){
+    var line=lines[0].trim();
+    if(!sourceLine.test(line))break;
+    removed.push(line);lines.shift();
+  }
+  if(removed.length){
+    if(!existing)existing=removed.join(" · ");
+    q.text=lines.join("\n").trim();
+    if(q.qText!==undefined)q.qText=q.text;
+    if(q.questionText!==undefined)q.questionText=q.text;
+  }
+  if(existing){
+    q.source=String(q.source||existing).trim();
+    q.sourceExam=String(q.sourceExam||existing).trim();
+    q.examSource=String(q.examSource||existing).trim();
+    q.keepSourceLabel=true;
+    q.isPYQ=Boolean(q.isPYQ||q.isPyq||q.year||q.sourceYear||q.pyqYear||/JEE|NEET|CBSE|NCERT|PYQ|Previous Year|Board Exam/i.test(existing));
+  }
+  return q;
+}
 function render(){
+  qs.forEach(normalizeQuestionSourceMetadata);
   updateProgress();
   $("stats").textContent=qs.length?qs.length+" question(s) remaining for review.":(totalDetected?"All detected questions have been processed.":"");
   $("import").disabled=!qs.length;$("clear").disabled=!qs.length;
