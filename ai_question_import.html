@@ -22,8 +22,8 @@ body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:5
   <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
   <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
 </select><span class="muted">Key stays in this browser only; never put it in GitHub.</span></div><div class="row"><div class="suggestbox" style="width:100%"><b>🧠 Faithful Reconstruction:</b> AI will separately reconstruct readable tables as HTML, matrices as LaTeX, and graphs/diagrams as inline SVG when possible. Complex photos remain available as exact PDF crops.</div></div><div class="row"><label for="defaultLibraryMode"><b>📚 Save all questions to:</b></label><select id="defaultLibraryMode" style="background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select><span class="muted">AI will create the suggested folder path automatically.</span></div><div class="row" style="padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><label for="bankRootOverride"><b>🗂 Main Question-Bank Folder:</b></label><input id="bankRootOverride" type="text" placeholder="Auto-detect, or enter JEE Mains / CBSE / NCERT Exemplar" style="flex:1;min-width:230px;background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><button id="applyBankRoot" class="btn purple" type="button">Apply to This Import</button><span class="muted">Manual value becomes the main folder; AI creates/reuses class, chapter and topic folders only inside it.</span></div><div class="row"><label style="display:flex;align-items:center;gap:7px"><input id="autoGenerateFigures" type="checkbox"> 🎨 Automatically generate AI figures for questions that need a diagram</label><span class="muted">Generated separately from extraction, only for question-owned figures; tables/matrices are not converted to figures.</span></div><div class="row"><input id="pdf" type="file" accept=".pdf,application/pdf"><button id="extract" class="btn blue">🤖 Extract Questions with AI</button><button id="generateSolutions" class="btn purple" type="button" style="display:none">🧠 Generate All Solutions</button><span id="status" class="muted">Waiting for PDF…</span></div>
-<div class="settings" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="field"><label>TOTAL PDF PAGES</label><input id="totalPagesDisplay" value="—" readonly></div><div class="field"><label>PAGE MODE</label><select id="pageMode"><option value="batches" selected>Automatic 5-page batches</option><option value="range">Manual page range</option></select></div><div class="field"><label>START PAGE</label><input id="pageStart" type="number" min="1" value="1"></div><div class="field"><label>END PAGE</label><input id="pageEnd" type="number" min="1" value="5"></div></div>
-<div class="row" style="margin-top:7px;padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><b>📚 Large-PDF Safe Mode:</b><span class="muted">PDF is split into small native-PDF batches before Gemini reads it. Default: 5 pages per batch. This avoids repeated OCR screenshots and protects equations/Hindi text.</span><span id="batchProgress" class="muted"></span></div>
+<div class="settings" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="field"><label>TOTAL PDF PAGES</label><input id="totalPagesDisplay" value="—" readonly></div><div class="field"><label>PAGE MODE</label><select id="pageMode"><option value="full" selected>🚀 Complete PDF (Direct AI Single-Pass — Recommended)</option><option value="range">📑 Specific Page Range (Manual)</option></select></div><div class="field"><label>START PAGE</label><input id="pageStart" type="number" min="1" value="1"></div><div class="field"><label>END PAGE</label><input id="pageEnd" type="number" min="1" value="5"></div></div>
+<div class="row" style="margin-top:7px;padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><b>⚡ Direct AI Extraction:</b><span class="muted">Gemini reads the entire paper in a single pass without artificial batches. No questions get cut at page boundaries, and non-question pages won't stop extraction.</span><span id="batchProgress" class="muted"></span></div>
 <div class="settings"><div class="field"><label>Maximum Questions</label><select id="max"><option value="0">All</option><option>25</option><option>50</option><option>100</option></select></div></div>
 <div class="row"><button id="import" class="btn green" disabled>☁ Import Reviewed Questions</button><button id="clear" class="btn red" disabled>✕ Clear</button></div><div id="stats" class="muted" style="margin-top:8px"></div><div class="import-progress"><div class="progress-chip">Total Questions: <b id="totalCount">0</b></div><div class="progress-chip">Uploaded: <b id="uploadedCount">0</b></div><div class="progress-chip">Remaining: <b id="remainingCount">0</b></div></div></div>
 <div id="grid" class="grid"><div class="card muted">Your extracted questions will appear here.</div></div></div>
@@ -32,7 +32,7 @@ body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:5
 <div class="card" style="min-width:0"><b>📝 Text Preview</b><div id="editorTextPreview" class="math-content" style="margin-top:8px;white-space:pre-wrap;line-height:1.7;max-height:420px;overflow:auto"></div></div>
 <div class="card" style="min-width:0"><b>🖼 Cropped PDF Image</b><div id="editorImagePreview" class="figure-preview" style="min-height:180px;display:flex;align-items:center;justify-content:center"><span class="muted">No crop yet.</span></div>
 <div class="row"><button id="eCropFromPdf" class="btn purple">✂ Crop / Re-crop from Original PDF</button></div></div>
-</div><div class="settings"><div class="field"><label>QUESTION NUMBER</label><input id="eNo"></div><div class="field"><label>LIBRARY</label><select id="eMode"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select></div><div class="field"><label>AUTO-GENERATED FOLDER PATH</label><select id="ePath" style="display:none"><option value=""></option></select><input id="ePathDisplay" readonly value="Created automatically from AI topic"></div></div><div class="field" style="margin-top:8px"><label>COMPLETE QUESTION</label><textarea id="eText" style="width:100%;min-height:180px"></textarea></div><div class="field" style="margin-top:8px"><label>OPTIONS — EDIT EACH OPTION SEPARATELY (A/B/C/D)</label><div id="eOptionsEditor" style="display:grid;gap:7px"></div><textarea id="eOptions" style="display:none"></textarea><div class="row"><button id="eAddOption" class="btn blue">＋ Add Option</button></div></div><div class="settings" style="margin-top:8px"><div class="field"><label>ANSWER</label><input id="eAnswer"></div><div class="field"><label>TOPIC / CHAPTER</label><input id="eTopic"></div><div class="field"><label>EXAM / PAPER (PYQ)</label><input id="eSource" placeholder="e.g. UPPSC Assistant Professor Physics"></div><div class="field"><label>YEAR</label><input id="eYear" inputmode="numeric" placeholder="e.g. 2022"></div></div><div class="field" style="margin-top:8px"><label>FIGURE / GRAPH / TABLE DESCRIPTION</label><textarea id="eDiagram" style="width:100%;min-height:90px"></textarea></div><div class="row"><button id="eCrop" class="btn">✂ Crop Complete Question</button><button id="eTextOnly" class="btn blue">📝 Text Only</button><button id="eImageOnly" class="btn purple">🖼 Image Only</button><button id="eBoth" class="btn green">📝+🖼 Image + Text</button><button id="eSave" class="btn green">💾 Save Changes</button><button id="eSaveLib" class="btn blue">☁ Save This Question to Library</button><span id="eStatus" class="muted"></span><button id="eClose" class="btn gray">Close</button></div></div></div>
+</div><div class="settings"><div class="field"><label>QUESTION NUMBER</label><input id="eNo"></div><div class="field"><label>LIBRARY</label><select id="eMode"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select></div><div class="field"><label>AUTO-GENERATED FOLDER PATH</label><select id="ePath" style="display:none"><option value=""></option></select><input id="ePathDisplay" readonly value="Created automatically from AI topic"></div></div><div class="field" style="margin-top:8px"><label>COMPLETE QUESTION</label><textarea id="eText" style="width:100%;min-height:180px"></textarea></div><div class="field" style="margin-top:8px"><label>OPTIONS — EDIT EACH OPTION SEPARATELY (A/B/C/D)</label><div id="eOptionsEditor" style="display:grid;gap:7px"></div><textarea id="eOptions" style="display:none"></textarea><div class="row"><button id="eAddOption" class="btn blue">＋ Add Option</button></div></div><div class="settings" style="margin-top:8px"><div class="field"><label>ANSWER</label><input id="eAnswer"></div><div class="field"><label>TOPIC / CHAPTER</label><input id="eTopic"></div><div class="field"><label>EXAM / PAPER (PYQ)</label><input id="eSource" placeholder="e.g. UPPSC Assistant Professor Physics"></div><div class="field"><label>YEAR</label><input id="eYear" inputmode="numeric" placeholder="e.g. 2022"></div></div><div class="field" style="margin-top:8px"><label>FIGURE / GRAPH / TABLE DESCRIPTION</label><textarea id="eDiagram" style="width:100%;min-height:90px"></textarea></div><div class="row"><button id="eCrop" class="btn">✂ Crop Complete Question</button><button id="eReextract" class="btn purple" type="button">🔄 Re-extract with AI</button><button id="eTextOnly" class="btn blue">📝 Text Only</button><button id="eImageOnly" class="btn purple">🖼 Image Only</button><button id="eBoth" class="btn green">📝+🖼 Image + Text</button><button id="eSave" class="btn green">💾 Save Changes</button><button id="eSaveLib" class="btn blue">☁ Save This Question to Library</button><span id="eStatus" class="muted"></span><button id="eClose" class="btn gray">Close</button></div></div></div>
 <div id="cropPanel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:30;padding:10px;overflow:auto"><div style="max-width:1100px;margin:auto;background:#0b1120;border:1px solid #475569;border-radius:12px;padding:10px"><div class="row"><b>📄 PDF Page Crop</b><button id="cropClose" class="btn red" style="margin-left:auto">Close</button></div><div class="muted" style="margin:6px 0">Drag over the exact question area on the original PDF page.</div><div style="position:relative;display:inline-block;max-width:100%;background:#fff"><canvas id="pdfCanvas" style="max-width:100%;display:block;touch-action:none"></canvas><div id="cropRect" style="display:none;position:absolute;border:2px solid #10b981;background:rgba(16,185,129,.12);pointer-events:none"></div></div><div class="row"><button id="cropPrevPage" class="btn">◀ Previous Page</button><button id="cropNextPage" class="btn">Next Page ▶</button><button id="cropSave" class="btn green">✂ Use This Crop for Question</button><label style="display:flex;gap:6px;align-items:center;color:#e2e8f0"><input id="cleanColoredInk" type="checkbox"> Remove red/blue pen marks from saved crop</label><span id="cropStatus" class="muted"></span></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script><script>
@@ -55,25 +55,123 @@ function cleanPathPart(x,fallback){
   x=String(x||"").replace(/[\/]+/g," ").replace(/\s+/g," ").trim();
   return x||fallback;
 }
+function classifyQuestionSemantics(text, chapter, topic, subtopic){
+  var raw = String([chapter, topic, subtopic, text].filter(Boolean).join(" ")).toLowerCase();
+  
+  // 1. RAY OPTICS & WAVE OPTICS
+  if (/\b(telescope|microscope|compound microscope|astronomical telescope|magnifying power|eyepiece|objective lens|normal adjustment)\b/.test(raw))
+    return { level: "12th", chapter: "Ray Optics", topic: "Optical Instruments" };
+  if (/\b(prism|angle of prism|minimum deviation|dispersive power|angular dispersion|dispersion without deviation)\b/.test(raw))
+    return { level: "12th", chapter: "Ray Optics", topic: "Prism & Dispersion" };
+  if (/\b(mirror|concave mirror|convex mirror|spherical mirror|mirror formula|radius of curvature|paraxial rays)\b/.test(raw))
+    return { level: "12th", chapter: "Ray Optics", topic: "Reflection & Spherical Mirrors" };
+  if (/\b(tir|total internal reflection|critical angle|optical fib(?:re|er)|apparent depth|real and apparent|snell|refractive index|refraction at plane surface)\b/.test(raw))
+    return { level: "12th", chapter: "Ray Optics", topic: "Refraction & Total Internal Reflection" };
+  if (/\b(lens|lenses|convex lens|concave lens|thin lenses?|focal lengths?|power of lens|lens maker|equiconvex|plano-convex)\b/.test(raw))
+    return { level: "12th", chapter: "Ray Optics", topic: "Lenses & Lens Maker Formula" };
+  if (/\b(ydse|young.*double slit|fringe width|interference.*light|central maxima|coherent sources|path difference|biprism)\b/.test(raw))
+    return { level: "12th", chapter: "Wave Optics", topic: "Interference & YDSE" };
+  if (/\b(diffraction|single slit|airy disc|resolving power|fresnel distance|central diffraction)\b/.test(raw))
+    return { level: "12th", chapter: "Wave Optics", topic: "Diffraction" };
+  if (/\b(polariz|polaroid|brewster|malus|unpolarized|plane polarized|double refraction)\b/.test(raw))
+    return { level: "12th", chapter: "Wave Optics", topic: "Polarization" };
+  if (/\b(ray optics|geometrical optics|light ray)\b/.test(raw))
+    return { level: "12th", chapter: "Ray Optics", topic: "Ray Optics & Optical Instruments" };
+  if (/\b(wave optics|wavefront|huygens)\b/.test(raw))
+    return { level: "12th", chapter: "Wave Optics", topic: "Huygens Principle & Wavefront" };
+
+  // 2. ELECTROSTATICS & CAPACITANCE
+  if (/\b(capacitor|capacitance|dielectric|parallel plate|energy stored in capacitor|dielectric slab|rc circuit)\b/.test(raw))
+    return { level: "12th", chapter: "Electrostatics", topic: "Capacitance & Dielectrics" };
+  if (/\b(gauss.*law|electric flux|gaussian surface|flux through)\b/.test(raw))
+    return { level: "12th", chapter: "Electrostatics", topic: "Gauss Law & Electric Flux" };
+  if (/\b(electric potential|potential difference|equipotential|potential energy of system|electrostatic potential)\b/.test(raw))
+    return { level: "12th", chapter: "Electrostatics", topic: "Electric Potential & Potential Energy" };
+  if (/\b(electric field|electric dipole|dipole moment|torque on dipole|coulomb.*law|point charge|electrostatic force)\b/.test(raw))
+    return { level: "12th", chapter: "Electrostatics", topic: "Electric Charges & Fields" };
+
+  // 3. CURRENT ELECTRICITY
+  if (/\b(potentiometer|wheatstone|meter bridge|meter-bridge)\b/.test(raw))
+    return { level: "12th", chapter: "Current Electricity", topic: "Electrical Measuring Instruments" };
+  if (/\b(kirchhoff|loop rule|junction rule|internal resistance|emfs? of cell|terminal voltage|cells in series|cells in parallel)\b/.test(raw))
+    return { level: "12th", chapter: "Current Electricity", topic: "Kirchhoff Laws & Electrical Circuits" };
+  if (/\b(drift velocity|mobility|current density|ohm.*law|resistivity|color code|temperature coefficient of resistance)\b/.test(raw))
+    return { level: "12th", chapter: "Current Electricity", topic: "Ohm Law & Resistance" };
+
+  // 4. MAGNETISM & EMI & AC
+  if (/\b(transformer|alternating current|lcr|impedance|power factor|resonance in ac|wattless current|peak value|rms value)\b/.test(raw))
+    return { level: "12th", chapter: "Electromagnetic Induction & AC", topic: "Alternating Current & LCR Circuits" };
+  if (/\b(faraday.*law|lenz.*law|motional emf|induced current|self-inductance|mutual inductance|solenoid inductance)\b/.test(raw))
+    return { level: "12th", chapter: "Electromagnetic Induction & AC", topic: "Electromagnetic Induction" };
+  if (/\b(biot-savart|lorentz force|cyclotron|force on wire|galvanometer.*ammeter|galvanometer.*voltmeter|ampere.*circuital)\b/.test(raw))
+    return { level: "12th", chapter: "Moving Charges & Magnetism", topic: "Magnetic Force & Fields" };
+  if (/\b(magnetic dipole|bar magnet|hysteresis|dia-,? para|ferromagnet|earth.*magnetism|magnetic susceptibility)\b/.test(raw))
+    return { level: "12th", chapter: "Magnetism & Matter", topic: "Magnetic Properties & Earth Magnetism" };
+
+  // 5. MODERN PHYSICS & SEMICONDUCTORS
+  if (/\b(photoelectric|work function|stopping potential|einstein.*photoelectric|threshold frequency|photon)\b/.test(raw))
+    return { level: "12th", chapter: "Modern Physics", topic: "Dual Nature & Photoelectric Effect" };
+  if (/\b(bohr.*radius|hydrogen spectrum|lyman|balmer|paschen|energy of electron|rydberg|de broglie)\b/.test(raw))
+    return { level: "12th", chapter: "Modern Physics", topic: "Atoms & Hydrogen Spectrum" };
+  if (/\b(radioactivity|half-life|decay constant|binding energy|mass defect|nuclear fission|nuclear fusion|alpha decay|beta decay)\b/.test(raw))
+    return { level: "12th", chapter: "Modern Physics", topic: "Nuclei & Radioactivity" };
+  if (/\b(logic gate|p-n junction|diode|zener diode|rectifier|transistor|semiconductor|extrinsic|n-type|p-type)\b/.test(raw))
+    return { level: "12th", chapter: "Semiconductors", topic: "Semiconductor Electronics & Logic Gates" };
+
+  // 6. CLASS 11 MECHANICS & THERMAL
+  if (/\b(carnot|entropy|isothermal|adiabatic|first law of thermodynamics|p-v diagram|heat engine|calorimet)\b/.test(raw))
+    return { level: "11th", chapter: "Thermodynamics", topic: "Thermodynamics & Heat Engines" };
+  if (/\b(bernoulli|viscosity|surface tension|terminal velocity|equation of continuity|capillary|excess pressure|streamline)\b/.test(raw))
+    return { level: "11th", chapter: "Fluid Mechanics", topic: "Fluid Mechanics & Surface Tension" };
+  if (/\b(moment of inertia|torque|rolling without slipping|angular momentum|center of mass|radius of gyration)\b/.test(raw))
+    return { level: "11th", chapter: "Rotational Motion", topic: "Rotational Dynamics & Moment of Inertia" };
+  if (/\b(kepler|escape velocity|gravitational potential|orbital velocity|acceleration due to gravity|satellite)\b/.test(raw))
+    return { level: "11th", chapter: "Gravitation", topic: "Gravitation & Satellite Motion" };
+  if (/\b(simple harmonic|shm|spring-mass|pendulum|time period of oscillation|restoring force)\b/.test(raw))
+    return { level: "11th", chapter: "Oscillations & Waves", topic: "Simple Harmonic Motion" };
+  if (/\b(doppler effect|organ pipe|resonance tube|standing waves|beats|speed of sound)\b/.test(raw))
+    return { level: "11th", chapter: "Oscillations & Waves", topic: "Wave Motion & Sound" };
+  if (/\b(work-energy|kinetic energy|potential energy|conservative force|collision|elastic collision|power)\b/.test(raw))
+    return { level: "11th", chapter: "Work, Energy & Power", topic: "Work, Energy & Collisions" };
+  if (/\b(newton.*second law|friction|coefficient of friction|pseudo force|pulley|tension in string)\b/.test(raw))
+    return { level: "11th", chapter: "Laws of Motion", topic: "Newton Laws of Motion & Friction" };
+  if (/\b(projectile motion|relative velocity|circular motion|centripetal|velocity vector|acceleration vector)\b/.test(raw))
+    return { level: "11th", chapter: "Kinematics", topic: "Kinematics in 1D & 2D" };
+
+  // 7. MATHEMATICS & CALCULUS
+  if (/\b(integration|definite integral|indefinite integral|area under curve)\b/.test(raw))
+    return { level: "12th", chapter: "Calculus", topic: "Integration & Area" };
+  if (/\b(derivative|differentiation|continuity|differentiability|tangent and normal|maxima and minima)\b/.test(raw))
+    return { level: "12th", chapter: "Calculus", topic: "Differentiation & Applications" };
+  if (/\b(differential equation|integrating factor|degree of differential)\b/.test(raw))
+    return { level: "12th", chapter: "Calculus", topic: "Differential Equations" };
+  if (/\b(matrix|matrices|determinant|adjoint|inverse of matrix)\b/.test(raw))
+    return { level: "12th", chapter: "Algebra", topic: "Matrices & Determinants" };
+  if (/\b(probability|bayes|random variable|binomial distribution)\b/.test(raw))
+    return { level: "12th", chapter: "Probability", topic: "Probability & Distributions" };
+  if (/\b(vector|cross product|dot product|scalar triple product)\b/.test(raw))
+    return { level: "12th", chapter: "Vectors & 3D", topic: "Vector Algebra & 3D Geometry" };
+
+  return { level: "", chapter: chapter || "General", topic: topic || subtopic || "General" };
+}
+
 function semanticSuggestedPath(q){
-  var sp=norm(q.suggestedPath||""); if(sp)return sp;
-  var subject=String(q.subject||"").trim(), chapter=String(q.chapter||"").trim(), topic=String(q.topic||"").trim();
-  var s=(subject||"Physics").replace(/\s+/g," ").trim();
-  var t=(topic||chapter||"General").replace(/\s+/g," ").trim();
-  var low=(t+" "+chapter).toLowerCase();
-  if(/integration|integral|calculus/.test(low)) return s+" / Calculus / Integration";
-  if(/differentiation|derivative|differential/.test(low)) return s+" / Calculus / Differentiation";
-  if(/fourier/.test(low)) return s+" / Calculus / Fourier Transform";
-  if(/laplace/.test(low)) return s+" / Calculus / Laplace Transform";
-  if(/matrix|matrices/.test(low)) return s+" / Algebra / Matrices";
-  if(/complex/.test(low)) return s+" / Algebra / Complex Numbers";
-  if(/mechanics|kinematics|dynamics|motion|work|energy|momentum/.test(low)) return s+" / Mechanics / "+t;
-  if(/optic|lens|mirror|tir|refraction|interference|diffraction/.test(low)) return s+" / Optics / "+t;
-  if(/electromagnet|electrostat|magnet|current|circuit/.test(low)) return s+" / Electromagnetism / "+t;
-  if(/quantum/.test(low)) return s+" / Quantum Mechanics / "+t;
-  if(/thermo|thermal|statistical/.test(low)) return s+" / Thermal Physics / "+t;
-  if(/differential equation/.test(low)) return s+" / Differential Equations / Differential Equations";
-  return s+" / "+(chapter||"General")+" / "+t;
+  q = q || {};
+  var sp = norm(q.suggestedPath || "");
+  if (sp && sp.includes(" / ")) return sp;
+  
+  var inferred = classifyQuestionSemantics(q.text || q.qText || q.question || "", q.chapter || "", q.topic || "", q.subtopic || "");
+  var s = cleanPathPart(q.subject, "Physics");
+  var lvl = inferred.level || inferAcademicLevel(q);
+  var ch = cleanPathPart(inferred.chapter || q.chapter, "General");
+  var top = cleanPathPart(inferred.topic || q.topic || q.subtopic, "General");
+  
+  var parts = [s];
+  if (lvl) parts.push(lvl);
+  if (ch && pathPartKey(ch) !== pathPartKey(s)) parts.push(ch);
+  if (top && pathPartKey(top) !== pathPartKey(ch)) parts.push(top);
+  
+  return norm(parts.join(" / "));
 }
 function getModePaths(mode){return paths(folderTrees[mode||"private"]||[])}
 function bankRootOverride(){return cleanPathPart($("bankRootOverride")&&$("bankRootOverride").value||"","");}
@@ -94,31 +192,44 @@ function inferExamBankRoot(q){
 }
 function pathPartKey(x){return String(x||"").replace(/\s+/g," ").trim().toLowerCase();}
 function sourceAwareSuggestedPath(q){
-  q=q||{};
-  var root=bankRootOverride()||inferExamBankRoot(q)||cleanPathPart(q.subject,"Physics");
-  var parts=[root],level=inferAcademicLevel(q);
-  function add(x){x=cleanPathPart(x,"");if(!x)return;var key=pathPartKey(x);if(!key)return;if(parts.some(function(p){return pathPartKey(p)===key;}))return;parts.push(x);}
-  if(level)add(level);
-  var chapter=cleanPathPart(q.chapter,""),topic=cleanPathPart(q.topic||q.subtopic,"");
-  var rawPath=norm(q.suggestedPath||"").split(" / ").filter(Boolean);
-  if(!chapter&&topic)chapter=topic;
-  if(!chapter&&rawPath.length){
-    chapter=rawPath.find(function(p){return !/^(physics|science|mathematics|chemistry|biology|general|class\s*\d+|\d+(?:th|st|nd|rd))$/i.test(p)&&pathPartKey(p)!==pathPartKey(root)&&pathPartKey(p)!==pathPartKey(level);})||"";
+  q = q || {};
+  var root = bankRootOverride() || inferExamBankRoot(q) || cleanPathPart(q.subject, "Physics");
+  var parts = [root];
+  
+  // Intelligent semantic classification on question text, chapter and topic
+  var textBody = String(q.text || q.qText || q.question || "");
+  var inferred = classifyQuestionSemantics(textBody, q.chapter || "", q.topic || "", q.subtopic || "");
+  
+  var level = inferAcademicLevel(q) || inferred.level || "";
+  var chapter = cleanPathPart(q.chapter || inferred.chapter, "");
+  var topic = cleanPathPart(q.topic || inferred.topic || q.subtopic, "");
+  
+  // Update question properties so other tools/editor have them populated
+  if (!q.chapter && chapter) q.chapter = chapter;
+  if (!q.topic && topic) q.topic = topic;
+  
+  // Build hierarchy without repeating parts present in root
+  function addPart(x){
+    x = cleanPathPart(x, "");
+    if (!x) return;
+    var k = pathPartKey(x);
+    if (!k || k === "general") return;
+    if (parts.some(p => pathPartKey(p) === k || pathPartKey(p).includes(k))) return;
+    parts.push(x);
   }
-  add(chapter);
-  if(topic&&(!chapter||!pathPartKey(chapter).includes(pathPartKey(topic))))add(topic);
-  var sub=cleanPathPart(q.subtopic,"");
-  if(sub&&(!chapter||!pathPartKey(chapter).includes(pathPartKey(sub)))&&(!topic||!pathPartKey(topic).includes(pathPartKey(sub))))add(sub);
-  rawPath.forEach(function(p){
-    if(/^(physics|science|mathematics|chemistry|biology|general|class\s*\d+|\d+(?:th|st|nd|rd))$/i.test(p))return;
-    var pk=pathPartKey(p);
-    if(pk===pathPartKey(root)||pk===pathPartKey(level)||pk===pathPartKey(chapter)||pk===pathPartKey(topic)||pk===pathPartKey(sub))return;
-    if(/^[a-z]+$/i.test(String(p).trim())&&parts.some(function(existing){
-      return pathPartKey(existing).split(/[^a-z0-9]+/).filter(Boolean).indexOf(pk)>=0;
-    }))return;
-    add(p);
-  });
-  return norm(parts.join(" / "))||root;
+  
+  if (level) addPart(level);
+  if (chapter) addPart(chapter);
+  if (topic) addPart(topic);
+  
+  // If still only root exists (e.g. unknown question without chapter), fall back to semantic inference
+  if (parts.length === 1 && inferred.chapter && inferred.chapter !== "General") {
+    if (inferred.level) addPart(inferred.level);
+    addPart(inferred.chapter);
+    if (inferred.topic && inferred.topic !== "General") addPart(inferred.topic);
+  }
+  
+  return norm(parts.join(" / ")) || root;
 }
 function suggestedMatch(q){
   var mode=q&&q.libraryMode||"private",available=getModePaths(mode),sp=sourceAwareSuggestedPath(q||{});
@@ -539,7 +650,7 @@ function render(){
       '<div class="pathhint">'+(q._manualFolderPath?'✏️ Manual path active; this exact path will be saved.':'🤖 AI path selected; you can override it whenever you want.')+'</div>'+flagSuggestionHtml(i,q,flagChoice)+'</div></div>';
     var left='<div class="review-left"><div class="review-title">Q'+esc(q.no)+' — OCR Text</div>'+
       '<textarea class="main-ocr-editor" data-ocr-i="'+i+'" spellcheck="false">'+esc(q.text||"")+'</textarea>'+
-      '<div class="row" style="margin-top:8px"><button type="button" class="btn blue" data-a="apply-text" data-i="'+i+'">✓ Apply Text</button><button type="button" class="btn purple" data-a="refresh-question" data-i="'+i+'">↻ Re-extract This Question with AI</button></div>'+
+      '<div class="row" style="margin-top:8px"><button type="button" class="btn blue" data-a="apply-text" data-i="'+i+'">✓ Apply Text</button><button type="button" class="btn purple" data-a="refresh-question" data-i="'+i+'" style="font-weight:900" title="PDF से इस सवाल को दोबारा स्कैन और री-एक्सट्रैक्ट करें">🔄 Re-extract with AI</button></div>'+
       '<div class="review-controls"><div class="control-block full"><label>Question Type — select or correct the detected type</label><select class="q-type-control" data-i="'+i+'">'+
       '<option value="mcq"'+(q.qType==="mcq"?" selected":"")+'>MCQ — Single Correct</option>'+
       '<option value="mcq_multi"'+(q.qType==="mcq_multi"?" selected":"")+'>MCQ — Multiple Correct</option>'+
@@ -1278,7 +1389,7 @@ function normalizeNativeQuestionGlobal(q,i){
   q=q||{};
   var tr=normalizeTableRows(q.table_rows);
   if(!tr.length) tr=tableRowsFromHtml(q.table_html||q.tableHtml||"");
-  return {no:q.question_number||q.no||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),options:normalizeOptionList(Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x==null?"":x))}):q.options),answer:String(q.answer??q.correct_answer??q.correctAnswer??q.answer_key??q.final_answer??q.finalAnswer??"").trim(),finalAnswer:String(q.final_answer??q.finalAnswer??q.answer??q.correct_answer??q.correctAnswer??q.answer_key??"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),source:String(q.source||q.source_exam||"").trim(),sourceExam:String(q.source_exam||q.source||"").trim(),year:String(q.year||q.source_year||"").trim(),sourceYear:String(q.year||q.source_year||"").trim(),keepSourceLabel:true,isPYQ:!!(q.source||q.source_exam||q.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"").trim().toLowerCase(),flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:($("defaultLibraryMode").value||"private"),folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||q.diagram||"").trim(),visualType:tr.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||"")),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:!tr.length&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||1).trim(),sourcePage:String(q.page||1).trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:tr,tableHtml:String(q.table_html||q.tableHtml||"").trim(),matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],optionImages:Array.isArray(q.option_images)?q.option_images:[],optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],visualRegions:normalizeOwnedVisualRegions(q)};
+  return {no:q.question_number||q.no||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),options:normalizeOptionList(Array.isArray(q.options)?q.options.map(function(x){return normalizeBilingualText(String(x==null?"":x))}):q.options),answer:String(q.answer??q.correct_answer??q.correctAnswer??q.answer_key??q.final_answer??q.finalAnswer??"").trim(),finalAnswer:String(q.final_answer??q.finalAnswer??q.answer??q.correct_answer??q.correctAnswer??q.answer_key??"").trim(),topic:String(q.topic||q.subtopic||q.concept||"").trim(),chapter:String(q.chapter||q.unit||q.category||"").trim(),source:String(q.source||q.source_exam||"").trim(),sourceExam:String(q.source_exam||q.source||"").trim(),year:String(q.year||q.source_year||"").trim(),sourceYear:String(q.year||q.source_year||"").trim(),keepSourceLabel:true,isPYQ:!!(q.source||q.source_exam||q.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"").trim().toLowerCase(),flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},libraryMode:($("defaultLibraryMode").value||"private"),folderPath:"",explanation:String(q.explanation||"").trim(),diagram:String(q.diagram_description||q.diagram||"").trim(),visualType:tr.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||"")),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:!tr.length&&!String(q.matrix_latex||"").trim()&&Boolean(q.figure_required||q.figureRequired),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||1).trim(),sourcePage:String(q.page||1).trim(),book:String(q.book||"").trim(),subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),tableRows:tr,tableHtml:String(q.table_html||q.tableHtml||"").trim(),matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks:[],optionImages:Array.isArray(q.option_images)?q.option_images:[],optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],visualRegions:normalizeOwnedVisualRegions(q)};
 }
 async function mergeContinuationInto(existing,q,pageNo,pageImageData){
   if(!existing||!q)return;
@@ -1303,21 +1414,63 @@ async function mergeContinuationInto(existing,q,pageNo,pageImageData){
   if(Array.isArray(q.content_blocks)){existing.contentBlocks=existing.contentBlocks||[];q.content_blocks.forEach(function(b){if(b)existing.contentBlocks.push(b);});}
   if(Array.isArray(q.contentBlocks)){existing.contentBlocks=existing.contentBlocks||[];q.contentBlocks.forEach(function(b){if(b)existing.contentBlocks.push(b);});}
 }
-async function extractNativePdf(key,pdfB64,totalPages,limit,libraryList){
-  var wanted=limit?Math.min(limit,250):250;
-  var prompt=`Extract exam questions from the supplied ORIGINAL PDF. This is a faithful transcription task, not summarization. CRITICAL: each numbered/logical question MUST be a separate object in questions[]. NEVER put the entire paper, an entire page, or multiple numbered questions into one question object. If the PDF contains Q1, Q2, Q3, return at least three separate objects. A question object may contain its own multi-line bilingual text, subparts, options and table, but it must stop before the next printed question number. NUMERICAL QUESTIONS WITHOUT OPTIONS ARE STILL SEPARATE QUESTIONS. Never merge two standalone numerical problems just because they have no options or no full stop. If you return table_rows/table_html, keep the question text limited to the question stem and the sentence introducing the table; DO NOT also copy the table cells as tab-separated, pipe-separated, or row-by-row plain text into question. Return ONLY valid JSON in exactly this shape: {"questions":[...]}. Extract every logical question in printed order, preserving BOTH English and Hindi/Devanagari when the PDF is bilingual. Never translate, transliterate, paraphrase, shorten or omit text. Preserve punctuation, option labels, numbers, units and line structure. Preserve mathematical notation as valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. A visible fraction must be \\frac{...}{...}, a root \\sqrt{...}, powers/subscripts/superscripts must remain structured, Greek letters must remain symbols, and integrals/limits/matrices/vectors/derivatives must remain mathematical notation. Never output words such as SQRT, INT, alpha, raised power or subscript when the PDF visibly contains the corresponding mathematical symbol. Preserve Å/Å, °C, μ, Ω and other units exactly. Do not confuse a literal slash in prose with a fraction. TABLE SEPARATION IS CRITICAL: the question field must contain only the printed question stem and any sentence that introduces the table. NEVER transcribe table rows/cells as plain lines inside question. Put every table cell ONLY in table_rows and table_html. Do not write a row-formatted text version before/after the HTML table. If table_rows is populated, table contents must not be repeated in question. For every real printed table, set visual_type="table" and return table_rows as a 2D array of cell objects {"text":"...","rowspan":1,"colspan":1,"header":false}; preserve exact row/column order, merged cells, headers, blank cells, labels, units and math inside cells. Also return table_html as a complete <table> with <tr>, <th>, <td>, rowspan and colspan only. NEVER reconstruct a table as a graph, scale, matrix, prose sentence or guessed values. If a cell is unreadable, preserve only what is visibly supported; never invent. Keep real mathematical matrices in matrix_latex. Do not invent figures or equations. FIGURE OWNERSHIP BOUNDARIES — ABSOLUTE RULE: First identify the printed start and end boundary of EACH question (question number through its stem, subparts, and options, stopping immediately before the next question number). Treat each question as an isolated region. A figure belongs to a question ONLY if its printed position is inside that question’s stem/options region, or the question text explicitly refers to that specific figure within the same bounded region. Never attach a nearby figure merely because it is visually close. Never attach a figure located below/inside the next numbered question to the previous question. Do not cross question-number boundaries, column boundaries, or answer/solution boundaries. Every visual_regions entry must include owner_question_number matching its question_number and a concise anchor proving where it appears (e.g. “between Q3 stem and Q3 options”). If you cannot confidently assign the figure to one question boundary, return NO visual_regions entry for it and set figure_required=false; flag uncertainty in figure_reference only. A question’s own visual_regions may contain ONLY visuals owned by that same question. Never copy, reuse, clone, or carry the same visual region into adjacent question objects. If Q1 has no figure inside Q1’s boundary, Q1 must have visual_regions=[] and figure_required=false even if Q2 has a figure.
+async function extractNativePdf(key, pdfB64, totalPages, limit, libraryList){
+  var wanted = limit ? Math.min(limit, 250) : 250;
+  var prompt = `Extract all exam questions from the supplied PDF document. Faithful transcription task, not summarization.
+CRITICAL RULES:
+1. Each printed/logical question MUST be a separate object in questions[]. Never combine multiple questions into one.
+2. Return ONLY valid JSON in exactly this shape: {"questions":[...]}.
+3. Preserve BOTH English and Hindi/Devanagari text exactly if the paper is bilingual. Never translate, shorten or omit text.
+4. Preserve mathematical notation as valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. Use \\frac{a}{b}, \\sqrt{x}, Greek symbols, superscripts, subscripts, vectors, matrices, integrals and derivatives.
+5. For MCQs: return each printed option as a separate string in the options ARRAY in printed order, WITHOUT A./B./C./D. labels.
+6. SOLVE EACH QUESTION: set answer to the correct MCQ option letter (A/B/C/D...) for MCQs; for numerical questions set the computed numerical value. Provide a concise step-by-step explanation.
+7. HIERARCHICAL TOPIC CLASSIFICATION (CRITICAL FOR FOLDER PATHS):
+   For each question, classify:
+   - "chapter": Standard textbook chapter name (e.g. "Ray Optics", "Wave Optics", "Current Electricity", "Electrostatics", "Thermodynamics", "Kinematics", "Rotational Motion", etc.)
+   - "topic": Granular concept topic (e.g. "Lenses & Lens Maker Formula", "Prism & Dispersion", "Reflection & Spherical Mirrors", "Refraction & Total Internal Reflection", "Optical Instruments", "Interference & YDSE", etc.)
+   - "subtopic": Specific sub-concept (e.g. "Minimum Deviation", "Lens Combination", "Critical Angle")
+   - "suggested_library_path": Full hierarchical path e.g. "12th / Ray Optics / Lenses & Lens Maker Formula"
+   Also return: question_number, question, options (array), answer, explanation, subject, page, question_type, visual_type, figure_required, figure_reference.
+8. If a page has only instructions, bibliography, or answer key without question stems, skip those pages and extract only the actual questions.
+Maximum questions to extract: ${wanted}. Existing library paths: ${libraryList}.`;
 
-FIGURE HANDLING IS CRITICAL: Never generate or return an image, screenshot, page image, full-page image, crop image, base64 image, or SVG. Do not put the entire PDF page into any image field. Detect visual references only. Set figure_required=true ONLY when the QUESTION STEM itself requires a figure to understand/answer it. A figure appearing only in the SOLUTION/EXPLANATION must NOT make the question figure-required; keep it in explanation/solution description only. If the visual is needed, provide figure_reference such as "Need figure: circuit diagram near the question". Keep all figures optional for saving. Return empty/null image fields. For each question return: question_number, question, options (array), answer, explanation, topic, chapter, subject, subtopic, source, year, difficulty, suggested_flag, suggested_library_path, table_rows, matrix_latex, visual_type, visual_required, figure_required, figure_reference, visual_regions (each with owner_question_number, anchor, visual_type), diagram_description, page, is_continuation, continuation_of_previous. Use a source-aware question-bank hierarchy. MAIN ROOT comes first and must match the exam/book source if identifiable: JEE Mains, JEE Advanced, CBSE, NCERT Exemplar, NCERT, NEET, etc. Then Class/Grade, Chapter, Topic, Subtopic, Concept. Examples: JEE Mains / 12th / Optics / Ray Optics; CBSE / 10th / Electricity; NCERT Exemplar / 12th / Optics / Lens Formula. Never repeat the same folder name twice in one path. Reuse the same chapter/topic folder for all questions with that concept; do not invent alternate spellings or restart an existing topic hierarchy. Existing library paths: ${libraryList}. Maximum questions: ${wanted}. If a question continues across pages, merge the continuation into the same question. Do not create a new question from an option-only or continuation fragment. Return the complete question text and all options. For options, ALWAYS return one separate string per printed option in the options ARRAY, in printed order. NEVER combine A, B, C and D into one array item or put all options in question text. If labels are inline, split at each printed A., B., C., D. boundary before returning JSON. Return option text WITHOUT A./B./C./D. labels because the interface adds labels. If no options exist, return options:[]. SOLVE EACH QUESTION while extracting: set answer to the correct MCQ option LETTER (A/B/C/D...) for MCQs, not the option's raw numeric/text value; for numerical questions set the computed numerical answer with unit when appropriate; for fill-in-the-blank set the missing answer. Include a concise explanation only when reliably solvable; do not guess if information is insufficient. For MCQ, compare all options and choose the mathematically/conceptually correct option, even if the answer is not printed in the question paper. Treat column/page breaks as continuation, not a new question; use the next page only to finish the current question and options.`;
-  var body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:8192}};
-  var d=await geminiRequest(key,body);
-  var raw=d?.candidates?.[0]?.content?.parts?.map(function(p){return p.text||""}).join("")||"";
-  if(!raw.trim()){
-    var reason=d?.promptFeedback?.blockReason||d?.candidates?.[0]?.finishReason||"empty response";
-    throw Error("Gemini returned no extraction data ("+reason+").");
+  var body = {
+    contents: [
+      {
+        role: "user",
+        parts: [
+          {text: prompt},
+          {inlineData: {mimeType: "application/pdf", data: pdfB64}}
+        ]
+      }
+    ],
+    generationConfig: {
+      temperature: 0,
+      responseMimeType: "application/json",
+      maxOutputTokens: 8192
+    }
+  };
+  
+  var d = await geminiRequest(key, body);
+  var raw = (d?.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
+  if(!raw){
+    var reason = d?.promptFeedback?.blockReason || d?.candidates?.[0]?.finishReason || "empty response";
+    throw Error("Gemini returned no extraction data (" + reason + ").");
   }
-  var parsed=parseGeminiJson(raw);
-  if(!parsed||!Array.isArray(parsed.questions))throw Error("Gemini returned JSON, but no questions array was found.");
-  return parsed.questions.slice(0,wanted);
+  
+  var parsed = parseGeminiJson(raw);
+  var arr = [];
+  if(Array.isArray(parsed)){
+    arr = parsed;
+  } else if(parsed && Array.isArray(parsed.questions)){
+    arr = parsed.questions;
+  } else if(parsed && Array.isArray(parsed.items)){
+    arr = parsed.items;
+  } else if(parsed && (parsed.question || parsed.question_number)){
+    arr = [parsed];
+  }
+  
+  return arr.slice(0, wanted);
 }
 async function splitPdfRangeBase64(startPage,endPage){
   if(!window.PDFLib||!PDFLib.PDFDocument)throw Error("PDF splitter failed to load. Refresh and try again.");
@@ -1396,7 +1549,7 @@ function normalizePageQuestion(q,i,pageNo){
       var normalized={
         no:q.question_number||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),
         options:normalizeOptionList(q.options).map(function(o){return normalizeBilingualText(String(o||""));}),
-        answer:String(q.answer??q.correct_answer??q.correctAnswer??q.answer_key??q.final_answer??q.finalAnswer??"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),
+        answer:String(q.answer??q.correct_answer??q.correctAnswer??q.answer_key??q.final_answer??q.finalAnswer??"").trim(),topic:String(q.topic||q.subtopic||q.concept||"").trim(),chapter:String(q.chapter||q.unit||q.category||"").trim(),
         source:String(q.source||"").trim(),sourceExam:String(q.source_exam||q.sourceExam||q.source||"").trim(),year:String(q.year||"").trim(),sourceYear:String(q.year||"").trim(),keepSourceLabel:true,isPYQ:!!(q.source||q.source_exam||q.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"").trim().toLowerCase(),answerRegion:String(q.answer_region||q.answerRegion||"").trim(),
         flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},
         libraryMode:($("defaultLibraryMode").value||"private"),folderPath:"",explanation:String(q.explanation||"").trim(),
@@ -1420,185 +1573,238 @@ function normalizePageQuestion(q,i,pageNo){
     }
 
 async function extract(){
-  let f=$("pdf").files[0];
-  if(!f)return alert("पहले PDF select करो.");
-  sourcePdfFile=f;
-  let key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
-  if(!key)return alert("पहले Gemini API key डालें.");
-  var appendManualRange=(($("pageMode").value||"batches")==="range" && qs.length>0 && lastExtractedPdfFile===f);
-  $("extract").disabled=true;
-  if(!appendManualRange){qs=[];totalDetected=0;uploadedCount=0;}
-  else {totalDetected=qs.length;}
-  lastExtractedPdfFile=f;
+  let f = $("pdf").files[0];
+  if(!f) return alert("पहले PDF select करो.");
+  sourcePdfFile = f;
+  let key = $("geminiKey").value.trim() || localStorage.getItem(KEY) || "";
+  if(!key) return alert("पहले Gemini API key डालें.");
+  
+  $("extract").disabled = true;
+  var mode = $("pageMode").value || "full";
+  var appendRange = (mode === "range" && qs.length > 0 && lastExtractedPdfFile === f);
+  
+  if(!appendRange){
+    qs = [];
+    totalDetected = 0;
+    uploadedCount = 0;
+  } else {
+    totalDetected = qs.length;
+  }
+  lastExtractedPdfFile = f;
   render();
-  try{
-    if(f.size>250*1024*1024)throw Error("This PDF is over 250 MB. Split it into smaller parts (about 100–300 pages each) to avoid browser memory failure.");
-    $("status").textContent="📄 Opening PDF once (large files may take a little while)…";
-    let u=new Uint8Array(await f.arrayBuffer());
-    sourcePdfBytes=u.slice().buffer;sourcePdfDoc=null;
-    if(!folderPaths.length){try{await loadFolders("private",$("ePath"),$("eStatus"))}catch(_){}}
-    let libraryList=folderPaths.length?folderPaths.join(" | "):"(No Library folders available yet)";
-    if(!window.pdfjsLib)throw Error("PDF viewer failed to load.");
-    pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-    let pdfDoc=await getSourcePdfDoc(),totalPages=pdfDoc.numPages||1;
-    let lim=Number($("max").value)||0,all=[],seen={},nativePageImages=new Map();
-
-    try{
-      var mode=$("pageMode").value||"batches";
-      var selectedStart=Math.max(1,Math.min(totalPages,Number($("pageStart").value)||1));
-      var selectedEnd=Math.max(selectedStart,Math.min(totalPages,Number($("pageEnd").value)||5));
-      var ranges=[];
-      if(mode==="range"){ranges.push([selectedStart,selectedEnd]);}
-      else{for(var rs=1;rs<=totalPages;rs+=5)ranges.push([rs,Math.min(totalPages,rs+4)]);} 
-      if(mode==="range" && appendManualRange){$("status").textContent="➕ Adding pages "+selectedStart+"–"+selectedEnd+" to the existing question list…";}
-      var remainingLimit=lim||0;
-      for(var bi=0;bi<ranges.length;bi++){
-        if(remainingLimit&&qs.length>=remainingLimit)break;
-        var rg=ranges[bi];
-        $("batchProgress").textContent=" Batch "+(bi+1)+"/"+ranges.length+" — pages "+rg[0]+"–"+rg[1];
-        $("status").textContent="🤖 Reading original PDF pages "+rg[0]+"–"+rg[1]+" (native PDF)…";
-        try{
-          var chunk=await splitPdfRangeBase64(rg[0],rg[1]);
-          var list=await extractNativePdfBatch(key,chunk.base64,rg[0],rg[1],totalPages,remainingLimit||0,libraryList,[]);
-          list=repairObviousMergedQuestions(list);
-          for(var ni=0;ni<list.length;ni++){
-            var absolutePage=Math.max(1,Math.min(totalPages,Number(list[ni].page||rg[0])));
-            var nq=normalizePageQuestion(list[ni],ni,absolutePage);
-            nq.sourcePage=String(absolutePage);
-            nq.qType=inferQuestionType(nq);
-            nq.text=questionTextWithoutDuplicatedTable(nq);
-            var needsPageImage=(nq.visualRegions||[]).some(function(v){return v&&v.cropBox;})||
-              !!nq.figureCropBox||(Array.isArray(list[ni].option_figure_boxes)&&list[ni].option_figure_boxes.some(Boolean));
-            if(needsPageImage){
-              if(!nativePageImages.has(absolutePage))nativePageImages.set(absolutePage,await renderPdfPageJpeg(pdfDoc,absolutePage));
-              var pageData=nativePageImages.get(absolutePage);
-              for(var nvi=0;nvi<(nq.visualRegions||[]).length;nvi++){
-                var nv=nq.visualRegions[nvi];if(nv&&nv.cropBox&&!nv.image){
-                  var visualPageNo=Number(nv.pageNumber||absolutePage);
-                  if(!nativePageImages.has(visualPageNo))nativePageImages.set(visualPageNo,await renderPdfPageJpeg(pdfDoc,visualPageNo));
-                  nv.image=await cropNormalizedPdfVisual(nativePageImages.get(visualPageNo),nv.cropBox);
-                  nv.autoCropped=!!nv.image;
-                }
-              }
-              if(nq.figureCropBox&&!(nq.visualRegions||[]).some(function(v){return v&&v.image;})){
-                nq.figureImage=await cropNormalizedPdfVisual(pageData,nq.figureCropBox);
-                if(nq.figureImage&&!nq.visualRegions.length)nq.visualRegions.push({visualType:visualTypeOf(nq.visualType||"diagram"),type:visualTypeOf(nq.visualType||"diagram"),anchor:nq.figureReference||"Original PDF figure",image:nq.figureImage,autoCropped:true});
-              }
-              var nativeOptionBoxes=list[ni].option_figure_boxes||[];
-              nq.optionImages=nq.optionImages||[];
-              for(var noi=0;noi<nativeOptionBoxes.length;noi++)if(nativeOptionBoxes[noi]){
-                nq.optionImages[noi]=await cropNormalizedPdfVisual(pageData,nativeOptionBoxes[noi]);
-                if(nq.optionImages[noi]){nq.optionFigureRequired=nq.optionFigureRequired||[];nq.optionFigureRequired[noi]=true;}
-              }
-              if(nq.visualRegions.length&&nq.visualRegions[0].image&&!nq.figureImage)nq.figureImage=nq.visualRegions[0].image;
-            }
-            if(!String(nq.text||"").trim())continue;
-            var keyNo=String(nq.no||"").trim().toLowerCase();
-            if(keyNo&&qs.some(function(x){return String(x.no||"").trim().toLowerCase()===keyNo;}))continue;
-            qs.push(nq);all.push(nq);
-            if(remainingLimit&&qs.length>=remainingLimit)break;
-          }
-          totalDetected=qs.length;render();
-        }catch(batchErr){
-          throw batchErr;
-        }
-      }
-      qs.forEach(function(q,i){q.sourcePage=String(q.sourcePage||q.page||1);q._chronologicalIndex=i+1;q.qType=inferQuestionType(q);applyFlagChoice(q,q.flagChoice);});
-      totalDetected=qs.length;render();
-      $("status").textContent="✔ Native PDF extraction complete — "+qs.length+" question(s).";
-    }catch(nativeBatchErr){
-      throw new Error("PDF extraction stopped at the native batch for pages " +
-        (typeof rg!=="undefined" && rg ? rg[0]+"–"+rg[1] : "currently selected") +
-        ". Earlier questions, if any, remain in review. Actual error: " +
-        (nativeBatchErr && nativeBatchErr.message ? nativeBatchErr.message : String(nativeBatchErr)));
+  
+  try {
+    if(f.size > 250*1024*1024) throw Error("This PDF is over 250 MB. Split it into smaller files to avoid browser memory failure.");
+    $("status").textContent = "📄 Reading PDF structure…";
+    let u = new Uint8Array(await f.arrayBuffer());
+    sourcePdfBytes = u.slice().buffer;
+    sourcePdfDoc = null;
+    
+    if(!folderPaths.length){ try{ await loadFolders("private", $("ePath"), $("eStatus")); }catch(_){} }
+    let libraryList = folderPaths.length ? folderPaths.join(" | ") : "(No Library folders available yet)";
+    if(!window.pdfjsLib) throw Error("PDF viewer failed to load.");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+    let pdfDoc = await getSourcePdfDoc();
+    let totalPages = pdfDoc.numPages || 1;
+    let lim = Number($("max").value) || 0;
+    
+    var pdfB64ToSend = "";
+    var extractLabel = "complete paper (" + totalPages + " pages)";
+    
+    if(mode === "range"){
+      var startP = Math.max(1, Math.min(totalPages, Number($("pageStart").value) || 1));
+      var endP = Math.max(startP, Math.min(totalPages, Number($("pageEnd").value) || totalPages));
+      extractLabel = "pages " + startP + "–" + endP;
+      $("status").textContent = "✂ Extracting pages " + startP + "–" + endP + " from PDF…";
+      var chunk = await splitPdfRangeBase64(startP, endP);
+      pdfB64ToSend = chunk.base64;
+    } else {
+      $("status").textContent = "📄 Encoding full PDF for direct single-pass AI reading…";
+      pdfB64ToSend = uint8ToBase64(new Uint8Array(sourcePdfBytes));
     }
-    if(!qs.length)throw Error("No questions found after extraction");
-    for(let ri=1;ri<qs.length;ri++){
-      let cur=qs[ri],prev=qs[ri-1];
-      if(!cur||!prev)continue;
-      let explicit=cur.continuation===true||cur.continuation_of_previous===true||cur.is_continuation===true;
-      let samePrintedNo=String(cur.no||"").trim().toLowerCase()===String(prev.no||"").trim().toLowerCase();
-      let fragment={question:cur.text,options:cur.options,question_number:cur.no||""};
-      if((explicit && samePrintedNo) || looksLikeContinuationFragment(fragment,prev)){
-        await mergeContinuationInto(prev,{question:cur.text,options:cur.options,answer:cur.answer,explanation:cur.explanation,diagram:cur.diagram,figure_reference:cur.figureReference,table_rows:cur.tableRows,matrix_latex:cur.matrixLatex,visual_regions:cur.visualRegions,content_blocks:cur.contentBlocks,option_figure_boxes:cur.optionFigureBoxes},cur.sourcePage||cur.page,"");
-        qs.splice(ri,1);all=qs.slice();ri--;
+    
+    $("status").textContent = "🤖 AI (" + ACTIVE_GEMINI_MODEL + ") is reading " + extractLabel + "…";
+    var questionsList = [];
+    try {
+      questionsList = await extractNativePdf(key, pdfB64ToSend, totalPages, lim || 250, libraryList);
+    } catch(extErr){
+      // If full PDF fails due to size or payload, and PDF has multiple pages, try a smooth 2-half split fallback
+      console.warn("Direct pass returned error:", extErr);
+      if(mode !== "range" && totalPages > 10){
+        $("status").textContent = "🔄 Large paper detected — analyzing in 2 halves…";
+        var mid = Math.floor(totalPages / 2);
+        var chunk1 = await splitPdfRangeBase64(1, mid);
+        var list1 = await extractNativePdf(key, chunk1.base64, totalPages, lim || 125, libraryList).catch(() => []);
+        var chunk2 = await splitPdfRangeBase64(mid + 1, totalPages);
+        var list2 = await extractNativePdf(key, chunk2.base64, totalPages, lim || 125, libraryList).catch(() => []);
+        questionsList = (list1 || []).concat(list2 || []);
       }
+      if(!questionsList.length) throw extErr;
     }
-    qs.forEach(function(q,i){cleanQuestionOptions(q);q._chronologicalIndex=i+1;var recovered=recoverOptionsFromStem(q.text,q.options);q.text=recovered.text;q.options=recovered.options;q.qType=inferQuestionType(q);q.answer=normaliseMCQAnswer(q,q.answer||q.finalAnswer||"");q.finalAnswer=q.answer||q.finalAnswer||"";});
-    totalDetected=qs.length;render();
-    $("generateSolutions").style.display="inline-block";$("generateSolutions").disabled=false;
-  }catch(e){
-    $("status").textContent="❌ "+(e&&e.message?e.message:String(e));
-    alert("AI extraction failed: "+(e&&e.message?e.message:String(e)));
-  }finally{$("extract").disabled=false}
+    
+    if(!questionsList || !questionsList.length){
+      throw Error("No questions detected in " + extractLabel + ". Make sure this PDF contains readable exam questions.");
+    }
+    
+    $("status").textContent = "🔍 Normalizing " + questionsList.length + " questions…";
+    questionsList = repairObviousMergedQuestions(questionsList);
+    
+    for(var ni = 0; ni < questionsList.length; ni++){
+      var rawQ = questionsList[ni];
+      var absolutePage = Math.max(1, Math.min(totalPages, Number(rawQ.page || 1)));
+      var nq = normalizePageQuestion(rawQ, ni, absolutePage);
+      nq.sourcePage = String(absolutePage);
+      nq.qType = inferQuestionType(nq);
+      nq.text = questionTextWithoutDuplicatedTable(nq);
+      
+      cleanQuestionOptions(nq);
+      var recovered = recoverOptionsFromStem(nq.text, nq.options);
+      nq.text = recovered.text;
+      nq.options = recovered.options;
+      nq.qType = inferQuestionType(nq);
+      nq.answer = normaliseMCQAnswer(nq, nq.answer || nq.finalAnswer || "");
+      nq.finalAnswer = nq.answer;
+      nq._chronologicalIndex = qs.length + 1;
+      applyFlagChoice(nq, nq.flagChoice);
+      
+      if(!String(nq.text || "").trim()) continue;
+      
+      // Avoid exact duplicates
+      var keyNo = String(nq.no || "").trim().toLowerCase();
+      if(keyNo && qs.some(x => String(x.no || "").trim().toLowerCase() === keyNo)) continue;
+      
+      qs.push(nq);
+    }
+    
+    totalDetected = qs.length;
+    render();
+    $("generateSolutions").style.display = "inline-block";
+    $("generateSolutions").disabled = false;
+    $("status").textContent = "✔ Successfully extracted " + qs.length + " question(s)! Review each question below.";
+    showSaveToast("✔ " + qs.length + " questions extracted successfully!");
+    
+  } catch(e) {
+    $("status").textContent = "❌ " + (e && e.message ? e.message : String(e));
+    alert("AI extraction notice: " + (e && e.message ? e.message : String(e)));
+  } finally {
+    $("extract").disabled = false;
+  }
 }
 async function reextractSingleQuestion(i){
-  var q=qs[i]; if(!q)return;
-  if(!sourcePdfFile || !sourcePdfBytes)throw Error("Original PDF is not available. Select the same source PDF again first.");
-  var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
-  if(!key)throw Error("Enter/save your Gemini API key first.");
-  if(q._refreshing)return;
-  q._refreshing=true;
-  var btn=document.querySelector('button[data-a="refresh-question"][data-i="'+i+'"]');
-  if(btn){btn.disabled=true;btn.textContent="⏳ Re-extracting…";}
-  $("status").textContent="↻ Re-reading Q"+q.no+" from the ORIGINAL PDF (not a screenshot)…";
-  try{
-    if(!window.pdfjsLib)throw Error("PDF.js failed to load.");
-    if(!window.PDFLib||!PDFLib.PDFDocument)throw Error("PDF splitter failed to load. Refresh and try again.");
-    pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-    var pdf=await getSourcePdfDoc();
-    var pageNo=Math.max(1,Math.min(pdf.numPages,Number(q.sourcePage||q.page)||1));
-    var endPage=Math.min(pdf.numPages,pageNo+1);
-    var sourceChunk=await splitPdfRangeBase64(pageNo,endPage);
-    var nearby=qs.slice(Math.max(0,i-1),Math.min(qs.length,i+2)).filter(function(n){return n!==q;}).map(function(n){return "Q"+n.no+": "+String(n.text||"").slice(0,220)}).join("\n");
-    var prompt=`You are a precision exam-PDF transcription engine. Re-extract ONLY printed question number ${q.no} from the attached ORIGINAL PDF page(s) ${pageNo}-${endPage}. This is a correction/transcription task, NOT question generation, rewriting, solving, summarizing, translating or beautifying.
+  var q = qs[i];
+  if(!q) return;
+  if(!sourcePdfFile && !sourcePdfBytes){
+    alert("Original PDF memory is not loaded. Please select the PDF file again using the 'Choose File' button.");
+    return;
+  }
+  var key = $("geminiKey").value.trim() || localStorage.getItem(KEY) || "";
+  if(!key) throw Error("Enter/save your Gemini API key first.");
+  if(q._refreshing) return;
+  
+  q._refreshing = true;
+  var btn = document.querySelector('button[data-a="refresh-question"][data-i="' + i + '"]');
+  if(btn){ btn.disabled = true; btn.textContent = "⏳ Re-extracting…"; }
+  
+  try {
+    if(!window.pdfjsLib) throw Error("PDF.js failed to load.");
+    if(!window.PDFLib || !PDFLib.PDFDocument) throw Error("PDF splitter failed to load. Refresh and try again.");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+    var pdf = await getSourcePdfDoc();
+    
+    var detectedPage = Math.max(1, Math.min(pdf.numPages, Number(q.sourcePage || q.page) || 1));
+    var pageInput = prompt("Target PDF page for Q" + q.no + " (Total pages: " + pdf.numPages + "):", detectedPage);
+    if(pageInput === null){
+      q._refreshing = false;
+      if(btn){ btn.disabled = false; btn.textContent = "🔄 Re-extract with AI"; }
+      return;
+    }
+    
+    var pageNo = Math.max(1, Math.min(pdf.numPages, parseInt(pageInput, 10) || detectedPage));
+    var endPage = Math.min(pdf.numPages, pageNo + 1);
+    
+    $("status").textContent = "↻ Re-reading Q" + q.no + " from original PDF page " + pageNo + (endPage > pageNo ? "–" + endPage : "") + "…";
+    var sourceChunk = await splitPdfRangeBase64(pageNo, endPage);
+    
+    var nearby = qs.slice(Math.max(0, i-1), Math.min(qs.length, i+2))
+      .filter(n => n !== q)
+      .map(n => "Q" + n.no + ": " + String(n.text || "").slice(0, 150))
+      .join("\n");
+      
+    var prompt = `Precision exam-PDF question re-extraction. Extract printed question ${q.no} from attached PDF page(s) ${pageNo}-${endPage}.
+1. Transcribe EXACT wording, punctuation, numbers, and options. Bilingual Hindi/English must be preserved.
+2. Format math inside MathJax \\( ... \\) or \\[ ... \\].
+3. For options: return separate strings in options array, without A/B/C/D prefixes.
+4. Solve and provide the correct MCQ option letter (A/B/C/D) or numerical answer, and step-by-step explanation.
+5. Return ONLY JSON: {"question":{"question_number":"${String(q.no).replace(/"/g, '\\\"')}","question":"...","options":[],"answer":"","explanation":"","topic":"","chapter":"","subject":"","question_type":"","table_rows":[],"matrix_latex":"","diagram_description":"","figure_reference":"","visual_type":""}}
+Context clue (may have OCR errors): ${String(q.text || "").slice(0, 500)}
+Nearby questions (do not merge): ${nearby}`;
 
-SOURCE OF TRUTH: the attached original PDF is the ONLY authority. The existing OCR text below is possibly wrong and is supplied ONLY to help locate the target; do not copy it if it disagrees with the PDF.
-Existing OCR locator text (may contain LaTeX/OCR errors): ${String(q.text||"").slice(0,1200)}
-Other nearby questions for boundary identification only (DO NOT return or merge them): ${nearby}
-
-STRICT RULES:
-1. Return exactly ONE question object for printed question ${q.no}. Do not return any other question, even if visible on the same page.
-2. Transcribe only what is visibly printed for this question. Preserve wording, Hindi/English, punctuation, numbers, signs, units, subparts and option order. Do not infer missing words or symbols. If a symbol is genuinely unreadable, mark only that small part as [unclear]; do not invent a likely equation.
-3. Preserve mathematics structurally as valid MathJax LaTeX: use \\( ... \\) for inline math and \\[ ... \\] for display math. Use \\frac{a}{b}, \\sqrt{x}, proper superscripts/subscripts, Greek commands/symbols, vectors, matrices, integrals, limits and derivatives as appropriate. Never output pseudo-text such as SQRT, INT, alpha, x^2 typed as ordinary prose, or fractions converted to slash-separated OCR text when the printed expression is mathematical.
-4. Keep the stem and options separate. Return options as an array with exactly one string per printed option in order, without A/B/C/D labels. If there are no options, return []. Do not omit visible options.
-5. Never invent or alter the printed question text, options, figures, tables, or metadata. For the answer field, independently solve the question using its stated data and options; return the correct MCQ option letter (A/B/C/D...) rather than merely copying an option's numeric value. For numerical/descriptive questions, calculate or derive the answer when possible. If it genuinely cannot be determined, leave answer empty. Do not turn a figure description into a generated figure.
-6. If the target question continues onto the next supplied page, include only its continuation. Do not absorb the next numbered question. Set is_continuation/continuation_of_previous only when the visible layout supports it.
-7. Output JSON only, with exactly this shape: {"question":{"question_number":"${String(q.no).replace(/"/g,'\\"')}","question":"...","options":[],"answer":"","explanation":"","topic":"","chapter":"","subject":"","subtopic":"","question_type":"","table_rows":[],"matrix_latex":"","diagram_description":"","figure_reference":"","visual_type":"","figure_required":false,"is_continuation":false,"continuation_of_previous":false}}`;
-    var body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:sourceChunk.base64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:7000}};
-    var d=await geminiRequest(key,body);
-    var raw=(d?.candidates?.[0]?.content?.parts||[]).map(function(p){return p.text||""}).join("");
-    if(!raw.trim())throw Error("AI returned no transcription for Q"+q.no+". Original question was kept unchanged.");
-    var parsed=parseGeminiJson(raw),fresh=parsed&&parsed.question;
-    if(!fresh&&parsed&&Array.isArray(parsed.questions))fresh=parsed.questions.find(function(x){return String(x.question_number||x.no||"").trim().toLowerCase()===String(q.no||"").trim().toLowerCase()})|| (parsed.questions.length===1?parsed.questions[0]:null);
-    if(!fresh||!String(fresh.question||fresh.text||"").trim())throw Error("AI did not return the target question Q"+q.no+". Original question was kept unchanged.");
-    var freshText=String(fresh.question||fresh.text||"").trim(),oldText=String(q.text||"").trim();
-    if(freshText.length<Math.min(18,Math.max(8,oldText.length*.18)))throw Error("AI returned an unusually short fragment, not a complete question. Original question was kept unchanged.");
-    if(q.options&&q.options.length>=2&&Array.isArray(fresh.options)&&fresh.options.length===0)throw Error("AI omitted all existing options. Original question was kept unchanged.");
-    var original=JSON.parse(JSON.stringify(q));
-    var candidate=JSON.parse(JSON.stringify(q));
-    candidate.text=normalizeAngstromText(normalizeExtractedText(freshText));
-    candidate.options=fresh.options!==undefined?normalizeOptionList(fresh.options).map(function(o){return normalizeBilingualText(String(o||""));}):(candidate.options||[]);
-    if(fresh.answer!==undefined&&String(fresh.answer).trim())candidate.answer=String(fresh.answer).trim();
-    if(fresh.explanation!==undefined&&String(fresh.explanation).trim())candidate.explanation=normalizeExtractedText(String(fresh.explanation).trim());
-    if(fresh.topic)candidate.topic=String(fresh.topic);if(fresh.chapter)candidate.chapter=String(fresh.chapter);
-    if(fresh.subject)candidate.subject=String(fresh.subject);if(fresh.subtopic)candidate.subtopic=String(fresh.subtopic);
-    if(fresh.source||fresh.source_exam)candidate.sourceExam=String(fresh.source||fresh.source_exam);
-    if(fresh.year)candidate.year=String(fresh.year);
-    if(fresh.question_type)candidate.qType=String(fresh.question_type).toLowerCase();
-    if(Array.isArray(fresh.table_rows)&&fresh.table_rows.length)candidate.tableRows=normalizeTableRows(fresh.table_rows);
-    if(fresh.matrix_latex)candidate.matrixLatex=String(fresh.matrix_latex);
-    if(fresh.diagram_description)candidate.diagram=String(fresh.diagram_description);
-    if(fresh.figure_reference)candidate.figureReference=String(fresh.figure_reference);
-    if(fresh.visual_type)candidate.visualType=visualTypeOf(fresh.visual_type);
-    cleanQuestionOptions(candidate);candidate.qType=inferQuestionType(candidate);delete candidate._refreshing;
-    qs[i]=original;delete qs[i]._refreshing;
-    $("status").textContent="✔ Original-PDF re-extraction ready for Q"+q.no+". Review both versions; nothing has been changed yet.";
-    showQuestionRefreshCompare(i,original,candidate);
-  }catch(err){
-    q._refreshing=false;render();$("status").textContent="❌ Re-extract Q"+q.no+" failed: "+(err.message||err);
-    showSaveToast("❌ Re-extract failed: "+(err.message||err),true);throw err;
-  }finally{q._refreshing=false;}
+    var body = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {text: prompt},
+            {inlineData: {mimeType: "application/pdf", data: sourceChunk.base64}}
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0,
+        responseMimeType: "application/json",
+        maxOutputTokens: 7000
+      }
+    };
+    
+    var d = await geminiRequest(key, body);
+    var raw = (d?.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
+    if(!raw.trim()) throw Error("AI returned no text for Q" + q.no + ". Original question was kept.");
+    
+    var parsed = parseGeminiJson(raw);
+    var fresh = parsed && parsed.question;
+    if(!fresh && parsed && Array.isArray(parsed.questions)){
+      fresh = parsed.questions.find(x => String(x.question_number || x.no || "").trim().toLowerCase() === String(q.no || "").trim().toLowerCase()) || parsed.questions[0];
+    }
+    if(!fresh && parsed && Array.isArray(parsed)) fresh = parsed[0];
+    
+    if(!fresh || !String(fresh.question || fresh.text || "").trim()){
+      throw Error("AI did not detect question " + q.no + " on page " + pageNo + ". Check the page number and try again.");
+    }
+    
+    var original = JSON.parse(JSON.stringify(q));
+    var candidate = JSON.parse(JSON.stringify(q));
+    candidate.sourcePage = String(pageNo);
+    candidate.page = String(pageNo);
+    candidate.text = normalizeAngstromText(normalizeExtractedText(fresh.question || fresh.text || ""));
+    candidate.options = fresh.options !== undefined ? normalizeOptionList(fresh.options).map(o => normalizeBilingualText(String(o || ""))) : candidate.options;
+    if(fresh.answer !== undefined && String(fresh.answer).trim()) candidate.answer = normaliseMCQAnswer(candidate, String(fresh.answer).trim());
+    if(fresh.explanation !== undefined && String(fresh.explanation).trim()) candidate.explanation = normalizeExtractedText(String(fresh.explanation).trim());
+    if(fresh.topic) candidate.topic = String(fresh.topic);
+    if(fresh.chapter) candidate.chapter = String(fresh.chapter);
+    if(fresh.question_type) candidate.qType = String(fresh.question_type).toLowerCase();
+    if(Array.isArray(fresh.table_rows) && fresh.table_rows.length) candidate.tableRows = normalizeTableRows(fresh.table_rows);
+    if(fresh.matrix_latex) candidate.matrixLatex = String(fresh.matrix_latex);
+    if(fresh.diagram_description) candidate.diagram = String(fresh.diagram_description);
+    if(fresh.figure_reference) candidate.figureReference = String(fresh.figure_reference);
+    
+    cleanQuestionOptions(candidate);
+    candidate.qType = inferQuestionType(candidate);
+    candidate.finalAnswer = candidate.answer;
+    delete candidate._refreshing;
+    
+    $("status").textContent = "✔ Re-extraction ready for Q" + q.no + ". Review both versions in the popup.";
+    showQuestionRefreshCompare(i, original, candidate);
+    
+  } catch(err){
+    q._refreshing = false;
+    render();
+    var msg = (err && err.message ? err.message : String(err));
+    $("status").textContent = "❌ Re-extract Q" + q.no + " notice: " + msg;
+    showSaveToast("❌ Re-extract notice: " + msg, true);
+  } finally {
+    q._refreshing = false;
+    if(btn){ btn.disabled = false; btn.textContent = "🔄 Re-extract with AI"; }
+  }
 }
 
 function showQuestionRefreshCompare(i,original,candidate){
@@ -1711,7 +1917,14 @@ window.__A2Z_REVIEW_ACTIONS_READY=true;
 function setup(){
  document.body.classList.toggle("ai-figures-enabled",!!$("enableAIFigures")&&$("enableAIFigures").checked);
  ["showAIFigureSlots","autoCropOriginalVisuals","enableAIFigures","defaultKeepOptions"].forEach(function(id){var el=$(id);if(el)el.addEventListener("change",function(){document.body.classList.toggle("ai-figures-enabled",!!$("enableAIFigures")&&$("enableAIFigures").checked);if(id==="showAIFigureSlots")render();if(id==="defaultKeepOptions")showSaveToast("Default option-saving preference updated. Existing questions can still be changed individually.");});});
- $("eCropFromPdf").onclick=()=>{if(editing>=0)cropQ(editing)}; $("eCrop").onclick=()=>{if(editing>=0)cropQ(editing)}; $("geminiKey").value=localStorage.getItem(KEY)||"";
+ $("eReextract").onclick=()=>{
+  if(editing >= 0){
+    var currentIdx = editing;
+    $("editor").style.display = "none";
+    reextractSingleQuestion(currentIdx);
+  }
+};
+$("eCropFromPdf").onclick=()=>{if(editing>=0)cropQ(editing)}; $("eCrop").onclick=()=>{if(editing>=0)cropQ(editing)}; $("geminiKey").value=localStorage.getItem(KEY)||"";
 if($("geminiKey").value){
   fetchAvailableModels($("geminiKey").value).catch(()=>{});
 }$("testKey").onclick=testGeminiKey;
