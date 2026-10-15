@@ -3,7 +3,24 @@
 <style>
 body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:52px;background:#0b1120;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between;padding:0 12px}.nav a{color:#cbd5e1;text-decoration:none;border:1px solid #334155;padding:7px 10px;border-radius:6px;font-weight:800}.wrap{max-width:1400px;margin:auto;padding:14px}.hero,.card{background:#0b1120;border:1px solid #334155;border-radius:10px;padding:12px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}.btn,input,select,textarea{background:#0f172a;color:#fff;border:1px solid #334155;border-radius:7px;padding:8px}.btn{font-weight:800;cursor:pointer;pointer-events:auto!important;user-select:none;-webkit-user-select:none;touch-action:manipulation}.blue{background:#0369a1;border-color:#38bdf8}.green{background:#047857;border-color:#10b981}.red{background:#991b1b;border-color:#ef4444}.purple{background:#6d28d9;border-color:#a78bfa}.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin-top:12px}.q{font-size:14px;line-height:1.6;white-space:pre-wrap;margin-top:8px}.math-content mjx-container:not([display="true"]){display:inline-block!important;margin:0 2px!important;vertical-align:-0.15em!important}.math-content mjx-container[display="true"]{margin:.5em 0!important;text-align:center!important}.opt{padding:6px;background:#07101f;border:1px solid #1e293b;border-radius:5px;margin-top:5px}.options-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:8px;align-items:start}.options-grid>.opt{min-width:0;overflow-wrap:anywhere;margin-top:0}.options-grid .option-edit-row{grid-template-columns:minmax(0,1fr) auto!important}@media(max-width:480px){.options-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.options-grid .opt{font-size:12px}}.muted{color:#94a3b8}.pathbox{margin-top:8px;padding:8px;background:#07101f;border:1px solid #334155;border-radius:7px}.pathrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.pathrow select{flex:1;min-width:220px}.pathhint{font-size:10px;color:#94a3b8}.figure-required{margin-top:8px;padding:8px;border:1px solid #f59e0b;background:#451a03;color:#fde68a;border-radius:7px;font-weight:900}.figure-preview{margin-top:8px;padding:8px;border:1px dashed #f59e0b;background:#1c1917;border-radius:7px}.figure-preview img{max-width:100%;max-height:360px;display:block;margin:auto;border-radius:5px}.suggestbox{margin-top:7px;padding:7px;border:1px dashed #38bdf8;background:#082f49;border-radius:7px}.flag-suggest{margin-top:7px;padding:6px;border:1px solid #334155;background:#07101f;border-radius:7px}.flag-suggest-title{font-size:10px;color:#cbd5e1;font-weight:900;margin-bottom:5px}.flag-suggest-actions{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.flag-suggest-btn{padding:5px 3px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;border-radius:5px;font-size:9px;font-weight:800;cursor:pointer;text-align:center}.flag-suggest-btn.active{border-color:#38bdf8;box-shadow:0 0 0 1px #38bdf8 inset}.flag-suggest-btn.easy.active{background:#064e3b;color:#a7f3d0;border-color:#10b981}.flag-suggest-btn.hard.active{background:#7f1d1d;color:#fecaca;border-color:#ef4444}.flag-suggest-btn.important.active{background:#78350f;color:#fde68a;border-color:#f59e0b}.flag-suggest-btn.normal.active{background:#1e3a8a;color:#bfdbfe;border-color:#3b82f6}.flag-suggest-btn.nonimportant.active{background:#334155;color:#e2e8f0;border-color:#64748b}@media(max-width:700px){.flag-suggest-actions{grid-template-columns:repeat(3,1fr)}}.suggest-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.import-progress{pointer-events:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:1001;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;width:max-content;max-width:calc(100vw - 20px);padding:7px 8px;background:rgba(11,17,32,.96);border:1px solid #475569;border-radius:11px;box-shadow:0 10px 30px rgba(0,0,0,.45);backdrop-filter:blur(6px)}.progress-chip{background:#07101f;border:1px solid #334155;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:800;white-space:nowrap}.progress-chip b{color:#38bdf8}@media(max-width:700px){.import-progress{top:58px;gap:5px;padding:5px;max-width:calc(100vw - 10px)}.progress-chip{padding:6px 7px;font-size:10px}}.toast{position:fixed;right:16px;bottom:16px;z-index:1000;min-width:260px;max-width:calc(100vw - 32px);background:#052e1b;border:1px solid #10b981;color:#ecfdf5;border-radius:10px;padding:10px 13px;box-shadow:0 12px 35px rgba(0,0,0,.45);font-weight:800;display:none}.toast.show{display:block;animation:toastIn .18s ease-out}.toast.error{background:#450a0a;border-color:#ef4444}.save-progress{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:800;z-index:10050;opacity:0;pointer-events:none;transition:.18s}.save-progress.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .saved-popup{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.94);z-index:3000;display:none;min-width:280px;max-width:calc(100vw - 40px);padding:18px 24px;text-align:center;background:#052e1b;border:2px solid #10b981;color:#ecfdf5;border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.55);font-size:17px;font-weight:900;pointer-events:none}.saved-popup.show{display:block;animation:savedPopupIn .16s ease-out}.saved-popup.error{background:#450a0a;border-color:#ef4444;color:#fef2f2}@keyframes savedPopupIn{from{opacity:0;transform:translate(-50%,-50%) scale(.90)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}@keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}.settings{display:grid;grid-template-columns:180px 1fr 180px;gap:8px;margin-top:10px}.aiq-review-card{padding:0;overflow:hidden}.review-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-width:0}.review-left{padding:16px;background:#08101d;min-width:0}.student-review{min-width:0;padding:16px;border-left:1px solid #334155}.review-left,.student-review{width:100%;box-sizing:border-box}.review-left{padding:16px;background:#08101d;min-width:0}.review-title{font-size:15px;font-weight:900;margin-bottom:8px}.student-review{min-width:0;padding:16px;border-top:1px solid #334155}.student-head{display:flex;justify-content:space-between;gap:8px;align-items:center;padding-bottom:9px;border-bottom:1px solid #334155}.student-text{padding:10px 0;border-bottom:1px solid #334155}.student-image{padding-top:10px}.student-image-title{font-weight:900;margin-bottom:6px}.student-image .figure-preview{margin-top:0}.student-image .figure-preview img{max-height:430px}.keep-tools{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f}.keep-tools b{width:100%;font-size:10px;color:#94a3b8}.keep-state{font-size:10px;font-weight:900;color:#38bdf8;width:100%}.keep-tools .btn.selected{box-shadow:0 0 0 2px #fff inset}.review-meta{padding:8px 12px;border-top:1px solid #334155}@media(max-width:850px){.review-layout{grid-template-columns:1fr}.review-left{border-right:0;border-bottom:1px solid #334155}.student-review{border-left:0}.student-head{align-items:flex-start;flex-direction:column}}textarea{width:100%;max-width:100%;box-sizing:border-box;resize:vertical;overflow:auto;white-space:pre-wrap}.field{display:flex;flex-direction:column;gap:3px}.field label{font-size:10px;color:#94a3b8;font-weight:800}@media(max-width:700px){.grid,.settings{grid-template-columns:1fr}}
-.review-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.control-block label{display:block;font-size:12px;font-weight:700;margin-bottom:4px}.control-block select,.control-block input{width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:6px;padding:8px;font-size:13px}.control-block.full{grid-column:1/-1}@media(max-width:850px){.review-controls{grid-template-columns:1fr}.control-block.full{grid-column:auto}}.visual-blocks{display:grid;gap:7px;margin-top:8px}.visual-slot{padding:8px;border:1px dashed #38bdf8;border-radius:7px;background:#061827}.visual-slot img{max-width:100%;max-height:260px;display:block;margin:6px auto}.option-visual{margin-top:5px;padding:6px;border:1px dashed #a78bfa;border-radius:6px;background:#120d24}.option-visual img{max-width:100%;max-height:220px;display:block;margin:5px auto}.inline-figure-tools{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.figure-missing{font-size:11px;color:#fbbf24;font-weight:800}.insert-figure-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px}.mini-btn{padding:5px 7px;font-size:11px}.figure-index{font-size:10px;color:#94a3b8;font-weight:800}@media(max-width:700px){.visual-slot img,.option-visual img{max-height:180px}}.table-preview{margin-top:8px;overflow:auto;border:1px solid #334155;border-radius:7px;background:#020617}.table-preview table{border-collapse:collapse;width:100%;font-size:12px}.table-preview th,.table-preview td{border:1px solid #475569;padding:6px 8px;vertical-align:top}.table-preview th{background:#172033;font-weight:900}.matrix-preview{margin-top:8px;padding:10px;overflow:auto;border:1px solid #334155;border-radius:7px;background:#020617}.visual-type-badge{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:999px;border:1px solid #475569;font-size:9px;font-weight:900;color:#cbd5e1}.visual-type-table{border-color:#10b981;color:#a7f3d0}.visual-type-matrix{border-color:#38bdf8;color:#bae6fd}.visual-type-graph{border-color:#a78bfa;color:#ddd6fe}.visual-type-diagram{border-color:#f59e0b;color:#fde68a}.visual-type-function{border-color:#60a5fa;color:#bfdbfe}.visual-region-card{margin-top:7px;padding:7px;border:1px dashed #64748b;border-radius:7px;background:#07101f}.visual-region-card img{max-width:100%;max-height:260px;display:block;margin:6px auto}.visual-region-tools{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.visual-region-missing{font-size:13px;color:#fde68a;font-weight:900;background:#451a03;border:2px solid #f59e0b;border-radius:8px;padding:10px;margin:8px 0;display:block}.question-figure-alert{margin:9px 0;padding:11px;border:2px solid #f59e0b;border-radius:9px;background:#451a03;color:#fde68a;font-weight:900}.question-figure-alert .alert-sub{font-size:11px;font-weight:600;margin-top:4px;color:#fed7aa}.question-figure-choice{margin:10px 0 12px;padding:10px;border:1px dashed #f59e0b;border-radius:9px;background:#211708}.question-figure-choice-title{font-weight:900;color:#fde68a;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.figure-type-note{font-size:10px;font-weight:700;color:#cbd5e1}.question-figure-choice-note{font-size:11px;color:#fed7aa;margin-top:5px;line-height:1.5}.figure-action-row{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}.figure-action-row .btn{font-size:12px}.btn-figure-generate{background:#6d28d9;border-color:#c4b5fd}.btn-figure-crop{background:#047857;border-color:#6ee7b7}.extraction-assets{margin-top:8px;padding:8px;border:1px solid #334155;border-radius:7px;background:#07101f}.extraction-assets-title{font-weight:900;color:#cbd5e1;margin-bottom:5px}.table-edit-grid{display:grid;gap:5px;margin-top:6px}.table-edit-grid textarea{min-height:38px}.visual-controls{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.visual-controls select{min-width:130px}.solution-preview{white-space:normal;overflow-wrap:anywhere}.question-code{white-space:pre;overflow:auto;max-width:100%;padding:10px;border:1px solid #334155;border-radius:8px;background:#020617;color:#e2e8f0;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.question-code code{white-space:pre}.solution-code{white-space:pre;overflow:auto;max-width:100%;padding:10px;border:1px solid #334155;border-radius:8px;background:#020617;color:#e2e8f0;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.solution-code code{white-space:pre}.solution-preview mjx-container[display="true"]{margin:.65em 0!important;text-align:left!important}.solution-preview br+br{display:block;content:"";margin-top:.55em}.review-left button,.student-review button,.pathbox button,.ai-solution-box button{pointer-events:auto!important;position:relative;z-index:2}.review-left input,.review-left select,.review-left textarea{pointer-events:auto!important;position:relative;z-index:2}.import-review-settings label{display:flex;gap:5px;align-items:center;font-size:11px;color:#cbd5e1;max-width:100%}.import-review-settings input{accent-color:#0ea5e9}</style><script>window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$$","$$"]],processEscapes:true,packages:{'[+]':['ams']}},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']},svg:{fontCache:"global"}};</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script><script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script></head><body>
+.review-controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.control-block label{display:block;font-size:12px;font-weight:700;margin-bottom:4px}.control-block select,.control-block input{width:100%;box-sizing:border-box;background:#0f172a;border:1px solid #334155;color:#fff;border-radius:6px;padding:8px;font-size:13px}.control-block.full{grid-column:1/-1}@media(max-width:850px){.review-controls{grid-template-columns:1fr}.control-block.full{grid-column:auto}}.visual-blocks{display:grid;gap:7px;margin-top:8px}.visual-slot{padding:8px;border:1px dashed #38bdf8;border-radius:7px;background:#061827}.visual-slot img{max-width:100%;max-height:260px;display:block;margin:6px auto}.option-visual{margin-top:5px;padding:6px;border:1px dashed #a78bfa;border-radius:6px;background:#120d24}.option-visual img{max-width:100%;max-height:220px;display:block;margin:5px auto}.inline-figure-tools{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.figure-missing{font-size:11px;color:#fbbf24;font-weight:800}.insert-figure-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:7px}.mini-btn{padding:5px 7px;font-size:11px}.figure-index{font-size:10px;color:#94a3b8;font-weight:800}@media(max-width:700px){.visual-slot img,.option-visual img{max-height:180px}}.table-preview{margin-top:8px;overflow:auto;border:1px solid #334155;border-radius:7px;background:#020617}.table-preview table{border-collapse:collapse;width:100%;font-size:12px}.table-preview th,.table-preview td{border:1px solid #475569;padding:6px 8px;vertical-align:top}.table-preview th{background:#172033;font-weight:900}.matrix-preview{margin-top:8px;padding:10px;overflow:auto;border:1px solid #334155;border-radius:7px;background:#020617}.visual-type-badge{display:inline-block;margin-left:5px;padding:2px 6px;border-radius:999px;border:1px solid #475569;font-size:9px;font-weight:900;color:#cbd5e1}.visual-type-table{border-color:#10b981;color:#a7f3d0}.visual-type-matrix{border-color:#38bdf8;color:#bae6fd}.visual-type-graph{border-color:#a78bfa;color:#ddd6fe}.visual-type-diagram{border-color:#f59e0b;color:#fde68a}.visual-type-function{border-color:#60a5fa;color:#bfdbfe}.visual-region-card{margin-top:7px;padding:7px;border:1px dashed #64748b;border-radius:7px;background:#07101f}.visual-region-card img{max-width:100%;max-height:260px;display:block;margin:6px auto}.visual-region-tools{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.visual-region-missing{font-size:13px;color:#fde68a;font-weight:900;background:#451a03;border:2px solid #f59e0b;border-radius:8px;padding:10px;margin:8px 0;display:block}.question-figure-alert{margin:9px 0;padding:11px;border:2px solid #f59e0b;border-radius:9px;background:#451a03;color:#fde68a;font-weight:900}.question-figure-alert .alert-sub{font-size:11px;font-weight:600;margin-top:4px;color:#fed7aa}.question-figure-choice{margin:10px 0 12px;padding:10px;border:1px dashed #f59e0b;border-radius:9px;background:#211708}.question-figure-choice-title{font-weight:900;color:#fde68a;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.figure-type-note{font-size:10px;font-weight:700;color:#cbd5e1}.question-figure-choice-note{font-size:11px;color:#fed7aa;margin-top:5px;line-height:1.5}.figure-action-row{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}.figure-action-row .btn{font-size:12px}.btn-figure-generate{background:#6d28d9;border-color:#c4b5fd}.btn-figure-crop{background:#047857;border-color:#6ee7b7}.extraction-assets{margin-top:8px;padding:8px;border:1px solid #334155;border-radius:7px;background:#07101f}.extraction-assets-title{font-weight:900;color:#cbd5e1;margin-bottom:5px}.table-edit-grid{display:grid;gap:5px;margin-top:6px}.table-edit-grid textarea{min-height:38px}.visual-controls{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}.visual-controls select{min-width:130px}.solution-preview{white-space:normal;overflow-wrap:anywhere}.question-code{white-space:pre;overflow:auto;max-width:100%;padding:10px;border:1px solid #334155;border-radius:8px;background:#020617;color:#e2e8f0;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.question-code code{white-space:pre}.solution-code{white-space:pre;overflow:auto;max-width:100%;padding:10px;border:1px solid #334155;border-radius:8px;background:#020617;color:#e2e8f0;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}.solution-code code{white-space:pre}.solution-preview mjx-container[display="true"]{margin:.65em 0!important;text-align:left!important}.solution-preview br+br{display:block;content:"";margin-top:.55em}.review-left button,.student-review button,.pathbox button,.ai-solution-box button{pointer-events:auto!important;position:relative;z-index:2}.review-left input,.review-left select,.review-left textarea{pointer-events:auto!important;position:relative;z-index:2}.import-review-settings label{display:flex;gap:5px;align-items:center;font-size:11px;color:#cbd5e1;max-width:100%}.import-review-settings input{accent-color:#0ea5e9}</style><script>
+window.MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"], ["$", "$"]],
+    displayMath: [["\\[", "\\]"], ["$$", "$$"]],
+    processEscapes: true,
+    packages: {'[+]': ['ams', 'noerrors', 'noundefined']}
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+    renderError: function(doc, em, err) {
+      console.warn("MathJax bypass error:", err);
+      return doc.text(em.text);
+    }
+  },
+  svg: { fontCache: "global" }
+};
+</script><script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script><script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script></head><body>
 <div id="savedPopup" class="saved-popup" role="status" aria-live="polite">✓ Question Saved</div>
 <div id="saveToast" class="toast" role="alert" aria-live="assertive"></div>
 <div id="saveProgress" class="save-progress"></div>
@@ -238,31 +255,43 @@ function suggestedMatch(q){
 }
 function setQuestionPath(i,path){if(!qs[i])return;qs[i].folderPath=norm(path);localStorage.setItem("A2Z_AI_LIBRARY_PATH_"+(qs[i].libraryMode||"private"),qs[i].folderPath||"");renderQuestionPathSelectors(i);render();}
 function normalizeAISolutionMath(s){
-  var x=String(s==null?"":s);
-  if(!x)return "";
-  var protectedCode=[],ticks=String.fromCharCode(96).repeat(3);
-  var codeRe=new RegExp(ticks+"(python|py|javascript|js|typescript|ts|c\\+\\+|cpp|java|c|console|text|latex|tex|math|markdown)\\s*\\n([\\s\\S]*?)"+ticks,"gi");
-  x=x.replace(codeRe,function(_,lang,body){return "\\n"+body+"\\n";});
-  x=x.replace(new RegExp(ticks+"(?:latex|tex|math|markdown)?\\s*","gi"),"").replace(new RegExp(ticks,"g"),"");
-  x=x.replace(/\r\n?/g,"\n").replace(/\\n/g,"\n");
-  x=x.replace(/\\\\\[/g,"\\[").replace(/\\\\\]/g,"\\]").replace(/\\\\\(/g,"\\(").replace(/\\\\\)/g,"\\)");
-  x=x.replace(/\$\$([\s\S]*?)\$\$/g,"\\[$1\\]");
-  x=x.replace(/\$([^$\n]+)\$/g,"\\($1\\)");
-  x=x.replace(/\b(?:SQRT|sqrt)\s*\(\s*([^()\n]+)\s*\)/g,"\\(\\sqrt{$1}\\)");
-  x=x.replace(/(^|[^\\])\bfrac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g,"$1\\(\\frac{$2}{$3}\\)");
-  x=x.replace(/\b(?:alpha|α)\b/gi,"\\(\\alpha\\)").replace(/\b(?:beta|β)\b/gi,"\\(\\beta\\)").replace(/\b(?:gamma|γ)\b/gi,"\\(\\gamma\\)").replace(/\b(?:theta|θ)\b/gi,"\\(\\theta\\)").replace(/\b(?:omega|ω)\b/gi,"\\(\\omega\\)");
-  x=x.split(/\n/).map(function(line){
-    var t=line.trim();if(!t)return line;
-    if(!/\\\(|\\\[|\$/.test(t)){
-      var sm=t.match(/^(Given\s*\/\s*Parameters|What is asked|Concept\s*\/\s*Law|Final Answer|Parameters|Substitution|Calculation|Reasoning|Diagram|Formula|Working|To find|Concept|Given|Law)\s*:\s*(.+)$/i);
-      if(sm&&/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b/.test(sm[2]))return sm[1]+":\n\\["+sm[2]+"\\]";
-      if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|vec|mathbf|mathrm|mathbb|begin|end|left|right|cdot|times|pm|leq|geq|neq|infty|hat|bar|dot|overline|underline|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega)\b/.test(t))return "\\["+t+"\\]";
-    }
-    return line;
-  }).join("\n");
-  var normalized=x.replace(/\n{3,}/g,"\n\n").trim();
-  protectedCode.forEach(function(code,i){normalized=normalized.replace("__A2Z_CODE_BLOCK_"+i+"__",code);});
-  return normalized;
+  var x = String(s == null ? "" : s);
+  if(!x) return "";
+  var protectedCode = [], ticks = String.fromCharCode(96).repeat(3);
+  var codeRe = new RegExp(ticks + "([\\s\\S]*?)" + ticks, "gi");
+  x = x.replace(codeRe, function(_, body){
+    var tok = "__A2Z_CODE_BLOCK_" + protectedCode.length + "__";
+    protectedCode.push(ticks + body + ticks);
+    return tok;
+  });
+  
+  // Protect already valid \( ... \) and \[ ... \] math blocks from double-wrapping
+  var protectedMath = [];
+  x = x.replace(/(\\\([\s\S]*?\\\)|\\\[[\s\S]*?\\\])/g, function(m){
+    var tok = "__A2Z_PROT_MATH_" + protectedMath.length + "__";
+    protectedMath.push(m);
+    return tok;
+  });
+  
+  x = x.replace(/\r\n?/g, "\n").replace(/\\n/g, "\n");
+  x = x.replace(/\$\$([\s\S]*?)\$\$/g, "\\[$1\\]");
+  x = x.replace(/\$([^$\n]+)\$/g, "\\($1\\)");
+  x = x.replace(/(?<!\\)\b(?:SQRT|sqrt)\s*\(\s*([^()\n]+)\s*\)/g, "\\(\\sqrt{$1}\\)");
+  x = x.replace(/(?<!\\)\bfrac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, "\\(\\frac{$1}{$2}\\)");
+  x = x.replace(/(?<!\\)\b(alpha|α)\b/gi, "\\(\\alpha\\)")
+       .replace(/(?<!\\)\b(beta|β)\b/gi, "\\(\\beta\\)")
+       .replace(/(?<!\\)\b(gamma|γ)\b/gi, "\\(\\gamma\\)")
+       .replace(/(?<!\\)\b(theta|θ)\b/gi, "\\(\\theta\\)")
+       .replace(/(?<!\\)\b(omega|ω)\b/gi, "\\(\\omega\\)");
+       
+  // Restore protected math
+  protectedMath.forEach(function(m, idx){
+    x = x.replace("__A2Z_PROT_MATH_" + idx + "__", m);
+  });
+  protectedCode.forEach(function(code, i){
+    x = x.replace("__A2Z_CODE_BLOCK_" + i + "__", code);
+  });
+  return x.replace(/\n{3,}/g, "\n\n").trim();
 }
 function formatAISolutionStructure(s){
   var x=normalizeAISolutionMath(s);
@@ -285,22 +314,18 @@ function formatAISolutionStructure(s){
   return formatted;
 }
 function renderMathMarkupHtml(s){
-  var x=String(s==null?"":s); if(!x)return "";
-  x=normalizeMathMarkup(x);
-  var re=/(\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$(?!\$)[^$\n]+\$)/g;
-  var out="",last=0,m;
-  while((m=re.exec(x))){
-    out+=esc(x.slice(last,m.index));
-    var t=m[0];
-    if(t.indexOf("\\[")===0 || t.indexOf("\\(")===0 || t.indexOf("$$")===0 || t[0]==="$"){
-      var open=t.indexOf("$$")===0?"$$":t.indexOf("\\[")===0?"\\[":t.indexOf("\\(")===0?"\\(":"$";
-      var close=open==="$$"?"$$":open==="\\["?"\\]":open==="\\("?"\\)":"$";
-      var body=t.slice(open.length,t.length-close.length);
-      out+=open+body.replace(/[&<>]/g,function(c){return c==="&"?"&amp;":c==="<"?"&lt;":"&gt;"})+close;
-    }
-    last=re.lastIndex;
+  var x = String(s == null ? "" : s);
+  if(!x) return "";
+  x = normalizeMathMarkup(x);
+  var re = /(\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$(?!\$)[^$\n]+\$)/g;
+  var out = "", last = 0, m;
+  while((m = re.exec(x))){
+    out += esc(x.slice(last, m.index));
+    // Keep LaTeX math raw without HTML entity replacements (&gt; breaks MathJax parser with 'Math input error')
+    out += m[0];
+    last = re.lastIndex;
   }
-  out+=esc(x.slice(last));
+  out += esc(x.slice(last));
   return out;
 }
 function normalizeMathMarkup(s){
@@ -1312,17 +1337,13 @@ function normalizeQuestionInlineMath(s){
   });
   
   // 4. Remove artificial enters/newlines before and after inline math \( ... \)
-  // e.g. "angle\n\( \theta_1 \)\nand" -> "angle \( \theta_1 \) and"
-  x = x.replace(/\s*\n\s*(\\\\?\([^\)]*?\\\\?\))\s*\n\s*/g, " $1 ");
-  x = x.replace(/([a-zA-Z0-9_>:=])\s*\n\s*(\\\\?\([^\)]*?\\\\?\))/g, "$1 $2");
-  x = x.replace(/(\\\\?\([^\)]*?\\\\?\))\s*\n\s*([a-zA-Z0-9_,;.:\-])/g, "$1 $2");
-  x = x.replace(/(\\\\?\([^\)]*?\\\\?\))\s*\n\s*(and|where|then|or|with|in|to|respectively|if)\b/gi, "$1 $2");
+  // Safely match math blocks without breaking nested parentheses
+  x = x.replace(/([^\n])\s*\n\s*(\\\\([\s\S]*?\\\\))/g, "$1 $2");
+  x = x.replace(/(\\\\([\s\S]*?\\\\))\s*\n\s*([^\n])/g, "$1 $2");
+  x = x.replace(/(\\\\([\s\S]*?\\\\))\s*,/g, "$1,");
+  x = x.replace(/(\s*,\s*)+/g, ", ");
   
-  // 5. Clean up spaces around punctuation
-  x = x.replace(/(\\\\?\([^\)]*?\\\\?\))\s*,/g, "$1,");
-  x = x.replace(/\s*,\s*/g, ", ");
-  
-  // 6. Merge broken lines that were split mid-sentence
+  // 5. Merge broken sentence lines
   var lines = x.split("\n").map(function(l){ return l.trim(); }).filter(Boolean);
   var merged = [];
   for(var i = 0; i < lines.length; i++){
@@ -1493,7 +1514,7 @@ CRITICAL RULES:
    - NEVER press Enter or insert newlines before/after math symbols.
    - The question text must be continuous natural sentences on the same line, exactly matching the original PDF layout.
 5. For MCQs: return each printed option as a separate string in the options ARRAY in printed order, WITHOUT A./B./C./D. labels.
-6. SOLVE EACH QUESTION: set answer to the correct MCQ option letter (A/B/C/D...) for MCQs; for numerical questions set the computed numerical value. Provide a concise step-by-step explanation.
+6. SOLVE EACH QUESTION: set answer to correct option letter (A/B/C/D) or numerical value. Keep "explanation" to a concise 1-sentence summary so that all questions fit within token limits without truncation.
 7. HIERARCHICAL TOPIC CLASSIFICATION (CRITICAL FOR FOLDER PATHS):
    For each question, classify:
    - "chapter": Standard textbook chapter name (e.g. "Ray Optics", "Wave Optics", "Current Electricity", "Electrostatics", "Thermodynamics", "Kinematics", "Rotational Motion", etc.)
@@ -1678,49 +1699,65 @@ async function extract(){
     let totalPages = pdfDoc.numPages || 1;
     let lim = Number($("max").value) || 0;
     
-    var pdfB64ToSend = "";
-    var extractLabel = "complete paper (" + totalPages + " pages)";
-    
+    // Build page segments so that 8192 output tokens is NEVER exceeded (ensuring all 37+ questions are extracted!)
+    var segments = [];
     if(mode === "range"){
       var startP = Math.max(1, Math.min(totalPages, Number($("pageStart").value) || 1));
       var endP = Math.max(startP, Math.min(totalPages, Number($("pageEnd").value) || totalPages));
-      extractLabel = "pages " + startP + "–" + endP;
-      $("status").textContent = "✂ Extracting pages " + startP + "–" + endP + " from PDF…";
-      var chunk = await splitPdfRangeBase64(startP, endP);
-      pdfB64ToSend = chunk.base64;
+      segments.push({start: startP, end: endP, desc: "pages " + startP + "–" + endP});
     } else {
-      $("status").textContent = "📄 Encoding full PDF for direct single-pass AI reading…";
-      pdfB64ToSend = uint8ToBase64(new Uint8Array(sourcePdfBytes));
-    }
-    
-    $("status").textContent = "🤖 AI (" + ACTIVE_GEMINI_MODEL + ") is reading " + extractLabel + "…";
-    var questionsList = [];
-    try {
-      questionsList = await extractNativePdf(key, pdfB64ToSend, totalPages, lim || 250, libraryList);
-    } catch(extErr){
-      // If full PDF fails due to size or payload, and PDF has multiple pages, try a smooth 2-half split fallback
-      console.warn("Direct pass returned error:", extErr);
-      if(mode !== "range" && totalPages > 10){
-        $("status").textContent = "🔄 Large paper detected — analyzing in 2 halves…";
-        var mid = Math.floor(totalPages / 2);
-        var chunk1 = await splitPdfRangeBase64(1, mid);
-        var list1 = await extractNativePdf(key, chunk1.base64, totalPages, lim || 125, libraryList).catch(() => []);
-        var chunk2 = await splitPdfRangeBase64(mid + 1, totalPages);
-        var list2 = await extractNativePdf(key, chunk2.base64, totalPages, lim || 125, libraryList).catch(() => []);
-        questionsList = (list1 || []).concat(list2 || []);
+      if(totalPages <= 8){
+        segments.push({start: 1, end: totalPages, desc: "all " + totalPages + " pages", fullPdf: true});
+      } else {
+        // Healthy 10-page segments so no output token truncation happens!
+        var chunkSpan = 10;
+        for(var s = 1; s <= totalPages; s += chunkSpan){
+          var e = Math.min(totalPages, s + chunkSpan - 1);
+          segments.push({start: s, end: e, desc: "pages " + s + "–" + e});
+        }
       }
-      if(!questionsList.length) throw extErr;
     }
     
-    if(!questionsList || !questionsList.length){
-      throw Error("No questions detected in " + extractLabel + ". Make sure this PDF contains readable exam questions.");
+    var allExtractedQuestions = [];
+    for(var si = 0; si < segments.length; si++){
+      if(lim && allExtractedQuestions.length >= lim) break;
+      var seg = segments[si];
+      var progressText = segments.length > 1 ? (" [" + (si + 1) + "/" + segments.length + " " + seg.desc + "]") : "";
+      $("status").textContent = "🤖 AI (" + ACTIVE_GEMINI_MODEL + ") is reading " + seg.desc + progressText + "…";
+      $("batchProgress").textContent = segments.length > 1 ? (" Segment " + (si + 1) + "/" + segments.length + " (" + seg.desc + ")") : "";
+      
+      try {
+        var pdfB64ToSend = "";
+        if(seg.fullPdf){
+          pdfB64ToSend = uint8ToBase64(new Uint8Array(sourcePdfBytes));
+        } else {
+          var chunk = await splitPdfRangeBase64(seg.start, seg.end);
+          pdfB64ToSend = chunk.base64;
+        }
+        
+        var segList = await extractNativePdf(key, pdfB64ToSend, totalPages, lim || 250, libraryList);
+        if(Array.isArray(segList) && segList.length){
+          segList.forEach(function(item){
+            if(!item.page) item.page = seg.start;
+            allExtractedQuestions.push(item);
+          });
+        }
+      } catch(segErr){
+        console.warn("Segment " + seg.desc + " notice:", segErr);
+        // If a segment has no questions (e.g. blank end pages, answer keys), DO NOT CRASH! Keep going!
+        if(segments.length === 1) throw segErr;
+      }
     }
     
-    $("status").textContent = "🔍 Normalizing " + questionsList.length + " questions…";
-    questionsList = repairObviousMergedQuestions(questionsList);
+    if(!allExtractedQuestions || !allExtractedQuestions.length){
+      throw Error("No questions detected in the selected pages. Make sure the PDF contains readable exam questions.");
+    }
     
-    for(var ni = 0; ni < questionsList.length; ni++){
-      var rawQ = questionsList[ni];
+    $("status").textContent = "🔍 Processing and normalizing " + allExtractedQuestions.length + " questions…";
+    allExtractedQuestions = repairObviousMergedQuestions(allExtractedQuestions);
+    
+    for(var ni = 0; ni < allExtractedQuestions.length; ni++){
+      var rawQ = allExtractedQuestions[ni];
       var absolutePage = Math.max(1, Math.min(totalPages, Number(rawQ.page || 1)));
       var nq = normalizePageQuestion(rawQ, ni, absolutePage);
       nq.sourcePage = String(absolutePage);
@@ -1739,7 +1776,7 @@ async function extract(){
       
       if(!String(nq.text || "").trim()) continue;
       
-      // Avoid exact duplicates
+      // Prevent duplicates by question number
       var keyNo = String(nq.no || "").trim().toLowerCase();
       if(keyNo && qs.some(x => String(x.no || "").trim().toLowerCase() === keyNo)) continue;
       
@@ -1750,7 +1787,7 @@ async function extract(){
     render();
     $("generateSolutions").style.display = "inline-block";
     $("generateSolutions").disabled = false;
-    $("status").textContent = "✔ Successfully extracted " + qs.length + " question(s)! Review each question below.";
+    $("status").textContent = "✔ Successfully extracted ALL " + qs.length + " question(s)! Review each question below.";
     showSaveToast("✔ " + qs.length + " questions extracted successfully!");
     
   } catch(e) {
