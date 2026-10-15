@@ -1138,6 +1138,33 @@ function repairObviousMergedQuestions(items){
   });
   return fixed;
 }
+function normalizePageQuestion(q,i,pageNo){
+      var normalized={
+        no:q.question_number||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),
+        options:normalizeOptionList(q.options).map(function(o){return normalizeBilingualText(String(o||""));}),
+        answer:String(q.answer??q.correct_answer??q.correctAnswer??q.answer_key??q.final_answer??q.finalAnswer??"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),
+        source:String(q.source||"").trim(),sourceExam:String(q.source_exam||q.sourceExam||q.source||"").trim(),year:String(q.year||"").trim(),sourceYear:String(q.year||"").trim(),keepSourceLabel:true,isPYQ:!!(q.source||q.source_exam||q.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"").trim().toLowerCase(),answerRegion:String(q.answer_region||q.answerRegion||"").trim(),
+        flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},
+        libraryMode:($("defaultLibraryMode").value||"private"),folderPath:"",explanation:String(q.explanation||"").trim(),
+        diagram:String(q.diagram_description||"").trim(),visualType:(Array.isArray(q.table_rows)&&q.table_rows.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||""))),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:((!Array.isArray(q.table_rows)||!q.table_rows.length)&&!String(q.matrix_latex||"").trim()&&q.figure_required===true&&isFigureVisual(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||"")),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||pageNo).trim(),sourcePage:String(pageNo).trim(),book:String(q.book||"").trim(),
+        subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
+        suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
+        tableRows:normalizeTableRows(q.table_rows),
+        matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,
+        contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks.map(function(b){return {type:String(b.type||b.visualType||"diagram"),visualType:visualTypeOf(b.visualType||b.type),anchor:String(b.anchor||b.insert_after||"").trim(),image:String(b.image||"").trim(),cropBox:b.crop_box||b.figure_crop_box||null,required:Boolean(b.required),reconstruction:b.reconstruction||b.visual_reconstruction||null};}):[],
+        optionImages:Array.isArray(q.option_images)?q.option_images.map(function(x){return String(x||"")}):[],
+        optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,
+        optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],
+        visualRegions:normalizeOwnedVisualRegions(q)
+      };
+      if(normalized.visualRegions.length){
+        var firstFigureRegion=normalized.visualRegions.find(function(v){return isFigureVisual(v.visualType||v.type);});
+        if(firstFigureRegion){normalized.visualType=firstFigureRegion.visualType||firstFigureRegion.type||normalized.visualType||"diagram";if(q.figure_required===true||q.figureRequired===true||firstFigureRegion.required)normalized.figureRequired=true;}
+      }
+      if(!normalized.qType)normalized.qType=inferQuestionType(normalized);
+      return normalized;
+    }
+
 async function extract(){
   let f=$("pdf").files[0];
   if(!f)return alert("पहले PDF select करो.");
