@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Classroom PDF Viewer & Whiteboard | A to Z Exam Mocks</title>
+<style>
+:root{color-scheme:dark;--bg:#080d18;--panel:#111a2b;--line:#26344b;--text:#edf4ff;--muted:#a7b5ca;--accent:#38bdf8}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,sans-serif}body{display:flex;flex-direction:column;overflow:hidden}
+button,input,select{font:inherit}button{border:1px solid var(--line);border-radius:9px;background:#172338;color:var(--text);padding:8px 11px;cursor:pointer;white-space:nowrap}button:hover{border-color:var(--accent);background:#20314b}button.active{background:#075985;border-color:#38bdf8}button:disabled{opacity:.4;cursor:not-allowed}
+.top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:10px 12px;background:#0d1525;border-bottom:1px solid var(--line);z-index:5}.brand{font-weight:800;font-size:15px;margin-right:auto}.brand span{color:var(--accent)}.toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.divider{height:27px;width:1px;background:var(--line);margin:0 2px}.small{color:var(--muted);font-size:12px}.filebar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#0b1220;border-bottom:1px solid var(--line)}#fileInput{max-width:210px}#driveUrl{min-width:180px;flex:1;max-width:500px;background:#0a1020;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px}
+.workspace{flex:1;min-height:0;display:flex;overflow:hidden}.sidebar{width:225px;flex:0 0 225px;border-right:1px solid var(--line);background:#0d1525;display:flex;flex-direction:column;min-height:0}.sidehead{padding:12px;border-bottom:1px solid var(--line);font-weight:700;display:flex;justify-content:space-between;align-items:center}.page-list{overflow:auto;padding:8px}.thumb{padding:10px;margin-bottom:6px;border:1px solid transparent;border-radius:9px;cursor:pointer;background:#111c2f}.thumb:hover{border-color:#48617f}.thumb.selected{border-color:var(--accent);background:#10314a}.thumb b{display:block}.thumb span{font-size:12px;color:var(--muted)}.thumb .badge{color:#7dd3fc}
+.stage{flex:1;min-width:0;min-height:0;overflow:auto;position:relative;background:#252d3b;display:flex;align-items:flex-start;justify-content:center;padding:22px;overscroll-behavior:contain}.page-wrap{position:relative;background:white;box-shadow:0 12px 40px #0008;flex:0 0 auto;margin:0 auto}.page-wrap canvas{display:block;max-width:none}.page-wrap canvas.annotation{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}.empty{max-width:620px;margin:auto;text-align:center;padding:30px;background:#111a2b;border:1px solid var(--line);border-radius:18px}.empty h1{font-size:26px;margin:0 0 12px}.empty p{color:var(--muted);line-height:1.6}.bottom{display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap;padding:9px;background:#0d1525;border-top:1px solid var(--line)}.bottom input{width:64px;background:#0a1020;color:white;border:1px solid var(--line);border-radius:7px;padding:7px;text-align:center}
+input[type=color]{width:36px;height:34px;padding:2px;border:1px solid var(--line);border-radius:8px;background:#111a2b}input[type=range]{width:90px;accent-color:var(--accent)}.status{font-size:12px;color:var(--muted);margin-left:auto}.notice{color:#fcd34d;font-size:12px}.hidden{display:none!important}
+@media(max-width:760px){.top{padding:8px}.brand{width:100%;margin:0}.sidebar{width:95px;flex-basis:95px}.sidehead{font-size:12px;padding:8px}.thumb{padding:7px 5px}.thumb b{font-size:12px}.stage{padding:8px}.toolbar button{padding:7px 8px}.filebar{flex-wrap:wrap}#driveUrl{min-width:120px;max-width:none;width:100%;order:3}.status{width:100%;margin:0;text-align:center}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">A to Z <span>Classroom Board</span></div>
+  <div class="toolbar" aria-label="Drawing tools">
+    <button id="toolSelect" class="active" title="Scroll and select">Hand</button>
+    <button data-tool="pen" class="tool active" title="Freehand pen">✎ Pen</button>
+    <button data-tool="line" class="tool" title="Draw a line">／ Line</button>
+    <button data-tool="rect" class="tool" title="Draw rectangle">▱ Rectangle</button>
+    <button data-tool="circle" class="tool" title="Draw circle">◯ Circle</button>
+    <button data-tool="eraser" class="tool" title="Erase annotation strokes">⌫ Eraser</button>
+    <span class="divider"></span>
+    <label class="small" for="ink">Ink</label><input id="ink" type="color" value="#e11d48" aria-label="Ink color">
+    <label class="small" for="width">Size</label><input id="width" type="range" min="1" max="18" value="4" aria-label="Pen thickness">
+    <button id="undo" title="Undo last annotation">↶ Undo</button><button id="clear" title="Clear annotations on this page">Clear ink</button>
+  </div>
+</header>
+<div class="filebar">
+  <input id="fileInput" type="file" accept="application/pdf,.pdf" aria-label="Choose a PDF">
+  <input id="driveUrl" type="text" placeholder="Paste a public Google Drive PDF link or file ID…" aria-label="Google Drive PDF link or ID">
+  <button id="openDrive">Open link</button>
+  <button id="addBoard">＋ Insert board after page</button>
+  <button id="addBelow">＋ Add board at end</button>
+  <button id="saveInk">Save ink</button>
+  <span id="status" class="status">Choose a PDF or paste a link.</span>
+</div>
+<div class="workspace">
+  <aside class="sidebar">
+    <div class="sidehead"><span>Pages / Boards</span><span id="pageCount">0</span></div>
+    <div id="pageList" class="page-list"></div>
+  </aside>
+  <main id="stage" class="stage">
+    <section class="empty" id="welcome">
+      <h1>Teach directly on your PDF</h1>
+      <p>Open a PDF from your device or paste a publicly accessible Google Drive link. Draw on pages, insert whiteboard/blackboard pages between them, and save your annotations locally.</p>
+      <p class="notice">Drive files must be shared so the viewer can access them. Some Drive links block browser embedding; if a link fails, download the PDF and open it from your device.</p>
+      <button id="welcomePick">Choose PDF</button>
+    </section>
+    <div id="pageWrap" class="page-wrap hidden"><canvas id="pdfCanvas"></canvas><canvas id="inkCanvas" class="annotation"></canvas></div>
+  </main>
+</div>
+<footer class="bottom">
+  <button id="prev">← Previous</button><span>Page</span><input id="pageNumber" type="number" min="1" value="1" aria-label="Current page"><span id="ofPages">of 0</span><button id="next">Next →</button>
+  <span class="divider"></span><button id="zoomOut">−</button><span id="zoomLabel">100%</span><button id="zoomIn">＋</button><button id="fit">Fit width</button><button id="fullscreen">⛶ Full screen</button>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(()=> {
+'use strict';
+const $=id=>document.getElementById(id);
+if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const stage=$('stage'), pdfCanvas=$('pdfCanvas'), inkCanvas=$('inkCanvas'), pctx=pdfCanvas.getContext('2d'), ictx=inkCanvas.getContext('2d');
+let pdfDoc=null, items=[], current=0, zoom=1, tool='pen', drawing=false, start=null, draft=null, sourceName='classroom', renderToken=0, annotations={};
+const key=()=>sourceName+'::'+items[current]?.id;
+function setStatus(s){$('status').textContent=s}
+function updateCounts(){$('pageCount').textContent=items.length;$('ofPages').textContent='of '+items.length;$('pageNumber').max=Math.max(1,items.length);$('pageNumber').value=items.length?current+1:0;$('prev').disabled=current<=0;$('next').disabled=current>=items.length-1;renderList()}
+function renderList(){const list=$('pageList');list.replaceChildren();items.forEach((it,i)=>{const d=document.createElement('div');d.className='thumb'+(i===current?' selected':'');const b=document.createElement('b');b.textContent=(it.type==='board'?'▧ Board':'▤ PDF')+' '+(i+1);const s=document.createElement('span');s.textContent=it.type==='board'?(it.boardColor==='#111827'?'Blackboard':'Whiteboard'):'PDF page '+it.pdfPage;d.append(b,s);d.onclick=()=>go(i);list.append(d)})}
+function persistCurrent(){if(!items[current])return;try{annotations[key()]=inkCanvas.toDataURL('image/png')}catch(e){}}
+function restoreInk(){ictx.clearRect(0,0,inkCanvas.width,inkCanvas.height);const data=annotations[key()];if(data){const im=new Image();im.onload=()=>ictx.drawImage(im,0,0,inkCanvas.width,inkCanvas.height);im.src=data}}
+async function go(i){if(i<0||i>=items.length)return;persistCurrent();current=i;updateCounts();const item=items[current];$('welcome').classList.add('hidden');$('pageWrap').classList.remove('hidden');const token=++renderToken;
+ try{
+  if(item.type==='board'){pdfCanvas.width=Math.round(900*zoom);pdfCanvas.height=Math.round(650*zoom);pdfCanvas.style.width=pdfCanvas.width+'px';pdfCanvas.style.height=pdfCanvas.height+'px';pctx.fillStyle=item.boardColor;pctx.fillRect(0,0,pdfCanvas.width,pdfCanvas.height);pctx.fillStyle=item.boardColor==='#111827'?'#f9fafb':'#111827';pctx.font=Math.max(16,22*zoom)+'px system-ui';pctx.fillText('Whiteboard / Blackboard',24*zoom,36*zoom)}
+  else if(pdfDoc){const page=await pdfDoc.getPage(item.pdfPage);if(token!==renderToken)return;const base=page.getViewport({scale:1});const avail=Math.max(280,stage.clientWidth-50);const scale=zoom*Math.min(1,avail/base.width);const vp=page.getViewport({scale});const ratio=window.devicePixelRatio||1;pdfCanvas.width=Math.floor(vp.width*ratio);pdfCanvas.height=Math.floor(vp.height*ratio);pdfCanvas.style.width=vp.width+'px';pdfCanvas.style.height=vp.height+'px';pctx.setTransform(ratio,0,0,ratio,0,0);await page.render({canvasContext:pctx,viewport:vp,transform:ratio===1?null:[ratio,0,0,ratio,0,0]}).promise;if(token!==renderToken)return}
+  inkCanvas.width=pdfCanvas.width;inkCanvas.height=pdfCanvas.height;inkCanvas.style.width=pdfCanvas.style.width;inkCanvas.style.height=pdfCanvas.style.height;ictx.clearRect(0,0,inkCanvas.width,inkCanvas.height);restoreInk();stage.scrollTop=0;stage.scrollLeft=0;updateCounts()
+ }catch(e){setStatus('Could not render this page: '+e.message)}
+}
+async function loadPdf(data,name){setStatus('Loading PDF…');try{const task=pdfjsLib.getDocument({data});pdfDoc=await task.promise;items=Array.from({length:pdfDoc.numPages},(_,i)=>({id:'pdf-'+(i+1)+'-'+Date.now(),type:'pdf',pdfPage:i+1}));current=0;zoom=1;annotations={};sourceName=name||'pdf';await go(0);setStatus('Loaded '+name+' · '+pdfDoc.numPages+' PDF pages')}catch(e){setStatus('PDF failed to open: '+e.message+'. Try downloading it and selecting the local file.');console.error(e)}}
+function driveId(input){let s=input.trim();if(/^[\w-]{20,}$/.test(s)&&!s.includes('/'))return s;let m=s.match(/drive\.google\.com\/(?:file\/d|open\?id|uc\?id)=?\/([\w-]+)/)||s.match(/[?&]id=([\w-]+)/)||s.match(/\/file\/d\/([\w-]+)/);return m?.[1]||null}
+async function openLink(){const input=$('driveUrl').value.trim();if(!input)return setStatus('Paste a Google Drive link or file ID first.');if(!window.pdfjsLib)return setStatus('PDF.js did not load. Check your internet connection.');let url=input;if(!/^https?:\/\//i.test(input)){const id=driveId(input);if(!id)return setStatus('That does not look like a Drive file ID.');url='https://drive.google.com/uc?export=download&id='+encodeURIComponent(id)}else{const id=driveId(input);if(id&&/drive\.google\.com/.test(input))url='https://drive.google.com/uc?export=download&id='+encodeURIComponent(id)}
+ setStatus('Fetching PDF link…');try{const res=await fetch(url);if(!res.ok)throw new Error('HTTP '+res.status);const buf=await res.arrayBuffer();if(buf.byteLength<5||new TextDecoder().decode(buf.slice(0,4))!=='%PDF')throw new Error('Drive did not return PDF bytes (permission/CORS/confirmation page)');await loadPdf(new Uint8Array(buf),'Google Drive PDF')}catch(e){setStatus('Drive link could not be fetched in-browser (often CORS or sharing permissions). Make the file public or download it and use Choose PDF.');console.warn(e)}}
+$('openDrive').onclick=openLink;$('driveUrl').addEventListener('keydown',e=>{if(e.key==='Enter')openLink()});
+$('fileInput').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;if(!window.pdfjsLib)return setStatus('PDF.js did not load. Check internet.');await loadPdf(new Uint8Array(await f.arrayBuffer()),f.name)};
+$('welcomePick').onclick=()=>$('fileInput').click();
+function insertBoard(index){persistCurrent();const it={id:'board-'+Date.now()+'-'+Math.random().toString(36).slice(2),type:'board',boardColor:'#ffffff'};items.splice(index,0,it);current=index;go(current);setStatus('Blank whiteboard inserted. Use the board colour controls if you want a blackboard.')}
+$('addBoard').onclick=()=>{if(!items.length){insertBoard(0);return}insertBoard(current+1)};$('addBelow').onclick=()=>insertBoard(items.length);
+function setTool(t){tool=t;document.querySelectorAll('.tool').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));$('toolSelect').classList.toggle('active',t==='hand');inkCanvas.style.cursor=t==='hand'?'grab':t==='eraser'?'cell':'crosshair'}
+document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));$('toolSelect').onclick=()=>setTool('hand');
+function point(e){const r=inkCanvas.getBoundingClientRect();return{x:(e.clientX-r.left)*(inkCanvas.width/r.width),y:(e.clientY-r.top)*(inkCanvas.height/r.height)}}
+function drawShape(ctx,t,a,b){ctx.beginPath();if(t==='line'){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)}else if(t==='rect'){ctx.rect(a.x,a.y,b.x-a.x,b.y-a.y)}else if(t==='circle'){const rx=(b.x-a.x)/2,ry=(b.y-a.y)/2;ctx.ellipse(a.x+rx,a.y+ry,Math.max(1,Math.abs(rx)),Math.max(1,Math.abs(ry)),0,0,Math.PI*2)}ctx.stroke()}
+let undoStack=[];
+inkCanvas.addEventListener('pointerdown',e=>{if(tool==='hand'||!items.length)return;e.preventDefault();inkCanvas.setPointerCapture(e.pointerId);persistCurrent();undoStack.push(ictx.getImageData(0,0,inkCanvas.width,inkCanvas.height));if(undoStack.length>25)undoStack.shift();drawing=true;start=point(e);draft=ictx.getImageData(0,0,inkCanvas.width,inkCanvas.height);ictx.beginPath();ictx.moveTo(start.x,start.y)});
+inkCanvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=point(e),size=Number($('width').value);ictx.putImageData(draft,0,0);ictx.lineWidth=size*(inkCanvas.width/(inkCanvas.clientWidth||inkCanvas.width));ictx.lineCap='round';ictx.lineJoin='round';ictx.strokeStyle=$('ink').value;if(tool==='pen'){ictx.lineTo(p.x,p.y);ictx.stroke();draft=ictx.getImageData(0,0,inkCanvas.width,inkCanvas.height)}else if(tool==='eraser'){ictx.globalCompositeOperation='destination-out';ictx.beginPath();ictx.arc(p.x,p.y,Math.max(10,size*3),0,Math.PI*2);ictx.fill();ictx.globalCompositeOperation='source-over';draft=ictx.getImageData(0,0,inkCanvas.height,inkCanvas.width)}else drawShape(ictx,tool,start,p)});
+function finish(){if(!drawing)return;drawing=false;persistCurrent();start=null;draft=null}
+inkCanvas.addEventListener('pointerup',finish);inkCanvas.addEventListener('pointercancel',finish);
+$('undo').onclick=()=>{const d=undoStack.pop();if(d)ictx.putImageData(d,0,0);persistCurrent()};$('clear').onclick=()=>{if(confirm('Clear all annotations on this page?')){ictx.clearRect(0,0,inkCanvas.width,inkCanvas.height);delete annotations[key()]}};
+$('saveInk').onclick=()=>{persistCurrent();const blob=new Blob([JSON.stringify({version:1,source:sourceName,annotations},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='classroom-annotations.json';a.click();URL.revokeObjectURL(a.href);setStatus('Annotation data downloaded. PDF is unchanged.')};
+$('prev').onclick=()=>go(current-1);$('next').onclick=()=>go(current+1);$('pageNumber').onchange=()=>go(Number($('pageNumber').value)-1);$('zoomIn').onclick=()=>{zoom=Math.min(2.5,zoom+0.1);if(items.length)go(current);$('zoomLabel').textContent=Math.round(zoom*100)+'%'};$('zoomOut').onclick=()=>{zoom=Math.max(.4,zoom-.1);if(items.length)go(current);$('zoomLabel').textContent=Math.round(zoom*100)+'%'};$('fit').onclick=()=>{zoom=1;if(items.length)go(current);$('zoomLabel').textContent='Fit'};$('fullscreen').onclick=async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen()}catch(e){setStatus('Full-screen mode is not available in this browser.')}};
+window.addEventListener('resize',()=>{if(items.length)go(current)});
+const params=new URLSearchParams(location.search);const fileParam=params.get('file');if(fileParam){$('driveUrl').value=fileParam;openLink()}
+})();
+</script>
+</body>
+</html>
