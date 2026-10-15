@@ -1152,7 +1152,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     window.viewCurrentFolderPdf=function(){
       const list=(folderPdfs[currentFolderPath]||[]).filter(x=>String(x.url||'').trim());
       if(!list.length) return alert('No PDF link saved for this folder.');
-      window.open(list[0].url,'_blank','noopener,noreferrer');
+      window.open('viewer_board.html?file='+encodeURIComponent(list[0].url),'_blank','noopener,noreferrer');
     };
     window.openFolderImageGallery=function(){
       if(!currentFolderPath) return alert('Open a folder first.');
@@ -1217,7 +1217,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     window.openPdfLink=function(questionIndex,pdfIndex){
       const list=folderPdfs[currentFolderPath]||[];
       const item=list[pdfIndex];
-      if(item&&item.url) window.open(item.url,'_blank','noopener,noreferrer');
+      if(item&&item.url) window.open('viewer_board.html?file='+encodeURIComponent(item.url),'_blank','noopener,noreferrer');
       else alert('PDF link is not available.');
     };
 
