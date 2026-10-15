@@ -37,6 +37,7 @@ input[type=color]{width:36px;height:34px;padding:2px;border:1px solid var(--line
   <button id="openDrive">Open link</button>
   <button id="addBoard">＋ Insert board after page</button>
   <button id="addBelow">＋ Add board at end</button>
+  <button id="toggleBoardColor">◐ White / Black</button>
   <button id="saveInk">Save ink</button>
   <span id="status" class="status">Choose a PDF or paste a link.</span>
 </div>
@@ -66,7 +67,7 @@ input[type=color]{width:36px;height:34px;padding:2px;border:1px solid var(--line
 const $=id=>document.getElementById(id);
 if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 const stage=$('stage'), pdfCanvas=$('pdfCanvas'), inkCanvas=$('inkCanvas'), pctx=pdfCanvas.getContext('2d'), ictx=inkCanvas.getContext('2d');
-let pdfDoc=null, items=[], current=0, zoom=1, tool='pen', drawing=false, start=null, draft=null, sourceName='classroom', renderToken=0, annotations={};
+let pdfDoc=null, items=[], current=0, zoom=1, tool='pen', drawing=false, start=null, draft=null, sourceName='classroom', renderToken=0, annotations={}, boardColor='#ffffff';
 const key=()=>sourceName+'::'+items[current]?.id;
 function setStatus(s){$('status').textContent=s}
 function updateCounts(){$('pageCount').textContent=items.length;$('ofPages').textContent='of '+items.length;$('pageNumber').max=Math.max(1,items.length);$('pageNumber').value=items.length?current+1:0;$('prev').disabled=current<=0;$('next').disabled=current>=items.length-1;renderList()}
@@ -87,15 +88,15 @@ async function openLink(){const input=$('driveUrl').value.trim();if(!input)retur
 $('openDrive').onclick=openLink;$('driveUrl').addEventListener('keydown',e=>{if(e.key==='Enter')openLink()});
 $('fileInput').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;if(!window.pdfjsLib)return setStatus('PDF.js did not load. Check internet.');await loadPdf(new Uint8Array(await f.arrayBuffer()),f.name)};
 $('welcomePick').onclick=()=>$('fileInput').click();
-function insertBoard(index){persistCurrent();const it={id:'board-'+Date.now()+'-'+Math.random().toString(36).slice(2),type:'board',boardColor:'#ffffff'};items.splice(index,0,it);current=index;go(current);setStatus('Blank whiteboard inserted. Use the board colour controls if you want a blackboard.')}
-$('addBoard').onclick=()=>{if(!items.length){insertBoard(0);return}insertBoard(current+1)};$('addBelow').onclick=()=>insertBoard(items.length);
+function insertBoard(index){persistCurrent();const it={id:'board-'+Date.now()+'-'+Math.random().toString(36).slice(2),type:'board',boardColor};items.splice(index,0,it);current=index;go(current);setStatus('Blank whiteboard inserted. Use the board colour controls if you want a blackboard.')}
+$('addBoard').onclick=()=>{if(!items.length){insertBoard(0);return}insertBoard(current+1)};$('addBelow').onclick=()=>insertBoard(items.length);$('toggleBoardColor').onclick=()=>{boardColor=boardColor==='#ffffff'?'#111827':'#ffffff';if(items[current]?.type==='board'){items[current].boardColor=boardColor;go(current)}setStatus(boardColor==='#111827'?'New boards will be blackboards.':'New boards will be whiteboards.')};
 function setTool(t){tool=t;document.querySelectorAll('.tool').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));$('toolSelect').classList.toggle('active',t==='hand');inkCanvas.style.cursor=t==='hand'?'grab':t==='eraser'?'cell':'crosshair'}
 document.querySelectorAll('.tool').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));$('toolSelect').onclick=()=>setTool('hand');
 function point(e){const r=inkCanvas.getBoundingClientRect();return{x:(e.clientX-r.left)*(inkCanvas.width/r.width),y:(e.clientY-r.top)*(inkCanvas.height/r.height)}}
 function drawShape(ctx,t,a,b){ctx.beginPath();if(t==='line'){ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y)}else if(t==='rect'){ctx.rect(a.x,a.y,b.x-a.x,b.y-a.y)}else if(t==='circle'){const rx=(b.x-a.x)/2,ry=(b.y-a.y)/2;ctx.ellipse(a.x+rx,a.y+ry,Math.max(1,Math.abs(rx)),Math.max(1,Math.abs(ry)),0,0,Math.PI*2)}ctx.stroke()}
 let undoStack=[];
 inkCanvas.addEventListener('pointerdown',e=>{if(tool==='hand'||!items.length)return;e.preventDefault();inkCanvas.setPointerCapture(e.pointerId);persistCurrent();undoStack.push(ictx.getImageData(0,0,inkCanvas.width,inkCanvas.height));if(undoStack.length>25)undoStack.shift();drawing=true;start=point(e);draft=ictx.getImageData(0,0,inkCanvas.width,inkCanvas.height);ictx.beginPath();ictx.moveTo(start.x,start.y)});
-inkCanvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=point(e),size=Number($('width').value);ictx.putImageData(draft,0,0);ictx.lineWidth=size*(inkCanvas.width/(inkCanvas.clientWidth||inkCanvas.width));ictx.lineCap='round';ictx.lineJoin='round';ictx.strokeStyle=$('ink').value;if(tool==='pen'){ictx.lineTo(p.x,p.y);ictx.stroke();draft=ictx.getImageData(0,0,inkCanvas.width,inkCanvas.height)}else if(tool==='eraser'){ictx.globalCompositeOperation='destination-out';ictx.beginPath();ictx.arc(p.x,p.y,Math.max(10,size*3),0,Math.PI*2);ictx.fill();ictx.globalCompositeOperation='source-over';draft=ictx.getImageData(0,0,inkCanvas.height,inkCanvas.width)}else drawShape(ictx,tool,start,p)});
+inkCanvas.addEventListener('pointermove',e=>{if(!drawing)return;const p=point(e),size=Number($('width').value);ictx.putImageData(draft,0,0);ictx.lineWidth=size*(inkCanvas.width/(inkCanvas.clientWidth||inkCanvas.width));ictx.lineCap='round';ictx.lineJoin='round';ictx.strokeStyle=$('ink').value;if(tool==='pen'){ictx.lineTo(p.x,p.y);ictx.stroke();draft=ictx.getImageData(0,0,inkCanvas.width,inkCanvas.height)}else if(tool==='eraser'){ictx.globalCompositeOperation='destination-out';ictx.beginPath();ictx.arc(p.x,p.y,Math.max(10,size*3),0,Math.PI*2);ictx.fill();ictx.globalCompositeOperation='source-over';draft=ictx.getImageData(0,0,inkCanvas.width,inkCanvas.height)}else drawShape(ictx,tool,start,p)});
 function finish(){if(!drawing)return;drawing=false;persistCurrent();start=null;draft=null}
 inkCanvas.addEventListener('pointerup',finish);inkCanvas.addEventListener('pointercancel',finish);
 $('undo').onclick=()=>{const d=undoStack.pop();if(d)ictx.putImageData(d,0,0);persistCurrent()};$('clear').onclick=()=>{if(confirm('Clear all annotations on this page?')){ictx.clearRect(0,0,inkCanvas.width,inkCanvas.height);delete annotations[key()]}};
