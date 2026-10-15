@@ -1232,7 +1232,7 @@ async function extract(){
           totalDetected=qs.length;render();
         }catch(batchErr){
           console.warn("Native batch failed",rg,batchErr);
-          $("status").textContent="⚠️ Native batch "+rg[0]+"–"+rg[1]+" failed; using visual fallback for this batch…";
+          $("status").textContent="❌ Native batch "+rg[0]+"–"+rg[1]+" failed; stopping to show the real error…";
           throw batchErr;
         }
       }
