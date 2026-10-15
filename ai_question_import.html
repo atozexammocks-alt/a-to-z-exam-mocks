@@ -99,7 +99,6 @@ function sourceAwareSuggestedPath(q){
     if(/^(physics|science|mathematics|chemistry|biology|general|class\s*\d+|\d+(?:th|st|nd|rd))$/i.test(p))return;
     var pk=pathPartKey(p);
     if(pk===pathPartKey(root)||pk===pathPartKey(level)||pk===pathPartKey(chapter)||pk===pathPartKey(topic)||pk===pathPartKey(sub))return;
-    // Drop redundant generic leaves such as "... / Ray Optics and Optical Instruments / Optics".
     if(/^[a-z]+$/i.test(String(p).trim())&&parts.some(function(existing){
       return pathPartKey(existing).split(/[^a-z0-9]+/).filter(Boolean).indexOf(pk)>=0;
     }))return;
@@ -109,7 +108,6 @@ function sourceAwareSuggestedPath(q){
 }
 function suggestedMatch(q){
   var mode=q&&q.libraryMode||"private",available=getModePaths(mode),sp=sourceAwareSuggestedPath(q||{});
-  // Exact full-path reuse only: suffix matching can mix JEE/CBSE into unrelated folders.
   var hit=available.find(function(p){return pathPartKey(p)===pathPartKey(sp);});
   return hit||"";
 }
@@ -147,7 +145,6 @@ function formatAISolutionStructure(s){
   var protectedCode=[],ticks=String.fromCharCode(96).repeat(3);
   var codeRe=new RegExp(ticks+"([a-zA-Z0-9_+#.-]*)\\s*\\n([\\s\\S]*?)"+ticks,"g");
   x=x.replace(codeRe,function(_,lang,body){var token="__A2Z_FORMAT_CODE_"+protectedCode.length+"__";protectedCode.push(ticks+lang+"\n"+body+ticks);return token;});
-  // Force common section labels onto their own lines even if the model returned one paragraph.
   var labels=[
     "Given / Parameters","What is asked","Concept / Law","Final Answer",
     "Parameters","Substitution","Calculation","Reasoning","Diagram","Formula","Working","To find","Concept","Given","Law"
@@ -157,7 +154,6 @@ function formatAISolutionStructure(s){
     var re=new RegExp("\\s*(?:\\*\\*)?"+safeLabel+"(?:\\*\\*)?\\s*:\\s*","gi");
     x=x.replace(re,function(m,offset){return (offset>0?"\n\n":"")+label+":\n";});
   });
-  // Numbered teaching steps should also start on fresh lines.
   x=x.replace(/\s+(Step\s+\d+\s*[:.])/gi,"\n\n$1");
   var formatted=x.replace(/\n{3,}/g,"\n\n").trim();
   protectedCode.forEach(function(code,i){formatted=formatted.replace("__A2Z_FORMAT_CODE_"+i+"__",code);});
@@ -185,8 +181,6 @@ function renderMathMarkupHtml(s){
 function normalizeMathMarkup(s){
   var x=String(s||""); if(!x)return "";
   x=x.replace(/```(?:latex|tex|math)?\n?/gi,"").replace(/```/g,"");
-  /* Normalize escaped delimiters only. Never wrap ordinary prose lines in math mode:
-     doing so causes MathJax "Math input error" for mixed Hindi/English + LaTeX. */
   x=x.replace(/\\\\\[/g,"\\[").replace(/\\\\\]/g,"\\]").replace(/\\\\\(/g,"\\(").replace(/\\\\\)/g,"\\)");
   return x;
 }
@@ -330,7 +324,6 @@ function visualRegionList(q){
   return a;
 }
 function canonicalVisuals(q){
-  // ONE canonical slot per detected visual. visualRegions is the source of truth.
   var src=Array.isArray(q.visualRegions)?q.visualRegions:[];
   var out=[];
   src.forEach(function(v){
@@ -341,7 +334,6 @@ function canonicalVisuals(q){
     if(out.some(function(x){return x._key===key;}))return;
     out.push(Object.assign({},v,{visualType:type,type:type,required:false,_key:key}));
   });
-  // Legacy/import fallback: if AI supplied only figureImage, expose exactly one slot.
   if(!out.length && (q.figureImage||q.figureRequired||q.figureReference)) out.push({visualType:visualTypeOf(q.visualType||"diagram")||"diagram",type:"diagram",anchor:q.figureReference||"",image:q.figureImage||"",required:false,_legacyFigure:true,_key:"legacy-figure"});
   return out;
 }
@@ -386,7 +378,6 @@ async function generateFigureSvg(i,visIndex){
 }
 function renderVisualRegions(q,review){
   var a=canonicalVisuals(q);if(!a.length)return "";
-  
   var html='<div class="extraction-assets"><div class="extraction-assets-title">🖼 Figure slots — optional to save</div>';
   a.forEach(function(v,idx){
     var type=visualTypeOf(v.visualType||v.type),img=String(v.image||"");
@@ -408,7 +399,6 @@ function normalizeVisualBlocks(q){
   return q.contentBlocks;
 }
 function renderInlineVisuals(q,side){
-  // Only MANUAL inline slots appear here. Auto-detected visuals are rendered once by renderVisualRegions().
   var blocks=normalizeVisualBlocks(q).filter(function(b){return b&&b.manual===true;}); if(!blocks.length)return "";
   var html='<div class="visual-blocks">';
   blocks.forEach(function(b,idx){
@@ -433,7 +423,7 @@ function renderOptionHtml(q,opt,idx,review){
   var h='<div class="opt math-content"><b>'+letter+'.</b> '+renderMathMarkupHtml(formatQuestionText(opt));
   if(review)h+='<div class="option-edit-row" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin:7px 0 4px"><textarea class="q-option-edit" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'" aria-label="Edit option '+letter+'" style="width:100%;min-height:48px;box-sizing:border-box;resize:vertical">'+esc(String(opt||''))+'</textarea><button type="button" class="btn mini-btn red" data-a="remove-option" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">Delete '+letter+'</button></div>';
   if(img)h+='<div class="option-visual"><img src="'+esc(img)+'" alt="Option '+letter+' figure"></div>';
-  else if(review&&needs)h+='<div class="option-visual"><div class="figure-missing">⚠️ Image required for Option '+letter+'.</div></div>';
+  else if(review&&needs)h+='<div class="option-visual"><div class="figure-missing">⚠️ Image required for Option '+letter+.</div></div>';
   if(review&&needs&&Array.isArray(q.optionImageCropPending)&&q.optionImageCropPending[idx])h+='<div class="inline-figure-tools"><button type="button" class="btn mini-btn green" data-a="keep-option-crop" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">✓ Keep Option Crop</button><button type="button" class="btn mini-btn red" data-a="discard-option-crop" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">✕ Discard Crop</button></div>';
   if(review&&needs)h+='<div class="inline-figure-tools"><button type="button" class="btn mini-btn purple" data-a="option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">🖼 Insert Figure for Option '+letter+'</button>'+(img?'<button type="button" class="btn mini-btn red" data-a="remove-option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">Remove</button>':'')+'</div>';
   return h+'</div>';
@@ -574,7 +564,6 @@ function render(){
 }
 function readQuestionModeChoice(i,mode){
   var q=qs[i];if(!q)return;
-  // Text/Both never require a complete-question crop. Image Only does.
   if(mode==="image"&&!q.cropImage){showSaveToast("पहले “✂ Re-crop Question” से complete question image बनाओ.",true);return;}
   q.contentMode=mode;render();
   showSaveToast("✔ Q"+q.no+" — "+(mode==="text"?"Text Only":mode==="image"?"Image Only":"Text + Figures")+" selected.");
@@ -586,9 +575,6 @@ function firebaseReady(){
   if(__firebaseReadyPromise)return __firebaseReadyPromise;
   const a=firebase.auth(),db=firebase.firestore();
   __firebaseReadyPromise=(async function(){
-    // The existing Test Builder uses Firebase Anonymous Auth for the same project.
-    // Reuse that established session model instead of requiring an email/password
-    // Firebase user; the teacher's portal email remains the Library owner key.
     try{
       var current=a.currentUser;
       if(!current){
@@ -601,7 +587,6 @@ function firebaseReady(){
         current=credential&&credential.user?a.currentUser||credential.user:a.currentUser;
       }
       if(!current)throw new Error("Firebase could not establish a session. Check that Anonymous sign-in is enabled in Firebase Authentication.");
-      console.info("[A2Z AI Import] Firebase session ready:",current.email||"anonymous",current.uid);
       return db;
     }catch(err){
       __firebaseReadyPromise=null;
@@ -648,8 +633,6 @@ function setSaveProgress(text){
   var p=$("saveProgress"); if(p){p.textContent=text;p.className="save-progress show";}
 }
 async function uploadVisualAsset(db, dataUrl, pathPart, cache){
-  // Keep the app compatible with Firebase Spark: do not require Firebase Storage.
-  // Store a compact JPEG data URL in Firestore, with a strict per-image size cap.
   if(!dataUrl || !String(dataUrl).startsWith("data:image/")) return dataUrl || "";
   cache=cache||{};var original=String(dataUrl);
   if(cache[original])return cache[original];
@@ -690,7 +673,6 @@ async function persistVisualAssets(db,q){
     return p.then(function(url){
       assign(url);done++;setSaveProgress("Images saved " + done + "/" + total + " • " + label);return url;
     }).catch(function(err){
-      // Question text/options/answer must still be saved if an optional image fails.
       try{assign("");}catch(_){}
       if(required)throw Error("Required question image could not be saved ("+label+"): "+(err&&err.message?err.message:String(err)));
       visualSaveWarnings.push(label+": "+(err&&err.message?err.message:String(err)));
@@ -707,15 +689,12 @@ async function persistVisualAssets(db,q){
   await Promise.all(jobs);
   if(visualSaveWarnings.length){
     q._visualSaveWarning=visualSaveWarnings.join(" | ");
-    console.warn("[A2Z AI Import] Question will be saved without failed optional visual(s):",q._visualSaveWarning);
   }
   setSaveProgress("Visual processing finished. Saving question record…");
   return q;
 }
 function firestoreSafe(v){
   if(Array.isArray(v)){
-    // Firestore does not allow an array directly inside another array.
-    // Convert nested arrays to maps while preserving their order.
     return v.map(function(x){return Array.isArray(x)?firestoreSafeArrayMap(x):firestoreSafe(x)});
   }
   if(v&&typeof v==="object"){
@@ -736,8 +715,6 @@ function firestoreSafeArrayMap(a){
   return o;
 }
 function firestoreSafePayload(payload){
-  // Keep normal top-level arrays such as options/optionImages intact.
-  // Only nested arrays are converted to ordered maps.
   var out={};
   Object.keys(payload||{}).forEach(function(k){
     var v=payload[k];
@@ -752,8 +729,6 @@ async function saveQ(i){
   if(qs[i]){
     var pendingQuestion=qs[i];
     if(pendingQuestion._generatedFigureCandidate){pendingQuestion._generatedFigureCandidate="";pendingQuestion._generatedFigurePending=false;}
-    // Images are content, not disposable drafts: preserve crops and generated figures
-    // through compression/upload. The teacher can explicitly discard them in the review UI.
     pendingQuestion.cropImage=pendingQuestion.cropImage||"";
     pendingQuestion.figureImage=pendingQuestion.figureImage||"";
   }
@@ -761,9 +736,6 @@ async function saveQ(i){
   if(!em)throw Error("Teacher login not found. Open Teacher Portal and sign in first.");
   let db=await firebaseReady(),authUser=firebase.auth().currentUser;
   if(!authUser)throw Error("Firebase session is not ready. Refresh AI Question Import and try saving again.");
-  // Firebase Auth is anonymous in the existing Test Builder too. Keep the
-  // The user chooses only the destination library. Always derive the path from AI's topic/chapter
-  // and create the complete folder tree automatically; never reuse an unrelated saved/first folder.
   var saveMode=q.libraryMode||$("defaultLibraryMode").value||"private";
   var semantic=q._manualFolderPath?norm(q.folderPath||""):sourceAwareSuggestedPath(q);
   if(!semantic)semantic="Physics";
@@ -772,7 +744,6 @@ async function saveQ(i){
     q.folderPath=await saveFolderPath(saveMode,semantic);
     folderTrees[saveMode]=folderTrees[saveMode]||[];
   }catch(folderErr){
-    console.warn("[A2Z AI Import] Automatic folder creation failed:",folderErr);
     throw Error("Could not automatically create the AI folder path in "+(saveMode==="central"?"Central":saveMode==="group"?"Group":"Private")+" Library: "+(folderErr&&folderErr.message?folderErr.message:String(folderErr)));
   }
   let m=saveMode,p=q.folderPath;
@@ -785,11 +756,9 @@ async function saveQ(i){
   if(payloadBytes>900000)throw Error("Question data is too large ("+Math.round(payloadBytes/1024)+" KB) after visual upload. Please reduce visual size or check Firebase Storage Rules.");
   try{
     var savedRef=await withTimeout(db.collection("questions").add(safePayload),30000,"Firestore question save");
-    console.info("[A2Z AI Import] Library save successful:",savedRef.id);
     if(q._visualSaveWarning)showSaveToast("⚠ Question saved, but one or more optional images were skipped. Text, options and answer were saved.",true);
     return savedRef.id;
   }catch(err){
-    console.error("[A2Z AI Import] Firestore save payload:",safePayload,err);
     throw Error("Save failed: "+(err&&err.message?err.message:String(err)));
   }
 }
@@ -856,14 +825,10 @@ function inferQuestionType(q){
   var opts=Array.isArray(q.options)?q.options.filter(function(x){return String(x||"").trim()}):[];
   var declared=String(q.qType||q.question_type||q.questionType||"").trim().toLowerCase().replace(/[\s-]+/g,"_");
   var t=text.toLowerCase();
-  // Normalize common labels returned by different AI models.
   var aliases={"single_correct":"mcq","mcq_single":"mcq","multiple_correct":"mcq_multi","multi_select":"mcq_multi","nat":"numerical","numerical_answer_type":"numerical","short_subjective_response":"ssr","subjective":"ssr","assertion_reason":"mcq","assertion_and_reason":"mcq","fill_in_the_blank":"fill_blank","comprehension":"passage"};
   declared=aliases[declared]||declared;
-  // Strong non-MCQ stem cues take priority over stray option fragments.
   if(/_{2,}|\bfill\s+in\s+the\s+blank\b|\bfill\s+the\s+blank\b|रिक्त स्थान|खाली स्थान|complete the sentence/.test(t))return "fill_blank";
   if(/\b(numerical answer|answer in (?:integer|decimal)|enter (?:the )?numeric|round off to|correct to \d+ decimal|find the numerical value)\b|\bcalculate the value\b|मान ज्ञात कीजिए|संख्यात्मक उत्तर/.test(t))return "numerical";
-  // Assertion–Reason and Reasoning questions with A/B/C/D choices are still MCQs.
-  // The student selects an option; do not create a separate Assertion–Reason type.
   if(opts.length>=2){
     if(/select all|more than one|multiple correct|one or more|एक से अधिक सही/.test(t)||declared==="mcq_multi")return "mcq_multi";
     return "mcq";
@@ -877,7 +842,7 @@ function inferQuestionType(q){
 }
 function normalizeSolutionJson(out){out=out&&typeof out==='object'?out:{};return {answer:String(out.answer||"").trim(),explanation:String(out.explanation||out.solution||out.steps||"").trim(),final_answer:String(out.final_answer||out.finalAnswer||out.final||out.answer||"").trim()};}
 async function geminiRequest(key,body){
-  // Use real, currently supported model IDs. Do not cycle through speculative IDs.
+  // UPDATED: Using currently supported stable production model IDs
   const models=["gemini-2.5-flash","gemini-2.5-flash-lite"];
   let last="", errors=[];
   key=String(key||"").trim();
@@ -902,7 +867,6 @@ async function geminiRequest(key,body){
       const msg=String(d?.error?.message||("Gemini API error "+r.status)).trim();
       last=model+": HTTP "+r.status+" — "+msg;errors.push(last);
       if(r.status===400||r.status===401||r.status===403)throw Error(last);
-      // Try the lite model only when the primary model is unavailable.
       if(r.status===404 && mi===0)continue;
       if(r.status===429||r.status>=500)throw Error(last+" (temporary service/quota issue; retry later or use a smaller page range)");
       throw Error(last);
@@ -915,35 +879,6 @@ async function geminiRequest(key,body){
     }
   }
   throw Error("Gemini request failed: "+(last||errors.join("; ")));
-}
-async function repairMathWithVision(key,pdfB64,items){
-  if(!items||!items.length)return items;
-  var candidate=JSON.stringify(items.map(function(q){return {
-    question_number:q.no,question:q.text,options:q.options,answer:q.answer,explanation:q.explanation,
-    topic:q.topic,chapter:q.chapter,diagram_description:q.diagram,page:q.page,
-    table_rows:q.tableRows,matrix_latex:q.matrixLatex
-  }}));
-  var prompt='You are the FINAL BILINGUAL ENGLISH + HINDI + MATHEMATICS + PHYSICS TRANSCRIPTION CHECKER. Inspect the ORIGINAL PDF visually and compare it with the candidate JSON below. Correct mathematical notation wherever the candidate is wrong, incomplete, verbalized, or OCR-corrupted. This is NOT a summarization task. DO NOT paraphrase, translate, transliterate, shorten, or delete any prose. You MUST actively compare Hindi/Devanagari against the ORIGINAL PDF image and correct OCR mistakes in Hindi while preserving the exact visible wording. Preserve matras, anusvara, chandrabindu, visarga, nukta, halant, danda and Devanagari digits exactly. If the candidate contains Romanized Hindi where the PDF contains Devanagari, replace it with the visible Devanagari. If the candidate Hindi is missing or corrupted, restore it from the PDF. Never invent a Hindi translation that is not visibly present. English and Hindi versions of a bilingual question must both remain. Preserve the candidate wording exactly unless a visible mathematical glyph itself is wrong. This includes English, Hindi/Devanagari, punctuation, slash characters, option text, subparts, numbers, signs and spacing around bilingual text. A Hindi word next to a formula is still real question text and MUST NOT be removed. A slash \"/\" is ordinary literal text unless the PDF visibly shows a fraction bar; never reinterpret a bilingual phrase such as "X / Y" as a mathematical division expression.\n\nCRITICAL MATHEMATICS RULE: The mathematical expression is SACRED. Copy the visible scientific equation from the ORIGINAL PDF as mathematical notation; never replace it with the words SQRT, INT, slash, raised power, subscript, superscript, fraction, alpha, beta, etc. Preserve literal underscores, carets and slashes only when they are actually printed as text; when the PDF shows a mathematical subscript/superscript/fraction/root, encode that visual structure as valid MathJax LaTeX. Do NOT alter already-correct LaTeX. Never convert a fraction into a slash, never convert a root into SQRT, never flatten subscripts/superscripts, and never remove braces required by LaTeX. Preserve the Angstrom symbol exactly when visible as Å or Å. Never convert it to AA, /A, double-A, or delete it; for a mathematical unit use \\(\\AA\\) when appropriate. NEVER write mathematics as spoken words such as alpha, T naught, zero to four, INT, SQRT, raised power, or bracket when those words represent visible mathematical symbols. However, NEVER delete a Hindi/Devanagari or English word merely because it appears immediately before, after, above, below, or between mathematical symbols. Preserve bilingual question and option text exactly. In particular, do not mistake "/" in bilingual wording for a fraction/division bar. Read the glyphs in the PDF and reproduce them as proper LaTeX with MathJax delimiters. A visible alpha glyph must become \\(\\alpha\\), T with subscript zero must become \\(T_0\\), and an integral with lower limit 0 and upper limit 4 must become \\(\\int_0^4 ...\\). Preserve degree Celsius as °C, Angstrom Å/Å, integrals and their limits, differentiation and partial differentiation, limits, summation, products, fractions, roots, powers, subscripts, superscripts, vectors, Greek letters, inequalities, determinants, matrices and Fourier/Laplace notation. Do not turn a real mathematical matrix into a prose table, and do not turn a real table into a matrix. Every mathematical expression MUST be enclosed in \\( ... \\) or \\[ ... \\]. Keep the complete question as one logical block; never split a formula across lines.\n\nReturn ONLY valid JSON: {"questions":[...]} with exactly the same question order and count as the candidate. If a mathematical expression is already correct, leave it unchanged. If the candidate contains a verbal transcription but the PDF clearly shows the symbols, replace only that mathematical portion with the actual mathematical LaTeX. Do not alter surrounding prose. The returned question and each option must retain all original Hindi and English words. Do not alter table_rows or matrix_latex unless the ORIGINAL PDF proves they are wrong. Do not remove, flatten, translate, or rewrite figures, visual regions, or bilingual text. Keep question order and count unchanged. If you are uncertain whether a character is mathematical or prose, preserve the candidate text rather than deleting it.\n\nCANDIDATE JSON:\n' + candidate;  var body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}};
-  var d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(function(p){return p.text||""}).join("")||"";
-  raw=raw.trim();
-  var fence=String.fromCharCode(96).repeat(3);
-  if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim();}
-  var out=parseGeminiJson(raw);
-  if(!Array.isArray(out.questions)||out.questions.length!==items.length)throw Error("Math verification returned an incomplete question set.");
-  return items.map(function(q,i){
-    var v=out.questions[i]||{};
-    if(String(v.question||"").trim())q.text=safeVerifiedText(q.text,String(v.question).trim());
-    if(Array.isArray(v.options))q.options=q.options.map(function(orig,j){return safeVerifiedText(orig,String(v.options[j]||"").trim());});
-    /* Verification is for transcription, not solution rewriting. Preserve the original answer/solution;
-       otherwise one malformed verifier response can corrupt otherwise valid content. */
-    if(v.topic!==undefined)q.topic=String(v.topic||"").trim();
-    if(v.chapter!==undefined)q.chapter=String(v.chapter||"").trim();
-    if(v.diagram_description!==undefined)q.diagram=String(v.diagram_description||"").trim();
-    if(v.page!==undefined)q.page=String(v.page||"").trim();
-    if(Array.isArray(v.table_rows))q.tableRows=v.table_rows.filter(Array.isArray);
-    if(v.matrix_latex!==undefined)q.matrixLatex=String(v.matrix_latex||"").trim();
-    return q;
-  });
 }
 async function testGeminiKey(){
   var key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
@@ -973,7 +908,6 @@ function tableRowsFromHtml(html){
 }
 function stripRepeatedOptionLabel(value,index){
   var x=String(value==null?"":value).trim();
-  // The UI already prints A./B./C./D.; remove a repeated printed label from AI output.
   var letter=String.fromCharCode(65+index);
   x=x.replace(new RegExp("^\\s*(?:\\(?"+letter+"\\)?\\s*[.)\\]:-]|\\["+letter+"\\]\\s*)\\s*","i"),"");
   x=x.replace(/^\s*(?:option|विकल्प)\s*[A-H]\s*[.)\]:-]?\s*/i,"");
@@ -984,7 +918,6 @@ function normalizeOptionList(value){
   input.forEach(function(item){
     if(item==null)return;
     var x=String(item).replace(/\r\n?/g,"\n").trim();if(!x)return;
-    /* Split a merged option string only when it has a clear ordered A, B, C… label run. */
     var re=/(?:^|\s)(?:\(([A-H])\)|\[([A-H])\]|([A-H])[.)])\s+/g,hits=[],m;
     while((m=re.exec(x))){hits.push({index:m.index,letter:(m[1]||m[2]||m[3]||"").toUpperCase(),end:re.lastIndex});if(/\s$/.test(m[0]))re.lastIndex=Math.max(m.index+1,re.lastIndex-1);}
     hits=collapseOptionMarkers(hits);
@@ -1041,7 +974,7 @@ async function mergeContinuationInto(existing,q,pageNo,pageImageData){
 }
 async function extractNativePdf(key,pdfB64,totalPages,limit,libraryList){
   var wanted=limit?Math.min(limit,250):250;
-  var prompt=`Extract exam questions from the supplied ORIGINAL PDF. This is a faithful transcription task, not summarization. CRITICAL: each numbered/logical question MUST be a separate object in questions[]. NEVER put the entire paper, an entire page, or multiple numbered questions into one question object. If the PDF contains Q1, Q2, Q3, return at least three separate objects. A question object may contain its own multi-line bilingual text, subparts, options and table, but it must stop before the next printed question number. NUMERICAL QUESTIONS WITHOUT OPTIONS ARE STILL SEPARATE QUESTIONS. Never merge two standalone numerical problems just because they have no options or no full stop. If you return table_rows/table_html, keep the question text limited to the question stem and the sentence introducing the table; DO NOT also copy the table cells as tab-separated, pipe-separated, or row-by-row plain text into question. Return ONLY valid JSON in exactly this shape: {"questions":[...]}. Extract every logical question in printed order, preserving BOTH English and Hindi/Devanagari when the PDF is bilingual. Never translate, transliterate, paraphrase, shorten or omit text. Preserve punctuation, option labels, numbers, units and line structure. Preserve mathematical notation as valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. A visible fraction must be \\frac{...}{...}, a root \\sqrt{...}, powers/subscripts/superscripts must remain structured, Greek letters must remain symbols, and integrals/limits/matrices/vectors/derivatives must remain mathematical notation. Never output words such as SQRT, INT, alpha, raised power or subscript when the PDF visibly contains the corresponding mathematical symbol. Preserve Å/Å, °C, μ, Ω and other units exactly. Do not confuse a literal slash in prose with a fraction. TABLE SEPARATION IS CRITICAL: the question field must contain only the printed question stem and any sentence that introduces the table. NEVER transcribe table rows/cells as plain lines inside question. Put every table cell ONLY in table_rows and table_html. Do not write a row-formatted text version before/after the HTML table. If table_rows is populated, table contents must not be repeated in question. For every real printed table, set visual_type="table" and return table_rows as a 2D array of cell objects {"text":"...","rowspan":1,"colspan":1,"header":false}; preserve exact row/column order, merged cells, headers, blank cells, labels, units and math inside cells. Also return table_html as a complete <table> with <tr>, <th>, <td>, rowspan and colspan only. NEVER reconstruct a table as a graph, scale, matrix, prose sentence or guessed values. If a cell is unreadable, preserve only what is visibly supported; never invent. Keep real mathematical matrices in matrix_latex. Do not invent figures or equations. FIGURE OWNERSHIP BOUNDARIES — ABSOLUTE RULE: First identify the printed start and end boundary of EACH question (question number through its stem, subparts, and options, stopping immediately before the next question number). Treat each question as an isolated region. A figure belongs to a question ONLY if its printed position is inside that question’s stem/options region, or the question text explicitly refers to that specific figure within the same bounded region. Never attach a nearby figure merely because it is visually close. Never attach a figure located below/inside the next numbered question to the previous question. Do not cross question-number boundaries, column boundaries, or answer/solution boundaries. Every visual_regions entry must include owner_question_number matching its question_number and a concise anchor proving where it appears (e.g. “between Q3 stem and Q3 options”). If you cannot confidently assign the figure to one question boundary, return NO visual_regions entry for it and set figure_required=false; flag uncertainty in figure_reference only. A question’s own visual_regions may contain ONLY visuals owned by that same question. Never copy, reuse, clone, or carry the same visual region into adjacent question objects. If Q1 has no figure inside Q1’s boundary, Q1 must have visual_regions=[] and figure_required=false even if Q2 has a figure.
+  var prompt=`Extract exam questions from the supplied ORIGINAL PDF. This is a faithful transcription task, not summarization. CRITICAL: each numbered/logical question MUST be a separate object in questions[]. NEVER put the entire paper, an entire page, or multiple numbered questions into one question object. If the PDF contains Q1, Q2, Q3, return at least three separate objects. A question object may contain its own multi-line bilingual text, subparts, options and table, but it must stop before the next printed question number. NUMERICAL QUESTIONS WITHOUT OPTIONS ARE STILL SEPARATE QUESTIONS. Never merge two standalone numerical problems just because they have no options or no full stop. If you return table_rows/table_html, keep the question text limited to the question stem and the sentence introducing the table; DO NOT also copy the table cells as tab-separated, pipe-separated, or row-by-row plain text into question. Return ONLY valid JSON in exactly this shape: {"questions":[...]}. Extract every logical question in printed order, preserving BOTH English and Hindi/Devanagari when the PDF is bilingual. Never translate, transliterate, paraphrase, shorten or omit text. Preserve punctuation, option labels, numbers, units and line structure. Preserve mathematical notation as valid MathJax LaTeX inside \\( ... \\) or \\[ ... \\]. A visible fraction must be \\frac{...}{...}, a root \\sqrt{...}, powers/subscripts/superscripts must remain structured, Greek letters must remain symbols, and integrals/limits/matrices/vectors/derivatives must remain mathematical notation. Never output words such as SQRT, INT, alpha, raised power or subscript when the PDF visibly contains the corresponding mathematical symbol. Preserve Å/Å, °C, μ, Ω and other units exactly. Do not confuse a literal slash in prose with a fraction. TABLE SEPARATION IS CRITICAL: the question field must contain only the printed question stem and any sentence that introduces the table. NEVER transcribe table rows/cells as plain lines inside question. Put every table cell ONLY in table_rows and table_html. Do not write a row-formatted text version before/after the HTML table. If table_rows is populated, table contents must not be repeated in question. For every real printed table, set visual_type="table" and return table_rows as a 2D array of cell objects {"text":"...","rowspan":1,"colspan":1,"header":false}; preserve exact row/column order, merged cells, headers, blank cells, labels, units and math inside cells. Also return table_html as a complete <table> with <tr>, <th>, <td>, rowspan and colspan only. NEVER reconstruct a table as a graph, scale, matrix, prose sentence or guessed values. If a cell is unreadable, preserve only what is visibly supported; never invent. Keep real mathematical matrices in matrix_latex. Do not invent figures or equations. FIGURE OWNERSHIP BOUNDARIES — ABSOLUTE RULE: First identify the printed start and end boundary of EACH question (question number through its stem, subparts, and options, stopping immediately before the next question number). Treat each question as an isolated region. A figure belongs to a question ONLY if its printed position is inside that question’s stem/options region, or the question text explicitly refers to that specific figure within the same bounded region. Never attach a nearby figure merely because it is visually close. Never attach a figure located below/inside the next numbered question to the previous question. Do not cross question-number boundaries, column boundaries, or answer/solution boundaries. Every visual_regions entry must include owner_question_number matching its question_number and a concise anchor proving where it appears (e.g. “between Q3 stem and Q3 options”). If you cannot confidently assign the figure to one question boundary, return NO visual_regions entry for it and set figure_required=false; flag uncertainty in figure_reference only. A question’s own visual_regions may contain ONLY visuals owned by that same question. Never copy, reuse, clone, or carry the same visual region into adjacent question objects. If Q1 has no figure inside Q1’s boundary, Q1 must have visual_regions=[] and figure_required=false even if Q2 has a figure.
 
 FIGURE HANDLING IS CRITICAL: Never generate or return an image, screenshot, page image, full-page image, crop image, base64 image, or SVG. Do not put the entire PDF page into any image field. Detect visual references only. Set figure_required=true ONLY when the QUESTION STEM itself requires a figure to understand/answer it. A figure appearing only in the SOLUTION/EXPLANATION must NOT make the question figure-required; keep it in explanation/solution description only. If the visual is needed, provide figure_reference such as "Need figure: circuit diagram near the question". Keep all figures optional for saving. Return empty/null image fields. For each question return: question_number, question, options (array), answer, explanation, topic, chapter, subject, subtopic, source, year, difficulty, suggested_flag, suggested_library_path, table_rows, matrix_latex, visual_type, visual_required, figure_required, figure_reference, visual_regions (each with owner_question_number, anchor, visual_type), diagram_description, page, is_continuation, continuation_of_previous. Use a source-aware question-bank hierarchy. MAIN ROOT comes first and must match the exam/book source if identifiable: JEE Mains, JEE Advanced, CBSE, NCERT Exemplar, NCERT, NEET, etc. Then Class/Grade, Chapter, Topic, Subtopic, Concept. Examples: JEE Mains / 12th / Optics / Ray Optics; CBSE / 10th / Electricity; NCERT Exemplar / 12th / Optics / Lens Formula. Never repeat the same folder name twice in one path. Reuse the same chapter/topic folder for all questions with that concept; do not invent alternate spellings or restart an existing topic hierarchy. Existing library paths: ${libraryList}. Maximum questions: ${wanted}. If a question continues across pages, merge the continuation into the same question. Do not create a new question from an option-only or continuation fragment. Return the complete question text and all options. For options, ALWAYS return one separate string per printed option in the options ARRAY, in printed order. NEVER combine A, B, C and D into one array item or put all options in question text. If labels are inline, split at each printed A., B., C., D. boundary before returning JSON. Return option text WITHOUT A./B./C./D. labels because the interface adds labels. If no options exist, return options:[]. SOLVE EACH QUESTION while extracting: set answer to the correct MCQ option LETTER (A/B/C/D...) for MCQs, not the option's raw numeric/text value; for numerical questions set the computed numerical answer with unit when appropriate; for fill-in-the-blank set the missing answer. Include a concise explanation only when reliably solvable; do not guess if information is insufficient. For MCQ, compare all options and choose the mathematically/conceptually correct option, even if the answer is not printed in the question paper. Treat column/page breaks as continuation, not a new question; use the next page only to finish the current question and options.`;
   var body={contents:[{role:"user",parts:[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}]}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}};
@@ -1111,8 +1044,6 @@ function repairObviousMergedQuestions(items){
     if(!q||typeof q!=="object"){if(q)fixed.push(q);return;}
     var stem=String(q.question||q.qText||q.questionText||"");
     var opts=normalizeOptionList(q.options);
-    // Only auto-split when there are exactly eight options AND exactly two consecutive
-    // numbered question starts in the same stem. This avoids splitting legitimate 5-option MCQs.
     var re=/(?:^|\n)\s*(?:Q(?:uestion)?\s*)?(\d{1,3})[.)]\s+/gi,m,marks=[];
     while((m=re.exec(stem))){marks.push({number:Number(m[1]),start:m.index+(m[0].length-m[0].trimStart().length),bodyStart:re.lastIndex});}
     if(opts.length===8&&marks.length===2&&marks[1].number===marks[0].number+1&&marks[1].bodyStart-marks[0].bodyStart>25){
@@ -1123,7 +1054,6 @@ function repairObviousMergedQuestions(items){
           Object.assign({},q,{question_number:String(marks[0].number),question:firstText,options:opts.slice(0,4),answer:"",correct_answer:"",final_answer:"",explanation:"",is_continuation:false,continuation:false}),
           Object.assign({},q,{question_number:String(marks[1].number),question:secondText,options:opts.slice(4,8),answer:"",correct_answer:"",final_answer:"",explanation:"",is_continuation:false,continuation:false})
         );
-        console.warn("[A2Z AI Import] Repaired likely merged questions",marks[0].number,marks[1].number,"by splitting 8 options into two groups of four; answer fields were cleared for review.");
         return;
       }
     }
@@ -1164,9 +1094,6 @@ async function extract(){
   sourcePdfFile=f;
   let key=$("geminiKey").value.trim()||localStorage.getItem(KEY)||"";
   if(!key)return alert("पहले Gemini API key डालें.");
-  // In manual-range mode, subsequent clicks on the same loaded PDF append new
-  // page ranges to the current review list instead of clearing earlier questions.
-  // Automatic 5-page mode starts a fresh full-document extraction.
   var appendManualRange=(($("pageMode").value||"batches")==="range" && qs.length>0 && lastExtractedPdfFile===f);
   $("extract").disabled=true;
   if(!appendManualRange){qs=[];totalDetected=0;uploadedCount=0;}
@@ -1185,8 +1112,6 @@ async function extract(){
     let pdfDoc=await getSourcePdfDoc(),totalPages=pdfDoc.numPages||1;
     let lim=Number($("max").value)||0,all=[],seen={},nativePageImages=new Map();
 
-    // PRIMARY PATH: split the original PDF into small native-PDF batches.
-    // This avoids screenshot OCR for normal extraction and prevents large-PDF math corruption.
     try{
       var mode=$("pageMode").value||"batches";
       var selectedStart=Math.max(1,Math.min(totalPages,Number($("pageStart").value)||1));
@@ -1211,8 +1136,6 @@ async function extract(){
             nq.sourcePage=String(absolutePage);
             nq.qType=inferQuestionType(nq);
             nq.text=questionTextWithoutDuplicatedTable(nq);
-            // Native-PDF extraction returns coordinates but previously never converted
-            // them into images. Render only pages that actually contain visual crops.
             var needsPageImage=(nq.visualRegions||[]).some(function(v){return v&&v.cropBox;})||
               !!nq.figureCropBox||(Array.isArray(list[ni].option_figure_boxes)&&list[ni].option_figure_boxes.some(Boolean));
             if(needsPageImage){
@@ -1246,8 +1169,6 @@ async function extract(){
           }
           totalDetected=qs.length;render();
         }catch(batchErr){
-          console.warn("Native batch failed",rg,batchErr);
-          $("status").textContent="❌ Native batch "+rg[0]+"–"+rg[1]+" failed; stopping to show the real error…";
           throw batchErr;
         }
       }
@@ -1255,348 +1176,12 @@ async function extract(){
       totalDetected=qs.length;render();
       $("status").textContent="✔ Native PDF extraction complete — "+qs.length+" question(s).";
     }catch(nativeBatchErr){
-      console.error("[A2Z AI Import] Native PDF batch failed; stopping instead of silently reprocessing the entire PDF page-by-page:",nativeBatchErr);
-      // Do not reset already extracted questions. A failed batch must be visible to
-      // the teacher; silently rescanning every page can take an hour and hide the
-      // original API/PDF error behind a misleading "no questions" message.
       throw new Error("PDF extraction stopped at the native batch for pages " +
         (typeof rg!=="undefined" && rg ? rg[0]+"–"+rg[1] : "currently selected") +
         ". Earlier questions, if any, remain in review. Actual error: " +
         (nativeBatchErr && nativeBatchErr.message ? nativeBatchErr.message : String(nativeBatchErr)));
     }
-    if(!qs.length)throw new Error("Gemini returned zero questions from the original PDF batches. The app stopped instead of spending another hour rescanning every page. Check the Gemini API error/status and try a smaller page range.");
-    if(qs.length){
-      // Native PDF path succeeded. Skip the slower page-image extraction loop.
-    } else {
-
-    const pageImageCache=new Map();
-    async function pageImage(pageNo){
-      if(pageImageCache.has(pageNo))return pageImageCache.get(pageNo);
-      let page=await pdfDoc.getPage(pageNo),base=page.getViewport({scale:1});
-      let scale=Math.min(1.8,Math.max(1.25,1650/base.width)),vp=page.getViewport({scale});
-      let can=document.createElement("canvas");can.width=Math.ceil(vp.width);can.height=Math.ceil(vp.height);
-      await page.render({canvasContext:can.getContext("2d",{willReadFrequently:true}),viewport:vp}).promise;
-      let data=can.toDataURL("image/jpeg",.9).split(",")[1];can.width=1;can.height=1;
-      pageImageCache.set(pageNo,data);
-      // Keep only current/next page images in memory on thousand-page PDFs.
-      for(const k of pageImageCache.keys())if(k<pageNo-1||k>pageNo+1)pageImageCache.delete(k);
-      return data;
-    }
-    async function makeAutoCrop(pageData,b){
-      if(!pageData||!b)return "";
-      try{
-        var box=b;
-        var x=Math.max(0,Math.min(1,Number(box.x??box.left??0)));
-        var y=Math.max(0,Math.min(1,Number(box.y??box.top??0)));
-        var w=Math.max(0,Math.min(1-x,Number(box.width??box.w??0)));
-        var h=Math.max(0,Math.min(1-y,Number(box.height??box.h??0)));
-        if(w<0.02||h<0.02)return "";
-        var img=new Image();img.src="data:image/jpeg;base64,"+pageData;
-        await new Promise(function(resolve,reject){img.onload=resolve;img.onerror=reject});
-        var padX=Math.round(img.width*.012),padY=Math.round(img.height*.012);
-        var sx=Math.max(0,Math.round(x*img.width)-padX),sy=Math.max(0,Math.round(y*img.height)-padY);
-        var sw=Math.min(img.width-sx,Math.round(w*img.width)+padX*2),sh=Math.min(img.height-sy,Math.round(h*img.height)+padY*2);
-        var can=document.createElement("canvas");can.width=sw;can.height=sh;
-        can.getContext("2d").drawImage(img,sx,sy,sw,sh,0,0,sw,sh);
-        return can.toDataURL("image/jpeg",.9);
-      }catch(e){console.warn("Auto crop failed",e);return ""}
-    }
-    function normalizeExtractedText(s){
-      var text=String(s==null?"":s);try{text=text.normalize("NFC")}catch(_){}
-      // Repair OCR pseudo-math token-by-token. Existing delimiters elsewhere in
-      // the question must not prevent a newly repaired expression being wrapped.
-      function inMathAt(pos){
-        var left=text.slice(0,pos), opens=(left.match(/\\\(|\\\[|\$\$|\$(?!\$)/g)||[]).length;
-        var closes=(left.match(/\\\)|\\\]|\$\$|\$(?!\$)/g)||[]).length;
-        return opens>closes;
-      }
-      text=text.replace(/\bSQRT\s*\(([^()\n]{1,160})\)/gi,function(_,x,offset){
-        var v="\\sqrt{"+x.trim()+"}";return inMathAt(offset)?v:"\\("+v+"\\)";
-      });
-      text=text.replace(/\bFRAC\s*\(([^(),\n]{1,100})\s*,\s*([^()\n]{1,100})\)/gi,function(_,a,b,offset){
-        var v="\\frac{"+a.trim()+"}{"+b.trim()+"}";return inMathAt(offset)?v:"\\("+v+"\\)";
-      });
-      // Preserve already valid TeX. Repair only standalone TeX-command lines,
-      // never bilingual/prose lines.
-      text=text.split("\n").map(function(line){
-        var t=line.trim();
-        if(!t || /\\\(|\\\[|\$\$/.test(t)) return line;
-        if(/^\\(?:frac|sqrt|int|sum|lim|prod|partial|nabla|begin|left|vec|hat|overline|cdot|times|alpha|beta|gamma|theta|omega)\b/.test(t) &&
-           !/[\u0900-\u097F]|[A-Za-z]{3,}\s/.test(t)) return "\\("+t+"\\)";
-        return line;
-      }).join("\n");
-      return text;
-    }
-    // Backward-compatible alias for older regenerate/save call sites.
-    function normalizeExtractText(s){ return normalizeExtractedText(s); }
-    window.normalizeExtractText=normalizeExtractText;
-    window.normalizeExtractedText=normalizeExtractedText;
-    function normalizeBilingualText(s){
-      /* Preserve mathematical source exactly. Unicode NFC is safe for Hindi, but
-         do not rewrite slashes, underscores, carets, fractions or LaTeX commands. */
-      return normalizeExtractedText(String(s==null?"":s));
-    }
-    function normalizeOwnedVisualRegions(q){
-  q=q||{};
-  var no=String(q.question_number||q.no||"").trim();
-  var text=String(q.question||q.text||"");
-  var reference=String(q.figure_reference||q.figureReference||"").trim();
-  var declared=q.figure_required===true||q.figureRequired===true||q.visual_required===true||q.visualRequired===true||!!reference;
-  var textualCue=/(?:figure|diagram|graph|chart|plot|circuit|ray diagram|shown below|shown in|as shown|given figure|following figure|चित्र|आकृति|रेखाचित्र|ग्राफ|परिपथ|दिए गए चित्र|चित्र में)/i.test(text);
-  var list=Array.isArray(q.visual_regions)?q.visual_regions:(Array.isArray(q.visualRegions)?q.visualRegions:[]);
-  if(!declared&&!textualCue&&!list.length)return [];
-  return list.filter(function(v){
-    if(!v)return false;
-    var owner=String(v.owner_question_number||v.ownerQuestionNumber||v.question_number||"").trim();
-    // This visual list is nested inside the current question object. Missing owner
-    // metadata must not discard the figure; reject only an explicit owner mismatch.
-    if(owner&&no){
-      var od=owner.match(/\d+/),nd=no.match(/\d+/);
-      if(od&&nd&&od[0]!==nd[0])return false;
-      if(!(od&&nd)&&owner.toLowerCase()!==no.toLowerCase())return false;
-    }
-    return true;
-  }).map(function(v){
-    return {visualType:visualTypeOf(v.visual_type||v.visualType||v.type),type:visualTypeOf(v.visual_type||v.visualType||v.type),anchor:String(v.anchor||v.insert_after||"").trim(),image:"",cropBox:v.crop_box||v.figure_crop_box||null,pageNumber:Number(v.page_number||v.pageNumber||q.page||q.source_page||0)||0,required:Boolean(v.required||v.visual_required),reconstruction:v.reconstruction||v.visual_reconstruction||null};
-  });
-}
-function extractExamLabelFromQuestionText(text, existingSource, existingYear){
-  var x=String(text||"").replace(/\r\n?/g,"\n"), source=String(existingSource||"").trim(), year=String(existingYear||"").trim();
-  var examRe=/\b(JEE\s*(?:Main|Mains|Advanced)|NEET|CBSE|NCERT(?:\s+Exemplar)?|CUET|UPPSC|HPSC|DSSSB|ICSE|ISC|BSEB|HBSE|Haryana\s+Board)\b/i;
-  var yearRe=/\b(19|20)\d{2}\b/;
-  // Remove only clearly-labelled source captions, not ordinary question prose.
-  x=x.split("\n").filter(function(line){
-    var t=line.trim();
-    if(!t)return true;
-    var candidate=t.replace(/^[\[(【]\s*/,"").replace(/\s*[\])】]$/,"").replace(/^(?:PYQ|Previous\s+Year\s+Question|Asked\s+in|Source)\s*[:\-–—]?\s*/i,"").trim();
-    var em=candidate.match(examRe), yr=candidate.match(yearRe);
-    var captionLike=/^[\[(【]/.test(t)||/^(?:PYQ|Previous\s+Year\s+Question|Asked\s+in|Source)\b/i.test(t);
-    if(em && (yr||captionLike) && candidate.length<90){
-      if(!source)source=em[1].replace(/\s+/g," ").trim();
-      if(!year&&yr)year=yr[0];
-      return false;
-    }
-    return true;
-  }).join("\n");
-  // Also handle a short source tag printed immediately before the question statement.
-  var lead=/^\s*[\[(【]\s*((?:JEE\s*(?:Main|Mains|Advanced)|NEET|CBSE|NCERT(?:\s+Exemplar)?|CUET|UPPSC|HPSC|DSSSB|ICSE|ISC|BSEB|HBSE|Haryana\s+Board)[^\])】\n]{0,45})[\])】]\s*/i;
-  var lm=x.match(lead);
-  if(lm){
-    var em=lm[1].match(examRe),yr=lm[1].match(yearRe);
-    if(em&&!source)source=em[1].replace(/\s+/g," ").trim();
-    if(yr&&!year)year=yr[0];
-    x=x.slice(lm[0].length);
-  }
-  return {text:x.trim(),source:source,year:year};
-}
-function normalizePageQuestion(q,i,pageNo){
-      var normalized={
-        no:q.question_number||"Q"+(i+1),text:normalizeBilingualText(String(q.question||"").trim()),
-        options:normalizeOptionList(q.options).map(function(o){return normalizeBilingualText(String(o||""));}),
-        answer:String(q.answer??q.correct_answer??q.correctAnswer??q.answer_key??q.final_answer??q.finalAnswer??"").trim(),topic:String(q.topic||"").trim(),chapter:String(q.chapter||"").trim(),
-        source:String(q.source||"").trim(),sourceExam:String(q.source_exam||q.sourceExam||q.source||"").trim(),year:String(q.year||"").trim(),sourceYear:String(q.year||"").trim(),keepSourceLabel:true,isPYQ:!!(q.source||q.source_exam||q.year),difficulty:String(q.difficulty||"Medium"),qType:String(q.question_type||q.qType||"").trim().toLowerCase(),answerRegion:String(q.answer_region||q.answerRegion||"").trim(),
-        flagChoice:String(q.suggested_flag||"").trim().toLowerCase()||suggestedFlagFromDifficulty(q.difficulty),flags:{},
-        libraryMode:($("defaultLibraryMode").value||"private"),folderPath:"",explanation:String(q.explanation||"").trim(),
-        diagram:String(q.diagram_description||"").trim(),visualType:(Array.isArray(q.table_rows)&&q.table_rows.length?"table":(String(q.matrix_latex||"").trim()?"matrix":visualTypeOf(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||""))),visualRequired:Boolean(q.visual_required||q.visualRequired),figureRequired:((!Array.isArray(q.table_rows)||!q.table_rows.length)&&!String(q.matrix_latex||"").trim()&&q.figure_required===true&&isFigureVisual(q.visual_type||q.visualType||q.diagram_type||q.visual_kind||"")),figureReference:String(q.figure_reference||"").trim(),figureImage:String(q.figure_image||"").trim(),page:String(q.page||pageNo).trim(),sourcePage:String(pageNo).trim(),book:String(q.book||"").trim(),
-        subject:String(q.subject||"").trim(),subtopic:String(q.subtopic||"").trim(),section:String(q.section||"").trim(),
-        suggestedPath:String(q.suggested_library_path||"").trim()||semanticSuggestedPath({subject:String(q.subject||"").trim(),chapter:String(q.chapter||"").trim(),topic:String(q.topic||"").trim()}),
-        tableRows:normalizeTableRows(q.table_rows),
-        matrixLatex:String(q.matrix_latex||"").trim(),cropImage:"",cropBox:q.crop_box||q.bounding_box||null,figureCropBox:q.figure_crop_box||q.figure_bounding_box||null,
-        contentBlocks:Array.isArray(q.content_blocks)?q.content_blocks.map(function(b){return {type:String(b.type||b.visualType||"diagram"),visualType:visualTypeOf(b.visualType||b.type),anchor:String(b.anchor||b.insert_after||"").trim(),image:String(b.image||"").trim(),cropBox:b.crop_box||b.figure_crop_box||null,required:Boolean(b.required),reconstruction:b.reconstruction||b.visual_reconstruction||null};}):[],
-        optionImages:Array.isArray(q.option_images)?q.option_images.map(function(x){return String(x||"")}):[],
-        optionFigureBoxes:Array.isArray(q.option_figure_boxes)?q.option_figure_boxes:null,
-        optionFigureRequired:Array.isArray(q.option_figure_required)?q.option_figure_required.map(Boolean):[],
-        visualRegions:normalizeOwnedVisualRegions(q)
-      };
-      if(normalized.visualRegions.length){
-        var firstFigureRegion=normalized.visualRegions.find(function(v){return isFigureVisual(v.visualType||v.type);});
-        if(firstFigureRegion){normalized.visualType=firstFigureRegion.visualType||firstFigureRegion.type||normalized.visualType||"diagram";if(q.figure_required===true||q.figureRequired===true||firstFigureRegion.required)normalized.figureRequired=true;}
-      }
-      if(!normalized.qType)normalized.qType=inferQuestionType(normalized);
-      return normalized;
-    }
-    function cleanContinuationText(s){
-      return String(s||"").replace(/\r\n?/g,"\n").replace(/[ \t]+/g," ").trim();
-    }
-    function isOptionLikeFragment(s){
-      let x=cleanContinuationText(s);
-      if(!x)return false;
-      return /^(?:[\(\[]?[A-Ha-h]\s*[\)\].:-]|(?:option|विकल्प)\s*[A-Ha-h0-9])/i.test(x) || /(?:^|\n)\s*(?:[\(\[]?[A-Ha-h]\s*[\)\].:-])/.test(x);
-    }
-    function looksLikeContinuationFragment(q,prev){
-      if(!q||!prev)return false;
-      if(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true||q.continuation_of_previous===true)return true;
-      let qt=cleanContinuationText(q.question), pt=cleanContinuationText(prev.text);
-      let qn=String(q.question_number||q.no||"").trim(), pn=String(prev.no||"").trim();
-      if(qn && pn && qn.toLowerCase()===pn.toLowerCase())return true;
-      if(!qn && isOptionLikeFragment(qt))return true;
-      if(!qn && Array.isArray(q.options) && q.options.length && (!prev.options||!prev.options.length))return true;
-      if(!qn && qt && /^(?:and|or|but|because|therefore|hence|where|when|which|that|then|thus|given|if|so|following|from|using|for|also|also,|तथा|और|या|जहाँ|जब|जो|निम्न|दिया गया|इसके|अतः|इसलिए)\b/i.test(qt))return true;
-      // Do not merge unnumbered numerical questions merely because the previous stem has no terminal punctuation.
-      // Cross-page merges require an explicit continuation flag, same printed number, or clear options-only fragment.
-      return false;
-    }
-    async function mergeContinuationInto(existing,q,pageNo,pageImageData){
-      if(!existing||!q)return;
-      let qt=cleanContinuationText(q.question);
-      if(qt){
-        let et=cleanContinuationText(existing.text);
-        if(et.toLowerCase()!==qt.toLowerCase() && !et.toLowerCase().endsWith(qt.toLowerCase())) existing.text=(existing.text?existing.text+"\n":"")+String(q.question).trim();
-      }
-      existing.sourcePage=String(pageNo||existing.sourcePage||existing.page||"");
-      if(Array.isArray(q.options)&&q.options.length){
-        existing.options=existing.options||[];
-        q.options.forEach(function(x){var v=normalizeBilingualText(String(x));if(v&&!existing.options.some(function(o){return cleanContinuationText(o).toLowerCase()===cleanContinuationText(v).toLowerCase()}))existing.options.push(v);});
-      }
-      if(q.answer!==undefined&&String(q.answer||"").trim()&&!String(existing.answer||"").trim())existing.answer=String(q.answer).trim();
-      if(q.explanation!==undefined&&String(q.explanation||"").trim()&&!String(existing.explanation||"").trim())existing.explanation=String(q.explanation).trim();
-      if(q.table_rows&&Array.isArray(q.table_rows)&&q.table_rows.length){existing.tableRows=existing.tableRows||[];existing.tableRows=existing.tableRows.concat(normalizeTableRows(q.table_rows));existing.visualType="table";}
-      if(String(q.matrix_latex||"").trim()&&!String(existing.matrixLatex||"").trim()){existing.matrixLatex=String(q.matrix_latex).trim();existing.visualType="matrix";}
-      if(q.diagram&&String(q.diagram).trim()&&!existing.diagram)existing.diagram=String(q.diagram).trim();
-      if(q.figure_reference&&String(q.figure_reference).trim()&&!existing.figureReference)existing.figureReference=String(q.figure_reference).trim();
-      // IMPORTANT: continuation fragments may contribute text/options only. Never merge visual regions,
-      // option figures, crop boxes, or figure images from a continuation fragment automatically;
-      // that is how a neighboring question's figure can leak into this question.
-      // Figure ownership must be confirmed inside the question's own printed boundary during review.
-    }
-    function reconcilePageOrder(list){
-      let out=[];
-      (Array.isArray(list)?list:[]).forEach(function(q){
-        q=q||{};
-        let prev=out.length?out[out.length-1]:null;
-        if(prev&&looksLikeContinuationFragment(q,prev)){
-          q.continuation=true;q.continuation_of_previous=true;
-          prev._mergedFragments=prev._mergedFragments||[];prev._mergedFragments.push(q);
-          if(Array.isArray(q.options)&&q.options.length){prev.options=prev.options||[];q.options.forEach(function(x){var v=normalizeBilingualText(String(x));if(v&&!prev.options.some(function(o){return cleanContinuationText(o).toLowerCase()===cleanContinuationText(v).toLowerCase()}))prev.options.push(v);});}
-          if(q.question)prev.question=String(prev.question||"")+"\n"+String(q.question);
-        }else out.push(q);
-      });
-      return out;
-    }
-    async function addPageQuestions(list,pageNo,pageImageData){
-      list=reconcilePageOrder(list);
-      let added=0;
-      for(let idx=0;idx<(Array.isArray(list)?list.length:0);idx++){
-        let q=list[idx]||{};
-        let n=String(q.question_number||"").trim().toLowerCase();
-        let t=String(q.question||"").replace(/\s+/g," ").trim().toLowerCase();
-        let existing=n?all.find(function(x){return String(x.no||"").trim().toLowerCase()===n}):null;
-        if(existing&&(q.is_continuation===true||q.continuation===true||q.continues_from_previous===true||q.continuation_of_previous===true)){
-          await mergeContinuationInto(existing,q,pageNo,pageImageData);
-          continue;
-        }
-        if(!n && all.length){
-          let previous=all[all.length-1];
-          if(looksLikeContinuationFragment(q,previous)){
-            await mergeContinuationInto(previous,q,pageNo,pageImageData);
-            continue;
-          }
-        }
-        let k=n?"n:"+n:"t:"+t.slice(0,180);
-        if(!t||seen[k])continue;
-        seen[k]=1;
-        let nq=normalizePageQuestion(q,all.length,pageNo);
-        nq.suggestedPath=sourceAwareSuggestedPath(nq);
-        var recoveredOptions=recoverOptionsFromStem(nq.text,nq.options);nq.text=recoveredOptions.text;nq.options=recoveredOptions.options;
-        nq.qType=inferQuestionType(nq);
-        nq.answer=normaliseMCQAnswer(nq,nq.answer||nq.finalAnswer||"");
-        nq.finalAnswer=nq.answer||nq.finalAnswer||"";
-        nq.keepOptions=!$("defaultKeepOptions")||$("defaultKeepOptions").checked;
-        // Preserve the OCR text, but create real image crops from the original PDF page
-        // for every question-owned visual and every option visual. Earlier code erased all
-        // image fields and referenced a checkbox that does not exist in this HTML.
-        nq.cropImage="";
-        nq.figureImage="";
-        nq.optionImages=Array.isArray(nq.optionImages)?nq.optionImages:[];
-        nq.text=questionTextWithoutDuplicatedTable(nq);
-        nq.sourcePage=String(pageNo);
-        var regions=Array.isArray(nq.visualRegions)?nq.visualRegions:[];
-        for(let vi=0;vi<regions.length;vi++){
-          let vr=regions[vi]||{};
-          vr.visualType=visualTypeOf(vr.visualType||vr.type);vr.type=vr.visualType;
-          vr.image="";
-          var vbox=vr.cropBox||vr.crop_box||null;
-          if(vbox){
-            var vimg=await makeAutoCrop(pageImageData,vbox);
-            if(vimg){vr.image=vimg;vr.cropPending=false;vr.autoCropped=true;}
-          }
-          regions[vi]=vr;
-        }
-        nq.visualRegions=regions;
-        // Legacy single-figure crop metadata is also honoured.
-        if(nq.figureCropBox&&!nq.visualRegions.some(function(v){return v&&v.image;})){
-          var legacyCrop=await makeAutoCrop(pageImageData,nq.figureCropBox);
-          if(legacyCrop){
-            nq.figureImage=legacyCrop;
-            if(!nq.visualRegions.length)nq.visualRegions.push({visualType:visualTypeOf(nq.visualType||"diagram"),type:visualTypeOf(nq.visualType||"diagram"),anchor:nq.figureReference||"Original PDF figure",image:legacyCrop,required:false,autoCropped:true});
-            else nq.visualRegions[0].image=legacyCrop;
-          }
-        }
-        // Option image boxes are aligned with the options array.
-        if(Array.isArray(q.option_figure_boxes)&&q.option_figure_boxes.length){
-          nq.optionFigureBoxes=q.option_figure_boxes;nq.optionFigureRequired=nq.optionFigureRequired||[];
-          for(let oi=0;oi<q.option_figure_boxes.length;oi++){
-            var ob=q.option_figure_boxes[oi];
-            if(ob){
-              var oiCrop=await makeAutoCrop(pageImageData,ob);
-              if(oiCrop){nq.optionImages[oi]=oiCrop;nq.optionFigureRequired[oi]=true;}
-            }
-          }
-        }
-        if(nq.visualRegions.length&&nq.visualRegions[0].image&&!nq.figureImage)nq.figureImage=nq.visualRegions[0].image;
-        // Keep normalized question crop coordinates in review state so targeted
-        // re-extraction can zoom into the exact question instead of rereading the whole page.
-        delete nq.figureCropBox;
-        applyFlagChoice(nq,nq.flagChoice);
-        all.push(nq);qs.push(nq);added++;
-      }
-      totalDetected=all.length;render();return added;
-    }
-
-    for(let pageNo=1;pageNo<=totalPages;pageNo++){
-      if(lim&&all.length>=lim)break;
-      $("status").textContent="🖼️ Reading page "+pageNo+"/"+totalPages+"…";
-      let currentImage=await pageImage(pageNo);
-      let nextImage=pageNo<totalPages?await pageImage(pageNo+1):"";
-      let prompt=`You are extracting an exam paper one page at a time. CURRENT PAGE = ${pageNo} of ${totalPages}. Read the CURRENT PAGE as a visual document, not as a single linear text stream. If the page has two or more columns, determine the natural reading order from the printed layout. A column boundary is NEVER a question boundary. A question may start near the bottom of one column and continue at the top of the next column, and its options may begin in the next column. A question may also continue from the bottom of the CURRENT PAGE to the NEXT PAGE. Extract EVERY logical question in chronological reading order, and attach all continuation text, subparts, options, tables, matrices and visuals to the same question. Extract EVERY complete question whose QUESTION TEXT STARTS on the CURRENT PAGE. You may inspect the NEXT PAGE image only to complete a question that starts on the current page. Do not extract a question that starts on the next page. If a question continues onto the next page, include its complete continuation, all options, subparts and figure references. If the next page contains the options for a question started on the current page, those options MUST be attached to that question in the options array; never return only the statement. If a question number is visually above/before the current page but its question text starts here, treat it as starting on the current page. For every question, also return reading_order as an integer in the visual reading sequence on this page, fragment_type as "question_start", "continuation", or "options_only" when applicable, and continuation_of_previous as true when the fragment belongs to the immediately preceding logical question. If a fragment contains only options or the remainder of a sentence, NEVER promote it to a new question number. Return ONLY valid JSON with a questions array. Never summarize, translate, transliterate, shorten, paraphrase or omit anything. ENGLISH + HINDI/DEVANAGARI FIDELITY IS MANDATORY. Read Hindi directly from the page image as Devanagari, not through an English transliteration layer. Preserve every Hindi character, matra, anusvara (ं), chandrabindu (ँ), visarga (ः), nukta (़), halant (्), punctuation, danda (।), double danda (॥), digits, quotation marks and option labels exactly as printed. Never convert Hindi to Roman/Latin text. Never translate Hindi into English, and never translate English into Hindi. If the same question is printed bilingually, keep BOTH language versions in the same logical question in their original order. Do not drop the Hindi line because an English line with similar meaning exists. Do not invent Hindi wording from context. If a Hindi glyph is unclear, inspect the page image carefully and choose the visible glyph; do not substitute a guessed English word. Preserve every English and Hindi/Devanagari word exactly as printed, punctuation, brackets, option labels, bilingual wording, numbers and units. IMPORTANT LINE FORMAT: keep English and Hindi on separate lines whenever they are separate in the PDF. Never merge the English line with its Hindi line. Preserve intentional line breaks between statement, Hindi translation, options, assertions, subparts and equations. A slash / is literal prose unless the PDF visibly shows a mathematical fraction. Preserve prose separately from mathematics. BILINGUAL ALIGNMENT RULE: A Hindi translation immediately below/above an English line belongs to the SAME question, assertion, option or subpart unless a new printed question number clearly starts. A Hindi line is never a new question merely because it starts a new visual line or column. If English and Hindi portions are separated by a column/page break, join them chronologically into the same logical question. Keep bilingual text as text; do not encode Devanagari inside LaTeX. CRITICAL MATH RULE: preserve mathematical meaning exactly and use valid LaTeX inside MathJax delimiters \\\\( ... \\\\) or \\\\[ ... \\\\]. Preserve °C, Å and Å exactly; NEVER turn Å into AA, /A or double-A. Preserve μ, Ω, eV, nm, K and other units. Preserve integrals, contour integrals, limits, derivatives d/dx, partial derivatives, nabla, summation, products, Greek symbols, vectors, fractions, roots, powers, subscripts, superscripts, determinants and actual mathematical matrices. Use proper LaTeX such as \\\\frac, \\\\sqrt, \\\\int, \\\\sum, \\\\begin{pmatrix}...\\\\end{pmatrix}; never replace a matrix with prose or a table with a matrix. Do not output raw math commands outside MathJax delimiters. Do not invent equations. Real tables must use table_rows; matrix_latex is only for actual mathematical matrices. Do not split an expression across lines. Preserve all question/options/subparts as one complete block. ALWAYS provide suggested_library_path for every question. IMPORTANT LIBRARY HIERARCHY: go as deep as the evidence supports. Prefer a complete path such as "12th / Optics / Plane Mirror / Laws of Reflection" when the question is specifically about laws of reflection; similarly use "12th / Optics / Spherical Mirror / Mirror Formula", "12th / Optics / Lenses / Lens Maker's Formula", "12th / Optics / Diffraction / Single Slit", "12th / Optics / Diffraction Grating / Grating Equation", etc. The hierarchy should be Class/Grade → Chapter → Topic → Subtopic → Specific Concept/Law/Formula where reliably identifiable. Do not stop at the chapter or broad topic when the question clearly supports a deeper classification. Do not invent a lower level when evidence is insufficient. Existing Library paths: "+libraryList+". ANSWER AND OPTION DETECTION IS MANDATORY FOR EVERY QUESTION: If the question has selectable choices, set question_type="mcq" (or "mcq_multi" only when multiple answers are explicitly required). Return options as an array with EXACTLY ONE separate string per printed option in reading order; never merge A/B/C/D into one string, and remove only the printed option labels from each option string. Carefully read any printed answer key, answer column, or solution and copy its correct answer into answer. For MCQs, answer MUST be only the correct option LETTER (A, B, C, D, etc.), not the option text. If no answer is printed anywhere in the supplied PDF pages, solve the question yourself and set answer to the correct option letter. For numerical/fill-blank questions, extract the printed answer if present; otherwise calculate the answer and include its unit when appropriate. Do not leave answer empty when the question and its options contain enough information to solve it. Add a concise explanation when you can solve reliably; never invent an answer when the question is incomplete or unreadable. The question preview must not ask the teacher to choose the answer manually. Fields: question_number,question,options,answer,topic,chapter,source,year,difficulty,suggested_flag,explanation,diagram_description,figure_required,figure_reference,page,book,subject,subtopic,section,level,class,grade,suggested_library_path,table_rows,matrix_latex,visual_type,visual_required,visual_regions,is_continuation,continuation,continuation_of_previous,reading_order,fragment_type,crop_box,figure_crop_box,content_blocks,option_figure_boxes,option_figure_required. For every question starting on CURRENT PAGE, return crop_box as normalized JSON {x,y,width,height} around the complete visible question content on CURRENT PAGE, including its options when present. ALSO return figure_crop_box as normalized JSON {x,y,width,height} around the actual visible figure/diagram/graph/circuit/image ONLY (not the surrounding question text) whenever a visual exists. If no visual exists, set figure_crop_box to null. The figure_crop_box must be based on the CURRENT PAGE image and should include the complete visual with a small margin. If the question has MULTIPLE visuals, return ALL of them in content_blocks as ordered figure blocks. Each content block must have type=figure, an anchor containing the exact nearby printed phrase such as "as shown in figure", "for the following graph", "the figure below", etc., and crop_box for that individual visual. If an option contains its own graph/diagram/image, DO NOT merge it into the question figure: put its normalized crop in option_figure_boxes at the same index as the option and set option_figure_required[index]=true. If no option visual exists, return null/false values. If the visual is partially on the next page, use the visible portion on the current page and set figure_required=true. VISUAL DETECTION IS MANDATORY: inspect the CURRENT PAGE image, not just the OCR text. VISUAL CLASSIFICATION RULES: classify each non-text element separately. TABLE TEXT MUST NOT BE DUPLICATED: keep only the question stem in question; put the table cells only in table_rows and reconstruction HTML. Never paste rows as plain text in the question field before the rendered table. A real table MUST be returned as table_rows and visual_type="table"; DO NOT duplicate the same table as plain text lines in question text; NEVER classify an ordinary table as a figure and NEVER set figure_required=true for a table. A mathematical matrix/determinant MUST be returned as matrix_latex and visual_type="matrix"; NEVER classify it as a figure. A graph/plot/chart/curve/coordinate diagram should use visual_type="graph" and a visual_regions/content_blocks entry with its own crop_box. A function/equation/formula visual should use visual_type="function" when it is presented as a distinct visual element. Circuits, ray diagrams, geometry drawings, schematics, labelled drawings, photographs and other answer-critical pictures use visual_type="diagram" or "image" and may require a crop. For every visual element that is actually visible, return a visual_regions entry with {visual_type,type,anchor,crop_box,required}. If a table is visually rendered in the PDF but its cells are readable, extract BOTH table_rows and its crop_box only as a visual region with visual_type="table"; the crop is for fidelity, not a figure requirement. If a matrix is readable, extract matrix_latex; its crop is optional. Option-specific graphs/images must stay in option_figure_boxes and option_figure_required. Set figure_required=true ONLY for diagram/graph/image visuals that are necessary to answer the question, NEVER for table or matrix. If a visual crop is uncertain, return your best approximate crop so the teacher can manually adjust it. Set figure_reference to the exact reference phrase. This box is used to automatically show the original PDF image beside the OCR text.
-
-QUESTION/FIGURE BOUNDARY LOCK: For each numbered question, establish a hard region from its printed number through its stem, subparts and answer options, ending immediately before the next printed question number in reading order. A figure may be assigned only to the question whose region physically contains it or explicitly refers to it within that same region. Do not use proximity alone. Never assign a figure under Q2 to Q1, even if Q1 mentions “figure” and Q2 has a diagram. Each visual_regions item MUST include owner_question_number equal to the owning question_number and an anchor describing its position within that question. If the ownership cannot be proven, return no visual region and set figure_required=false. Never duplicate one visual across two question objects. Figures in answer keys, worked solutions or explanations are not question figures. Treat each column as a separate reading stream and obey the printed question number boundaries, not visual proximity.
-FIGURE RULE (STRICT SEPARATION): Do not generate any image, SVG, screenshot or page image. Inspect the QUESTION STEM AND OPTIONS separately from any worked solution/answer/explanation. Create visual_regions/content_blocks/figure_required ONLY for a visual physically belonging to the question stem or its answer options and needed to interpret that question. If a graph, diagram, circuit, picture, or figure appears ONLY in the solution/worked answer/explanation, do NOT include it in question visual_regions, do NOT create a question figure slot, and do NOT set figure_required. If uncertain whether a visual belongs to the question or solution, do not attach it automatically; leave it for teacher review and mention the uncertainty in figure_reference/diagram_description. Never make figure insertion mandatory. The teacher must always be able to save without a figure. Figure crop/generation is optional and done by the teacher after extraction.\nPOST-EXTRACTION FIGURE WORKFLOW: During PDF transcription, do NOT return SVG code, base64 images, screenshots, or image markup inside the JSON. For every diagram/graph/picture that physically belongs to the QUESTION STEM or OPTIONS and is needed to answer it, return accurate visual_regions metadata with owner_question_number, anchor, visual_type, and a concise reconstruction/diagram description; set figure_required=true and visual_type to diagram, graph, or image. The application will make a separate AI request after extraction to generate a clean white-background SVG figure for these questions. Do not create figure metadata for visuals appearing only in a solution/answer key. Tables must be represented as table_rows/table_html, matrices as matrix_latex, and neither should be converted into a generated figure. For a photo or source-specific figure that cannot be inferred faithfully, set a clear figure_reference so the teacher can crop the original PDF. Keep all figure assets optional; never invent labels or numerical values. suggested_flag must be exactly easy, hard, important, nonimportant, or normal; use normal when uncertain.`;
-      let parts=[{text:prompt},{inlineData:{mimeType:"image/jpeg",data:currentImage}}];
-      if(nextImage)parts.push({text:"NEXT PAGE (continuation reference only; do not extract new question starts from this page):"},{inlineData:{mimeType:"image/jpeg",data:nextImage}});
-      let body={contents:[{role:"user",parts:parts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:32768}};
-      let list=[];
-      try{
-        let d=await geminiRequest(key,body),raw=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
-        raw=raw.trim();let fence=String.fromCharCode(96).repeat(3);
-        if(raw.startsWith(fence)){raw=raw.slice(fence.length).replace(/^json/i,"").trim();if(raw.endsWith(fence))raw=raw.slice(0,-fence.length).trim()}
-        let parsed=parseGeminiJson(raw);list=Array.isArray(parsed.questions)?parsed.questions:[];
-      }catch(err){
-        console.warn("Page "+pageNo+" extraction failed:",err);
-        $("status").textContent="⚠️ Page "+pageNo+" failed; retrying…";
-        try{
-          let retryPrompt="Extract only the complete exam questions whose QUESTION TEXT STARTS on CURRENT PAGE "+pageNo+". NEXT PAGE is supplied only for continuation. Read Hindi/Devanagari directly from the image. Preserve every Hindi character and matra exactly; NEVER transliterate, translate, omit, or replace Hindi with English. Keep bilingual English+Hindi lines in the same logical question/option. A column/page break is not a question boundary, but each new numbered problem is always a new question, including numerical questions without options. Never merge adjacent numerical questions because punctuation is absent. If a table is represented in table_rows/table_html, do not repeat its cell values as plain-text rows in the question field. Preserve every English word exactly and preserve mathematics as valid MathJax LaTeX. Preserve Å/Å exactly, °C, μ, Ω, integrals, limits, derivatives, partial derivatives, summations, matrices, determinants, vectors, fractions, roots, powers, subscripts and superscripts. Do not translate or summarize. Return ONLY JSON {questions:[...]}.";
-          let retryParts=[{text:retryPrompt},{inlineData:{mimeType:"image/jpeg",data:currentImage}}];
-          if(nextImage)retryParts.push({inlineData:{mimeType:"image/jpeg",data:nextImage}});
-          let rd=await geminiRequest(key,{contents:[{role:"user",parts:retryParts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:32768}});
-          let rr=rd?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
-          let rp=parseGeminiJson(rr.trim());list=Array.isArray(rp.questions)?rp.questions:[];
-        }catch(re){console.warn("Page retry failed:",re)}
-      }
-      let added=await addPageQuestions(list,pageNo,currentImage);
-      if(added){
-        $("status").textContent="✔ Page "+pageNo+"/"+totalPages+" done — "+added+" new question(s). Processing next page…";
-      }else{
-        $("status").textContent="🔎 Page "+pageNo+"/"+totalPages+" scanned — no new question start found. Processing next page…";
-      }
-      await new Promise(r=>setTimeout(r,0));
-    }
-
-    } // end native-PDF / page-image fallback selection
-
-    if(lim&&qs.length>lim){qs=qs.slice(0,lim);all=all.slice(0,lim);totalDetected=qs.length;render();}
     if(!qs.length)throw Error("No questions found after extraction");
-    // Final chronological continuation reconciliation. Only clear continuation/option fragments are merged.
     for(let ri=1;ri<qs.length;ri++){
       let cur=qs[ri],prev=qs[ri-1];
       if(!cur||!prev)continue;
@@ -1611,15 +1196,7 @@ FIGURE RULE (STRICT SEPARATION): Do not generate any image, SVG, screenshot or p
     qs.forEach(function(q,i){cleanQuestionOptions(q);q._chronologicalIndex=i+1;var recovered=recoverOptionsFromStem(q.text,q.options);q.text=recovered.text;q.options=recovered.options;q.qType=inferQuestionType(q);q.answer=normaliseMCQAnswer(q,q.answer||q.finalAnswer||"");q.finalAnswer=q.answer||q.finalAnswer||"";});
     totalDetected=qs.length;render();
     $("generateSolutions").disabled=false;
-    // Extraction is complete. Keep this stage fast: solution generation and
-    // figure generation remain available as explicit per-question actions.
-    var figureRun={generated:0,failed:0};
-    var pendingAuto=[];
-    var autoFailed=0;
-    totalDetected=qs.length;render();
-    $("status").textContent="✔ Extraction complete. "+qs.length+" question(s) ready. Answers found in the PDF were retained. Use the per-question actions only when you want AI solutions or figures.";
   }catch(e){
-    console.error("[A2Z AI Import] Extraction failed:",e);
     $("status").textContent="❌ "+(e&&e.message?e.message:String(e));
     alert("AI extraction failed: "+(e&&e.message?e.message:String(e)));
   }finally{$("extract").disabled=false}
@@ -1640,10 +1217,6 @@ async function reextractSingleQuestion(i){
     pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
     var pdf=await getSourcePdfDoc();
     var pageNo=Math.max(1,Math.min(pdf.numPages,Number(q.sourcePage||q.page)||1));
-    // Re-extract from the source PDF itself. Do not rasterize the page to JPEG:
-    // that image-OCR path was degrading fractions, roots, powers and Greek symbols.
-    // Include the following page only when available so a question crossing a page
-    // boundary can be read, while the prompt still restricts output to this Q number.
     var endPage=Math.min(pdf.numPages,pageNo+1);
     var sourceChunk=await splitPdfRangeBase64(pageNo,endPage);
     var nearby=qs.slice(Math.max(0,i-1),Math.min(qs.length,i+2)).filter(function(n){return n!==q;}).map(function(n){return "Q"+n.no+": "+String(n.text||"").slice(0,220)}).join("\n");
@@ -1671,7 +1244,6 @@ STRICT RULES:
     var freshText=String(fresh.question||fresh.text||"").trim(),oldText=String(q.text||"").trim();
     if(freshText.length<Math.min(18,Math.max(8,oldText.length*.18)))throw Error("AI returned an unusually short fragment, not a complete question. Original question was kept unchanged.");
     if(q.options&&q.options.length>=2&&Array.isArray(fresh.options)&&fresh.options.length===0)throw Error("AI omitted all existing options. Original question was kept unchanged.");
-    // Build a separate candidate. Never overwrite the existing question automatically.
     var original=JSON.parse(JSON.stringify(q));
     var candidate=JSON.parse(JSON.stringify(q));
     candidate.text=normalizeAngstromText(normalizeExtractedText(freshText));
@@ -1688,7 +1260,6 @@ STRICT RULES:
     if(fresh.diagram_description)candidate.diagram=String(fresh.diagram_description);
     if(fresh.figure_reference)candidate.figureReference=String(fresh.figure_reference);
     if(fresh.visual_type)candidate.visualType=visualTypeOf(fresh.visual_type);
-    // Keep existing cropped/generated assets and question metadata unless explicitly reviewed.
     cleanQuestionOptions(candidate);candidate.qType=inferQuestionType(candidate);delete candidate._refreshing;
     qs[i]=original;delete qs[i]._refreshing;
     $("status").textContent="✔ Original-PDF re-extraction ready for Q"+q.no+". Review both versions; nothing has been changed yet.";
@@ -1733,38 +1304,6 @@ async function generateAIQuestionFigure(i){
     render();setTimeout(typesetMath,80);$("status").textContent="✔ AI figure candidate ready for Q"+q.no+". It will NOT be saved until you press Keep Generated Figure.";showSaveToast("🧪 Figure ready for review — keep or discard it.");
   }catch(e){$("status").textContent="❌ Figure generation failed: "+(e.message||e);showSaveToast("❌ Figure generation failed.",true);throw e;}
   finally{q._generatingFigure=false;}
-}
-
-async function autoGenerateDetectedFigures(){
-  var enabled=$("autoGenerateFigures");
-  if(enabled&&!enabled.checked)return {generated:0,failed:0,skipped:true};
-  var targets=qs.map(function(q,i){return {q:q,i:i};}).filter(function(x){
-    var q=x.q||{},first=(q.visualRegions||[]).find(function(v){return v&&isFigureVisual(v.visualType||v.type);}),type=String(q.visualType||q.figureType||(first&&(first.visualType||first.type))||"diagram");
-    return (q.figureRequired===true||q.visualRequired===true||!!(first&&first.required)) && isFigureVisual(type) && !/^(table|matrix)$/i.test(type) &&
-      !String(q.figureImage||"").trim() && !String(q._generatedFigureCandidate||"").trim() && !(first&&String(first.image||"").trim());
-  });
-  if(!targets.length)return {generated:0,failed:0};
-  var cursor=0,generated=0,failed=0;
-  $("status").textContent="🎨 Generating AI diagrams for "+targets.length+" question(s)…";
-  async function worker(){
-    while(cursor<targets.length){
-      var item=targets[cursor++],q=item.q;
-      try{
-        await generateAIQuestionFigure(item.i);
-        var uri=String(q._generatedFigureCandidate||"");
-        if(!uri)throw Error("No generated figure returned");
-        q.figureImage=uri;q.cropImage=uri;q.cropImageKept=true;q.contentMode="both";q._generatedFigureCandidate="";q._generatedFigurePending=false;q.figureImageGeneratedByAI=true;
-        if(Array.isArray(q.visualRegions)&&q.visualRegions.length){
-          var slot=q.visualRegions.find(function(v){return v&&!String(v.image||"").trim();});
-          if(slot){slot.image=uri;slot.aiGeneratedPending=false;slot.generatedByAI=true;}
-        }
-        generated++;
-      }catch(e){failed++;console.warn("[A2Z AI Import] Auto figure generation failed for Q"+q.no,e);}
-    }
-  }
-  await Promise.all([worker(),worker()]);
-  render();
-  return {generated:generated,failed:failed};
 }
 async function generateAISolutionForQuestion(i,options){
   options=options||{};var silent=!!options.silent;
@@ -1815,13 +1354,12 @@ Solve exactly this question without changing its meaning.`;
     var schema={type:"OBJECT",properties:{answer:{type:"STRING"},explanation:{type:"STRING"},final_answer:{type:"STRING"}},required:["answer","explanation","final_answer"]};
     var d=await geminiRequest(key,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:0,responseMimeType:"application/json",responseSchema:schema,maxOutputTokens:8192}});
     q.solutionProgress=65;render();
-    var raw=d&&d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts?d.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):"";
+    var raw=d&&d.candidates&&d.candidates[0]&&d.candidates[0].content&&d.candidates[0].content.parts?d.candidates[0].content.parts.map(function(p){return p.text||""}).join(""):""
     var out=normalizeSolutionJson(parseGeminiJson(raw));if(!out.explanation)throw Error("Gemini returned an empty solution.");
     var solvedAnswer=out.answer||out.final_answer||q.answer||"";var normalizedSolved=normaliseMCQAnswer(q,solvedAnswer);if(!String(normalizedSolved||"").trim())throw Error("AI did not return an answer.");if((q.qType==="mcq"||q.qType==="mcq_multi")&&Array.isArray(q.options)&&q.options.length>1&&!/^[A-H]$/.test(String(normalizedSolved).trim().toUpperCase()))throw Error("AI solution did not identify a correct option letter (A/B/C/D).");q.answer=normalizedSolved;q.finalAnswer=q.answer;q.explanation=normalizeAngstromText(formatAISolutionStructure(out.explanation));q.solutionGenerated=true;q.solutionKept=false;q.solutionProgress=100;q.solutionGenerating=false;render();setTimeout(typesetMath,80);if(!silent){showSaveToast("✔ Detailed AI solution generated for Q"+q.no+". Review and Keep Solution.");$("status").textContent="✔ Detailed AI solution generated for Q"+q.no+".";}return true;
   }catch(e){q.solutionGenerating=false;q.solutionProgress=0;if(silent)q._autoAnswerError=e.message||String(e);render();console.error("AI solution generation failed",e);if(!silent){$("status").textContent="❌ Solution failed for Q"+q.no+": "+(e.message||e);alert("AI solution failed for Q"+q.no+": "+(e.message||e));}return false;}
 }
 async function cropQ(i){if(!sourcePdfFile)return alert("Original PDF नहीं मिला. पहले वही PDF select करो.");editing=i;if(!cropTarget||cropTarget==="question")cropTarget="question";
-  // When the teacher starts a PDF figure crop, prefer the source crop over generated art.
   if(cropTarget==="figure"||String(cropTarget).indexOf("visual:")===0){
     var cq=qs[i],vi=String(cropTarget).indexOf("visual:")===0?Number(String(cropTarget).split(":")[1]||0):-1;
     if(cq){if(cropTarget==="figure"){cq.figureImage="";cq._generatedFigurePending=false;(cq.visualRegions||[]).forEach(function(v){if(v&&v.aiGeneratedPending){v.image="";v.aiGeneratedPending=false;}});}
@@ -1854,8 +1392,7 @@ $("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("
   }catch(e){$("status").textContent="⚠️ Could not read page count: "+(e.message||e);}
 });
 $("pageMode").addEventListener("change",function(){var manual=this.value==="range";$("pageStart").disabled=!manual;$("pageEnd").disabled=!manual;});
-$("pageStart").disabled=true;$("pageEnd").disabled=true;$("extract").onclick=extract;if(typeof generateAISolutions === "function"){ $("generateSolutions").onclick=generateAISolutions; }$("clear").onclick=()=>{qs=[];$("generateSolutions").disabled=true;render();$("status").textContent="Cleared.";showSaveToast("Review list cleared.")};$("import").onclick=async()=>{if(!qs.length)return;$("import").disabled=true;let processed=0;try{while(qs.length){let q=qs[0];q.libraryMode=q.libraryMode||"private";$("status").textContent="☁ Preparing Q"+q.no+" for "+(q.libraryMode==="central"?"Central":q.libraryMode==="group"?"Group":"Private")+" Library save…";await saveQ(0);uploadedCount++;processed++;qs.splice(0,1);render();$("status").textContent="☁ Saved "+processed+" question(s). "+qs.length+" remaining.";showSaveToast("✔ Question "+q.no+" saved to Library. "+qs.length+" remaining.");}}catch(e){console.error("[A2Z AI Import] bulk save stopped after "+processed+" successful question(s):",e);showQuestionSavedPopup("Question Save Failed",false);showSaveToast("❌ Save stopped after "+processed+" saved: "+e.message,true);$("status").textContent="❌ Save failed after "+processed+" saved: "+e.message}finally{$("import").disabled=!qs.length}};$("defaultLibraryMode").addEventListener("change",function(){var mode=this.value||"private";qs.forEach(function(q){q.libraryMode=mode;q.folderPath="";});if($("eMode"))$("eMode").value=mode;render();});$("applyBankRoot").addEventListener("click",function(){var root=bankRootOverride();if(!root){alert("Enter a main question-bank folder, or leave it blank to auto-detect from the source.");return;}qs.forEach(function(q){q.folderPath="";q.suggestedPath=sourceAwareSuggestedPath(q);});render();showSaveToast("✔ Main folder set to "+root+". AI will create/reuse subfolders only inside it.");});$("bankRootOverride").addEventListener("keydown",function(e){if(e.key==="Enter")$("applyBankRoot").click();});$("grid").addEventListener("change",function(e){var t=e.target,i=Number(t.dataset.i);if(!Number.isFinite(i)||!qs[i])return;if(t.classList.contains("q-type-control")){qs[i].qType=t.value;qs[i].answer=normaliseMCQAnswer(qs[i],qs[i].answer||qs[i].finalAnswer);render()}else if(t.classList.contains("q-answer-control")){qs[i].answer=t.value;qs[i].finalAnswer=t.value;}else if(t.classList.contains("q-answer-region"))qs[i].answerRegion=t.value;else if(t.classList.contains("q-source-control")){qs[i].sourceExam=t.value;qs[i].source=t.value;qs[i].isPYQ=!!(t.value||qs[i].year)}else if(t.classList.contains("q-year-control")){qs[i].year=t.value;qs[i].sourceYear=t.value;qs[i].isPYQ=!!(t.value||qs[i].sourceExam)}else if(t.classList.contains("q-keep-source-label"))qs[i].keepSourceLabel=t.checked;});
-/* REVIEW ACTION ROUTER: bind at document level so re-rendering #grid can never orphan question controls. */
+$("pageStart").disabled=true;$("pageEnd").disabled=true;$("extract").onclick=extract;if(typeof generateAISolutions === "function"){ $("generateSolutions").onclick=generateAISolutions; }$("clear").onclick=()=>{qs=[];$("generateSolutions").disabled=true;render();$("status").textContent="Cleared.";showSaveToast("Review list cleared.")};$("import").onclick=async()=>{if(!qs.length)return;$("import").disabled=true;let processed=0;try{while(qs.length){let q=qs[0];q.libraryMode=q.libraryMode||"private";$("status").textContent="☁ Preparing Q"+q.no+" for "+(q.libraryMode==="central"?"Central":q.libraryMode==="group"?"Group":"Private")+" Library save…";await saveQ(0);uploadedCount++;processed++;qs.splice(0,1);render();$("status").textContent="☁ Saved "+processed+" question(s). "+qs.length+" remaining.";showSaveToast("✔ Question "+q.no+" saved to Library. "+qs.length+" remaining.");}}catch(e){showQuestionSavedPopup("Question Save Failed",false);showSaveToast("❌ Save stopped after "+processed+" saved: "+e.message,true);$("status").textContent="❌ Save failed after "+processed+" saved: "+e.message}finally{$("import").disabled=!qs.length}};$("defaultLibraryMode").addEventListener("change",function(){var mode=this.value||"private";qs.forEach(function(q){q.libraryMode=mode;q.folderPath="";});if($("eMode"))$("eMode").value=mode;render();});$("applyBankRoot").addEventListener("click",function(){var root=bankRootOverride();if(!root){alert("Enter a main question-bank folder, or leave it blank to auto-detect from the source.");return;}qs.forEach(function(q){q.folderPath="";q.suggestedPath=sourceAwareSuggestedPath(q);});render();showSaveToast("✔ Main folder set to "+root+". AI will create/reuse subfolders only inside it.");});$("bankRootOverride").addEventListener("keydown",function(e){if(e.key==="Enter")$("applyBankRoot").click();});$("grid").addEventListener("change",function(e){var t=e.target,i=Number(t.dataset.i);if(!Number.isFinite(i)||!qs[i])return;if(t.classList.contains("q-type-control")){qs[i].qType=t.value;qs[i].answer=normaliseMCQAnswer(qs[i],qs[i].answer||qs[i].finalAnswer);render()}else if(t.classList.contains("q-answer-control")){qs[i].answer=t.value;qs[i].finalAnswer=t.value;}else if(t.classList.contains("q-answer-region"))qs[i].answerRegion=t.value;else if(t.classList.contains("q-source-control")){qs[i].sourceExam=t.value;qs[i].source=t.value;qs[i].isPYQ=!!(t.value||qs[i].year)}else if(t.classList.contains("q-year-control")){qs[i].year=t.value;qs[i].sourceYear=t.value;qs[i].isPYQ=!!(t.value||qs[i].sourceExam)}else if(t.classList.contains("q-keep-source-label"))qs[i].keepSourceLabel=t.checked;});
 document.addEventListener("change",function(e){
   var el=e.target;if(!el||!el.classList)return;
   if(el.classList.contains("q-answer-control")){
@@ -1979,7 +1516,6 @@ window.addEventListener("click",async function(e){
       if(p){qs[i].folderPath=p;render();}
     }
   }catch(err){
-    console.error("[A2Z AI Import] action failed:",err);
     var failMsg=(err&&err.message?err.message:String(err));
     $("status").textContent="❌ "+(a==="refresh-question"?"Re-extract failed: ":"Action failed: ")+failMsg;
     showSaveToast("❌ "+(a==="refresh-question"?"Re-extract failed: ":"Action failed: ")+failMsg,true);
@@ -1994,7 +1530,7 @@ window.addEventListener("click",async function(e){
       alert((a==="refresh-question"?"Re-extract failed: ":"Action failed: ")+failMsg);
     }
   }
-}, true);$("eAddOption").onclick=()=>{if(editing<0)return;syncEditorOptions();var q=qs[editing];q.options=q.options||[];q.options.push("");renderEditorOptions(q);};$("eTextOnly").onclick=()=>{if(editing<0)return;readEdit();qs[editing].contentMode="text";$("eStatus").textContent="📝 Text Only selected."};$("eImageOnly").onclick=()=>{if(editing<0)return;readEdit();if(!qs[editing].cropImage)return alert("पहले Crop Complete Question करके image बनाओ.");qs[editing].contentMode="image";$("eStatus").textContent="🖼 Image Only selected."};$("eBoth").onclick=()=>{if(editing<0)return;readEdit();qs[editing].contentMode="both";$("eStatus").textContent="📝+🖼 Image + Text selected."};$("eSave").onclick=()=>{readEdit();render();$("editor").style.display="none";editing=-1};$("eClose").onclick=()=>{$("editor").style.display="none";editing=-1};$("eSaveLib").onclick=async()=>{if(editing<0)return;readEdit();let savedIndex=editing,savedNo=qs[savedIndex].no;let eb=$("eSaveLib");if(eb.dataset.saving==="1")return;eb.dataset.saving="1";eb.disabled=true;let oldText=eb.textContent;eb.textContent="⏳ Saving…";try{await saveQ(savedIndex);uploadedCount++;qs.splice(savedIndex,1);$("editor").style.display="none";editing=-1;render();showQuestionSavedPopup("Question "+savedNo+" Saved",true);showSaveToast("✔ Question "+savedNo+" saved to Library. "+qs.length+" remaining.")}catch(e){showQuestionSavedPopup("Question "+savedNo+" Save Failed",false);showSaveToast("❌ Save failed: "+e.message,true);$("status").textContent="❌ Save failed: "+e.message;}finally{eb.disabled=false;eb.dataset.saving="";eb.textContent=oldText;}};$("eMode").onchange=()=>{if(editing>=0&&qs[editing]){qs[editing].libraryMode=$("eMode").value;qs[editing].folderPath="";$("ePathDisplay").value=norm(qs[editing].suggestedPath||"")||semanticSuggestedPath(qs[editing]);$("eStatus").textContent="Folder path will be created automatically when saved.";}};$("cropClose").onclick=()=>{$("cropPanel").style.display="none"};$("cropPrevPage").onclick=()=>navigateCropPage(-1);$("cropNextPage").onclick=()=>navigateCropPage(1);$("cropSave").onclick=()=>{if(editing<0||!cropStart||!cropEnd)return alert("Select an area first.");let c=$("pdfCanvas"),x=Math.min(cropStart.x,cropEnd.x),y=Math.min(cropStart.y,cropEnd.y),w=Math.abs(cropEnd.x-cropStart.x),h=Math.abs(cropEnd.y-cropStart.y),o=document.createElement("canvas"),s=Math.min(4,2400/w);o.width=Math.round(w*s);o.height=Math.round(h*s);o.getContext("2d").drawImage(c,x,y,w,h,0,0,o.width,o.height);if($("cleanColoredInk")&&$("cleanColoredInk").checked){try{var ctx=o.getContext("2d",{willReadFrequently:true}),im=ctx.getImageData(0,0,o.width,o.height),px=im.data,removed=0;for(var pi=0;pi<px.length;pi+=4){var rr=px[pi],gg=px[pi+1],bb=px[pi+2],mx=Math.max(rr,gg,bb),mn=Math.min(rr,gg,bb),sat=mx?((mx-mn)/mx):0;var colored=sat>.34&&mx-mn>48&&((rr>gg*1.24&&rr>bb*1.18)||(bb>rr*1.16&&bb>gg*1.06)||(rr>gg*1.12&&bb>gg*1.12));if(colored&&mx<250){px[pi]=px[pi+1]=px[pi+2]=255;removed++;}}ctx.putImageData(im,0,0);$("cropStatus").textContent="Colored-ink cleanup applied to "+removed+" pixels. Inspect the result carefully; some colored diagram details may also be removed.";}catch(cleanErr){console.warn("Colored pen cleanup skipped",cleanErr);}}var data=o.toDataURL("image/jpeg",.94);if(cropTarget==="figure"){qs[editing].figureImage=data;qs[editing].figureImageCropPending=true;qs[editing].figureRequired=false;qs[editing].contentMode="both";qs[editing].cropImage=data;qs[editing].cropImageKept=true;}else if(String(cropTarget).indexOf("option:")===0){var oi=Number(String(cropTarget).split(":")[1]||0);qs[editing].optionImages=qs[editing].optionImages||[];qs[editing].optionImages[oi]=data;qs[editing].optionImageCropPending=qs[editing].optionImageCropPending||[];qs[editing].optionImageCropPending[oi]=true;qs[editing].optionFigureRequired=qs[editing].optionFigureRequired||[];qs[editing].optionFigureRequired[oi]=true;}else if(String(cropTarget).indexOf("inline:")===0){var bi=Number(String(cropTarget).split(":")[1]||0);qs[editing].contentBlocks=qs[editing].contentBlocks||[];qs[editing].contentBlocks[bi]=qs[editing].contentBlocks[bi]||{type:"diagram",visualType:"diagram",anchor:"",required:true};qs[editing].contentBlocks[bi].image=data;qs[editing].contentBlocks[bi].cropPending=true;qs[editing].contentBlocks[bi].required=false;}else if(String(cropTarget).indexOf("visual:")===0){var cvi=Number(String(cropTarget).split(":")[1]||0),cvlist=canonicalVisuals(qs[editing]),targetV=cvlist[cvi];if(targetV&&targetV._legacyFigure){qs[editing].figureImage=data;qs[editing].figureRequired=false;}else{var actual=-1;(qs[editing].visualRegions||[]).forEach(function(v,ix){if(actual<0&&v===targetV)actual=ix;});if(actual<0)actual=cvi;qs[editing].visualRegions=qs[editing].visualRegions||[];qs[editing].visualRegions[actual]=qs[editing].visualRegions[actual]||{visualType:"diagram",type:"diagram",required:true};qs[editing].visualRegions[actual].image=data;qs[editing].visualRegions[actual].cropPending=true;qs[editing].contentMode="both";if(cvi===0){qs[editing].figureImage=data;qs[editing].figureImageCropPending=true;qs[editing].cropImage=data;qs[editing].cropImageKept=true;}}}else{qs[editing].cropImage=data;qs[editing].contentMode="both";qs[editing].cropImageKept=true;}$("cropPanel").style.display="none";render();if(cropTarget==="question")editQ(editing);cropTarget="question";if($("eStatus"))$("eStatus").textContent="✔ Crop inserted."};let can=$("pdfCanvas"),rect=$("cropRect");
+}, true);$("eAddOption").onclick=()=>{if(editing<0)return;syncEditorOptions();var q=qs[editing];q.options=q.options||[];q.options.push("");renderEditorOptions(q);};$("eTextOnly").onclick=()=>{if(editing<0)return;readEdit();qs[editing].contentMode="text";$("eStatus").textContent="📝 Text Only selected."};$("eImageOnly").onclick=()=>{if(editing<0)return;readEdit();if(!qs[editing].cropImage)return alert("पहले Crop Complete Question करके image बनाओ.");qs[editing].contentMode="image";$("eStatus").textContent="🖼 Image Only selected."};$("eBoth").onclick=()=>{if(editing<0)return;readEdit();qs[editing].contentMode="both";$("eStatus").textContent="📝+🖼 Image + Text selected."};$("eSave").onclick=()=>{readEdit();render();$("editor").style.display="none";editing=-1};$("eClose").onclick=()=>{$("editor").style.display="none";editing=-1};$("eSaveLib").onclick=async()=>{if(editing<0)return;readEdit();let savedIndex=editing,savedNo=qs[savedIndex].no;let eb=$("eSaveLib");if(eb.dataset.saving==="1")return;eb.dataset.saving="1";eb.disabled=true;let oldText=eb.textContent;eb.textContent="⏳ Saving…";try{await saveQ(savedIndex);uploadedCount++;qs.splice(savedIndex,1);$("editor").style.display="none";editing=-1;render();showQuestionSavedPopup("Question "+savedNo+" Saved",true);showSaveToast("✔ Question "+savedNo+" saved to Library. "+qs.length+" remaining.")}catch(e){showQuestionSavedPopup("Question "+savedNo+" Save Failed",false);showSaveToast("❌ Save failed: "+e.message,true);$("status").textContent="❌ Save failed: "+e.message;}finally{eb.disabled=false;eb.dataset.saving="";eb.textContent=oldText;}};$("eMode").onchange=()=>{if(editing>=0&&qs[editing]){qs[editing].libraryMode=$("eMode").value;qs[editing].folderPath="";$("ePathDisplay").value=norm(qs[editing].suggestedPath||"")||semanticSuggestedPath(qs[editing]);$("eStatus").textContent="Folder path will be created automatically when saved.";}};$("cropClose").onclick=()=>{$("cropPanel").style.display="none"};$("cropPrevPage").onclick=()=>navigateCropPage(-1);$("cropNextPage").onclick=()=>navigateCropPage(1);$("cropSave").onclick=()=>{if(editing<0||!cropStart||!cropEnd)return alert("Select an area first.");let c=$("pdfCanvas"),x=Math.min(cropStart.x,cropEnd.x),y=Math.min(cropStart.y,cropEnd.y),w=Math.abs(cropEnd.x-cropStart.x),h=Math.abs(cropEnd.y-cropStart.y),o=document.createElement("canvas"),s=Math.min(4,2400/w);o.width=Math.round(w*s);o.height=Math.round(h*s);o.getContext("2d").drawImage(c,x,y,w,h,0,0,o.width,o.height);if($("cleanColoredInk")&&$("cleanColoredInk").checked){try{var ctx=o.getContext("2d",{willReadFrequently:true}),im=ctx.getImageData(0,0,o.width,o.height),px=im.data,removed=0;for(var pi=0;pi<px.length;pi+=4){var rr=px[pi],gg=px[pi+1],bb=px[pi+2],mx=Math.max(rr,gg,bb),mn=Math.min(rr,gg,bb),sat=mx?((mx-mn)/mx):0;var colored=sat>.34&&mx-mn>48&&((rr>gg*1.24&&rr>bb*1.18)||(bb>rr*1.16&&bb>gg*1.06)||(rr>gg*1.12&&bb>gg*1.12));if(colored&&mx<250){px[pi]=px[pi+1]=px[pi+2]=255;removed++;}}ctx.putImageData(im,0,0);$("cropStatus").textContent="Colored-ink cleanup applied to "+removed+" pixels. Inspect the result carefully; some colored diagram details may also be removed.";}catch(cleanErr){}}var data=o.toDataURL("image/jpeg",.94);if(cropTarget==="figure"){qs[editing].figureImage=data;qs[editing].figureImageCropPending=true;qs[editing].figureRequired=false;qs[editing].contentMode="both";qs[editing].cropImage=data;qs[editing].cropImageKept=true;}else if(String(cropTarget).indexOf("option:")===0){var oi=Number(String(cropTarget).split(":")[1]||0);qs[editing].optionImages=qs[editing].optionImages||[];qs[editing].optionImages[oi]=data;qs[editing].optionImageCropPending=qs[editing].optionImageCropPending||[];qs[editing].optionImageCropPending[oi]=true;qs[editing].optionFigureRequired=qs[editing].optionFigureRequired||[];qs[editing].optionFigureRequired[oi]=true;}else if(String(cropTarget).indexOf("inline:")===0){var bi=Number(String(cropTarget).split(":")[1]||0);qs[editing].contentBlocks=qs[editing].contentBlocks||[];qs[editing].contentBlocks[bi]=qs[editing].contentBlocks[bi]||{type:"diagram",visualType:"diagram",anchor:"",required:true};qs[editing].contentBlocks[bi].image=data;qs[editing].contentBlocks[bi].cropPending=true;qs[editing].contentBlocks[bi].required=false;}else if(String(cropTarget).indexOf("visual:")===0){var cvi=Number(String(cropTarget).split(":")[1]||0),cvlist=canonicalVisuals(qs[editing]),targetV=cvlist[cvi];if(targetV&&targetV._legacyFigure){qs[editing].figureImage=data;qs[editing].figureRequired=false;}else{var actual=-1;(qs[editing].visualRegions||[]).forEach(function(v,ix){if(actual<0&&v===targetV)actual=ix;});if(actual<0)actual=cvi;qs[editing].visualRegions=qs[editing].visualRegions||[];qs[editing].visualRegions[actual]=qs[editing].visualRegions[actual]||{visualType:"diagram",type:"diagram",required:true};qs[editing].visualRegions[actual].image=data;qs[editing].visualRegions[actual].cropPending=true;qs[editing].contentMode="both";if(cvi===0){qs[editing].figureImage=data;qs[editing].figureImageCropPending=true;qs[editing].cropImage=data;qs[editing].cropImageKept=true;}}}else{qs[editing].cropImage=data;qs[editing].contentMode="both";qs[editing].cropImageKept=true;}$("cropPanel").style.display="none";render();if(cropTarget==="question")editQ(editing);cropTarget="question";if($("eStatus"))$("eStatus").textContent="✔ Crop inserted."};let can=$("pdfCanvas"),rect=$("cropRect");
 can.addEventListener("pointerdown",function(e){
   if(cropSelecting)return;
   cropSelecting=true;
