@@ -4,7 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>A to Z Exam Mocks — AI Multi-Exam Syllabus Tracker</title>
+  
+  <!-- MathJax for rendering LaTeX, fractions, superscripts, subscripts, and physics equations -->
+  <script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [["\\(", "\\)"], ["$", "$"]],
+      displayMath: [["\\[", "\\]"], ["$$", "$$"]],
+      processEscapes: true,
+      packages: {'[+]': ['ams', 'noerrors', 'noundefined']}
+    },
+    options: {
+      skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+      renderError: function(doc, em, err) {
+        console.warn("MathJax bypass error:", err);
+        return doc.text(em.text);
+      }
+    },
+    svg: { fontCache: "global" }
+  };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
   <style>
     * { box-sizing: border-box; }
     body {
@@ -312,12 +334,23 @@
     }
     @keyframes animSlide { from { margin-left: 0; } to { margin-left: 65%; } }
     
+    /* MATH & PRACTICE QUESTIONS */
+    .math-content mjx-container:not([display="true"]) {
+      display: inline-block !important;
+      margin: 0 2px !important;
+      vertical-align: -0.15em !important;
+    }
+    .math-content mjx-container[display="true"] {
+      margin: 0.6em 0 !important;
+      text-align: center !important;
+    }
     .practice-q {
-      border: 1px solid #334155;
+      border: 1.5px solid #334155;
       background: #090e1a;
-      border-radius: 10px;
-      padding: 14px;
-      margin: 10px 0;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 12px 0;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.25);
     }
     .practice-q img {
       max-width: 100%;
@@ -330,13 +363,19 @@
     }
     .practice-options label {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       align-items: flex-start;
       background: #111c30;
-      padding: 8px 12px;
-      border-radius: 7px;
-      margin: 5px 0;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin: 6px 0;
       cursor: pointer;
+      border: 1px solid #1e293b;
+      transition: all 0.15s;
+    }
+    .practice-options label:hover {
+      background: #16243d;
+      border-color: #38bdf8;
     }
     .source-tag {
       font-size: 10px;
@@ -350,6 +389,26 @@
     }
     .source-tag.ai { background: #312e81; color: #e0e7ff; }
     
+    .answer-feedback-box {
+      margin-top: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-weight: 800;
+      display: none;
+    }
+    .answer-feedback-box.correct {
+      display: block;
+      background: #064e3b;
+      color: #a7f3d0;
+      border: 1.5px solid #10b981;
+    }
+    .answer-feedback-box.incorrect {
+      display: block;
+      background: #450a0a;
+      color: #fecaca;
+      border: 1.5px solid #ef4444;
+    }
+
     @media(max-width: 768px) {
       .stats { grid-template-columns: repeat(2, 1fr); }
       .log-grid { grid-template-columns: 1fr; }
@@ -389,7 +448,7 @@
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="primary mini-btn" onclick="promptNewExam()">＋ Add New Exam</button>
-          <button class="green mini-btn" onclick="restoreUppscPhysicsExam()">🔄 Restore UPPSC Asst. Prof. (Physics)</button>
+          <button class="green mini-btn" onclick="restoreUppscPhysicsExam()">🔄 Restore UPPSC Asst. Prof. (152 Topics)</button>
         </div>
       </div>
 
@@ -416,7 +475,7 @@
       <div class="row">
         <label style="font-weight:800;color:#cbd5e1;font-size:13px;">Upload Syllabus (PDF, TXT, CSV):</label>
         <input id="file" type="file" accept=".pdf,.txt,.csv,.md" style="flex:1;min-width:200px;">
-        <button class="primary" onclick="analyzeSyllabusWithAI()">✨ Analyze Syllabus with AI</button>
+        <button class="primary" onclick="analyzeSyllabusWithAI()">✨ Analyze & Split Every Topic (AI)</button>
         <button class="btn" onclick="importSyllabusAsText()">📄 Text Import (No AI)</button>
       </div>
 
@@ -424,6 +483,7 @@
         <button class="green" onclick="saveSyllabusProgress(true)">☁ Save All Exams to Cloud</button>
         <button class="btn" onclick="loadFromCloud()">↻ Load Cloud Saved</button>
         <button class="btn" onclick="addNewTopicPrompt()">＋ Add Custom Topic</button>
+        <button class="purple mini-btn" onclick="autoSplitCompoundTopicsInActiveExam()" title="If a unit or topic has multiple items separated by commas/semicolons, this splits them into separate individual rows">⚡ Auto-split Comma-separated Topics</button>
       </div>
 
       <div id="busyProgress" class="progress-bar-anim"><div></div></div>
@@ -437,7 +497,7 @@
           <button class="btn" id="treeViewBtn" onclick="switchView('tree')">🌳 Tree View</button>
           <button class="btn" id="tableViewBtn" onclick="switchView('table')">▦ Table View</button>
         </div>
-        <div style="display:flex;gap:8px;flex:1;max-width:400px;">
+        <div style="display:flex;gap:8px;flex-1;max-width:400px;">
           <input id="topicSearchInput" type="text" placeholder="Search topics in this syllabus…" oninput="renderSyllabusView()" style="width:100%;">
         </div>
         <button class="btn mini-btn" onclick="printSyllabus()">🖨 Print / PDF</button>
@@ -465,12 +525,12 @@
           <p class="muted" id="practiceTopicPathDisplay" style="margin:4px 0 0;font-size:12px;"></p>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="primary" id="generate5McqsBtn" onclick="generateTopicPractice()">✨ Generate 5 MCQs with AI</button>
+          <button class="primary" id="generate5McqsBtn" onclick="generateTopicPractice()">✨ Generate 5 MCQs (AI)</button>
           <button class="danger mini-btn" onclick="closePracticePanel()">✕ Close</button>
         </div>
       </div>
-      <div id="libraryPracticeResults" style="margin-top:12px;"></div>
-      <div id="generatedPracticeResults" style="margin-top:12px;"></div>
+      <div id="libraryPracticeResults" style="margin-top:14px;"></div>
+      <div id="generatedPracticeResults" style="margin-top:14px;"></div>
     </section>
 
     <!-- DAILY STUDY LOG (EXAM ISOLATED) -->
@@ -517,7 +577,7 @@
     const LOCAL_EXAMS_KEY = "A2Z_SYLLABUS_EXAMS_V2";
     const LOCAL_ACTIVE_ID_KEY = "A2Z_SYLLABUS_ACTIVE_ID_V2";
 
-    const UPPSC_PHYSICS_DEFAULT = [{"title": "Unit 1: Mathematical Physics", "children": [{"title": "Vector Calculus (Gauss, Green & Stokes Theorems)", "children": []}, {"title": "Linear Algebra, Matrices, Eigenvalues & Eigenvectors", "children": []}, {"title": "Differential Equations & Frobenius Method", "children": []}, {"title": "Special Functions (Bessel, Legendre, Hermite, Laguerre Polynomials)", "children": []}, {"title": "Fourier Series, Fourier Transforms & Laplace Transforms", "children": []}, {"title": "Complex Analysis, Cauchy-Riemann Equations & Residue Theorem", "children": []}]}, {"title": "Unit 2: Classical Mechanics", "children": [{"title": "Generalized Coordinates, D'Alembert Principle & Lagrangian Formulation", "children": []}, {"title": "Hamiltonian Formulation & Hamilton's Canonical Equations", "children": []}, {"title": "Central Force Motion, Kepler's Laws & Planetary Orbits", "children": []}, {"title": "Rigid Body Dynamics, Moment of Inertia Tensor & Euler Equations", "children": []}, {"title": "Small Oscillations & Normal Modes", "children": []}, {"title": "Special Theory of Relativity, Lorentz Transformations & Mass-Energy Equivalence", "children": []}]}, {"title": "Unit 3: Electromagnetic Theory", "children": [{"title": "Electrostatics: Gauss's Law, Boundary Value Problems & Dielectrics", "children": []}, {"title": "Magnetostatics: Biot-Savart Law, Ampere's Law & Vector Potential", "children": []}, {"title": "Maxwell's Equations & Gauge Invariance", "children": []}, {"title": "EM Wave Propagation in Free Space & Dielectric Media", "children": []}, {"title": "Reflection, Refraction, Polarization & Brewster Angle", "children": []}, {"title": "Waveguides & Radiation from Accelerated Charges", "children": []}]}, {"title": "Unit 4: Quantum Mechanics", "children": [{"title": "Wave-Particle Duality, Wave Packets & Uncertainty Principle", "children": []}, {"title": "Schr\u00f6dinger Equation (1D Potential Well, Step Barrier & Harmonic Oscillator)", "children": []}, {"title": "Hydrogen Atom Problem & Orbital Angular Momentum", "children": []}, {"title": "Spin Angular Momentum & Addition of Angular Momenta", "children": []}, {"title": "Time-Independent Perturbation Theory (Non-degenerate & Degenerate)", "children": []}, {"title": "Variational Method & WKB Approximation", "children": []}]}, {"title": "Unit 5: Thermodynamics & Statistical Physics", "children": [{"title": "Laws of Thermodynamics, Thermodynamic Potentials & Maxwell Relations", "children": []}, {"title": "Phase Space, Microstates & Ensembles (Microcanonical, Canonical, Grand Canonical)", "children": []}, {"title": "Classical Statistics: Maxwell-Boltzmann Distribution", "children": []}, {"title": "Bose-Einstein Statistics, Bose Condensation & Blackbody Radiation", "children": []}, {"title": "Fermi-Dirac Statistics & Degenerate Electron Gas", "children": []}]}, {"title": "Unit 6: Atomic & Molecular Physics", "children": [{"title": "Hydrogen Atom Spectrum, Fine Structure & Lamb Shift", "children": []}, {"title": "Many-Electron Atoms, LS & JJ Coupling Schemes", "children": []}, {"title": "Zeeman Effect, Paschen-Back Effect & Stark Effect", "children": []}, {"title": "Rotational, Vibrational & Electronic Spectra of Diatomic Molecules", "children": []}, {"title": "Raman Effect & Laser Principles (Ruby, He-Ne, Semiconductor Lasers)", "children": []}]}, {"title": "Unit 7: Solid State Physics", "children": [{"title": "Crystal Structures, Reciprocal Lattice & X-Ray Diffraction (Bragg's Law)", "children": []}, {"title": "Lattice Vibrations, Phonons & Specific Heat (Einstein & Debye Models)", "children": []}, {"title": "Free Electron Theory, Band Theory of Solids & Kronig-Penney Model", "children": []}, {"title": "Semiconductors: Intrinsic & Extrinsic, Carrier Concentration & Hall Effect", "children": []}, {"title": "Superconductivity: Meissner Effect, Type I/II & BCS Theory Basics", "children": []}]}, {"title": "Unit 8: Nuclear & Particle Physics", "children": [{"title": "Nuclear Properties, Binding Energy & Semi-Empirical Mass Formula", "children": []}, {"title": "Nuclear Models: Liquid Drop Model & Shell Model", "children": []}, {"title": "Radioactivity: Alpha, Beta & Gamma Decays", "children": []}, {"title": "Nuclear Reactions: Cross Section, Fission & Fusion", "children": []}, {"title": "Elementary Particles: Quarks, Leptons, Symmetries & Fundamental Interactions", "children": []}]}, {"title": "Unit 9: Electronics & Experimental Methods", "children": [{"title": "Semiconductor Diodes, Zener Diode, BJT, FET & MOSFET", "children": []}, {"title": "Operational Amplifiers (Op-Amps) & Inverting/Non-inverting Applications", "children": []}, {"title": "Digital Electronics: Logic Gates, Boolean Algebra & Flip-Flops", "children": []}, {"title": "Counters, Registers & Digital-to-Analog / Analog-to-Digital Converters", "children": []}]}];
+    const UPPSC_PHYSICS_DEFAULT = [{"title": "Unit 1: Mathematical Physics", "children": [{"title": "Vector Calculus", "children": [{"title": "Gradient, Divergence & Curl", "children": []}, {"title": "Gauss Divergence Theorem", "children": []}, {"title": "Stokes' Theorem", "children": []}, {"title": "Green's Theorem", "children": []}, {"title": "Curvilinear Coordinates (Spherical & Cylindrical)", "children": []}]}, {"title": "Linear Algebra & Matrices", "children": [{"title": "Matrix Algebra & Determinants", "children": []}, {"title": "Eigenvalues & Eigenvectors", "children": []}, {"title": "Cayley-Hamilton Theorem", "children": []}, {"title": "Hermitian, Unitary & Orthogonal Matrices", "children": []}]}, {"title": "Differential Equations", "children": [{"title": "First-Order Linear Differential Equations", "children": []}, {"title": "Second-Order Linear ODEs with Constant Coefficients", "children": []}, {"title": "Frobenius Power Series Method", "children": []}, {"title": "Partial Differential Equations (Laplace, Wave & Diffusion)", "children": []}]}, {"title": "Special Functions", "children": [{"title": "Bessel Differential Equation & Functions", "children": []}, {"title": "Legendre Polynomials & Rodrigues Formula", "children": []}, {"title": "Hermite Polynomials & Generating Functions", "children": []}, {"title": "Laguerre Polynomials & Orthogonality Relations", "children": []}]}, {"title": "Fourier & Laplace Analysis", "children": [{"title": "Fourier Series Expansion & Dirichlet Conditions", "children": []}, {"title": "Fourier Transforms & Convolution Theorem", "children": []}, {"title": "Laplace Transforms & Inverse Transforms", "children": []}]}, {"title": "Complex Analysis", "children": [{"title": "Cauchy-Riemann Conditions & Analytic Functions", "children": []}, {"title": "Cauchy Integral Theorem & Integral Formula", "children": []}, {"title": "Taylor & Laurent Series Expansions", "children": []}, {"title": "Residue Theorem & Evaluation of Definite Integrals", "children": []}]}]}, {"title": "Unit 2: Classical Mechanics", "children": [{"title": "Lagrangian Dynamics", "children": [{"title": "Generalized Coordinates & Constraints", "children": []}, {"title": "D'Alembert's Principle", "children": []}, {"title": "Lagrange's Equations of Motion", "children": []}, {"title": "Cyclic Coordinates & Conservation Laws", "children": []}]}, {"title": "Hamiltonian Formulation", "children": [{"title": "Hamilton's Canonical Equations of Motion", "children": []}, {"title": "Canonical Transformations", "children": []}, {"title": "Poisson Brackets & Invariance", "children": []}, {"title": "Hamilton-Jacobi Theory & Action-Angle Variables", "children": []}]}, {"title": "Central Force Motion", "children": [{"title": "Two-Body Central Force Problem & Reduced Mass", "children": []}, {"title": "Kepler's Laws of Planetary Motion", "children": []}, {"title": "Rutherford Scattering Cross Section", "children": []}]}, {"title": "Rigid Body Dynamics & Oscillations", "children": [{"title": "Moment of Inertia Tensor & Principal Axes", "children": []}, {"title": "Euler's Equations of Motion for a Rigid Body", "children": []}, {"title": "Small Oscillations & Normal Modes of Vibration", "children": []}]}, {"title": "Special Theory of Relativity", "children": [{"title": "Michelson-Morley Experiment & Postulates of STR", "children": []}, {"title": "Lorentz Transformations & Length Contraction", "children": []}, {"title": "Time Dilation & Relativistic Velocity Addition", "children": []}, {"title": "Relativistic Mass, Momentum & Energy Equivalence (E = mc\u00b2)", "children": []}, {"title": "Four-Vector Formulation & Invariant Intervals", "children": []}]}]}, {"title": "Unit 3: Electromagnetic Theory", "children": [{"title": "Electrostatics & Magnetostatics", "children": [{"title": "Coulomb's Law, Gauss's Law & Electric Potential", "children": []}, {"title": "Boundary Value Problems & Method of Images", "children": []}, {"title": "Dielectrics, Polarization & Bound Charges", "children": []}, {"title": "Biot-Savart Law, Ampere's Circuital Law & Vector Potential", "children": []}, {"title": "Magnetic Dipole Moment & Magnetization", "children": []}]}, {"title": "Electrodynamics & Maxwell's Equations", "children": [{"title": "Faraday's Law of Induction & Displacement Current", "children": []}, {"title": "Maxwell's Equations in Differential & Integral Forms", "children": []}, {"title": "Scalar and Vector Potentials & Gauge Invariance (Coulomb/Lorenz)", "children": []}, {"title": "Poynting's Theorem & Energy Conservation in EM Fields", "children": []}]}, {"title": "Electromagnetic Waves & Radiation", "children": [{"title": "EM Wave Equation in Vacuum & Dielectric Media", "children": []}, {"title": "Reflection, Refraction, Snell's Law & Fresnel's Equations", "children": []}, {"title": "Brewster's Angle & Total Internal Reflection", "children": []}, {"title": "Waveguides: TE, TM & TEM Modes in Rectangular Waveguides", "children": []}, {"title": "Radiation from an Oscillating Electric Dipole", "children": []}]}]}, {"title": "Unit 4: Quantum Mechanics", "children": [{"title": "Foundations & Wave Mechanics", "children": [{"title": "Wave-Particle Duality & de Broglie Wavelength", "children": []}, {"title": "Heisenberg's Uncertainty Principle", "children": []}, {"title": "Time-Dependent & Time-Independent Schr\u00f6dinger Equations", "children": []}, {"title": "Wavefunction Born Interpretation & Normalization", "children": []}, {"title": "Operators, Commutators & Expectation Values", "children": []}]}, {"title": "One-Dimensional Potentials", "children": [{"title": "Particle in a 1D Box (Infinite Well)", "children": []}, {"title": "Finite Potential Well & Bound States", "children": []}, {"title": "Potential Step & Quantum Tunneling across a Barrier", "children": []}, {"title": "Quantum Harmonic Oscillator (Ladder Operators & Eigenvalues)", "children": []}]}, {"title": "Three-Dimensional Systems & Angular Momentum", "children": [{"title": "Hydrogen Atom Radial & Angular Solutions", "children": []}, {"title": "Orbital Angular Momentum Operators (L\u00b2, Lz)", "children": []}, {"title": "Spin Angular Momentum & Pauli Spin Matrices", "children": []}, {"title": "Addition of Angular Momenta & Clebsch-Gordan Coefficients", "children": []}]}, {"title": "Approximation Methods", "children": [{"title": "Time-Independent Perturbation Theory (Non-Degenerate)", "children": []}, {"title": "Degenerate Perturbation Theory & Stark Effect in Hydrogen", "children": []}, {"title": "Variational Principle & Ground State Energy Estimation", "children": []}, {"title": "WKB Approximation & Tunneling Probability", "children": []}]}]}, {"title": "Unit 5: Thermodynamics & Statistical Physics", "children": [{"title": "Thermodynamics", "children": [{"title": "Laws of Thermodynamics & Carnot Engine Efficiency", "children": []}, {"title": "Entropy & Clausius Inequality", "children": []}, {"title": "Thermodynamic Potentials (Internal Energy, Enthalpy, Helmholtz, Gibbs)", "children": []}, {"title": "Maxwell's Thermodynamic Relations", "children": []}, {"title": "Phase Transitions: First & Second Order (Clausius-Clapeyron Equation)", "children": []}]}, {"title": "Statistical Mechanics & Ensembles", "children": [{"title": "Phase Space, Microstates & Macrostates", "children": []}, {"title": "Liouville's Theorem & Microcanonical Ensemble", "children": []}, {"title": "Canonical Ensemble & Partition Function", "children": []}, {"title": "Grand Canonical Ensemble & Chemical Potential", "children": []}, {"title": "Maxwell-Boltzmann Classical Distribution & Equipartition of Energy", "children": []}]}, {"title": "Quantum Statistics", "children": [{"title": "Identical Particles: Bosons & Fermions (Symmetric & Antisymmetric states)", "children": []}, {"title": "Bose-Einstein Distribution & Blackbody Radiation (Planck's Law)", "children": []}, {"title": "Bose-Einstein Condensation (BEC)", "children": []}, {"title": "Fermi-Dirac Distribution & Fermi Energy", "children": []}, {"title": "Degenerate Electron Gas in Metals & Electronic Specific Heat", "children": []}]}]}, {"title": "Unit 6: Atomic & Molecular Physics", "children": [{"title": "Atomic Spectra", "children": [{"title": "Hydrogen Atom Energy Levels & Fine Structure", "children": []}, {"title": "Lamb Shift & Relativistic Correction", "children": []}, {"title": "Spectra of Alkali Atoms & Quantum Defect", "children": []}, {"title": "LS and JJ Coupling Schemes in Many-Electron Atoms", "children": []}, {"title": "Zeeman Effect (Normal & Anomalous)", "children": []}, {"title": "Paschen-Back Effect & Stark Effect", "children": []}]}, {"title": "Molecular Spectroscopy", "children": [{"title": "Rotational Spectra of Diatomic Molecules (Rigid Rotator)", "children": []}, {"title": "Vibrational Spectra of Diatomic Molecules (Harmonic/Anharmonic Oscillator)", "children": []}, {"title": "Vibration-Rotation Spectra & P, Q, R Branches", "children": []}, {"title": "Electronic Spectra of Diatomic Molecules & Franck-Condon Principle", "children": []}, {"title": "Raman Spectroscopy (Stokes & Anti-Stokes Lines)", "children": []}]}, {"title": "Lasers", "children": [{"title": "Spontaneous & Stimulated Emission (Einstein's A & B Coefficients)", "children": []}, {"title": "Population Inversion & Optical Resonator", "children": []}, {"title": "Ruby Laser & Helium-Neon (He-Ne) Laser", "children": []}, {"title": "Semiconductor Diode Lasers", "children": []}]}]}, {"title": "Unit 7: Solid State Physics", "children": [{"title": "Crystal Structure & Diffraction", "children": [{"title": "Bravais Lattices, Miller Indices & Crystal Planes", "children": []}, {"title": "Reciprocal Lattice & Brillouin Zones", "children": []}, {"title": "X-Ray Diffraction & Bragg's Law", "children": []}, {"title": "Laue Equations & Atomic Form Factor", "children": []}]}, {"title": "Lattice Dynamics & Thermal Properties", "children": [{"title": "Lattice Vibrations of Monoatomic & Diatomic Chains", "children": []}, {"title": "Acoustic and Optical Phonon Branches", "children": []}, {"title": "Einstein Model of Lattice Specific Heat", "children": []}, {"title": "Debye Model of Specific Heat (T\u00b3 Law)", "children": []}]}, {"title": "Band Theory of Solids & Semiconductors", "children": [{"title": "Free Electron Theory of Metals (Drude-Lorentz & Sommerfeld)", "children": []}, {"title": "Bloch Theorem & Kronig-Penney Model", "children": []}, {"title": "Energy Bands: Conductors, Semiconductors & Insulators", "children": []}, {"title": "Effective Mass of Electron & Concept of Holes", "children": []}, {"title": "Intrinsic & Extrinsic Semiconductors (Carrier Concentrations)", "children": []}, {"title": "Hall Effect & Determination of Carrier Type and Density", "children": []}]}, {"title": "Superconductivity", "children": [{"title": "Zero Resistance & Critical Temperature (Tc)", "children": []}, {"title": "Meissner Effect & Critical Magnetic Field (Hc)", "children": []}, {"title": "Type-I and Type-II Superconductors", "children": []}, {"title": "BCS Theory of Superconductivity (Cooper Pairs)", "children": []}, {"title": "Josephson Effects (DC and AC Josephson Junctions)", "children": []}]}]}, {"title": "Unit 8: Nuclear & Particle Physics", "children": [{"title": "Nuclear Structure & Models", "children": [{"title": "Nuclear Size, Charge, Mass & Binding Energy per Nucleon", "children": []}, {"title": "Semi-Empirical Mass Formula (Weizs\u00e4cker Formula)", "children": []}, {"title": "Liquid Drop Model & Nuclear Fission Explanation", "children": []}, {"title": "Nuclear Shell Model, Magic Numbers & Spin-Orbit Coupling", "children": []}, {"title": "Nuclear Forces & Deuteron Ground State", "children": []}]}, {"title": "Radioactivity & Nuclear Reactions", "children": [{"title": "Law of Radioactive Decay & Half-life", "children": []}, {"title": "Alpha Decay (Gamow's Theory of Tunneling)", "children": []}, {"title": "Beta Decay (Fermi's Theory of Beta Decay & Neutrino Hypothesis)", "children": []}, {"title": "Gamma Decay & Selection Rules", "children": []}, {"title": "Nuclear Fission & Chain Reactions", "children": []}, {"title": "Nuclear Fusion in Stars & Thermonuclear Reactions", "children": []}]}, {"title": "Particle Physics", "children": [{"title": "Classification of Elementary Particles (Hadrons, Leptons, Mesons, Baryons)", "children": []}, {"title": "Fundamental Interactions (Strong, Electromagnetic, Weak, Gravitational)", "children": []}, {"title": "Quark Model (Up, Down, Strange, Charm, Bottom, Top quarks)", "children": []}, {"title": "Conservation Laws (Baryon number, Lepton number, Strangeness, Isospin)", "children": []}, {"title": "Parity Violation in Weak Interactions (Wu Experiment)", "children": []}]}]}, {"title": "Unit 9: Electronics & Instrumentation", "children": [{"title": "Semiconductor Devices", "children": [{"title": "P-N Junction Diode & V-I Characteristics", "children": []}, {"title": "Zener Diode & Voltage Regulation", "children": []}, {"title": "Bipolar Junction Transistor (BJT) Characteristics in CB, CE & CC Configurations", "children": []}, {"title": "Field Effect Transistors (JFET and MOSFET) Principles", "children": []}]}, {"title": "Operational Amplifiers (Op-Amps)", "children": [{"title": "Ideal Op-Amp Characteristics (Open-loop gain, CMRR, Slew rate)", "children": []}, {"title": "Inverting and Non-inverting Amplifier Circuits", "children": []}, {"title": "Op-Amp Adder, Subtractor, Integrator & Differentiator", "children": []}, {"title": "Active Filters & Waveform Generators (Wien Bridge, Phase Shift Oscillators)", "children": []}]}, {"title": "Digital Electronics", "children": [{"title": "Logic Gates (AND, OR, NOT, NAND, NOR, XOR, XNOR)", "children": []}, {"title": "Boolean Algebra & De Morgan's Theorems", "children": []}, {"title": "Combinational Circuits: Adders, Subtractors, Multiplexers & Decoders", "children": []}, {"title": "Sequential Circuits: RS, JK, D and T Flip-Flops", "children": []}, {"title": "Binary Counters, Shift Registers & D/A and A/D Converters", "children": []}]}]}];
 
     let profiles = [];
     let activeExamId = "";
@@ -554,6 +614,57 @@
       return "exam_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6);
     }
 
+    // ==========================================
+    // MATHJAX FORMATTING & TYPESETTING ENGINE
+    // ==========================================
+    function formatMathText(v) {
+      var x = String(v ?? "").trim();
+      if(!x) return "";
+      
+      // 1. Convert display $$ ... $$ to \[ ... \]
+      x = x.replace(/\$\$([\s\S]*?)\$\$/g, "\\[$1\\]");
+      
+      // 2. Protect already wrapped \( ... \) and \[ ... \]
+      var protectedMath = [];
+      x = x.replace(/(\\\([\s\S]*?\\\)|\\\\[[\s\S]*?\\\\])/g, function(m){
+        var tok = "__MATH_TOK_" + protectedMath.length + "__";
+        protectedMath.push(m);
+        return tok;
+      });
+      
+      // 3. Auto-wrap common LaTeX commands if raw (e.g. \frac{a}{b}, \text{ cm}, \sqrt{...}, powers ^, subscripts _)
+      x = x.replace(/(\\text\{[^}]+\}|\\[a-zA-Z]+(?:\{[^}]+\})*|[A-Za-z0-9]+\^[0-9a-zA-Z{}]+|[A-Za-z0-9]+_[0-9a-zA-Z{}]+)/g, "\\($1\\)");
+      
+      // 4. Restore protected math
+      protectedMath.forEach(function(m, idx){
+        x = x.replace("__MATH_TOK_" + idx + "__", m);
+      });
+      
+      // 5. Clean up duplicate wraps like \(\( ... \)\)
+      x = x.replace(/\\\(\s*\\\(([\s\S]*?)\\\)\s*\\\)/g, "\\($1\\)");
+      
+      // 6. Escape non-math text safely while preserving LaTeX math delimiters and symbols intact
+      var re = /(\\\\[[\s\S]*?\\\\]|\\\([\s\S]*?\\\)|\$\$[\s\S]*?\$\$|\$(?!\$)[^$\n]+\$)/g;
+      var out = "", last = 0, match;
+      while((match = re.exec(x))){
+        out += esc(x.slice(last, match.index));
+        out += match[0]; // Raw LaTeX math delimiter preserved!
+        last = re.lastIndex;
+      }
+      out += esc(x.slice(last));
+      return out.replace(/\n/g, "<br>");
+    }
+
+    function typesetMath(targetEl) {
+      if (window.MathJax && typeof MathJax.typesetPromise === "function") {
+        var targets = targetEl ? [targetEl] : Array.from(document.querySelectorAll(".math-content"));
+        if(!targets.length) return;
+        MathJax.typesetPromise(targets).catch(function(err){
+          console.warn("MathJax typeset notice:", err);
+        });
+      }
+    }
+
     function getActiveProfile() {
       return profiles.find(p => p.id === activeExamId) || null;
     }
@@ -574,16 +685,101 @@
       return { total, done, pct, hours };
     }
 
-    function normalizeNodes(arr) {
-      return (arr || []).filter(x => x && typeof x.title === "string" && x.title.trim()).map(x => ({
-        id: typeof x.id === "string" ? x.id : makeId(),
-        title: x.title.trim(),
-        status: ["completed", "in_progress", "not_started"].includes(x.status) ? x.status : "not_started",
-        pyq: typeof x.pyq === "string" ? x.pyq : "",
-        practiceSets: Array.isArray(x.practiceSets) ? x.practiceSets.slice(-3) : [],
-        children: normalizeNodes(Array.isArray(x.children) ? x.children : [])
-      }));
+    // ==========================================
+    // GRANULAR TOPIC DECOMPOSITION & NORMALIZATION
+    // ==========================================
+    function autoSplitCompoundNode(n) {
+      if(n.children && n.children.length) {
+        n.children = n.children.map(autoSplitCompoundNode);
+        return n;
+      }
+      
+      const t = String(n.title || "").trim();
+      
+      // Case 1: Topic has colon separating heading and list e.g. "Vector calculus: Gauss law, Stokes theorem, Green theorem"
+      if(t.includes(":") && !/^(?:Unit|Paper|Part|Section)\s*[\dIVX]+/i.test(t)) {
+        const parts = t.split(":");
+        const head = parts[0].trim();
+        const tail = parts.slice(1).join(":").trim();
+        const subItems = tail.split(/[,;]|(?:and|तथा|एवं)\b/i)
+          .map(s => s.trim().replace(/^[\d\w]+[.)]\s*/, ''))
+          .filter(s => s.length > 2 && !/^(etc|and|or|etc\.|others)$/i.test(s));
+          
+        if(subItems.length >= 2) {
+          return {
+            ...n,
+            title: head,
+            children: subItems.map(itemTitle => ({
+              id: makeId(),
+              title: itemTitle,
+              status: n.status || "not_started",
+              pyq: "",
+              practiceSets: [],
+              children: []
+            }))
+          };
+        }
+      }
+      
+      // Case 2: Comma or semicolon separated list without colon e.g. "Lagrangian dynamics, central force motion, rigid body dynamics"
+      if((t.includes(",") || t.includes(";")) && t.length > 28 && !/^(?:Unit|Paper|Part)\b/i.test(t)) {
+        const subItems = t.split(/[,;]|(?:and|तथा|एवं)\b/i)
+          .map(s => s.trim().replace(/^[\d\w]+[.)]\s*/, ''))
+          .filter(s => s.length > 2 && !/^(etc|and|or|etc\.|others)$/i.test(s));
+          
+        if(subItems.length >= 2) {
+          return {
+            ...n,
+            title: subItems[0] + " (Overview)",
+            children: subItems.map(itemTitle => ({
+              id: makeId(),
+              title: itemTitle,
+              status: n.status || "not_started",
+              pyq: "",
+              practiceSets: [],
+              children: []
+            }))
+          };
+        }
+      }
+
+      return n;
     }
+
+    function normalizeNodes(arr) {
+      return (arr || []).filter(x => x && typeof x.title === "string" && x.title.trim()).map(x => {
+        const base = {
+          id: typeof x.id === "string" ? x.id : makeId(),
+          title: x.title.trim(),
+          status: ["completed", "in_progress", "not_started"].includes(x.status) ? x.status : "not_started",
+          pyq: typeof x.pyq === "string" ? x.pyq : "",
+          practiceSets: Array.isArray(x.practiceSets) ? x.practiceSets.slice(-3) : [],
+          children: normalizeNodes(Array.isArray(x.children) ? x.children : [])
+        };
+        return autoSplitCompoundNode(base);
+      });
+    }
+
+    window.autoSplitCompoundTopicsInActiveExam = function() {
+      const p = getActiveProfile();
+      if(!p || !p.nodes || !p.nodes.length) return alert("Select an exam with topics first.");
+      
+      const beforeCount = calculateExamStats(p).total;
+      p.nodes = p.nodes.map(autoSplitCompoundNode);
+      const afterCount = calculateExamStats(p).total;
+      
+      saveToLocalStorage();
+      renderExamsDashboard();
+      renderSyllabusView();
+      
+      const diff = afterCount - beforeCount;
+      if(diff > 0) {
+        showToast("✔ Decomposed into " + afterCount + " separate topics (+" + diff + " new subtopics)!");
+        alert("✔ Success! Compound lists were separated into " + diff + " new individual subtopic rows in Tree and Table view.");
+      } else {
+        showToast("All topics are already properly separated!");
+      }
+    };
 
     // RENDER MULTI-EXAM DASHBOARD CARDS
     function renderExamsDashboard() {
@@ -689,6 +885,7 @@
       const p = profiles.find(x => x.id === id);
       if(!p) return;
       if(!confirm("Are you sure you want to delete '" + p.name + "'?\n\nThis will remove its syllabus, progress, and study log.")) return;
+
       
       profiles = profiles.filter(x => x.id !== id);
       if(activeExamId === id) {
@@ -709,6 +906,7 @@
       const existing = profiles.find(p => /UPPSC/i.test(p.name) && /Physics|Professor/i.test(p.name));
       if(existing) {
         if(confirm("UPPSC Assistant Professor (Physics) is already in your exams list.\n\nSwitch to it now?")) {
+
           switchExam(existing.id);
         }
         return;
@@ -726,8 +924,8 @@
       renderExamsDashboard();
       renderSyllabusView();
       renderDailyLogsList();
-      showToast("✔ UPPSC Assistant Professor (Physics) restored with 48 topics!");
-      alert("✔ UPPSC Assistant Professor (Physics) syllabus restored successfully with all 9 units and 48 core topics!");
+      showToast("✔ UPPSC Assistant Professor (Physics) restored with 152 separate topics!");
+      alert("✔ UPPSC Assistant Professor (Physics) syllabus restored successfully with all 9 units and 152 individual granular topics!");
     };
 
     // SYLLABUS TREE & TABLE RENDERING
@@ -770,7 +968,7 @@
         container.innerHTML = `
           <div style="padding:30px;text-align:center;color:#94a3b8;">
             <p style="font-size:15px;color:#f8fafc;font-weight:700;">No syllabus topics loaded for '${p ? p.name : 'this exam'}'.</p>
-            <p>Upload a syllabus PDF above and click <b>'✨ Analyze Syllabus with AI'</b>, or click <b>'Restore UPPSC Asst. Prof. (Physics)'</b>.</p>
+            <p>Upload a syllabus PDF above and click <b>'✨ Analyze & Split Every Topic (AI)'</b>, or click <b>'Restore UPPSC Asst. Prof. (152 Topics)'</b>.</p>
           </div>
         `;
         return;
@@ -827,7 +1025,7 @@
                     <tr>
                       <td style="padding-left:${12 + depth * 22}px;">
                         ${depth > 0 ? '<span style="color:#64748b;margin-right:6px;">↳</span>' : ''}
-                        <b style="color:${depth === 0 ? '#38bdf8' : '#f8fafc'};">${esc(n.title)}</b>
+                        <b style="color:${depth === 0 ? '#38bdf8' : depth === 1 ? '#cbd5e1' : '#f8fafc'};">${esc(n.title)}</b>
                       </td>
                       <td>
                         <select class="status ${statusCls}" onchange="updateTopicStatus('${n.id}', this.value)">
@@ -987,37 +1185,50 @@
       showToast("Log entry removed.");
     };
 
-    // GEMINI MULTI-MODEL CLIENT WITH AUTO-FALLBACK
-    const GEMINI_MODELS = [
-      "gemini-3.8-flash",
-      "gemini-3.7-flash",
+    // ==========================================
+    // FAST GEMINI API CLIENT (ACTIVE MODEL FIRST)
+    // ==========================================
+    const GEMINI_FAST_MODELS = [
+      "gemini-2.5-flash",
       "gemini-3.6-flash",
       "gemini-3.5-flash",
-      "gemini-3.5-flash-lite",
-      "gemini-3-flash",
-      "gemini-2.5-flash",
       "gemini-2.5-flash-lite",
-      "gemini-2.0-flash"
+      "gemini-2.0-flash",
+      "gemini-3.8-flash"
     ];
 
-    async function callGemini(key, body) {
+    async function callGemini(key, body, timeoutMs = 25000) {
       key = String(key || "").trim();
       if(!key) throw Error("Gemini API key is empty. Enter your Gemini API key.");
-      let lastErr = "";
       
-      for(const m of GEMINI_MODELS) {
+      // Try last working model first for lightning-fast 1-2s response
+      const cached = localStorage.getItem("A2Z_LAST_WORKING_MODEL");
+      let modelList = GEMINI_FAST_MODELS.slice();
+      if(cached && modelList.includes(cached)) {
+        modelList = [cached].concat(modelList.filter(m => m !== cached));
+      }
+
+      let lastErr = "";
+      for(const m of modelList) {
         for(const ver of ["v1beta", "v1"]) {
           try {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
             const url = "https://generativelanguage.googleapis.com/" + ver + "/models/" + m + ":generateContent?key=" + key;
+            
             const r = await fetch(url, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body)
-            });
+              body: JSON.stringify(body),
+              signal: controller.signal
+            }).finally(() => clearTimeout(timer));
+            
             const data = await r.json().catch(() => ({}));
             if(r.ok && data?.candidates?.[0]?.content?.parts?.length) {
+              localStorage.setItem("A2Z_LAST_WORKING_MODEL", m);
               return data;
             }
+            
             const detail = data?.error?.message || ("HTTP " + r.status);
             lastErr = m + " (" + ver + "): " + detail;
             if(r.status === 401 || r.status === 403) throw Error("Invalid Gemini API Key: " + detail);
@@ -1074,21 +1285,40 @@
         if(!text || !text.trim()) throw Error("No text could be extracted from this document. If this is a scanned photo PDF, copy-paste the text or use an OCR text file.");
         if(text.length > 90000) text = text.slice(0, 90000);
 
-        setStatus("🤖 AI is analyzing exam units and subtopics…");
+        setStatus("🤖 AI is analyzing & breaking every topic into separate items…");
         
         const prompt = `You are an expert academic curriculum and syllabus analyst.
-Convert this exam syllabus into a complete, clean, faithful hierarchical outline.
-Do not invent topics not present in the syllabus.
-Preserve all named units, chapters, topics and subtopics.
-Organize parent-child structure logically: Unit / Chapter -> Subtopic -> Micro-topic.
-Return ONLY valid JSON:
+Convert this exam syllabus into a complete, clean, faithful, and HIGHLY GRANULAR hierarchical outline.
+
+CRITICAL GRANULAR EXTRACTION RULES (MANDATORY):
+1. SEPARATE EVERY SINGLE TOPIC: Never lump multiple topics, theorems, or concepts into a single long string or paragraph.
+2. If a section or paragraph contains a list separated by commas, semicolons, bullets, or dashes (e.g., "Vector calculus: Gauss law, Green theorem, Stokes theorem, curvilinear coordinates"), YOU MUST SPLIT EACH INTO AN INDIVIDUAL CHILD NODE:
+   - "Vector Calculus" (Parent)
+     - "Gauss Divergence Theorem" (Child)
+     - "Green's Theorem" (Child)
+     - "Stokes' Theorem" (Child)
+     - "Curvilinear Coordinates" (Child)
+3. HIERARCHY STRUCTURE:
+   Level 1: Unit / Paper / Book / Main Section
+   Level 2: Chapter / Major Topic
+   Level 3: Micro-topic / Individual Concept / Theorem / Formula
+4. Every single leaf node MUST represent a distinct, independent topic that a student can study, check off, and practice.
+5. Extract all topics across the entire syllabus without omitting or summarizing.
+
+Return ONLY valid JSON in this schema:
 {
-  "examName": "Full official name of the examination (e.g. UPPSC Assistant Professor Physics / SSC CGL / NEET)",
+  "examName": "Full official name of the examination",
   "topics": [
     {
       "title": "Unit 1: Name",
       "children": [
-        { "title": "Subtopic A", "children": [] }
+        {
+          "title": "Chapter A",
+          "children": [
+            { "title": "Specific Topic 1", "children": [] },
+            { "title": "Specific Topic 2", "children": [] }
+          ]
+        }
       ]
     }
   ]
@@ -1106,7 +1336,7 @@ Syllabus Text:
           }
         };
 
-        const d = await callGemini(key, body);
+        const d = await callGemini(key, body, 45000);
         const raw = d?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
         const parsed = parseCleanJson(raw);
         const newNodes = normalizeNodes(parsed.topics || []);
@@ -1120,11 +1350,7 @@ Syllabus Text:
         let shouldCreateNew = true;
         
         if(currentExam && currentExam.nodes && currentExam.nodes.length) {
-          const choice = confirm(
-            "AI detected syllabus for: '" + detectedExamName + "'.\n\n" +
-            "Click [OK] to add this as a NEW EXAM (Keeps '" + currentExam.name + "' safe!)\n" +
-            "Click [Cancel] to overwrite the current exam '" + currentExam.name + "'."
-          );
+          const choice = confirm("AI detected syllabus for: '" + detectedExamName + "'.\n\nClick [OK] to add this as a NEW EXAM (Keeps '" + currentExam.name + "' safe!)\nClick [Cancel] to overwrite the current exam '" + currentExam.name + "'.");
           shouldCreateNew = choice;
         }
 
@@ -1147,9 +1373,10 @@ Syllabus Text:
         renderSyllabusView();
         renderDailyLogsList();
         
-        setStatus("✔ AI Syllabus analysis complete! Extracted for " + detectedExamName);
-        showToast("✔ Syllabus analyzed successfully!");
-        alert("✔ Syllabus successfully analyzed and saved! All exams remain safe and tracked.");
+        const leafCount = calculateExamStats(getActiveProfile()).total;
+        setStatus("✔ AI Syllabus analysis complete! Extracted " + leafCount + " separate topics for " + detectedExamName);
+        showToast("✔ Syllabus analyzed into " + leafCount + " separate topics!");
+        alert("✔ Syllabus successfully analyzed and separated into " + leafCount + " individual topics! All exams remain safe and tracked.");
 
       } catch(e) {
         console.error(e);
@@ -1320,7 +1547,7 @@ Syllabus Text:
         await callGemini(k, {
           contents: [{ role: "user", parts: [{ text: "Reply with: OK" }] }],
           generationConfig: { temperature: 0, maxOutputTokens: 5 }
-        });
+        }, 10000);
         setStatus("✅ Gemini API Key is working perfectly!");
         showToast("✔ Gemini Key active!");
       } catch(e) {
@@ -1336,7 +1563,9 @@ Syllabus Text:
       window.print();
     };
 
-    // TOPIC PRACTICE INTEGRATION
+    // ==========================================
+    // TOPIC PRACTICE & LIBRARY PYQ RENDERING WITH MATHJAX
+    // ==========================================
     window.openPracticeForTopic = async function(nodeId) {
       const p = getActiveProfile();
       if(!p) return;
@@ -1367,17 +1596,21 @@ Syllabus Text:
         }).filter(x => x.score > 0).sort((a,b) => b.score - a.score).slice(0, 10);
 
         if(!matches.length) {
-          libContainer.innerHTML = '<p class="muted">No matching PYQs found in Teacher Library for this topic. Use the button above to generate 5 conceptual MCQs with AI.</p>';
+          libContainer.innerHTML = '<p class="muted">No matching PYQs found in Teacher Library for this topic. Click <b>"✨ Generate 5 MCQs (AI)"</b> above for authentic practice questions.</p>';
         } else {
           libContainer.innerHTML = '<h4>📚 Matching Library Questions (' + matches.length + ')</h4>' + matches.map(({ q }, i) => `
-            <div class="practice-q">
-              <b>Question ${i + 1}</b> ${q.isPYQ ? '<span class="source-tag">PYQ</span>' : ''}
-              <p style="margin:6px 0;">${esc(q.qText || q.text || '')}</p>
+            <div class="practice-q math-content">
+              <div>
+                <b>Question ${i + 1}</b> ${q.isPYQ ? '<span class="source-tag">PYQ</span>' : '<span class="source-tag" style="background:#1e3a8a;">Teacher Library</span>'}
+                ${q.sourceExam ? '<span style="font-size:11px;color:#94a3b8;margin-left:6px;">' + esc(q.sourceExam) + '</span>' : ''}
+              </div>
+              <div style="margin:8px 0;font-size:14px;line-height:1.65;">${formatMathText(q.qText || q.text || q.question || '')}</div>
               ${q.questionImage ? `<img src="${esc(q.questionImage)}" alt="Question Image">` : ''}
-              ${Array.isArray(q.options) && q.options.length ? '<div style="margin:6px 0;">' + q.options.map((o, j) => '<div>' + String.fromCharCode(65 + j) + '. ' + esc(o) + '</div>').join('') + '</div>' : ''}
-              ${q.answer ? `<details style="margin-top:6px;"><summary style="cursor:pointer;color:#10b981;font-weight:700;">Show Answer & Solution</summary><div style="margin-top:6px;padding:8px;background:#062319;border-radius:6px;"><b>Correct Answer:</b> ${esc(q.answer)}<br>${esc(q.explanation || q.solution || '')}</div></details>` : ''}
+              ${Array.isArray(q.options) && q.options.length ? '<div style="margin:8px 0;display:grid;gap:6px;">' + q.options.map((o, j) => '<div style="background:#111c30;padding:7px 12px;border-radius:6px;border:1px solid #1e293b;"><b>' + String.fromCharCode(65 + j) + '.</b> ' + formatMathText(o) + '</div>').join('') + '</div>' : ''}
+              ${(q.answer || q.finalAnswer) ? `<details style="margin-top:8px;"><summary style="cursor:pointer;color:#10b981;font-weight:800;font-size:12px;">👁 Show Answer & Detailed Solution</summary><div style="margin-top:6px;padding:10px 14px;background:#062319;border:1px solid #10b981;border-radius:8px;font-size:13px;line-height:1.65;"><b style="color:#a7f3d0;">Correct Answer:</b> ${formatMathText(q.answer || q.finalAnswer)}<br><div style="margin-top:6px;">${formatMathText(q.explanation || q.solution || '')}</div></div></details>` : ''}
             </div>
           `).join("");
+          typesetMath(libContainer);
         }
       } catch(e) {
         libContainer.innerHTML = '<p class="muted">Could not query Teacher Library: ' + esc(e.message) + '</p>';
@@ -1388,6 +1621,9 @@ Syllabus Text:
       document.getElementById("practicePanel").style.display = "none";
     };
 
+    // ==========================================
+    // FAST & HIGH-QUALITY AI MCQ GENERATION
+    // ==========================================
     window.generateTopicPractice = async function() {
       const p = getActiveProfile();
       if(!p) return;
@@ -1400,25 +1636,30 @@ Syllabus Text:
       const btn = document.getElementById("generate5McqsBtn");
       const out = document.getElementById("generatedPracticeResults");
       btn.disabled = true;
-      btn.textContent = "⏳ Generating…";
-      out.innerHTML = '<p class="muted">AI is creating 5 conceptual MCQs with full explanations…</p>';
+      btn.textContent = "⏳ Generating in seconds…";
+      out.innerHTML = '<p class="muted">AI is creating 5 authentic exam-standard MCQs with complete mathematical derivations…</p>';
       
       try {
         const topicName = hit.node.title;
-        const prompt = `Create exactly 5 high-quality, concept-testing MCQ practice questions for the topic: "${topicName}".
-Exam target: "${p.name}".
-Requirements:
-1. Each question must have 4 options (A, B, C, D).
-2. One clear correct answer (A, B, C, or D).
-3. Clear step-by-step educational explanation.
-Return ONLY valid JSON:
+        const examName = p.name;
+        
+        const prompt = `You are a distinguished university professor and senior examiner for "${examName}".
+Create exactly 5 high-quality, authentic, exam-standard MCQ practice questions strictly for the topic: "${topicName}".
+
+REQUIREMENTS FOR AUTHENTIC EXAM-STANDARD QUESTIONS:
+1. RIGOROUS & CONCEPTUAL: Test actual exam concepts, numerical problem-solving, canonical formulas, standard boundary conditions, or physical properties. Avoid overly simplistic or trivial definitional questions.
+2. LATEX NOTATION: Format all formulas, symbols, variables, powers, subscripts, and units using inline MathJax \( ... \) (e.g., \( \vec{\nabla} \cdot \vec{B} = 0 \), \( \psi(x) = A e^{ikx} \), \( \omega = 2\pi f \), \( 10\text{ m/s} \)).
+3. 4 PLAUSIBLE OPTIONS: Each question must have 4 distinct, well-calculated options (A, B, C, D) with proper units. No "All of the above" or "None of the above".
+4. ACCURATE ANSWER & STEP-BY-STEP SOLUTION: Specify the exact correct option (A, B, C, or D) and provide a concise, rigorous 2-3 line mathematical or conceptual derivation in "explanation".
+
+Return ONLY JSON:
 {
   "questions": [
     {
-      "question": "...",
-      "options": ["...", "...", "...", "..."],
+      "question": "Question text with inline MathJax \( ... \)",
+      "options": ["Option A with MathJax", "Option B with MathJax", "Option C with MathJax", "Option D with MathJax"],
       "answer": "A",
-      "explanation": "..."
+      "explanation": "Clear derivation showing formula and calculation"
     }
   ]
 }`;
@@ -1428,58 +1669,69 @@ Return ONLY valid JSON:
           generationConfig: {
             responseMimeType: "application/json",
             temperature: 0.2,
-            maxOutputTokens: 6000
+            maxOutputTokens: 2500
           }
         };
 
-        const d = await callGemini(key, body);
+        // Call fast Gemini endpoint with 20s timeout
+        const d = await callGemini(key, body, 20000);
         const raw = d?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
         const parsed = parseCleanJson(raw);
         const qs = parsed.questions || [];
         
-        if(!qs.length) throw Error("AI did not return practice questions.");
+        if(!qs.length) throw Error("AI did not return practice questions. Please retry.");
 
-        out.innerHTML = '<h4 style="color:#a78bfa;margin-top:14px;">✨ AI Generated Practice Questions</h4>' + qs.map((q, i) => `
-          <div class="practice-q">
-            <b>Q${i + 1}. ${esc(q.question)}</b> <span class="source-tag ai">AI Generated</span>
-            <div style="margin:8px 0;">
+        out.innerHTML = '<h4 style="color:#a78bfa;margin-top:16px;">✨ AI Generated Practice Questions (' + topicName + ')</h4>' + qs.map((q, i) => `
+          <div class="practice-q math-content">
+            <div style="font-size:14px;line-height:1.65;">
+              <b>Q${i + 1}.</b> ${formatMathText(q.question)} <span class="source-tag ai">AI Generated</span>
+            </div>
+            <div class="practice-options" style="margin:10px 0;">
               ${(q.options || []).map((opt, j) => `
-                <label style="display:flex;gap:8px;padding:6px;background:#0f172a;border-radius:6px;margin:4px 0;cursor:pointer;">
-                  <input type="radio" name="ai_q_${i}" value="${String.fromCharCode(65 + j)}">
-                  <span><b>${String.fromCharCode(65 + j)}.</b> ${esc(opt)}</span>
+                <label>
+                  <input type="radio" name="ai_gen_q_${i}" value="${String.fromCharCode(65 + j)}">
+                  <span><b>${String.fromCharCode(65 + j)}.</b> ${formatMathText(opt)}</span>
                 </label>
               `).join("")}
             </div>
-            <button class="mini-btn btn" onclick="checkAnswer('ai_q_${i}', '${esc(q.answer)}', this)">Check Answer</button>
-            <div class="ans-feedback" style="margin-top:6px;"></div>
-            <details style="margin-top:6px;">
-              <summary style="cursor:pointer;color:#38bdf8;font-size:12px;font-weight:700;">Show Explanation</summary>
-              <div style="margin-top:4px;padding:8px;background:#091224;border-radius:6px;font-size:13px;line-height:1.6;">
-                <b>Answer: ${esc(q.answer)}</b><br>${esc(q.explanation)}
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <button class="mini-btn btn" onclick="checkAnswer('ai_gen_q_${i}', '${esc(q.answer)}', this)">Check Answer</button>
+              <div class="answer-feedback-box"></div>
+            </div>
+            <details style="margin-top:8px;">
+              <summary style="cursor:pointer;color:#38bdf8;font-size:12px;font-weight:700;">Show Step-by-Step Derivation</summary>
+              <div style="margin-top:6px;padding:10px 14px;background:#091224;border:1px solid #1e293b;border-radius:8px;font-size:13px;line-height:1.65;">
+                <b style="color:#38bdf8;">Correct Option: ${esc(q.answer)}</b><br>
+                <div style="margin-top:4px;">${formatMathText(q.explanation)}</div>
               </div>
             </details>
           </div>
         `).join("");
 
+        typesetMath(out);
+
       } catch(e) {
         out.innerHTML = '<p class="muted">Generation failed: ' + esc(e.message) + '</p>';
+        alert("Practice generation error: " + e.message);
       } finally {
         btn.disabled = false;
-        btn.textContent = "✨ Generate 5 MCQs with AI";
+        btn.textContent = "✨ Generate 5 MCQs (AI)";
       }
     };
 
     window.checkAnswer = function(name, correct, btn) {
       const selected = document.querySelector('input[name="' + name + '"]:checked');
-      const box = btn.nextElementSibling;
+      const box = btn.parentElement.querySelector(".answer-feedback-box");
       if(!selected) {
-        box.innerHTML = '<span style="color:#f59e0b;font-weight:700;">Please select an option first.</span>';
+        alert("Please select an option (A, B, C, or D) first.");
         return;
       }
       if(selected.value.trim().toUpperCase() === correct.trim().toUpperCase()) {
-        box.innerHTML = '<span style="color:#10b981;font-weight:900;">✓ Correct! Well done.</span>';
+        box.className = "answer-feedback-box correct";
+        box.innerHTML = "✓ Correct Answer! Well done.";
       } else {
-        box.innerHTML = '<span style="color:#ef4444;font-weight:900;">✕ Incorrect. Correct answer is Option ' + correct + '.</span>';
+        box.className = "answer-feedback-box incorrect";
+        box.innerHTML = "✕ Incorrect. The correct answer is Option " + correct + ".";
       }
     };
 
@@ -1495,7 +1747,7 @@ Return ONLY valid JSON:
       // Load from LocalStorage first
       const hasLocal = loadFromLocalStorage();
       if(!hasLocal || !profiles.length) {
-        // Initialize default with UPPSC Assistant Professor (Physics) so the user's syllabus is pre-loaded!
+        // Initialize default with granular UPPSC Assistant Professor (Physics) so user's syllabus is pre-loaded!
         profiles = [
           {
             id: makeExamId(),
