@@ -1240,9 +1240,16 @@ async function extract(){
       totalDetected=qs.length;render();
       $("status").textContent="✔ Native PDF extraction complete — "+qs.length+" question(s).";
     }catch(nativeBatchErr){
-      console.warn("Native PDF batch extraction failed; using page-image fallback:",nativeBatchErr);
-      qs=[];all=[];
+      console.error("[A2Z AI Import] Native PDF batch failed; stopping instead of silently reprocessing the entire PDF page-by-page:",nativeBatchErr);
+      // Do not reset already extracted questions. A failed batch must be visible to
+      // the teacher; silently rescanning every page can take an hour and hide the
+      // original API/PDF error behind a misleading "no questions" message.
+      throw new Error("PDF extraction stopped at the native batch for pages " +
+        (typeof rg!=="undefined" && rg ? rg[0]+"–"+rg[1] : "currently selected") +
+        ". Earlier questions, if any, remain in review. Actual error: " +
+        (nativeBatchErr && nativeBatchErr.message ? nativeBatchErr.message : String(nativeBatchErr)));
     }
+    if(!qs.length)throw new Error("Gemini returned zero questions from the original PDF batches. The app stopped instead of spending another hour rescanning every page. Check the Gemini API error/status and try a smaller page range.");
     if(qs.length){
       // Native PDF path succeeded. Skip the slower page-image extraction loop.
     } else {
