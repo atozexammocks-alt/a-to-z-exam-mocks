@@ -1,98 +1,1522 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A to Z Exam Mocks — AI Syllabus Tree</title>
-<style>
-*{box-sizing:border-box}body{margin:0;background:#060911;color:#f8fafc;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}header{padding:15px 4%;background:#0b1120;border-bottom:1px solid #263449;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}a{color:#7dd3fc}.wrap{max-width:1250px;margin:22px auto;padding:0 14px}.card{background:#0b1120;border:1px solid #263449;border-radius:14px;padding:18px;margin-bottom:15px}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:10px 0}input,button,select,textarea{background:#111c30;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:9px 10px;max-width:100%}button{cursor:pointer;font-weight:700}button:hover{border-color:#38bdf8}.row input[type=text],.row input[type=password]{flex:1;min-width:180px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{background:#0f172a;padding:13px;border:1px solid #263449;border-radius:10px}.stat b{display:block;font-size:23px;color:#38bdf8}.stat span,.muted{font-size:12px;color:#94a3b8}.bar{height:8px;background:#1e293b;border-radius:9px;overflow:hidden;margin-top:12px}.bar div{height:100%;background:#10b981;width:0}.tree ul{list-style:none;margin:7px 0 7px 18px;padding-left:13px;border-left:1px solid #334155}.tree li{padding:7px 0}.node{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.topic{font-weight:650}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:720px}th,td{text-align:left;padding:10px;border-bottom:1px solid #263449;font-size:12px}th{color:#7dd3fc;background:#101a2d}.status{font-size:11px;padding:6px;font-weight:700}.status.not-started{background:#450a0a;border-color:#ef4444;color:#fecaca}.status.in-progress{background:#713f12;border-color:#eab308;color:#fef08a}.status.completed{background:#064e3b;border-color:#10b981;color:#d1fae5}.exam-tabs{display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;margin:10px 0}.exam-tab{border:1px solid #475569;background:#111c30;color:#cbd5e1;border-radius:999px;padding:9px 14px}.exam-tab.active{background:#075985;border-color:#38bdf8;color:#fff;box-shadow:0 0 0 1px #38bdf8 inset}.exam-actions{display:flex;gap:8px;flex-wrap:wrap}.log-grid{display:grid;grid-template-columns:150px 130px minmax(180px,1fr) auto;gap:8px;align-items:end}.log-list{display:grid;gap:7px;margin-top:10px}.log-item{padding:10px;border:1px solid #334155;border-radius:9px;background:#0f172a}.print-only{display:none}@media(max-width:700px){.log-grid{grid-template-columns:1fr 1fr}.log-grid textarea{grid-column:1/-1}.log-grid button{grid-column:1/-1}}@media print{body{background:#fff!important;color:#111!important;font-size:11pt}.wrap{max-width:none;margin:0;padding:0}.card{background:#fff!important;color:#111!important;border:0!important;box-shadow:none!important;padding:8px!important;margin:0 0 12px!important}.no-print,header a,header #student-email-tag{display:none!important}.print-syllabus .daily-log-card{display:none!important}.print-log .syllabus-section{display:none!important}.print-log .daily-log-card{display:block!important}.print-only{display:block!important;color:#111!important}#content{color:#111!important}.tree ul{border-left:1px solid #999!important}.tree li,.topic,th,td,.muted{color:#111!important}table{min-width:0!important}th{background:#eee!important}.status{display:inline-block!important;appearance:none!important;border:0!important;background:transparent!important;color:#111!important;padding:0!important}button,select,input{display:none!important}.bar{border:1px solid #aaa}.bar div{background:#555!important} .stat{background:#fff!important;border:1px solid #bbb!important}.stat b{color:#111!important}a{color:#111!important;text-decoration:none}}.key-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:10px 0}.key-row input{flex:1;min-width:220px}.key-note{font-size:11px;color:#94a3b8}.primary{background:#075985;border-color:#0284c7}.danger{border-color:#7f1d1d}.hint{line-height:1.5}.hidden{display:none!important}.practice-q{border:1px solid #334155;background:#0f172a;border-radius:10px;padding:13px;margin:10px 0}.practice-q img{max-width:100%;max-height:260px;object-fit:contain;background:#fff;border-radius:7px;margin:8px 0}.practice-options{display:grid;gap:6px;margin:9px 0}.practice-options label{display:flex;gap:8px;align-items:flex-start;background:#111c30;padding:8px;border-radius:7px}.source-tag{font-size:10px;font-weight:800;padding:4px 7px;border-radius:999px;background:#164e63;color:#cffafe}.source-tag.ai{background:#312e81;color:#e0e7ff}.answer-box{margin-top:8px;padding:9px;border-radius:7px;background:#064e3b;color:#d1fae5}#message{color:#34d399;font-size:12px;white-space:pre-wrap}.progress{display:none;height:5px;background:#1e293b;border-radius:8px;overflow:hidden}.progress div{height:100%;width:35%;background:#38bdf8;animation:slide 1.1s infinite alternate}@keyframes slide{from{margin-left:0}to{margin-left:65%}}@media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.card{padding:12px}}
-</style></head><body>
-<header><strong>🌳 A to Z Exam Mocks — AI Syllabus Analyzer</strong><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span id="student-email-tag" style="font-size:12px;color:#38bdf8;font-weight:700"></span><a href="student.html">← Back to Student Portal</a></div></header>
-<main class="wrap">
-<section class="card"><div class="row no-print" style="margin-top:0"><button type="button" class="primary" id="examsToggle" onclick="toggleExams()">📚 Exams</button><button type="button" onclick="addExam()">＋ Add Exam</button><strong id="activeExamLabel" style="margin-left:auto;color:#7dd3fc">No exam selected</strong></div><div id="examPanel" class="no-print hidden"><div id="examTabs" class="exam-tabs" aria-label="Your exams"></div></div><input id="exam" type="hidden">
-<div class="key-row no-print"><input id="geminiKey" type="password" autocomplete="off" placeholder="Gemini API key (auto-filled from AI Question Import if saved)"><button type="button" onclick="saveGeminiKey()">🔑 Save Key</button><button type="button" onclick="testGeminiKey()">Test Key</button><span class="key-note">Same browser key as AI Question Import · saved on this device only</span></div>
-<div class="row no-print"><input id="file" type="file" accept=".pdf,.txt,.csv,.md"><button class="primary" onclick="analyzeAI()">✨ Analyze syllabus with AI</button></div>
-<div class="row no-print"><button onclick="importText()">Import as text (no AI)</button><button onclick="addTopic()">＋ Add topic</button><button class="primary" onclick="save()">☁ Save Syllabus & Progress</button><button onclick="load()">↻ Load saved</button></div><div id="busy" class="progress"><div></div></div><p id="message" aria-live="polite"></p></section>
-<section class="card syllabus-section"><div class="row no-print"><button onclick="view('tree')" id="treeBtn">🌳 Tree view</button><button onclick="view('table')" id="tableBtn">▦ Table view</button><input id="search" type="text" placeholder="Search topic…" oninput="render()" style="flex:1;min-width:140px"><button onclick="printSyllabus()">🖨 Print / Save PDF</button></div><h2 id="printExamTitle" class="print-only"></h2>
-<div class="stats"><div class="stat"><b id="total">0</b><span>Total topics / subtopics</span></div><div class="stat"><b id="done">0</b><span>Completed</span></div><div class="stat"><b id="pct">0%</b><span>Overall completion</span></div><div class="stat"><b id="pyqs">0</b><span>Topics with PYQ links</span></div></div><div class="bar"><div id="bar"></div></div></section>
-<section class="card syllabus-section"><div id="content" class="muted">Choose a syllabus file and run AI analysis. Your topics will appear here in both Tree and Table views.</div></section><section class="card hidden" id="practicePanel"><div class="row" style="margin-top:0"><div><h3 style="margin:0">🧠 Topic Practice & PYQs</h3><p class="muted" id="practiceTopicLabel" style="margin:5px 0 0"></p></div><div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap"><button class="primary" id="generatePracticeBtn" onclick="generateTopicPractice()">✨ Generate 5 MCQs</button><button onclick="closePractice()">✕ Close</button></div></div><div id="libraryPracticeResults"></div><div id="generatedPracticeResults"></div></section><section class="card daily-log-card"><h3>📅 Daily Study Log — <span id="logExamName">Current exam</span></h3><p class="muted">आज इस परीक्षा में कितना काम किया, तारीख और पढ़ाई के घंटे के साथ दर्ज करें। हर परीक्षा की diary अलग रहेगी।</p><div class="log-grid no-print"><label>Date<br><input id="logDate" type="date"></label><label>Study hours<br><input id="logHours" type="number" min="0" max="24" step="0.5" placeholder="e.g. 2.5"></label><label>आज क्या पढ़ा?<br><textarea id="logNote" rows="2" placeholder="जैसे: Fourier Transform के 3 topics पूरे किए…" style="width:100%"></textarea></label><button class="primary" onclick="addDailyLog()">＋ Save Today’s Work</button></div><div id="dailyLogList" class="log-list"></div><div class="row no-print"><button onclick="printDailyLog()">🖨 Print Daily Log / PDF</button></div></section>
-</main>
-<script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import{getFirestore,doc,getDoc,setDoc,collection,getDocs}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import{getAuth,signInAnonymously}from"https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-const cfg={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
-const app=initializeApp(cfg),db=getFirestore(app),auth=getAuth(app);let nodes=[],mode="table",profiles=[],activeExamId="",libraryQuestions=null,libraryLoadPromise=null;
-const email=()=>((localStorage.getItem("ExamVault_Student_Email")||"").trim().toLowerCase());
-const key=()=>encodeURIComponent(email()).replace(/%/g,"_");
-const msg=s=>document.getElementById("message").textContent=s;
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const flat=(arr=nodes,depth=0,out=[])=>{arr.forEach(n=>{out.push({n,depth});flat(n.children||[],depth+1,out)});return out};
-const makeId=()=>"t_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7);
-const makeExamId=()=>"exam_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,6);
-const KEY="A2Z_GEMINI_API_KEY";
-function activeProfile(){return profiles.find(x=>x.id===activeExamId)||null}
-function syncExamName(){}
-function syncProfileNodes(){const p=activeProfile();if(p){p.nodes=nodes}}
-window.toggleExams=()=>{const panel=document.getElementById("examPanel");panel.classList.toggle("hidden");document.getElementById("examsToggle").classList.toggle("primary",!panel.classList.contains("hidden"))};
-function renderExamTabs(){const el=document.getElementById("examTabs");el.innerHTML=profiles.map(p=>'<button type="button" class="exam-tab '+(p.id===activeExamId?'active':'')+'" onclick="switchExam(\''+p.id+'\')">'+esc(p.name||"Untitled exam")+'</button>').join("")||'<span class="muted">No exams added yet. Click “Add Exam” to create one.</span>';const p=activeProfile();document.getElementById("activeExamLabel").textContent=p?.name||"No exam selected";document.getElementById("logExamName").textContent=p?.name||"Current exam";renderDailyLogs()}
-window.switchExam=id=>{syncProfileNodes();const p=profiles.find(x=>x.id===id);if(!p)return;activeExamId=id;nodes=p.nodes||[];document.getElementById("exam").value=p.name||"";renderExamTabs();render();msg("Switched to "+(p.name||"exam")+". Its syllabus and daily study log are separate.")};
-window.addExam=()=>{syncProfileNodes();const name=prompt("Enter the examination name (e.g. SSC CGL, UPPSC Assistant Professor, HPSC PGT):");if(!name||!name.trim())return;const existing=profiles.find(p=>p.name.toLowerCase()===name.trim().toLowerCase());if(existing){switchExam(existing.id);document.getElementById("examPanel").classList.remove("hidden");return}createExam(name.trim());document.getElementById("examPanel").classList.remove("hidden")};
-function createExam(name){const p={id:makeExamId(),name,nodes:[],dailyLog:[]};profiles.push(p);activeExamId=p.id;nodes=p.nodes;document.getElementById("exam").value=p.name;renderExamTabs();render();save(false);msg("Added "+p.name+". Upload its syllabus and analyze separately.")}
-function normalize(arr){return(arr||[]).filter(x=>x&&typeof x.title==="string"&&x.title.trim()).map(x=>({id:typeof x.id==="string"?x.id:makeId(),title:x.title.trim(),status:["completed","in_progress","not_started"].includes(x.status)?x.status:"not_started",pyq:typeof x.pyq==="string"?x.pyq:"",practiceSets:Array.isArray(x.practiceSets)?x.practiceSets.slice(-3):[],children:normalize(Array.isArray(x.children)?x.children:[])}))}
-function find(id,arr=nodes,parent=null){for(let i=0;i<arr.length;i++){if(arr[i].id===id)return{n:arr[i],arr,i,parent};const f=find(id,arr[i].children||[],arr[i]);if(f)return f}return null}
-window.view=v=>{mode=v;render()};
-const emailTag=document.getElementById("student-email-tag");if(emailTag)emailTag.textContent=email()||"Student not logged in";
-function stats(){const a=flat(),d=a.filter(x=>x.n.status==="completed").length,p=a.filter(x=>x.n.pyq).length,v=a.length?Math.round(d/a.length*100):0;document.getElementById("total").textContent=a.length;document.getElementById("done").textContent=d;document.getElementById("pct").textContent=v+"%";document.getElementById("pyqs").textContent=p;document.getElementById("bar").style.width=v+"%"}
-function status(n){const cls=n.status==="completed"?"completed":n.status==="in_progress"?"in-progress":"not-started";return'<select class="status '+cls+'" aria-label="Topic status" onchange="setStatus(\''+n.id+'\',this.value)"><option value="not_started" '+(n.status==="not_started"?"selected":"")+'>🔴 Not completed</option><option value="in_progress" '+(n.status==="in_progress"?"selected":"")+'>🟡 Continuing</option><option value="completed" '+(n.status==="completed"?"selected":"")+'>🟢 Completed</option></select>'}
-function treeNode(n){return'<li><div class="node"><span class="topic">'+esc(n.title)+'</span>'+status(n)+(n.pyq?'<a href="'+esc(n.pyq)+'" target="_blank" rel="noopener">📚 PYQ</a>':'')+'<button onclick="practiceTopic(\''+n.id+'\')">🧠 Practice</button><button onclick="editTopic(\''+n.id+'\')">Edit</button><button class="danger" onclick="removeTopic(\''+n.id+'\')">Delete</button></div>'+(n.children.length?'<ul>'+n.children.map(treeNode).join("")+'</ul>':'')+'</li>'}
-function matches(n,q){return!q||n.title.toLowerCase().includes(q)||(n.children||[]).some(x=>matches(x,q))}
-function filter(arr,q){return arr.filter(n=>matches(n,q)).map(n=>({...n,children:filter(n.children||[],q)}))}
-window.render=()=>{stats();document.getElementById("printExamTitle").textContent=(activeProfile()?.name||document.getElementById("exam").value||"Syllabus")+" — "+(mode==="tree"?"Tree View":"Tabular View");document.getElementById("treeBtn").style.borderColor=mode==="tree"?"#38bdf8":"#334155";document.getElementById("tableBtn").style.borderColor=mode==="table"?"#38bdf8":"#334155";const q=document.getElementById("search").value.trim().toLowerCase(),a=filter(nodes,q),box=document.getElementById("content");if(!a.length){box.innerHTML='<p class="muted">No topics to display. Upload a syllabus and select “Analyze syllabus with AI”.</p>';return}if(mode==="tree"){box.innerHTML='<div class="tree"><ul style="margin-left:0;padding-left:0;border:0">'+a.map(treeNode).join("")+'</ul></div>';return}let rows=[];const walk=(ns,d=0)=>ns.forEach(n=>{rows.push({n,d});walk(n.children||[],d+1)});walk(a);box.innerHTML='<div class="tablewrap"><table><thead><tr><th>Unit / Main topic / Subtopic</th><th>Study status</th><th>PYQ link</th><th>Actions</th></tr></thead><tbody>'+rows.map(({n,d})=>'<tr><td style="padding-left:'+(10+d*20)+'px">'+(d?"↳ ":"")+esc(n.title)+'</td><td>'+status(n)+'</td><td>'+(n.pyq?'<a href="'+esc(n.pyq)+'" target="_blank" rel="noopener">Open PYQ</a>':'—')+'</td><td><button onclick="practiceTopic(\''+n.id+'\')">🧠 Practice</button> <button onclick="editTopic(\''+n.id+'\')">Edit</button> <button class="danger" onclick="removeTopic(\''+n.id+'\')">Delete</button></td></tr>').join("")+'</tbody></table></div>'};
-window.setStatus=(i,s)=>{const f=find(i);if(f){f.n.status=s;render();syncProfileNodes();save(false)}};
-window.addTopic=()=>{const title=prompt("Topic or subtopic name:");if(!title?.trim())return;const all=flat();const parentText=prompt("Parent topic name (leave blank for main topic). Existing topics: "+all.map(x=>x.n.title).join(" | "),"");const n={id:makeId(),title:title.trim(),status:"not_started",pyq:"",children:[]};if(parentText?.trim()){const p=all.find(x=>x.n.title.toLowerCase()===parentText.trim().toLowerCase());if(!p)return alert("Parent topic not found. Enter an exact existing topic name.");p.n.children.push(n)}else nodes.push(n);render();save(false)};
-window.editTopic=i=>{const f=find(i);if(!f)return;const title=prompt("Topic name:",f.n.title);if(title===null||!title.trim())return;const pyq=prompt("PYQ URL (optional):",f.n.pyq||"");if(pyq===null)return;f.n.title=title.trim();f.n.pyq=pyq.trim();render();save(false)};
-window.removeTopic=i=>{if(!confirm("Delete this topic and all its subtopics?"))return;const f=find(i);if(f){f.arr.splice(f.i,1);render();save(false)}};
-let activePracticeNodeId="";
-function topicPath(id,arr=nodes,path=[]){for(const n of arr){const next=[...path,n.title];if(n.id===id)return next;const f=topicPath(id,n.children||[],next);if(f)return f}return null}
-function normalizeSearch(s){return String(s||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(w=>w.length>2)}
-function libraryQuestionText(q){return String(q.qText||q.text||q.questionText||q.statement||"")}
-function libraryOptions(q){if(Array.isArray(q.options))return q.options.map((x,i)=>typeof x==="string"?x:String(x?.text||x?.value||""));const raw=String(q.optText||q.optionsText||"");return raw?raw.split(/\s*\|\s*|\n/).map(x=>x.replace(/^\s*[A-D][.)]\s*/,"").trim()).filter(Boolean):[]}
-async function loadTeacherLibrary(){if(libraryQuestions)return libraryQuestions;if(libraryLoadPromise)return libraryLoadPromise;libraryLoadPromise=(async()=>{if(!auth.currentUser)await signInAnonymously(auth);const snap=await getDocs(collection(db,"questions"));libraryQuestions=snap.docs.map(d=>({id:d.id,...d.data()}));return libraryQuestions})();try{return await libraryLoadPromise}catch(e){libraryLoadPromise=null;throw e}}
-function sourceBadge(q){const year=q.year||q.examYear||q.sourceYear||"",exam=q.sourceExam||q.examName||q.exam||"";if(q.isPYQ===true||q.isPreviousYear===true||q.sourceType==="PYQ"){return ' <span class="source-tag">PYQ'+(exam?' · '+esc(exam):'')+(year?' · '+esc(year):' · year not recorded')+'</span>'}return ' <span class="source-tag">Teacher Library · source year not recorded</span>'}
-function renderLibraryPractice(rows){const el=document.getElementById("libraryPracticeResults");if(!rows.length){el.innerHTML='<p class="muted">इस topic से सीधे match होते हुए Teacher Library में अभी कोई question नहीं मिला। नीचे AI MCQs generate कर सकते हैं।</p>';return}el.innerHTML='<h4>📚 Teacher Library से मिले प्रश्न ('+rows.length+')</h4><p class="muted">इन प्रश्नों को पहले दिखाया गया है। PYQ का year केवल तभी दिखेगा जब record में year/source मौजूद हो।</p>'+rows.slice(0,20).map((q,i)=>{const text=libraryQuestionText(q),opts=libraryOptions(q),img=q.questionImage||q.question||q.cropImage||q.figureImage||"",sol=q.solution||q.solutionText||"",answer=q.key||q.answer||q.correctAnswer||"";return '<article class="practice-q"><div><b>Library Question '+(i+1)+'</b>'+sourceBadge(q)+'</div>'+(text?'<p>'+esc(text)+'</p>':'')+(img&&String(img).startsWith('data:')||img&&String(img).startsWith('http')?'<img loading="lazy" src="'+esc(img)+'" alt="Library question image">':'')+(opts.length?'<div class="practice-options">'+opts.map((o,j)=>'<div>'+String.fromCharCode(65+j)+'. '+esc(o)+'</div>').join('')+'</div>':'')+(answer?'<details><summary>Show answer / key</summary><p>'+esc(answer)+'</p>'+(sol?'<p>'+esc(sol)+'</p>':'')+'</details>':'')+'</article>'}).join("")}
-window.practiceTopic=async id=>{const f=find(id);if(!f)return;activePracticeNodeId=id;const path=topicPath(id)||[f.n.title];document.getElementById("practiceTopicLabel").textContent=(activeProfile()?.name||"Exam")+" · "+path.join(" → ");document.getElementById("practicePanel").classList.remove("hidden");document.getElementById("libraryPracticeResults").innerHTML='<p class="muted">Teacher Library में इस topic के PYQs/questions खोजे जा रहे हैं…</p>';document.getElementById("generatedPracticeResults").innerHTML=(f.n.practiceSets||[]).length?renderSavedPractice(f.n.practiceSets[f.n.practiceSets.length-1]):'';document.getElementById("practicePanel").scrollIntoView({behavior:"smooth",block:"start"});try{const all=await loadTeacherLibrary();const terms=normalizeSearch(path.join(" "));const ranked=all.map(q=>{const hay=normalizeSearch([q.topic,q.chapter,q.unit,q.subject,q.qText,q.text,q.folderPath].join(" "));const score=terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0);return{q,score}}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);renderLibraryPractice(ranked.map(x=>x.q));}catch(e){document.getElementById("libraryPracticeResults").innerHTML='<p class="muted">Teacher Library नहीं खुल पाई: '+esc(e.message)+'. Firebase access/rules या login जाँचें। AI-generated practice फिर भी नीचे से try कर सकते हैं।</p>'}};
-window.closePractice=()=>document.getElementById("practicePanel").classList.add("hidden");
-function renderSavedPractice(set){if(!set||!Array.isArray(set.questions))return '';return '<h4>पिछला AI Practice Set · '+esc(set.createdAt||'')+'</h4>'+set.questions.map((q,i)=>renderPracticeQuestion(q,i,'saved_'+i)).join('')}
-function renderPracticeQuestion(q,i,prefix){const opts=Array.isArray(q.options)?q.options:[];return '<article class="practice-q"><div><b>Q'+(i+1)+'.</b> '+esc(q.question||q.text||'')+' <span class="source-tag ai">AI-generated practice</span></div><div class="practice-options">'+opts.map((o,j)=>'<label><input type="radio" name="'+prefix+'" value="'+j+'"> <span>'+String.fromCharCode(65+j)+'. '+esc(o)+'</span></label>').join('')+'</div><button type="button" onclick="checkPracticeAnswer(\''+prefix+'\','+Number(q.answerIndex||0)+',this)">Check Answer</button><div class="answer-feedback"></div><details><summary>Explanation</summary><p>'+esc(q.explanation||'')+'</p></details></article>'}
-window.checkPracticeAnswer=(name,correct,btn)=>{const chosen=document.querySelector('input[name="'+name+'"]:checked'),box=btn.parentElement.querySelector('.answer-feedback');if(!chosen){box.textContent='पहले एक option चुनें।';return}box.className='answer-feedback answer-box';box.textContent=Number(chosen.value)===correct?'✓ सही उत्तर!':'अभी सही नहीं। सही उत्तर: '+String.fromCharCode(65+correct)};
-window.generateTopicPractice=async()=>{const f=find(activePracticeNodeId);if(!f)return;const apiKey=(document.getElementById("geminiKey").value.trim()||localStorage.getItem(KEY)||"").trim();if(!apiKey)return alert("पहले Gemini API key save करें।");const btn=document.getElementById("generatePracticeBtn"),out=document.getElementById("generatedPracticeResults");btn.disabled=true;btn.textContent="Generating…";out.innerHTML='<p class="muted">AI topic-level MCQs और explanations तैयार कर रहा है…</p>';try{const path=topicPath(activePracticeNodeId)||[f.n.title],all=libraryQuestions||[];const terms=normalizeSearch(path.join(" "));const examples=all.map(q=>({q,score:terms.reduce((n,t)=>n+(normalizeSearch([q.topic,q.chapter,q.subject,q.qText].join(' ')).includes(t)?1:0),0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,5).map(x=>({question:libraryQuestionText(x.q),options:libraryOptions(x.q)}));const prompt='Create exactly 5 high-quality exam-oriented MCQ practice questions for the topic path: '+path.join(' > ')+'. Exam: '+(activeProfile()?.name||'the selected examination')+'. Use the syllabus context and the following teacher-library examples only to understand level/style; do not copy them verbatim. Library examples: '+JSON.stringify(examples)+'. Questions must test concepts, include four plausible options, one correct answer index 0-3, and a clear worked explanation. Do not claim any generated question is a previous-year question. Do not invent years or exam provenance. Return only JSON: {"questions":[{"question":"...","options":["...","...","...","..."],"answerIndex":0,"explanation":"..."}]}';const data=await geminiRequest(apiKey,{contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:0.35,maxOutputTokens:7000}});const raw=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('');const parsed=parseJson(raw);if(!Array.isArray(parsed.questions)||!parsed.questions.length)throw Error('AI did not return practice questions.');const qs=parsed.questions.slice(0,5).map(q=>({question:String(q.question||''),options:Array.isArray(q.options)?q.options.slice(0,4).map(String):[],answerIndex:Math.max(0,Math.min(3,Number(q.answerIndex)||0)),explanation:String(q.explanation||'')})).filter(q=>q.question&&q.options.length===4);if(!qs.length)throw Error('AI returned an invalid MCQ format.');const set={createdAt:new Date().toLocaleString(),questions:qs};f.n.practiceSets=f.n.practiceSets||[];f.n.practiceSets.push(set);f.n.practiceSets=f.n.practiceSets.slice(-3);out.innerHTML='<h4>✨ AI-generated Practice Set</h4><p class="muted">ये नए अभ्यास प्रश्न हैं, PYQ नहीं। Answer check और explanation उपलब्ध हैं।</p>'+qs.map((q,i)=>renderPracticeQuestion(q,i,'new_'+i)).join('');syncProfileNodes();await save(false);msg('Practice set saved with '+f.n.title+'.');}catch(e){console.error(e);out.innerHTML='<p class="muted">Practice generation failed: '+esc(e.message)+'</p>';alert('Practice generation failed: '+e.message)}finally{btn.disabled=false;btn.textContent='✨ Generate 5 MCQs'}};
-async function getText(file){if(!file)throw Error("Please choose a syllabus file first.");if(!file.name.toLowerCase().endsWith(".pdf"))return await file.text();if(!window.pdfjsLib)await new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";s.onload=res;s.onerror=()=>rej(Error("PDF reader failed to load. Check internet connection."));document.head.appendChild(s)});window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let text="";for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i),t=await p.getTextContent();text+="\n"+t.items.map(x=>x.str).join(" ")}return text}
-function parseJson(raw){let s=raw.trim().replace(/^\x60\x60\x60(?:json)?/i,"").replace(/\x60\x60\x60$/,"").trim();const start=s.indexOf("{"),end=s.lastIndexOf("}");if(start<0||end<start)throw Error("AI response did not contain valid JSON. Try again or use text import.");return JSON.parse(s.slice(start,end+1))}
-window.saveGeminiKey=()=>{const v=document.getElementById("geminiKey").value.trim();if(!v)return alert("Enter a Gemini API key first.");localStorage.setItem(KEY,v);msg("Gemini API key saved on this browser. AI Question Import will use the same key.")};
-window.testGeminiKey=async()=>{const k=document.getElementById("geminiKey").value.trim()||localStorage.getItem(KEY)||"";if(!k)return alert("Enter your Gemini API key first.");const b=document.getElementById("busy");b.style.display="block";msg("Testing Gemini API key…");try{await geminiRequest(k,{contents:[{role:"user",parts:[{text:"Reply with exactly: OK"}]}],generationConfig:{temperature:0,maxOutputTokens:8}});msg("Gemini API key is working.")}catch(e){msg("Gemini key test failed: "+e.message);alert(e.message)}finally{b.style.display="none"}};
-async function geminiRequest(apiKey,body){
- const models=["gemini-3.8-flash","gemini-3.6-flash","gemini-3.5-flash-lite","gemini-2.5-flash-lite","gemini-2.5-flash"];let last="";
- if(!apiKey)throw Error("Gemini API key is empty.");
- for(const model of models){for(let attempt=0;attempt<2;attempt++){
-  msg("Connecting to "+model+"…");
-  let response,data;try{response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":apiKey},body:JSON.stringify(body)});data=await response.json().catch(()=>({}));}catch(e){last=model+": "+e.message;if(attempt===0)continue;break;}
-  if(response.ok&&data?.candidates?.length)return data;
-  const detail=String(data?.error?.message||("Gemini API error "+response.status));last=model+": HTTP "+response.status+" — "+detail;
-  if(response.status===401||response.status===403)throw Error(last);
-  if(response.status===400&&!/model|not found|not available|not supported/i.test(detail))throw Error(last);
-  const missing=response.status===404||/model.*(not found|not available|not supported|unknown)|not found.*model/i.test(detail);
-  if(missing)break;
-  const transient=[408,429,500,502,503,504].includes(response.status)||/high demand|overloaded|temporar|unavailable|capacity|resource exhausted|timeout|rate limit/i.test(detail);
-  if(!transient)throw Error(last);
-  if(attempt===0)await new Promise(resolve=>setTimeout(resolve,1800));
- }}
- throw Error("All AI Question Import models were unavailable. Last response: "+last);
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>A to Z Exam Mocks — AI Multi-Exam Syllabus Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #060911;
+      color: #f8fafc;
+      font: 14px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+    }
+    header {
+      padding: 14px 20px;
+      background: #0b1120;
+      border-bottom: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    a { color: #38bdf8; text-decoration: none; font-weight: 700; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 1350px; margin: 20px auto; padding: 0 16px; }
+    .card {
+      background: #0b1120;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin: 10px 0;
+    }
+    input, button, select, textarea {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 13px;
+    }
+    button {
+      cursor: pointer;
+      font-weight: 800;
+      transition: all 0.15s ease;
+    }
+    button:hover { border-color: #38bdf8; transform: translateY(-1px); }
+    .btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #fff;
+    }
+    .primary { background: #0284c7; border-color: #38bdf8; color: #fff; }
+    .primary:hover { background: #0369a1; }
+    .green { background: #059669; border-color: #10b981; color: #fff; }
+    .green:hover { background: #047857; }
+    .purple { background: #6d28d9; border-color: #a78bfa; color: #fff; }
+    .purple:hover { background: #5b21b6; }
+    .danger { background: #7f1d1d; border-color: #ef4444; color: #fee2e2; }
+    .danger:hover { background: #991b1b; }
+    .mini-btn { padding: 5px 9px; font-size: 11px; font-weight: 800; border-radius: 6px; }
+    
+    /* MULTI-EXAM DASHBOARD CARDS */
+    .exams-dashboard {
+      margin-bottom: 16px;
+    }
+    .exams-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .exam-card {
+      background: #090e1a;
+      border: 1.5px solid #1e293b;
+      border-radius: 12px;
+      padding: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+    .exam-card:hover {
+      border-color: #38bdf8;
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.15);
+      transform: translateY(-2px);
+    }
+    .exam-card.active {
+      background: #0c182c;
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 1.5px #38bdf8, 0 8px 25px rgba(0,0,0,0.4);
+    }
+    .exam-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .exam-card-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: #f8fafc;
+      word-break: break-word;
+    }
+    .exam-badge {
+      font-size: 11px;
+      font-weight: 900;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .badge-green { background: #064e3b; color: #a7f3d0; border: 1px solid #10b981; }
+    .badge-yellow { background: #713f12; color: #fef08a; border: 1px solid #eab308; }
+    .badge-red { background: #450a0a; color: #fecaca; border: 1px solid #ef4444; }
+    .exam-mini-bar {
+      height: 6px;
+      background: #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .exam-mini-bar div {
+      height: 100%;
+      background: #10b981;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .exam-card-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+    .exam-card-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+      padding-top: 8px;
+      border-top: 1px solid #1e293b;
+    }
+    .add-exam-card {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1.5px dashed #38bdf8;
+      border-radius: 12px;
+      padding: 16px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-align: center;
+      min-height: 110px;
+    }
+    .add-exam-card:hover {
+      background: rgba(56, 189, 248, 0.08);
+      border-color: #7dd3fc;
+    }
+
+    /* STATS & PROGRESS BAR */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .stat {
+      background: #0f172a;
+      padding: 14px;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stat b {
+      display: block;
+      font-size: 24px;
+      color: #38bdf8;
+      font-weight: 900;
+    }
+    .stat span {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .bar {
+      height: 10px;
+      background: #1e293b;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 14px;
+      border: 1px solid #334155;
+    }
+    .bar div {
+      height: 100%;
+      background: linear-gradient(90deg, #059669, #10b981);
+      width: 0;
+      transition: width 0.4s ease;
+    }
+
+    /* TREE & TABLE */
+    .tree ul {
+      list-style: none;
+      margin: 6px 0 6px 16px;
+      padding-left: 14px;
+      border-left: 1.5px solid #334155;
+    }
+    .tree li { padding: 6px 0; }
+    .node {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid #1e293b;
+    }
+    .node:hover { border-color: #475569; }
+    .topic { font-weight: 700; color: #f1f5f9; }
+    .tablewrap { overflow-x: auto; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid #1e293b;
+      font-size: 13px;
+    }
+    th {
+      color: #38bdf8;
+      background: #090e1a;
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    tr:hover td { background: rgba(15, 23, 42, 0.4); }
+    
+    .status {
+      font-size: 11px;
+      padding: 5px 8px;
+      font-weight: 800;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .status.not-started { background: #450a0a; border-color: #ef4444; color: #fecaca; }
+    .status.in-progress { background: #713f12; border-color: #eab308; color: #fef08a; }
+    .status.completed { background: #064e3b; border-color: #10b981; color: #d1fae5; }
+    
+    .log-grid {
+      display: grid;
+      grid-template-columns: 140px 120px minmax(200px, 1fr) auto;
+      gap: 10px;
+      align-items: end;
+      margin-top: 12px;
+    }
+    .log-list { display: grid; gap: 8px; margin-top: 14px; }
+    .log-item {
+      padding: 12px;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      background: #090e1a;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: #052e1b;
+      border: 1.5px solid #10b981;
+      color: #ecfdf5;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-weight: 800;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 100000;
+    }
+    .toast.show { display: block; }
+    .progress-bar-anim {
+      display: none;
+      height: 4px;
+      background: #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-bar-anim div {
+      height: 100%;
+      width: 35%;
+      background: #38bdf8;
+      animation: animSlide 1.2s infinite alternate;
+    }
+    @keyframes animSlide { from { margin-left: 0; } to { margin-left: 65%; } }
+    
+    .practice-q {
+      border: 1px solid #334155;
+      background: #090e1a;
+      border-radius: 10px;
+      padding: 14px;
+      margin: 10px 0;
+    }
+    .practice-q img {
+      max-width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 8px;
+      margin: 8px 0;
+      padding: 4px;
+    }
+    .practice-options label {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      background: #111c30;
+      padding: 8px 12px;
+      border-radius: 7px;
+      margin: 5px 0;
+      cursor: pointer;
+    }
+    .source-tag {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #164e63;
+      color: #cffafe;
+      display: inline-block;
+      margin-left: 6px;
+    }
+    .source-tag.ai { background: #312e81; color: #e0e7ff; }
+    
+    @media(max-width: 768px) {
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .log-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="toast" class="toast">Action completed!</div>
+
+  <header>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:22px;">🌳</span>
+      <div>
+        <strong style="font-size:16px;color:#38bdf8;">A to Z Exam Mocks</strong>
+        <span style="color:#94a3b8;font-size:12px;margin-left:8px;">AI Multi-Exam Syllabus Tracker</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <div style="background:#090e1a;border:1px solid #334155;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;">
+        👤 <span id="student-email-tag" style="color:#38bdf8;">Loading profile…</span>
+        <button class="mini-btn" style="margin-left:6px;background:#1e293b;" onclick="promptStudentEmail()">Edit</button>
+      </div>
+      <a href="student.html" class="btn mini-btn">← Student Portal</a>
+      <a href="ai_question_import.html" class="btn mini-btn purple">🤖 Question Importer</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <!-- MULTI-EXAM DASHBOARD CARDS (ALWAYS VISIBLE) -->
+    <section class="card exams-dashboard">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <h3 style="margin:0;font-size:16px;color:#f8fafc;">📚 My Exams & Syllabi</h3>
+          <span style="font-size:12px;color:#94a3b8;">Click any exam card to switch syllabus, progress, and study log.</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="primary mini-btn" onclick="promptNewExam()">＋ Add New Exam</button>
+          <button class="green mini-btn" onclick="restoreUppscPhysicsExam()">🔄 Restore UPPSC Asst. Prof. (Physics)</button>
+        </div>
+      </div>
+
+      <div class="exams-grid" id="examsCardsContainer"></div>
+    </section>
+
+    <!-- ACTIVE EXAM ACTION CONTROLS -->
+    <section class="card">
+      <div class="row" style="margin-top:0;">
+        <span style="font-size:16px;">🎯</span>
+        <strong style="font-size:16px;color:#38bdf8;" id="activeExamHeaderTitle">No Exam Selected</strong>
+        <span id="activeExamTopicsCountBadge" style="font-size:11px;background:#1e293b;padding:3px 8px;border-radius:6px;color:#cbd5e1;">0 topics</span>
+      </div>
+
+      <!-- GEMINI API KEY & MODEL CONTROLS -->
+      <div class="row" style="background:#090e1a;padding:10px;border-radius:10px;border:1px solid #1e293b;">
+        <input id="geminiKey" type="password" placeholder="Gemini API Key (auto-synced with Question Import)" style="flex:1;min-width:240px;">
+        <button type="button" class="btn" onclick="saveGeminiKey()">🔑 Save Key</button>
+        <button type="button" class="purple mini-btn" onclick="testGeminiKey()">Test API</button>
+        <span class="muted" style="font-size:11px;">Saved on this browser · same key used across A to Z tools</span>
+      </div>
+
+      <!-- SYLLABUS FILE IMPORT & AI ANALYSIS -->
+      <div class="row">
+        <label style="font-weight:800;color:#cbd5e1;font-size:13px;">Upload Syllabus (PDF, TXT, CSV):</label>
+        <input id="file" type="file" accept=".pdf,.txt,.csv,.md" style="flex:1;min-width:200px;">
+        <button class="primary" onclick="analyzeSyllabusWithAI()">✨ Analyze Syllabus with AI</button>
+        <button class="btn" onclick="importSyllabusAsText()">📄 Text Import (No AI)</button>
+      </div>
+
+      <div class="row">
+        <button class="green" onclick="saveSyllabusProgress(true)">☁ Save All Exams to Cloud</button>
+        <button class="btn" onclick="loadFromCloud()">↻ Load Cloud Saved</button>
+        <button class="btn" onclick="addNewTopicPrompt()">＋ Add Custom Topic</button>
+      </div>
+
+      <div id="busyProgress" class="progress-bar-anim"><div></div></div>
+      <p id="statusMsg" style="font-size:12px;color:#38bdf8;margin:8px 0 0;font-weight:700;"></p>
+    </section>
+
+    <!-- SYLLABUS STATS & COMPLETION BAR -->
+    <section class="card">
+      <div class="row" style="justify-content:space-between;margin-top:0;">
+        <div style="display:flex;gap:8px;">
+          <button class="btn" id="treeViewBtn" onclick="switchView('tree')">🌳 Tree View</button>
+          <button class="btn" id="tableViewBtn" onclick="switchView('table')">▦ Table View</button>
+        </div>
+        <div style="display:flex;gap:8px;flex:1;max-width:400px;">
+          <input id="topicSearchInput" type="text" placeholder="Search topics in this syllabus…" oninput="renderSyllabusView()" style="width:100%;">
+        </div>
+        <button class="btn mini-btn" onclick="printSyllabus()">🖨 Print / PDF</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b id="statTotalTopics">0</b><span>Total Topics</span></div>
+        <div class="stat"><b id="statCompletedTopics" style="color:#10b981;">0</b><span>Completed</span></div>
+        <div class="stat"><b id="statCompletionPct" style="color:#38bdf8;">0%</b><span>Progress</span></div>
+        <div class="stat"><b id="statStudyHours" style="color:#a78bfa;">0 hrs</b><span>Study Logged</span></div>
+      </div>
+      <div class="bar"><div id="mainProgressBar"></div></div>
+    </section>
+
+    <!-- SYLLABUS TREE / TABLE CONTENT -->
+    <section class="card">
+      <div id="syllabusContentContainer" class="muted">Loading syllabus topics…</div>
+    </section>
+
+    <!-- TOPIC PRACTICE & TEACHER LIBRARY PYQS -->
+    <section class="card" id="practicePanel" style="display:none;">
+      <div class="row" style="margin-top:0;justify-content:space-between;">
+        <div>
+          <h3 style="margin:0;color:#38bdf8;font-size:16px;">🧠 Topic Practice & Library PYQs</h3>
+          <p class="muted" id="practiceTopicPathDisplay" style="margin:4px 0 0;font-size:12px;"></p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="primary" id="generate5McqsBtn" onclick="generateTopicPractice()">✨ Generate 5 MCQs with AI</button>
+          <button class="danger mini-btn" onclick="closePracticePanel()">✕ Close</button>
+        </div>
+      </div>
+      <div id="libraryPracticeResults" style="margin-top:12px;"></div>
+      <div id="generatedPracticeResults" style="margin-top:12px;"></div>
+    </section>
+
+    <!-- DAILY STUDY LOG (EXAM ISOLATED) -->
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <h3 style="margin:0;font-size:15px;color:#f8fafc;">📅 Daily Study Diary — <span id="diaryExamTitle" style="color:#38bdf8;">Current Exam</span></h3>
+          <span style="font-size:12px;color:#94a3b8;">Daily study logs are saved separately for each exam.</span>
+        </div>
+        <button class="btn mini-btn" onclick="printStudyDiary()">🖨 Print Diary</button>
+      </div>
+
+      <div class="log-grid">
+        <label>Date<br><input id="logDateInput" type="date" style="width:100%;"></label>
+        <label>Hours<br><input id="logHoursInput" type="number" min="0" max="24" step="0.5" placeholder="e.g. 2.5" style="width:100%;"></label>
+        <label>Topic / What did you study today?<br><textarea id="logNoteInput" rows="2" placeholder="e.g. Completed Fourier Transforms and practice problems…" style="width:100%;resize:vertical;"></textarea></label>
+        <button class="green" onclick="submitDailyLogEntry()">＋ Save Daily Entry</button>
+      </div>
+
+      <div id="dailyLogsListContainer" class="log-list"></div>
+    </section>
+
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    const cfg = {
+      apiKey: "AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",
+      authDomain: "physicsvault-80a10.firebaseapp.com",
+      projectId: "physicsvault-80a10",
+      storageBucket: "physicsvault-80a10.firebasestorage.app",
+      messagingSenderId: "1043166507399",
+      appId: "1:1043166507399:web:634efdac6f109273d42322"
+    };
+
+    const app = initializeApp(cfg);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const KEY = "A2Z_GEMINI_API_KEY";
+    const LOCAL_EXAMS_KEY = "A2Z_SYLLABUS_EXAMS_V2";
+    const LOCAL_ACTIVE_ID_KEY = "A2Z_SYLLABUS_ACTIVE_ID_V2";
+
+    const UPPSC_PHYSICS_DEFAULT = [{"title": "Unit 1: Mathematical Physics", "children": [{"title": "Vector Calculus (Gauss, Green & Stokes Theorems)", "children": []}, {"title": "Linear Algebra, Matrices, Eigenvalues & Eigenvectors", "children": []}, {"title": "Differential Equations & Frobenius Method", "children": []}, {"title": "Special Functions (Bessel, Legendre, Hermite, Laguerre Polynomials)", "children": []}, {"title": "Fourier Series, Fourier Transforms & Laplace Transforms", "children": []}, {"title": "Complex Analysis, Cauchy-Riemann Equations & Residue Theorem", "children": []}]}, {"title": "Unit 2: Classical Mechanics", "children": [{"title": "Generalized Coordinates, D'Alembert Principle & Lagrangian Formulation", "children": []}, {"title": "Hamiltonian Formulation & Hamilton's Canonical Equations", "children": []}, {"title": "Central Force Motion, Kepler's Laws & Planetary Orbits", "children": []}, {"title": "Rigid Body Dynamics, Moment of Inertia Tensor & Euler Equations", "children": []}, {"title": "Small Oscillations & Normal Modes", "children": []}, {"title": "Special Theory of Relativity, Lorentz Transformations & Mass-Energy Equivalence", "children": []}]}, {"title": "Unit 3: Electromagnetic Theory", "children": [{"title": "Electrostatics: Gauss's Law, Boundary Value Problems & Dielectrics", "children": []}, {"title": "Magnetostatics: Biot-Savart Law, Ampere's Law & Vector Potential", "children": []}, {"title": "Maxwell's Equations & Gauge Invariance", "children": []}, {"title": "EM Wave Propagation in Free Space & Dielectric Media", "children": []}, {"title": "Reflection, Refraction, Polarization & Brewster Angle", "children": []}, {"title": "Waveguides & Radiation from Accelerated Charges", "children": []}]}, {"title": "Unit 4: Quantum Mechanics", "children": [{"title": "Wave-Particle Duality, Wave Packets & Uncertainty Principle", "children": []}, {"title": "Schr\u00f6dinger Equation (1D Potential Well, Step Barrier & Harmonic Oscillator)", "children": []}, {"title": "Hydrogen Atom Problem & Orbital Angular Momentum", "children": []}, {"title": "Spin Angular Momentum & Addition of Angular Momenta", "children": []}, {"title": "Time-Independent Perturbation Theory (Non-degenerate & Degenerate)", "children": []}, {"title": "Variational Method & WKB Approximation", "children": []}]}, {"title": "Unit 5: Thermodynamics & Statistical Physics", "children": [{"title": "Laws of Thermodynamics, Thermodynamic Potentials & Maxwell Relations", "children": []}, {"title": "Phase Space, Microstates & Ensembles (Microcanonical, Canonical, Grand Canonical)", "children": []}, {"title": "Classical Statistics: Maxwell-Boltzmann Distribution", "children": []}, {"title": "Bose-Einstein Statistics, Bose Condensation & Blackbody Radiation", "children": []}, {"title": "Fermi-Dirac Statistics & Degenerate Electron Gas", "children": []}]}, {"title": "Unit 6: Atomic & Molecular Physics", "children": [{"title": "Hydrogen Atom Spectrum, Fine Structure & Lamb Shift", "children": []}, {"title": "Many-Electron Atoms, LS & JJ Coupling Schemes", "children": []}, {"title": "Zeeman Effect, Paschen-Back Effect & Stark Effect", "children": []}, {"title": "Rotational, Vibrational & Electronic Spectra of Diatomic Molecules", "children": []}, {"title": "Raman Effect & Laser Principles (Ruby, He-Ne, Semiconductor Lasers)", "children": []}]}, {"title": "Unit 7: Solid State Physics", "children": [{"title": "Crystal Structures, Reciprocal Lattice & X-Ray Diffraction (Bragg's Law)", "children": []}, {"title": "Lattice Vibrations, Phonons & Specific Heat (Einstein & Debye Models)", "children": []}, {"title": "Free Electron Theory, Band Theory of Solids & Kronig-Penney Model", "children": []}, {"title": "Semiconductors: Intrinsic & Extrinsic, Carrier Concentration & Hall Effect", "children": []}, {"title": "Superconductivity: Meissner Effect, Type I/II & BCS Theory Basics", "children": []}]}, {"title": "Unit 8: Nuclear & Particle Physics", "children": [{"title": "Nuclear Properties, Binding Energy & Semi-Empirical Mass Formula", "children": []}, {"title": "Nuclear Models: Liquid Drop Model & Shell Model", "children": []}, {"title": "Radioactivity: Alpha, Beta & Gamma Decays", "children": []}, {"title": "Nuclear Reactions: Cross Section, Fission & Fusion", "children": []}, {"title": "Elementary Particles: Quarks, Leptons, Symmetries & Fundamental Interactions", "children": []}]}, {"title": "Unit 9: Electronics & Experimental Methods", "children": [{"title": "Semiconductor Diodes, Zener Diode, BJT, FET & MOSFET", "children": []}, {"title": "Operational Amplifiers (Op-Amps) & Inverting/Non-inverting Applications", "children": []}, {"title": "Digital Electronics: Logic Gates, Boolean Algebra & Flip-Flops", "children": []}, {"title": "Counters, Registers & Digital-to-Analog / Analog-to-Digital Converters", "children": []}]}];
+
+    let profiles = [];
+    let activeExamId = "";
+    let currentViewMode = "table"; // "tree" or "table"
+    let activePracticeTopicId = "";
+    let libraryQuestionsCache = null;
+
+    function getStudentEmail() {
+      return (localStorage.getItem("ExamVault_Student_Email") || "").trim().toLowerCase();
+    }
+    function getFirestoreKey() {
+      const em = getStudentEmail();
+      return em ? encodeURIComponent(em).replace(/%/g, "_") : "anonymous_student";
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      if(!t) return;
+      t.textContent = msg;
+      t.className = "toast show";
+      setTimeout(() => { t.className = "toast"; }, 2200);
+    }
+    function setStatus(s) {
+      const el = document.getElementById("statusMsg");
+      if(el) el.textContent = s;
+    }
+    function esc(s) {
+      return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+    function makeId() {
+      return "t_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+    }
+    function makeExamId() {
+      return "exam_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6);
+    }
+
+    function getActiveProfile() {
+      return profiles.find(p => p.id === activeExamId) || null;
+    }
+
+    function calculateExamStats(exam) {
+      if(!exam || !Array.isArray(exam.nodes)) return { total: 0, done: 0, pct: 0, hours: 0 };
+      let total = 0, done = 0;
+      function walk(arr) {
+        arr.forEach(n => {
+          total++;
+          if(n.status === "completed") done++;
+          if(Array.isArray(n.children)) walk(n.children);
+        });
+      }
+      walk(exam.nodes);
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      const hours = (exam.dailyLog || []).reduce((acc, log) => acc + (Number(log.hours) || 0), 0);
+      return { total, done, pct, hours };
+    }
+
+    function normalizeNodes(arr) {
+      return (arr || []).filter(x => x && typeof x.title === "string" && x.title.trim()).map(x => ({
+        id: typeof x.id === "string" ? x.id : makeId(),
+        title: x.title.trim(),
+        status: ["completed", "in_progress", "not_started"].includes(x.status) ? x.status : "not_started",
+        pyq: typeof x.pyq === "string" ? x.pyq : "",
+        practiceSets: Array.isArray(x.practiceSets) ? x.practiceSets.slice(-3) : [],
+        children: normalizeNodes(Array.isArray(x.children) ? x.children : [])
+      }));
+    }
+
+    // RENDER MULTI-EXAM DASHBOARD CARDS
+    function renderExamsDashboard() {
+      const container = document.getElementById("examsCardsContainer");
+      if(!container) return;
+      
+      let html = profiles.map(p => {
+        const stats = calculateExamStats(p);
+        const isActive = p.id === activeExamId;
+        const badgeCls = stats.pct >= 75 ? "badge-green" : stats.pct >= 30 ? "badge-yellow" : "badge-red";
+        
+        return `
+          <div class="exam-card ${isActive ? 'active' : ''}" onclick="switchExam('${p.id}')">
+            <div class="exam-card-head">
+              <div class="exam-card-title">📘 ${esc(p.name || 'Untitled Exam')}</div>
+              <div class="exam-badge ${badgeCls}">${stats.pct}% Done</div>
+            </div>
+            <div class="exam-mini-bar">
+              <div style="width: ${stats.pct}%;"></div>
+            </div>
+            <div class="exam-card-meta">
+              <span>${stats.done} / ${stats.total} Topics</span>
+              <span>${stats.hours} hrs logged</span>
+            </div>
+            <div class="exam-card-actions" onclick="event.stopPropagation()">
+              <button class="mini-btn ${isActive ? 'primary' : 'btn'}" onclick="switchExam('${p.id}')">${isActive ? '✓ Selected' : 'Select'}</button>
+              <button class="mini-btn btn" onclick="promptRenameExam('${p.id}')">✏️ Rename</button>
+              <button class="mini-btn danger" onclick="confirmDeleteExam('${p.id}')">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Add "＋ Add New Exam" Card
+      html += `
+        <div class="add-exam-card" onclick="promptNewExam()">
+          <span style="font-size:24px;color:#38bdf8;">＋</span>
+          <strong style="color:#38bdf8;font-size:14px;">Add Another Exam</strong>
+          <span style="font-size:11px;color:#94a3b8;">Track separate syllabus & diary</span>
+        </div>
+      `;
+
+      container.innerHTML = html;
+
+      // Update Active Exam Header
+      const active = getActiveProfile();
+      const activeStats = calculateExamStats(active);
+      document.getElementById("activeExamHeaderTitle").textContent = active ? active.name : "No Exam Selected";
+      document.getElementById("activeExamTopicsCountBadge").textContent = (activeStats.total) + " topics";
+      document.getElementById("diaryExamTitle").textContent = active ? active.name : "Current Exam";
+
+      // Update Stats Banner
+      document.getElementById("statTotalTopics").textContent = activeStats.total;
+      document.getElementById("statCompletedTopics").textContent = activeStats.done;
+      document.getElementById("statCompletionPct").textContent = activeStats.pct + "%";
+      document.getElementById("statStudyHours").textContent = activeStats.hours + " hrs";
+      document.getElementById("mainProgressBar").style.width = activeStats.pct + "%";
+    }
+
+    window.switchExam = function(id) {
+      const target = profiles.find(p => p.id === id);
+      if(!target) return;
+      activeExamId = id;
+      localStorage.setItem(LOCAL_ACTIVE_ID_KEY, activeExamId);
+      renderExamsDashboard();
+      renderSyllabusView();
+      renderDailyLogsList();
+      showToast("Switched to " + target.name);
+    };
+
+    window.promptNewExam = function(initialName) {
+      const name = prompt("Enter the Examination Name (e.g. UPPSC Assistant Professor, SSC CGL, HPSC PGT):", initialName || "");
+      if(!name || !name.trim()) return;
+      const cleanName = name.trim();
+      
+      const newProfile = {
+        id: makeExamId(),
+        name: cleanName,
+        nodes: [],
+        dailyLog: []
+      };
+      profiles.push(newProfile);
+      activeExamId = newProfile.id;
+      saveToLocalStorage();
+      renderExamsDashboard();
+      renderSyllabusView();
+      renderDailyLogsList();
+      showToast("✔ Created exam: " + cleanName);
+    };
+
+    window.promptRenameExam = function(id) {
+      const p = profiles.find(x => x.id === id);
+      if(!p) return;
+      const newName = prompt("New name for this examination:", p.name);
+      if(!newName || !newName.trim() || newName.trim() === p.name) return;
+      p.name = newName.trim();
+      saveToLocalStorage();
+      renderExamsDashboard();
+      showToast("✔ Renamed to " + p.name);
+    };
+
+    window.confirmDeleteExam = function(id) {
+      const p = profiles.find(x => x.id === id);
+      if(!p) return;
+      if(!confirm("Are you sure you want to delete '" + p.name + "'?\n\nThis will remove its syllabus, progress, and study log.")) return;
+      
+      profiles = profiles.filter(x => x.id !== id);
+      if(activeExamId === id) {
+        activeExamId = profiles.length ? profiles[0].id : "";
+      }
+      if(!profiles.length) {
+        profiles = [{ id: makeExamId(), name: "General Syllabus", nodes: [], dailyLog: [] }];
+        activeExamId = profiles[0].id;
+      }
+      saveToLocalStorage();
+      renderExamsDashboard();
+      renderSyllabusView();
+      renderDailyLogsList();
+      showToast("Exam removed.");
+    };
+
+    window.restoreUppscPhysicsExam = function() {
+      const existing = profiles.find(p => /UPPSC/i.test(p.name) && /Physics|Professor/i.test(p.name));
+      if(existing) {
+        if(confirm("UPPSC Assistant Professor (Physics) is already in your exams list.\n\nSwitch to it now?")) {
+          switchExam(existing.id);
+        }
+        return;
+      }
+      
+      const uppscExam = {
+        id: makeExamId(),
+        name: "UPPSC Assistant Professor (Physics)",
+        nodes: normalizeNodes(UPPSC_PHYSICS_DEFAULT),
+        dailyLog: []
+      };
+      profiles.unshift(uppscExam);
+      activeExamId = uppscExam.id;
+      saveToLocalStorage();
+      renderExamsDashboard();
+      renderSyllabusView();
+      renderDailyLogsList();
+      showToast("✔ UPPSC Assistant Professor (Physics) restored with 48 topics!");
+      alert("✔ UPPSC Assistant Professor (Physics) syllabus restored successfully with all 9 units and 48 core topics!");
+    };
+
+    // SYLLABUS TREE & TABLE RENDERING
+    function renderTreeNode(n) {
+      const statusCls = n.status === "completed" ? "completed" : n.status === "in_progress" ? "in-progress" : "not-started";
+      const statusSelect = `
+        <select class="status ${statusCls}" aria-label="Topic status" onchange="updateTopicStatus('${n.id}', this.value)">
+          <option value="not_started" ${n.status === 'not_started' ? 'selected' : ''}>🔴 Not Started</option>
+          <option value="in_progress" ${n.status === 'in_progress' ? 'selected' : ''}>🟡 In Progress</option>
+          <option value="completed" ${n.status === 'completed' ? 'selected' : ''}>🟢 Completed</option>
+        </select>
+      `;
+      
+      const pyqLink = n.pyq ? `<a href="${esc(n.pyq)}" target="_blank" rel="noopener" style="font-size:11px;">📚 PYQ Link</a>` : "";
+      
+      return `
+        <li>
+          <div class="node">
+            <span class="topic">${esc(n.title)}</span>
+            ${statusSelect}
+            ${pyqLink}
+            <button class="mini-btn purple" onclick="openPracticeForTopic('${n.id}')">🧠 Practice</button>
+            <button class="mini-btn btn" onclick="editTopicTitle('${n.id}')">Edit</button>
+            <button class="mini-btn danger" onclick="deleteTopicNode('${n.id}')">✕</button>
+          </div>
+          ${n.children && n.children.length ? '<ul>' + n.children.map(renderTreeNode).join("") + '</ul>' : ''}
+        </li>
+      `;
+    }
+
+    window.renderSyllabusView = function() {
+      const p = getActiveProfile();
+      const container = document.getElementById("syllabusContentContainer");
+      if(!container) return;
+
+      document.getElementById("treeViewBtn").style.borderColor = currentViewMode === "tree" ? "#38bdf8" : "#334155";
+      document.getElementById("tableViewBtn").style.borderColor = currentViewMode === "table" ? "#38bdf8" : "#334155";
+
+      if(!p || !p.nodes || !p.nodes.length) {
+        container.innerHTML = `
+          <div style="padding:30px;text-align:center;color:#94a3b8;">
+            <p style="font-size:15px;color:#f8fafc;font-weight:700;">No syllabus topics loaded for '${p ? p.name : 'this exam'}'.</p>
+            <p>Upload a syllabus PDF above and click <b>'✨ Analyze Syllabus with AI'</b>, or click <b>'Restore UPPSC Asst. Prof. (Physics)'</b>.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const searchTerm = (document.getElementById("topicSearchInput")?.value || "").trim().toLowerCase();
+      
+      function filterNodes(arr) {
+        return arr.filter(n => {
+          const selfMatch = n.title.toLowerCase().includes(searchTerm);
+          const childMatch = n.children && n.children.some(c => c.title.toLowerCase().includes(searchTerm));
+          return !searchTerm || selfMatch || childMatch;
+        }).map(n => ({
+          ...n,
+          children: filterNodes(n.children || [])
+        }));
+      }
+
+      const displayNodes = filterNodes(p.nodes);
+
+      if(currentViewMode === "tree") {
+        container.innerHTML = `
+          <div class="tree">
+            <ul style="margin-left:0;padding-left:0;border:0;">
+              ${displayNodes.map(renderTreeNode).join("")}
+            </ul>
+          </div>
+        `;
+      } else {
+        let rows = [];
+        function flattenForTable(arr, depth = 0) {
+          arr.forEach(n => {
+            rows.push({ n, depth });
+            if(n.children && n.children.length) flattenForTable(n.children, depth + 1);
+          });
+        }
+        flattenForTable(displayNodes);
+
+        container.innerHTML = `
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Unit / Chapter / Topic / Subtopic</th>
+                  <th>Status</th>
+                  <th>PYQ Link</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map(({ n, depth }) => {
+                  const statusCls = n.status === "completed" ? "completed" : n.status === "in_progress" ? "in-progress" : "not-started";
+                  return `
+                    <tr>
+                      <td style="padding-left:${12 + depth * 22}px;">
+                        ${depth > 0 ? '<span style="color:#64748b;margin-right:6px;">↳</span>' : ''}
+                        <b style="color:${depth === 0 ? '#38bdf8' : '#f8fafc'};">${esc(n.title)}</b>
+                      </td>
+                      <td>
+                        <select class="status ${statusCls}" onchange="updateTopicStatus('${n.id}', this.value)">
+                          <option value="not_started" ${n.status === 'not_started' ? 'selected' : ''}>🔴 Not Started</option>
+                          <option value="in_progress" ${n.status === 'in_progress' ? 'selected' : ''}>🟡 In Progress</option>
+                          <option value="completed" ${n.status === 'completed' ? 'selected' : ''}>🟢 Completed</option>
+                        </select>
+                      </td>
+                      <td>
+                        ${n.pyq ? `<a href="${esc(n.pyq)}" target="_blank" rel="noopener">Open PYQ</a>` : '<span style="color:#64748b;">—</span>'}
+                      </td>
+                      <td>
+                        <button class="mini-btn purple" onclick="openPracticeForTopic('${n.id}')">🧠 Practice</button>
+                        <button class="mini-btn btn" onclick="editTopicTitle('${n.id}')">Edit</button>
+                        <button class="mini-btn danger" onclick="deleteTopicNode('${n.id}')">✕</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+    };
+
+    window.switchView = function(mode) {
+      currentViewMode = mode;
+      renderSyllabusView();
+    };
+
+    function findNodeInTree(id, arr) {
+      for(let i = 0; i < arr.length; i++) {
+        if(arr[i].id === id) return { node: arr[i], parent: arr, index: i };
+        if(arr[i].children) {
+          const res = findNodeInTree(id, arr[i].children);
+          if(res) return res;
+        }
+      }
+      return null;
+    }
+
+    window.updateTopicStatus = function(nodeId, newStatus) {
+      const p = getActiveProfile();
+      if(!p) return;
+      const hit = findNodeInTree(nodeId, p.nodes);
+      if(hit) {
+        hit.node.status = newStatus;
+        saveToLocalStorage();
+        renderExamsDashboard();
+        renderSyllabusView();
+      }
+    };
+
+    window.editTopicTitle = function(nodeId) {
+      const p = getActiveProfile();
+      if(!p) return;
+      const hit = findNodeInTree(nodeId, p.nodes);
+      if(!hit) return;
+      const title = prompt("Topic Title:", hit.node.title);
+      if(title === null || !title.trim()) return;
+      const pyq = prompt("PYQ Resource Link (URL / optional):", hit.node.pyq || "");
+      hit.node.title = title.trim();
+      if(pyq !== null) hit.node.pyq = pyq.trim();
+      saveToLocalStorage();
+      renderSyllabusView();
+    };
+
+    window.deleteTopicNode = function(nodeId) {
+      const p = getActiveProfile();
+      if(!p) return;
+      if(!confirm("Delete this topic and all its subtopics?")) return;
+      const hit = findNodeInTree(nodeId, p.nodes);
+      if(hit) {
+        hit.parent.splice(hit.index, 1);
+        saveToLocalStorage();
+        renderExamsDashboard();
+        renderSyllabusView();
+      }
+    };
+
+    window.addNewTopicPrompt = function() {
+      const p = getActiveProfile();
+      if(!p) return alert("Select or create an exam first.");
+      const title = prompt("Enter new topic name:");
+      if(!title || !title.trim()) return;
+      p.nodes = p.nodes || [];
+      p.nodes.push({
+        id: makeId(),
+        title: title.trim(),
+        status: "not_started",
+        pyq: "",
+        children: []
+      });
+      saveToLocalStorage();
+      renderExamsDashboard();
+      renderSyllabusView();
+      showToast("Topic added.");
+    };
+
+    // DAILY STUDY LOG MANAGEMENT
+    function renderDailyLogsList() {
+      const p = getActiveProfile();
+      const container = document.getElementById("dailyLogsListContainer");
+      if(!container) return;
+      const logs = (p?.dailyLog || []).slice().sort((a,b) => (b.date || "").localeCompare(a.date || ""));
+      
+      if(!logs.length) {
+        container.innerHTML = '<p class="muted">No study diary entries recorded for this exam yet.</p>';
+        return;
+      }
+      
+      container.innerHTML = logs.map((log, idx) => `
+        <div class="log-item">
+          <div>
+            <b>${esc(log.date)}</b> · <span style="color:#38bdf8;font-weight:800;">${Number(log.hours || 0)} hrs</span>
+            <div style="margin-top:4px;white-space:pre-wrap;color:#e2e8f0;font-size:13px;">${esc(log.note || '')}</div>
+          </div>
+          <button class="mini-btn danger" onclick="deleteDailyLogEntry('${log.date}')">Delete</button>
+        </div>
+      `).join("");
+    }
+
+    window.submitDailyLogEntry = function() {
+      const p = getActiveProfile();
+      if(!p) return alert("Please select or add an exam first.");
+      const date = document.getElementById("logDateInput").value || new Date().toISOString().slice(0, 10);
+      const hours = Number(document.getElementById("logHoursInput").value || 0);
+      const note = document.getElementById("logNoteInput").value.trim();
+      
+      if(!note && !hours) return alert("Please enter study hours or notes on what you studied.");
+      
+      p.dailyLog = p.dailyLog || [];
+      const existing = p.dailyLog.find(x => x.date === date);
+      if(existing) {
+        existing.hours = hours;
+        existing.note = note;
+      } else {
+        p.dailyLog.push({ date, hours, note, createdAt: new Date().toISOString() });
+      }
+      
+      document.getElementById("logNoteInput").value = "";
+      document.getElementById("logHoursInput").value = "";
+      saveToLocalStorage();
+      renderExamsDashboard();
+      renderDailyLogsList();
+      showToast("✔ Study diary saved for " + p.name);
+    };
+
+    window.deleteDailyLogEntry = function(dateStr) {
+      const p = getActiveProfile();
+      if(!p || !p.dailyLog) return;
+      p.dailyLog = p.dailyLog.filter(x => x.date !== dateStr);
+      saveToLocalStorage();
+      renderExamsDashboard();
+      renderDailyLogsList();
+      showToast("Log entry removed.");
+    };
+
+    // GEMINI MULTI-MODEL CLIENT WITH AUTO-FALLBACK
+    const GEMINI_MODELS = [
+      "gemini-3.8-flash",
+      "gemini-3.7-flash",
+      "gemini-3.6-flash",
+      "gemini-3.5-flash",
+      "gemini-3.5-flash-lite",
+      "gemini-3-flash",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash"
+    ];
+
+    async function callGemini(key, body) {
+      key = String(key || "").trim();
+      if(!key) throw Error("Gemini API key is empty. Enter your Gemini API key.");
+      let lastErr = "";
+      
+      for(const m of GEMINI_MODELS) {
+        for(const ver of ["v1beta", "v1"]) {
+          try {
+            const url = "https://generativelanguage.googleapis.com/" + ver + "/models/" + m + ":generateContent?key=" + key;
+            const r = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body)
+            });
+            const data = await r.json().catch(() => ({}));
+            if(r.ok && data?.candidates?.[0]?.content?.parts?.length) {
+              return data;
+            }
+            const detail = data?.error?.message || ("HTTP " + r.status);
+            lastErr = m + " (" + ver + "): " + detail;
+            if(r.status === 401 || r.status === 403) throw Error("Invalid Gemini API Key: " + detail);
+          } catch(e) {
+            if(/Invalid Gemini API Key/i.test(e.message)) throw e;
+            lastErr = e.message;
+            continue;
+          }
+        }
+      }
+      throw Error("All Gemini models failed. " + lastErr);
+    }
+
+    function parseCleanJson(raw) {
+      let s = String(raw || "").trim();
+      if(s.includes("```json")) s = s.split("```json")[1].split("```")[0].trim();
+      else if(s.includes("```")) s = s.split("```")[1].split("```")[0].trim();
+      const a = s.indexOf("{"), b = s.lastIndexOf("}");
+      if(a >= 0 && b > a) s = s.slice(a, b + 1);
+      return JSON.parse(s);
+    }
+
+    async function extractPdfText(file) {
+      if(!file) throw Error("Please select a file first.");
+      if(!file.name.toLowerCase().endsWith(".pdf")) return await file.text();
+      
+      if(!window.pdfjsLib) throw Error("PDF.js library failed to load.");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+      
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let text = "";
+      for(let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        text += "\n" + tc.items.map(x => x.str).join(" ");
+      }
+      return text;
+    }
+
+    window.analyzeSyllabusWithAI = async function() {
+      const file = document.getElementById("file").files[0];
+      const key = (document.getElementById("geminiKey").value.trim() || localStorage.getItem(KEY) || "").trim();
+      
+      if(!file) return alert("Please select a syllabus file (PDF, TXT, CSV) first.");
+      if(!key) return alert("Please enter and save your Gemini API key.");
+      
+      const progress = document.getElementById("busyProgress");
+      progress.style.display = "block";
+      setStatus("📄 Reading syllabus document text…");
+      
+      try {
+        let text = await extractPdfText(file);
+        if(!text || !text.trim()) throw Error("No text could be extracted from this document. If this is a scanned photo PDF, copy-paste the text or use an OCR text file.");
+        if(text.length > 90000) text = text.slice(0, 90000);
+
+        setStatus("🤖 AI is analyzing exam units and subtopics…");
+        
+        const prompt = `You are an expert academic curriculum and syllabus analyst.
+Convert this exam syllabus into a complete, clean, faithful hierarchical outline.
+Do not invent topics not present in the syllabus.
+Preserve all named units, chapters, topics and subtopics.
+Organize parent-child structure logically: Unit / Chapter -> Subtopic -> Micro-topic.
+Return ONLY valid JSON:
+{
+  "examName": "Full official name of the examination (e.g. UPPSC Assistant Professor Physics / SSC CGL / NEET)",
+  "topics": [
+    {
+      "title": "Unit 1: Name",
+      "children": [
+        { "title": "Subtopic A", "children": [] }
+      ]
+    }
+  ]
 }
-window.analyzeAI=async()=>{const file=document.getElementById("file").files[0];const apiKey=(document.getElementById("geminiKey").value.trim()||localStorage.getItem(KEY)||"").trim();if(!file)return alert("Select your syllabus PDF or text file first.");if(!apiKey)return alert("Enter your Gemini API key below the exam name, or save it in AI Question Import.");const busy=document.getElementById("busy");busy.style.display="block";msg("Extracting syllabus text…");try{let source=await getText(file);if(!source.trim())throw Error("No selectable text found. This appears to be a scanned/image-only PDF; OCR is not enabled here.");if(source.length>85000)source=source.slice(0,85000);msg("AI is organizing headings and subtopics…");const prompt="You are an expert syllabus analyst. Convert the supplied official exam syllabus into a complete, faithful hierarchical outline. Do not invent topics absent from the source. Preserve all named topics and subtopics. Infer parent-child structure from headings, numbering and context. Organize headings as Book / Paper / Unit / Chapter / Main Topic / Subtopic / Micro-topic wherever the source supports these levels. For Physics syllabi, preserve individual listed mathematical topics such as integration, summation, Fourier transform, differential equations, and classical mechanics topics such as Lagrangian and Hamiltonian mechanics only when supported by the source. Do not collapse distinct topics. Return ONLY JSON in this schema: {\"examName\":\"...\",\"topics\":[{\"title\":\"Book, unit or main heading\",\"children\":[{\"title\":\"subtopic\",\"children\":[{\"title\":\"specific topic\",\"children\":[]}]}]}]}. Every node must contain title and children array. No status or PYQ data. Source syllabus follows:\n"+source;const data=await geminiRequest(apiKey,{contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{responseMimeType:"application/json",temperature:0.1,maxOutputTokens:16384}});const raw=data.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("");if(!raw)throw Error("AI returned an empty response.");const parsed=parseJson(raw);const imported=normalize(parsed.topics||[]);if(!imported.length)throw Error("AI returned no topic hierarchy. Try a text-based syllabus file.");if(nodes.length&&!confirm("Replace current topics in this exam with "+flat(imported).length+" AI-extracted topics?"))return;nodes=imported;const examInput=document.getElementById("exam");examInput.value=examInput.value.trim()||parsed.examName||file.name.replace(/\.[^.]+$/,"" );syncProfileNodes();render();msg("AI analysis complete: "+flat().length+" topics/subtopics organized for "+(examInput.value||"this exam")+". Check the official syllabus, then save progress.");}catch(e){console.error(e);msg("AI analysis failed: "+e.message);alert("AI analysis failed: "+e.message)}finally{busy.style.display="none"}};
-window.importText=async()=>{try{const f=document.getElementById("file").files[0];let text=await getText(f);if(!text.trim())throw Error("No text extracted from this file.");const lines=text.replace(/\r/g,"").split("\n").map(x=>x.trim()).filter(Boolean);const root=[],stack=[{d:-1,a:root}];for(const line0 of lines){const m=line0.match(/^(\d+(?:\.\d+)*[.)]?|[A-Z][.)]|[IVX]+[.)])\s+(.+)$/i);const d=m?(/^\d+\.\d+/.test(m[1])?m[1].replace(/[.)]$/,"").split(".").length-1:1):0;const title=m?m[2].trim():line0;while(stack.length>1&&stack[stack.length-1].d>=d)stack.pop();const n={id:makeId(),title,status:"not_started",pyq:"",children:[]};stack[stack.length-1].a.push(n);stack.push({d,a:n.children})}if(nodes.length&&!confirm("Replace current topics with text-imported topics?"))return;nodes=normalize(root);render();msg("Text import complete. For best topic-wise structure, use AI analysis.");}catch(e){msg("Text import failed: "+e.message);alert(e.message)}};
-window.save=async(show=true)=>{if(!email())return alert("Please open Student Portal and enter student details first.");syncProfileNodes();try{await setDoc(doc(db,"student_syllabus_progress",key()),{studentEmail:email(),exams:profiles,activeExamId,examName:document.getElementById("exam").value.trim(),nodes,updatedAt:new Date().toISOString()},{merge:true});if(show)msg("All exam names, syllabi, topic statuses and daily logs saved to this student profile in Firebase.")}catch(e){console.error(e);msg("Save failed: "+e.message);if(show)alert("Cloud save failed: "+e.message)}};
-function renderDailyLogs(){const p=activeProfile(),el=document.getElementById("dailyLogList");if(!el)return;const logs=(p?.dailyLog||[]).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));el.innerHTML=logs.length?logs.map(x=>'<div class="log-item"><b>'+esc(x.date)+'</b> · '+esc(x.hours||0)+' study hours<div style="margin-top:5px;white-space:pre-wrap">'+esc(x.note||"")+'</div></div>').join(""):'<p class="muted">अभी इस परीक्षा के लिए कोई daily entry सेव नहीं है।</p>'}
-window.addDailyLog=async()=>{const p=activeProfile();if(!p)return alert("पहले exam add करें।");const date=document.getElementById("logDate").value||new Date().toISOString().slice(0,10),hours=Number(document.getElementById("logHours").value||0),note=document.getElementById("logNote").value.trim();if(!note&&!hours)return alert("आज का काम या study hours दर्ज करें।");p.dailyLog=p.dailyLog||[];const old=p.dailyLog.find(x=>x.date===date);if(old){old.hours=hours;old.note=note}else p.dailyLog.push({date,hours,note,createdAt:new Date().toISOString()});document.getElementById("logNote").value="";document.getElementById("logHours").value="";renderDailyLogs();await save(true);msg("Daily study entry saved for "+p.name+".")};
-window.printSyllabus=()=>{syncProfileNodes();document.body.classList.remove("print-log");document.body.classList.add("print-syllabus");document.getElementById("printExamTitle").textContent=(activeProfile()?.name||"Syllabus")+" — "+(mode==="tree"?"Tree View":"Tabular View");window.print();setTimeout(()=>document.body.classList.remove("print-syllabus"),500)};
-window.printDailyLog=()=>{document.body.classList.remove("print-syllabus");document.body.classList.add("print-log");const title=document.getElementById("printExamTitle");title.textContent=(activeProfile()?.name||"Exam")+" — Daily Study Log";window.print();setTimeout(()=>document.body.classList.remove("print-log"),500)};
-window.load=async()=>{if(!email())return alert("Please enter Student Portal details first.");try{const s=await getDoc(doc(db,"student_syllabus_progress",key()));if(s.exists()){const d=s.data();if(Array.isArray(d.exams)&&d.exams.length){profiles=d.exams.map((p,i)=>({id:p.id||makeExamId(),name:String(p.name||("Exam "+(i+1))),nodes:normalize(p.nodes||[]),dailyLog:Array.isArray(p.dailyLog)?p.dailyLog:[]}));activeExamId=profiles.some(p=>p.id===d.activeExamId)?d.activeExamId:profiles[0].id;}else{profiles=[{id:makeExamId(),name:String(d.examName||""),nodes:normalize(d.nodes||[]),dailyLog:[]}];activeExamId=profiles[0].id;}const p=activeProfile();nodes=p?p.nodes:[];document.getElementById("exam").value=p?.name||"";renderExamTabs();msg("Saved exam-wise syllabus and daily logs loaded.")}else{profiles=[{id:makeExamId(),name:"",nodes:[]}];activeExamId=profiles[0].id;nodes=profiles[0].nodes;renderExamTabs();msg("No saved syllabus found. Add an exam name to begin.")}render()}catch(e){console.error(e);msg("Load failed: "+e.message)}};
-const savedKey=localStorage.getItem(KEY)||"";document.getElementById("geminiKey").value=savedKey;
-profiles=[{id:makeExamId(),name:"",nodes:[],dailyLog:[]}];activeExamId=profiles[0].id;document.getElementById("logDate").value=new Date().toISOString().slice(0,10);renderExamTabs();render();if(email())load();
-</script></body></html>
+
+Syllabus Text:
+` + text;
+
+        const body = {
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.1,
+            maxOutputTokens: 8192
+          }
+        };
+
+        const d = await callGemini(key, body);
+        const raw = d?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+        const parsed = parseCleanJson(raw);
+        const newNodes = normalizeNodes(parsed.topics || []);
+        
+        if(!newNodes.length) throw Error("AI could not extract topics from the document. Please verify the file content.");
+
+        const detectedExamName = parsed.examName || file.name.replace(/\.[^.]+$/, "");
+        
+        // CHECK IF USER WANTS TO ADD AS NEW EXAM OR REPLACE CURRENT
+        const currentExam = getActiveProfile();
+        let shouldCreateNew = true;
+        
+        if(currentExam && currentExam.nodes && currentExam.nodes.length) {
+          const choice = confirm(
+            "AI detected syllabus for: '" + detectedExamName + "'.\n\n" +
+            "Click [OK] to add this as a NEW EXAM (Keeps '" + currentExam.name + "' safe!)\n" +
+            "Click [Cancel] to overwrite the current exam '" + currentExam.name + "'."
+          );
+          shouldCreateNew = choice;
+        }
+
+        if(shouldCreateNew) {
+          const newExam = {
+            id: makeExamId(),
+            name: detectedExamName,
+            nodes: newNodes,
+            dailyLog: []
+          };
+          profiles.push(newExam);
+          activeExamId = newExam.id;
+        } else {
+          currentExam.name = detectedExamName;
+          currentExam.nodes = newNodes;
+        }
+
+        saveToLocalStorage();
+        renderExamsDashboard();
+        renderSyllabusView();
+        renderDailyLogsList();
+        
+        setStatus("✔ AI Syllabus analysis complete! Extracted for " + detectedExamName);
+        showToast("✔ Syllabus analyzed successfully!");
+        alert("✔ Syllabus successfully analyzed and saved! All exams remain safe and tracked.");
+
+      } catch(e) {
+        console.error(e);
+        setStatus("❌ AI analysis failed: " + e.message);
+        alert("AI analysis error: " + e.message);
+      } finally {
+        progress.style.display = "none";
+      }
+    };
+
+    window.importSyllabusAsText = async function() {
+      const file = document.getElementById("file").files[0];
+      if(!file) return alert("Select a syllabus text or PDF file first.");
+      try {
+        let text = await extractPdfText(file);
+        const lines = text.replace(/\r/g, "").split("\n").map(l => l.trim()).filter(Boolean);
+        const root = [], stack = [{ d: -1, a: root }];
+        
+        for(const line0 of lines) {
+          const m = line0.match(/^(\d+(?:\.\d+)*[.)]?|[A-Z][.)]|[IVX]+[.)])\s+(.+)$/i);
+          const d = m ? (/^\d+\.\d+/.test(m[1]) ? m[1].replace(/[.)]$/,"").split(".").length - 1 : 1) : 0;
+          const title = m ? m[2].trim() : line0;
+          while(stack.length > 1 && stack[stack.length - 1].d >= d) stack.pop();
+          const n = { id: makeId(), title, status: "not_started", pyq: "", children: [] };
+          stack[stack.length - 1].a.push(n);
+          stack.push({ d, a: n.children });
+        }
+
+        const imported = normalizeNodes(root);
+        if(!imported.length) throw Error("No topics parsed from text.");
+
+        const examName = file.name.replace(/\.[^.]+$/, "");
+        const currentExam = getActiveProfile();
+        let shouldCreateNew = true;
+
+        if(currentExam && currentExam.nodes && currentExam.nodes.length) {
+          shouldCreateNew = confirm("Add as a NEW EXAM '" + examName + "'?\n\nClick OK for New Exam, or Cancel to replace current.");
+        }
+
+        if(shouldCreateNew) {
+          const newExam = { id: makeExamId(), name: examName, nodes: imported, dailyLog: [] };
+          profiles.push(newExam);
+          activeExamId = newExam.id;
+        } else {
+          currentExam.name = examName;
+          currentExam.nodes = imported;
+        }
+
+        saveToLocalStorage();
+        renderExamsDashboard();
+        renderSyllabusView();
+        showToast("Text import complete.");
+      } catch(e) {
+        alert("Text import failed: " + e.message);
+      }
+    };
+
+    // PERSISTENCE (LOCALSTORAGE + FIRESTORE)
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem(LOCAL_EXAMS_KEY, JSON.stringify(profiles));
+        localStorage.setItem(LOCAL_ACTIVE_ID_KEY, activeExamId);
+      } catch(e) {
+        console.warn("LocalStorage save error:", e);
+      }
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(LOCAL_EXAMS_KEY);
+        if(raw) {
+          const parsed = JSON.parse(raw);
+          if(Array.isArray(parsed) && parsed.length) {
+            profiles = parsed.map(p => ({
+              id: p.id || makeExamId(),
+              name: String(p.name || "Exam"),
+              nodes: normalizeNodes(p.nodes || []),
+              dailyLog: Array.isArray(p.dailyLog) ? p.dailyLog : []
+            }));
+            const savedActive = localStorage.getItem(LOCAL_ACTIVE_ID_KEY);
+            activeExamId = profiles.some(p => p.id === savedActive) ? savedActive : profiles[0].id;
+            return true;
+          }
+        }
+      } catch(e) {
+        console.warn("LocalStorage load error:", e);
+      }
+      return false;
+    }
+
+    window.saveSyllabusProgress = async function(showToastMsg) {
+      saveToLocalStorage();
+      const em = getStudentEmail();
+      if(!em) {
+        if(showToastMsg) alert("Saved locally on your browser!\n\nTo sync across devices via cloud, click 'Edit' next to your email in the header to enter your student email.");
+        return;
+      }
+
+      try {
+        if(!auth.currentUser) await signInAnonymously(auth);
+        await setDoc(doc(db, "student_syllabus_progress", getFirestoreKey()), {
+          studentEmail: em,
+          exams: profiles,
+          activeExamId: activeExamId,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        
+        if(showToastMsg) showToast("✔ Cloud sync successful!");
+      } catch(e) {
+        console.error("Cloud save failed:", e);
+        if(showToastMsg) alert("Saved locally, but Cloud sync encountered: " + e.message);
+      }
+    };
+
+    window.loadFromCloud = async function() {
+      const em = getStudentEmail();
+      if(!em) return alert("Please set your Student Email in the header first.");
+      try {
+        if(!auth.currentUser) await signInAnonymously(auth);
+        const snap = await getDoc(doc(db, "student_syllabus_progress", getFirestoreKey()));
+        if(snap.exists()) {
+          const data = snap.data();
+          if(Array.isArray(data.exams) && data.exams.length) {
+            profiles = data.exams.map(p => ({
+              id: p.id || makeExamId(),
+              name: String(p.name || "Exam"),
+              nodes: normalizeNodes(p.nodes || []),
+              dailyLog: Array.isArray(p.dailyLog) ? p.dailyLog : []
+            }));
+            activeExamId = profiles.some(p => p.id === data.activeExamId) ? data.activeExamId : profiles[0].id;
+            saveToLocalStorage();
+            renderExamsDashboard();
+            renderSyllabusView();
+            renderDailyLogsList();
+            showToast("✔ Cloud syllabi loaded!");
+            return;
+          }
+        }
+        alert("No cloud syllabus record found for " + em);
+      } catch(e) {
+        alert("Cloud load failed: " + e.message);
+      }
+    };
+
+    window.promptStudentEmail = function() {
+      const curr = getStudentEmail();
+      const val = prompt("Enter Student Email for cloud synchronization:", curr);
+      if(val !== null) {
+        const clean = val.trim().toLowerCase();
+        localStorage.setItem("ExamVault_Student_Email", clean);
+        document.getElementById("student-email-tag").textContent = clean || "No email set";
+        if(clean) loadFromCloud();
+      }
+    };
+
+    window.saveGeminiKey = function() {
+      const v = document.getElementById("geminiKey").value.trim();
+      if(!v) return alert("Enter your Gemini API key first.");
+      localStorage.setItem(KEY, v);
+      showToast("✔ Gemini key saved!");
+    };
+
+    window.testGeminiKey = async function() {
+      const k = document.getElementById("geminiKey").value.trim() || localStorage.getItem(KEY) || "";
+      if(!k) return alert("Enter your Gemini API key first.");
+      setStatus("🔑 Testing Gemini API Key…");
+      try {
+        await callGemini(k, {
+          contents: [{ role: "user", parts: [{ text: "Reply with: OK" }] }],
+          generationConfig: { temperature: 0, maxOutputTokens: 5 }
+        });
+        setStatus("✅ Gemini API Key is working perfectly!");
+        showToast("✔ Gemini Key active!");
+      } catch(e) {
+        setStatus("❌ Key test failed: " + e.message);
+        alert("Key test failed: " + e.message);
+      }
+    };
+
+    window.printSyllabus = function() {
+      window.print();
+    };
+    window.printStudyDiary = function() {
+      window.print();
+    };
+
+    // TOPIC PRACTICE INTEGRATION
+    window.openPracticeForTopic = async function(nodeId) {
+      const p = getActiveProfile();
+      if(!p) return;
+      const hit = findNodeInTree(nodeId, p.nodes);
+      if(!hit) return;
+      
+      activePracticeTopicId = nodeId;
+      const topicTitle = hit.node.title;
+      document.getElementById("practicePanel").style.display = "block";
+      document.getElementById("practiceTopicPathDisplay").textContent = p.name + " → " + topicTitle;
+      document.getElementById("practicePanel").scrollIntoView({ behavior: "smooth", block: "start" });
+      
+      const libContainer = document.getElementById("libraryPracticeResults");
+      libContainer.innerHTML = '<p class="muted">Searching Teacher Library for matching questions/PYQs…</p>';
+      
+      try {
+        if(!libraryQuestionsCache) {
+          if(!auth.currentUser) await signInAnonymously(auth);
+          const snap = await getDocs(collection(db, "questions"));
+          libraryQuestionsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+        
+        const qTerms = topicTitle.toLowerCase().replace(/[^a-z0-9\u0900-\u097F]+/g, " ").split(/\s+/).filter(w => w.length > 2);
+        const matches = libraryQuestionsCache.map(q => {
+          const hay = [q.topic, q.chapter, q.subject, q.qText, q.text, q.folderPath].filter(Boolean).join(" ").toLowerCase();
+          const score = qTerms.reduce((acc, t) => acc + (hay.includes(t) ? 1 : 0), 0);
+          return { q, score };
+        }).filter(x => x.score > 0).sort((a,b) => b.score - a.score).slice(0, 10);
+
+        if(!matches.length) {
+          libContainer.innerHTML = '<p class="muted">No matching PYQs found in Teacher Library for this topic. Use the button above to generate 5 conceptual MCQs with AI.</p>';
+        } else {
+          libContainer.innerHTML = '<h4>📚 Matching Library Questions (' + matches.length + ')</h4>' + matches.map(({ q }, i) => `
+            <div class="practice-q">
+              <b>Question ${i + 1}</b> ${q.isPYQ ? '<span class="source-tag">PYQ</span>' : ''}
+              <p style="margin:6px 0;">${esc(q.qText || q.text || '')}</p>
+              ${q.questionImage ? `<img src="${esc(q.questionImage)}" alt="Question Image">` : ''}
+              ${Array.isArray(q.options) && q.options.length ? '<div style="margin:6px 0;">' + q.options.map((o, j) => '<div>' + String.fromCharCode(65 + j) + '. ' + esc(o) + '</div>').join('') + '</div>' : ''}
+              ${q.answer ? `<details style="margin-top:6px;"><summary style="cursor:pointer;color:#10b981;font-weight:700;">Show Answer & Solution</summary><div style="margin-top:6px;padding:8px;background:#062319;border-radius:6px;"><b>Correct Answer:</b> ${esc(q.answer)}<br>${esc(q.explanation || q.solution || '')}</div></details>` : ''}
+            </div>
+          `).join("");
+        }
+      } catch(e) {
+        libContainer.innerHTML = '<p class="muted">Could not query Teacher Library: ' + esc(e.message) + '</p>';
+      }
+    };
+
+    window.closePracticePanel = function() {
+      document.getElementById("practicePanel").style.display = "none";
+    };
+
+    window.generateTopicPractice = async function() {
+      const p = getActiveProfile();
+      if(!p) return;
+      const hit = findNodeInTree(activePracticeTopicId, p.nodes);
+      if(!hit) return;
+      
+      const key = (document.getElementById("geminiKey").value.trim() || localStorage.getItem(KEY) || "").trim();
+      if(!key) return alert("Please enter and save your Gemini API key.");
+      
+      const btn = document.getElementById("generate5McqsBtn");
+      const out = document.getElementById("generatedPracticeResults");
+      btn.disabled = true;
+      btn.textContent = "⏳ Generating…";
+      out.innerHTML = '<p class="muted">AI is creating 5 conceptual MCQs with full explanations…</p>';
+      
+      try {
+        const topicName = hit.node.title;
+        const prompt = `Create exactly 5 high-quality, concept-testing MCQ practice questions for the topic: "${topicName}".
+Exam target: "${p.name}".
+Requirements:
+1. Each question must have 4 options (A, B, C, D).
+2. One clear correct answer (A, B, C, or D).
+3. Clear step-by-step educational explanation.
+Return ONLY valid JSON:
+{
+  "questions": [
+    {
+      "question": "...",
+      "options": ["...", "...", "...", "..."],
+      "answer": "A",
+      "explanation": "..."
+    }
+  ]
+}`;
+
+        const body = {
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.2,
+            maxOutputTokens: 6000
+          }
+        };
+
+        const d = await callGemini(key, body);
+        const raw = d?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+        const parsed = parseCleanJson(raw);
+        const qs = parsed.questions || [];
+        
+        if(!qs.length) throw Error("AI did not return practice questions.");
+
+        out.innerHTML = '<h4 style="color:#a78bfa;margin-top:14px;">✨ AI Generated Practice Questions</h4>' + qs.map((q, i) => `
+          <div class="practice-q">
+            <b>Q${i + 1}. ${esc(q.question)}</b> <span class="source-tag ai">AI Generated</span>
+            <div style="margin:8px 0;">
+              ${(q.options || []).map((opt, j) => `
+                <label style="display:flex;gap:8px;padding:6px;background:#0f172a;border-radius:6px;margin:4px 0;cursor:pointer;">
+                  <input type="radio" name="ai_q_${i}" value="${String.fromCharCode(65 + j)}">
+                  <span><b>${String.fromCharCode(65 + j)}.</b> ${esc(opt)}</span>
+                </label>
+              `).join("")}
+            </div>
+            <button class="mini-btn btn" onclick="checkAnswer('ai_q_${i}', '${esc(q.answer)}', this)">Check Answer</button>
+            <div class="ans-feedback" style="margin-top:6px;"></div>
+            <details style="margin-top:6px;">
+              <summary style="cursor:pointer;color:#38bdf8;font-size:12px;font-weight:700;">Show Explanation</summary>
+              <div style="margin-top:4px;padding:8px;background:#091224;border-radius:6px;font-size:13px;line-height:1.6;">
+                <b>Answer: ${esc(q.answer)}</b><br>${esc(q.explanation)}
+              </div>
+            </details>
+          </div>
+        `).join("");
+
+      } catch(e) {
+        out.innerHTML = '<p class="muted">Generation failed: ' + esc(e.message) + '</p>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "✨ Generate 5 MCQs with AI";
+      }
+    };
+
+    window.checkAnswer = function(name, correct, btn) {
+      const selected = document.querySelector('input[name="' + name + '"]:checked');
+      const box = btn.nextElementSibling;
+      if(!selected) {
+        box.innerHTML = '<span style="color:#f59e0b;font-weight:700;">Please select an option first.</span>';
+        return;
+      }
+      if(selected.value.trim().toUpperCase() === correct.trim().toUpperCase()) {
+        box.innerHTML = '<span style="color:#10b981;font-weight:900;">✓ Correct! Well done.</span>';
+      } else {
+        box.innerHTML = '<span style="color:#ef4444;font-weight:900;">✕ Incorrect. Correct answer is Option ' + correct + '.</span>';
+      }
+    };
+
+    // INITIALIZATION
+    window.addEventListener("DOMContentLoaded", () => {
+      const savedKey = localStorage.getItem(KEY) || "";
+      if(savedKey) document.getElementById("geminiKey").value = savedKey;
+
+      const em = getStudentEmail();
+      document.getElementById("student-email-tag").textContent = em || "Not logged in (Local Mode)";
+      document.getElementById("logDateInput").value = new Date().toISOString().slice(0, 10);
+
+      // Load from LocalStorage first
+      const hasLocal = loadFromLocalStorage();
+      if(!hasLocal || !profiles.length) {
+        // Initialize default with UPPSC Assistant Professor (Physics) so the user's syllabus is pre-loaded!
+        profiles = [
+          {
+            id: makeExamId(),
+            name: "UPPSC Assistant Professor (Physics)",
+            nodes: normalizeNodes(UPPSC_PHYSICS_DEFAULT),
+            dailyLog: []
+          }
+        ];
+        activeExamId = profiles[0].id;
+        saveToLocalStorage();
+      }
+
+      renderExamsDashboard();
+      renderSyllabusView();
+      renderDailyLogsList();
+
+      // If email present, also check cloud
+      if(em) {
+        loadFromCloud().catch(() => {});
+      }
+    });
+  </script>
+</body>
+</html>
