@@ -570,14 +570,38 @@ function optionNeedsVisual(q,idx){
   return !!(required||img||box);
 }
 function renderOptionHtml(q,opt,idx,review){
-  var img=figureImageForOption(q,idx),needs=optionNeedsVisual(q,idx),letter=String.fromCharCode(65+idx);
-  var h='<div class="opt math-content"><b>'+letter+'.</b> '+renderMathMarkupHtml(formatQuestionText(opt));
-  if(review)h+='<div class="option-edit-row" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin:7px 0 4px"><textarea class="q-option-edit" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'" aria-label="Edit option '+letter+'" style="width:100%;min-height:48px;box-sizing:border-box;resize:vertical">'+esc(String(opt||''))+'</textarea><button type="button" class="btn mini-btn red" data-a="remove-option" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">Delete '+letter+'</button></div>';
-  if(img)h+='<div class="option-visual"><img src="'+esc(img)+'" alt="Option '+letter+' figure"></div>';
-  else if(review&&needs)h+='<div class="option-visual"><div class="figure-missing">⚠️ Image required for Option '+letter+'.</div></div>';
-  if(review&&needs&&Array.isArray(q.optionImageCropPending)&&q.optionImageCropPending[idx])h+='<div class="inline-figure-tools"><button type="button" class="btn mini-btn green" data-a="keep-option-crop" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">✓ Keep Option Crop</button><button type="button" class="btn mini-btn red" data-a="discard-option-crop" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">✕ Discard Crop</button></div>';
-  if(review&&needs)h+='<div class="inline-figure-tools"><button type="button" class="btn mini-btn purple" data-a="option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">🖼 Insert Figure for Option '+letter+'</button>'+(img?'<button type="button" class="btn mini-btn red" data-a="remove-option-figure" data-i="'+qs.indexOf(q)+'" data-opt-index="'+idx+'">Remove</button>':'')+'</div>';
-  return h+'</div>';
+  var img = figureImageForOption(q, idx), letter = String.fromCharCode(65 + idx);
+  var qIdx = qs.indexOf(q);
+  var h = '<div class="opt math-content" data-opt-card-index="' + idx + '"><b style="color:#38bdf8;font-size:13px;">' + letter + '.</b> ' + renderMathMarkupHtml(formatQuestionText(opt));
+  
+  if(img){
+    h += '<div class="option-visual" style="margin-top:8px;padding:6px;border:1.5px solid #38bdf8;border-radius:8px;background:#fff;text-align:center;">' +
+         '<div style="font-size:10px;font-weight:800;color:#0369a1;margin-bottom:4px;text-transform:uppercase;">📊 Option ' + letter + ' Figure / Graph</div>' +
+         '<img src="' + esc(img) + '" alt="Option ' + letter + ' figure" style="max-width:100%;max-height:240px;display:block;margin:auto;object-fit:contain;background:#fff;border-radius:4px;">' +
+         '</div>';
+  }
+  
+  if(review){
+    h += '<div class="option-edit-row" style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;margin:7px 0 4px">' +
+         '<textarea class="q-option-edit" data-i="' + qIdx + '" data-opt-index="' + idx + '" aria-label="Edit option ' + letter + '" style="width:100%;min-height:48px;box-sizing:border-box;resize:vertical" placeholder="Option ' + letter + ' text (leave empty if graph/diagram only)">' + esc(String(opt || '')) + '</textarea>' +
+         '<button type="button" class="btn mini-btn red" data-a="remove-option" data-i="' + qIdx + '" data-opt-index="' + idx + '">Delete ' + letter + '</button>' +
+         '</div>';
+         
+    h += '<div class="inline-figure-tools" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">';
+    if(img){
+      h += '<button type="button" class="btn mini-btn purple" data-a="option-figure" data-i="' + qIdx + '" data-opt-index="' + idx + '" style="font-weight:800;background:#4c1d95;border-color:#a78bfa;">✂ Re-crop Option ' + letter + ' Figure</button>' +
+           '<button type="button" class="btn mini-btn red" data-a="remove-option-figure" data-i="' + qIdx + '" data-opt-index="' + idx + '">🗑 Remove Option ' + letter + ' Image</button>';
+    } else {
+      h += '<button type="button" class="btn mini-btn purple" data-a="option-figure" data-i="' + qIdx + '" data-opt-index="' + idx + '" style="font-weight:800;background:#4c1d95;border-color:#a78bfa;">✂ Crop Figure / Graph for Option ' + letter + '</button>';
+    }
+    if(Array.isArray(q.optionImageCropPending) && q.optionImageCropPending[idx]){
+      h += '<button type="button" class="btn mini-btn green" data-a="keep-option-crop" data-i="' + qIdx + '" data-opt-index="' + idx + '">✓ Keep Crop</button>' +
+           '<button type="button" class="btn mini-btn red" data-a="discard-option-crop" data-i="' + qIdx + '" data-opt-index="' + idx + '">✕ Discard Crop</button>';
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
 }
 function renderFormattedQuestionText(s){
   var x=String(s==null?"":s),out="",last=0,ticks=String.fromCharCode(96).repeat(3);
@@ -665,7 +689,7 @@ function render(){
     else if(q.qType==="mcq"&&(!Array.isArray(q.options)||q.options.filter(function(x){return String(x||"").trim()}).length<2)&&/calculate|find the value|numerical answer|मान ज्ञात|संख्यात्मक उत्तर|\d+\s*\+\s*\d+/.test(String(q.text||"").toLowerCase()))q.qType="numerical";
     var opts=(q.options||[]).length?'<div class="options-grid">'+(q.options||[]).map(function(o,oi){return renderOptionHtml(q,o,oi,false)}).join("")+'</div>':"";
     var image=q.cropImage?'<div class="figure-preview auto-source-image"><b>🖼 Cropped Question Image</b><img src="'+esc(q.cropImage)+'" alt="Teacher-cropped question image"><div class="inline-figure-tools"><button type="button" class="btn mini-btn green" data-a="keep-crop" data-i="'+i+'">✓ Keep Cropped Image</button><button type="button" class="btn mini-btn red" data-a="discard-crop" data-i="'+i+'">✕ Discard Crop</button></div></div>':"";
-    var cvs=canonicalVisuals(q);var figure=cvs.length?"":(q.figureImage?'<div class="figure-preview auto-figure-image"><b>🖼 Figure / Diagram</b><img src="'+esc(q.figureImage)+'" alt="Figure"><div class="inline-figure-tools">'+(q.figureImageCropPending?'<button type="button" class="btn mini-btn green" data-a="keep-figure-crop" data-i="'+i+'">✓ Keep Cropped Figure</button><button type="button" class="btn mini-btn red" data-a="discard-figure-crop" data-i="'+i+'">✕ Discard Crop</button>':'<button type="button" class="btn mini-btn red" data-a="discard-figure" data-i="'+i+'">✕ Remove Figure</button>')+'</div></div>':"");var generatedCandidate=q._generatedFigureCandidate?'<div class="figure-preview"><b>🧪 AI-generated figure — NOT saved unless you keep it</b><img src="'+esc(q._generatedFigureCandidate)+'" alt="AI-generated figure candidate"><div class="inline-figure-tools"><button type="button" class="btn mini-btn green" data-a="keep-generated-figure" data-i="'+i+'">✓ Keep Generated Figure</button><button type="button" class="btn mini-btn red" data-a="discard-generated-figure" data-i="'+i+'">✕ Discard Generated Figure</button></div></div>':"";
+    var cvs=canonicalVisuals(q);var figure=cvs.length?"":(q.figureImage?'<div class="figure-preview auto-figure-image"><b>🖼 Figure / Diagram</b><img src="'+esc(q.figureImage)+'" alt="Figure"><div class="inline-figure-tools">'+(q.figureImageCropPending?'<button type="button" class="btn mini-btn green" data-a="keep-figure-crop" data-i="'+i+'">✓ Keep Cropped Figure</button><button type="button" class="btn mini-btn red" data-a="discard-figure-crop" data-i="'+i+'">✕ Discard Crop</button>':'<button type="button" class="btn mini-btn red" data-a="discard-figure" data-i="'+i+'">✕ Remove Figure</button>')+'</div></div>':"");var generatedCandidate=q._generatedFigureCandidate?'<div class="figure-preview ai-generated-figure-box" style="margin-top:12px;padding:12px;border:2px solid #10b981;background:#ffffff;color:#111827;border-radius:10px;text-align:center;box-shadow:0 4px 15px rgba(0,0,0,0.25);"><b style="color:#047857;font-size:13px;display:block;margin-bottom:8px;">🧪 AI Generated Figure (Candidate)</b><img src="'+esc(q._generatedFigureCandidate)+'" alt="AI-generated figure candidate" style="max-width:100%;max-height:380px;display:block;margin:auto;background:#fff;border-radius:6px;"><div class="inline-figure-tools" style="margin-top:10px;display:flex;justify-content:center;gap:8px;"><button type="button" class="btn mini-btn green" data-a="keep-generated-figure" data-i="'+i+'" style="font-weight:900;padding:7px 14px;">✓ Keep Generated Figure</button><button type="button" class="btn mini-btn red" data-a="discard-generated-figure" data-i="'+i+'" style="padding:7px 14px;">✕ Discard Figure</button></div></div>':"";
     var activePath=norm(q.folderPath||aiPath);
     var path='<div class="pathbox"><b>📚 Save Location</b>'+
       '<div class="pathhint">Destination: '+esc((q.libraryMode||"private")==="central"?"Central Library":(q.libraryMode||"private")==="group"?"Group Library":"Private Library")+'</div>'+
@@ -701,7 +725,7 @@ function render(){
     var right='<div class="student-review"><div class="student-head"><b>🎓 Student View</b><span class="muted">Live preview</span></div>'+
       '<div class="student-text"><b style="color:#38bdf8">'+esc(q.no)+'</b><div class="q math-content">'+renderQuestionWithInlineFigures(Object.assign({},q,{text:questionTextWithoutDuplicatedTable(q)}))+'</div>'+
       (!canonicalVisuals(q).length?'<div class="question-figure-choice"><div class="question-figure-choice-title">🖼 Add a figure</div><div class="question-figure-choice-note">No figure was detected. Add one only if this question needs it.</div><div class="figure-action-row"><button type="button" class="btn btn-figure-generate" data-a="generate-figure-direct" data-i="'+i+'">✨ Generate Figure</button><button type="button" class="btn btn-figure-crop" data-a="figure" data-i="'+i+'">✂ Crop from PDF</button></div></div>':'')+opts+(q.tableRows&&q.tableRows.length?renderTableHtml(q.tableRows):'')+(!q.tableRows?.length&&questionHasReconstructedTable(q)?renderReconstructedTablesOnly(q):'')+(q.matrixLatex?renderMatrixHtml(q.matrixLatex):'')+renderVisualRegions(q,true)+'</div>'+
-      '<div class="student-image">'+image+figure+'</div></div>';
+      '<div class="student-image">'+image+figure+(generatedCandidate||'')+'</div></div>';
     var solutionBox='<div class="ai-solution-box" style="margin:0 0 14px;padding:12px;border:1px '+(q.explanation?'solid':'dashed')+' rgba(139,92,246,.55);border-radius:12px;background:rgba(139,92,246,.06)">'+
       '<div class="row" style="justify-content:space-between;align-items:center;gap:8px"><b>🧠 AI Solution</b><div class="row" style="margin:0;gap:6px">'+
       '<button type="button" class="btn purple" data-a="generate-solution" data-i="'+i+'">'+(q.explanation?'↻ Regenerate AI Solution':'🧠 Generate AI Solution')+'</button>'+
@@ -1971,8 +1995,17 @@ async function generateAIQuestionFigure(i){
     var svg=raw.slice(start,end+6).replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son\w+\s*=\s*(['"]).*?\1/gi,"").replace(/(?:href|xlink:href)\s*=\s*(['"])https?:[\s\S]*?\1/gi,"");
     if(!/viewBox\s*=/.test(svg))svg=svg.replace("<svg","<svg viewBox=\"0 0 800 450\"");
     var uri="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
-    q._generatedFigureCandidate=uri;q._generatedFigurePending=true;q.visualType=q.visualType||"diagram";
-    render();setTimeout(typesetMath,80);$("status").textContent="✔ AI figure candidate ready for Q"+q.no+". It will NOT be saved until you press Keep Generated Figure.";showSaveToast("🧪 Figure ready for review — keep or discard it.");
+    q._generatedFigureCandidate=uri;
+    q.figureImage=uri;
+    q.cropImage=uri;
+    q.cropImageKept=true;
+    q.contentMode="both";
+    q._generatedFigurePending=true;
+    q.figureRequired=false;
+    q.visualType=q.visualType||"diagram";
+    render();setTimeout(typesetMath,80);
+    $("status").textContent="✔ AI figure candidate ready for Q"+q.no+". Displayed in Student View.";
+    showSaveToast("🧪 Figure ready in Student View — keep or discard it.");
   }catch(e){$("status").textContent="❌ Figure generation failed: "+(e.message||e);showSaveToast("❌ Figure generation failed.",true);throw e;}
   finally{q._generatingFigure=false;}
 }
@@ -2079,6 +2112,57 @@ $("pageStart").disabled=true;$("pageEnd").disabled=true;$("extract").onclick=ext
   if(Array.isArray(q.options)){
     q.options = q.options.map(function(o){ return normalizeQuestionInlineMath(o); });
   }});render();showSaveToast("✔ Main folder set to "+root+". AI will create/reuse subfolders only inside it.");});$("bankRootOverride").addEventListener("keydown",function(e){if(e.key==="Enter")$("applyBankRoot").click();});$("grid").addEventListener("change",function(e){var t=e.target,i=Number(t.dataset.i);if(!Number.isFinite(i)||!qs[i])return;if(t.classList.contains("q-type-control")){qs[i].qType=t.value;qs[i].answer=normaliseMCQAnswer(qs[i],qs[i].answer||qs[i].finalAnswer);render()}else if(t.classList.contains("q-answer-control")){qs[i].answer=t.value;qs[i].finalAnswer=t.value;}else if(t.classList.contains("q-answer-region"))qs[i].answerRegion=t.value;else if(t.classList.contains("q-source-control")){qs[i].sourceExam=t.value;qs[i].source=t.value;qs[i].isPYQ=!!(t.value||qs[i].year)}else if(t.classList.contains("q-year-control")){qs[i].year=t.value;qs[i].sourceYear=t.value;qs[i].isPYQ=!!(t.value||qs[i].sourceExam)}else if(t.classList.contains("q-keep-source-label"))qs[i].keepSourceLabel=t.checked;});
+
+var _liveUpdateDebounce = {};
+function liveSyncToStudentPreview(cardIdx){
+  var q = qs[cardIdx];
+  if(!q) return;
+  var cards = document.querySelectorAll(".aiq-review-card");
+  var card = cards[cardIdx];
+  if(!card) return;
+  
+  // 1. Update question text on right side
+  var qStemEl = card.querySelector(".student-review .student-text .q.math-content");
+  if(qStemEl){
+    qStemEl.innerHTML = renderQuestionWithInlineFigures(Object.assign({}, q, {text: questionTextWithoutDuplicatedTable(q)}));
+  }
+  
+  // 2. Update options on right side
+  var studentOptsGrid = card.querySelector(".student-review .options-grid");
+  if(studentOptsGrid && Array.isArray(q.options)){
+    studentOptsGrid.innerHTML = q.options.map(function(o, oi){
+      return renderOptionHtml(q, o, oi, false);
+    }).join("");
+  }
+  
+  // 3. Debounced typesetMath for this card only so typing is buttery smooth
+  clearTimeout(_liveUpdateDebounce[cardIdx]);
+  _liveUpdateDebounce[cardIdx] = setTimeout(function(){
+    var target = card.querySelector(".student-review");
+    if(target && window.MathJax && typeof MathJax.typesetPromise === "function"){
+      try{ MathJax.typesetPromise([target]); }catch(_){}
+    }
+  }, 350);
+}
+
+document.addEventListener("input", function(e){
+  var el = e.target;
+  if(!el) return;
+  if(el.classList && el.classList.contains("main-ocr-editor")){
+    var i = Number(el.dataset.ocrI);
+    if(Number.isFinite(i) && qs[i]){
+      qs[i].text = el.value;
+      liveSyncToStudentPreview(i);
+    }
+  } else if(el.classList && el.classList.contains("q-option-edit")){
+    var qi = Number(el.dataset.i), oi = Number(el.dataset.optIndex);
+    if(Number.isFinite(qi) && qs[qi] && Array.isArray(qs[qi].options) && Number.isFinite(oi)){
+      qs[qi].options[oi] = el.value;
+      liveSyncToStudentPreview(qi);
+    }
+  }
+});
+
 document.addEventListener("change",function(e){
   var el=e.target;if(!el||!el.classList)return;
   if(el.classList.contains("q-answer-control")){
@@ -2089,7 +2173,8 @@ document.addEventListener("change",function(e){
   if(!el.classList.contains("q-option-edit"))return;
   var qi=Number(el.dataset.i),oi=Number(el.dataset.optIndex);if(!qs[qi]||!Array.isArray(qs[qi].options)||!Number.isFinite(oi))return;
   qs[qi].options[oi]=normalizeAngstromText(el.value).trim();
-  render();showSaveToast("✔ Option "+String.fromCharCode(65+oi)+" updated in Q"+qs[qi].no+".");
+  liveSyncToStudentPreview(qi);
+  showSaveToast("✔ Option "+String.fromCharCode(65+oi)+" updated in Q"+qs[qi].no+".");
 });
 window.addEventListener("click",async function(e){
   var b=e.target.closest && e.target.closest("button[data-a]");
@@ -2130,7 +2215,19 @@ window.addEventListener("click",async function(e){
       render();showSaveToast("✔ Generated figure kept for Q"+qs[i].no+".");
     }
     else if(a==="discard-generated-figure"){
-      if(qs[i]._generatedFigureCandidate){qs[i]._generatedFigureCandidate="";qs[i]._generatedFigurePending=false;render();showSaveToast("Generated figure discarded; nothing was saved.");return;}
+      if(qs[i]._generatedFigureCandidate){
+        qs[i]._generatedFigureCandidate="";
+        qs[i]._generatedFigurePending=false;
+        qs[i].figureImage="";
+        if(qs[i].cropImage && (qs[i].cropImage.indexOf("data:image/svg+xml")===0)){
+          qs[i].cropImage="";
+          qs[i].cropImageKept=false;
+          if(qs[i].contentMode==="both"||qs[i].contentMode==="image") qs[i].contentMode="text";
+        }
+        render();
+        showSaveToast("Generated figure discarded.");
+        return;
+      }
       var di=Number(b.dataset.visIndex||0),dv=canonicalVisuals(qs[i])[di];
       if(dv&&dv._legacyFigure){qs[i].figureImage="";qs[i]._generatedFigurePending=false;qs[i].figureRequired=false;}
       else if(dv){var da=(qs[i].visualRegions||[]).indexOf(dv);if(da<0)da=di;if(qs[i].visualRegions[da]){qs[i].visualRegions[da].image="";qs[i].visualRegions[da].aiGeneratedPending=false;}if(qs[i].figureImage===dv.image)qs[i].figureImage="";}
