@@ -11,12 +11,16 @@ body{margin:0;background:#060911;color:#f8fafc;font:13px system-ui}.nav{height:5
 <div class="wrap"><div class="hero"><h2>🤖 AI Question Import — Beta</h2><div class="muted">Upload a question-paper PDF. Gemini extracts questions directly — no coordinates, JSON file, Python or manual cropping.</div>
 <div class="row"><input id="geminiKey" type="password" placeholder="Gemini API key" style="min-width:280px"><button id="saveKey" class="btn">Save Key on This Device</button><button id="testKey" class="btn purple" type="button">🔑 Test Gemini Key</button>
 <select id="geminiModelSelect" title="Select Gemini Model" style="background:#0f172a;border:1px solid #38bdf8;color:#38bdf8;border-radius:7px;padding:8px;font-weight:700">
-  <option value="auto" selected>⚡ Auto-detect (2.0 Flash / 1.5 Flash)</option>
-  <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recommended)</option>
-  <option value="gemini-1.5-flash">Gemini 1.5 Flash (Most Stable)</option>
+  <option value="auto" selected>⚡ Auto-detect Live Models (Gemini 3.x / 2.5 Flash)</option>
+  <option value="gemini-3.8-flash">Gemini 3.8 Flash</option>
+  <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
+  <option value="gemini-3.6-flash">Gemini 3.6 Flash (Recommended)</option>
+  <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+  <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash Lite</option>
+  <option value="gemini-3-flash">Gemini 3 Flash</option>
   <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-  <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+  <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
+  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
 </select><span class="muted">Key stays in this browser only; never put it in GitHub.</span></div><div class="row"><div class="suggestbox" style="width:100%"><b>🧠 Faithful Reconstruction:</b> AI will separately reconstruct readable tables as HTML, matrices as LaTeX, and graphs/diagrams as inline SVG when possible. Complex photos remain available as exact PDF crops.</div></div><div class="row"><label for="defaultLibraryMode"><b>📚 Save all questions to:</b></label><select id="defaultLibraryMode" style="background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select><span class="muted">AI will create the suggested folder path automatically.</span></div><div class="row" style="padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><label for="bankRootOverride"><b>🗂 Main Question-Bank Folder:</b></label><input id="bankRootOverride" type="text" placeholder="Auto-detect, or enter JEE Mains / CBSE / NCERT Exemplar" style="flex:1;min-width:230px;background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><button id="applyBankRoot" class="btn purple" type="button">Apply to This Import</button><span class="muted">Manual value becomes the main folder; AI creates/reuses class, chapter and topic folders only inside it.</span></div><div class="row"><label style="display:flex;align-items:center;gap:7px"><input id="autoGenerateFigures" type="checkbox"> 🎨 Automatically generate AI figures for questions that need a diagram</label><span class="muted">Generated separately from extraction, only for question-owned figures; tables/matrices are not converted to figures.</span></div><div class="row"><input id="pdf" type="file" accept=".pdf,application/pdf"><button id="extract" class="btn blue">🤖 Extract Questions with AI</button><button id="generateSolutions" class="btn purple" type="button" style="display:none">🧠 Generate All Solutions</button><span id="status" class="muted">Waiting for PDF…</span></div>
 <div class="settings" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="field"><label>TOTAL PDF PAGES</label><input id="totalPagesDisplay" value="—" readonly></div><div class="field"><label>PAGE MODE</label><select id="pageMode"><option value="batches" selected>Automatic 5-page batches</option><option value="range">Manual page range</option></select></div><div class="field"><label>START PAGE</label><input id="pageStart" type="number" min="1" value="1"></div><div class="field"><label>END PAGE</label><input id="pageEnd" type="number" min="1" value="5"></div></div>
 <div class="row" style="margin-top:7px;padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><b>📚 Large-PDF Safe Mode:</b><span class="muted">PDF is split into small native-PDF batches before Gemini reads it. Default: 5 pages per batch. This avoids repeated OCR screenshots and protects equations/Hindi text.</span><span id="batchProgress" class="muted"></span></div>
@@ -911,114 +915,212 @@ function inferQuestionType(q){
   return "short";
 }
 function normalizeSolutionJson(out){out=out&&typeof out==='object'?out:{};return {answer:String(out.answer||"").trim(),explanation:String(out.explanation||out.solution||out.steps||"").trim(),final_answer:String(out.final_answer||out.finalAnswer||out.final||out.answer||"").trim()};}
-let ACTIVE_GEMINI_MODEL = "gemini-2.0-flash";
-async function geminiRequest(key, body){
-  const fallbackModels = [
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-2.5-flash",
-    "gemini-2.0-flash-lite",
-    "gemini-1.5-pro"
-  ];
+let ACTIVE_GEMINI_MODEL = localStorage.getItem("A2Z_LAST_WORKING_MODEL") || "gemini-3.5-flash";
+let DISCOVERED_MODELS = [];
+
+// Static priority list focusing on Gemini 3.x and 2.5
+const MODERN_GEMINI_MODELS = [
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-3-flash",
+  "gemini-3.0-flash",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite"
+];
+
+// Query Google ModelService.ListModels to detect all supported models on this key
+async function fetchAvailableModels(key){
+  key = String(key || "").trim();
+  if(!key) return [];
+  if(DISCOVERED_MODELS.length) return DISCOVERED_MODELS;
   
+  const apiVersions = ["v1beta", "v1"];
+  for(let vi = 0; vi < apiVersions.length; vi++){
+    const ver = apiVersions[vi];
+    try {
+      const resp = await fetch("https://generativelanguage.googleapis.com/" + ver + "/models?key=" + key, {
+        method: "GET"
+      });
+      if(!resp.ok) continue;
+      const data = await resp.json().catch(() => ({}));
+      if(data && Array.isArray(data.models) && data.models.length){
+        const valid = data.models
+          .filter(m => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
+          .map(m => String(m.name || "").replace(/^models\//, "").trim())
+          .filter(id => id && !/embedding|embed|tts|transcribe|live|imagen|image-generation/i.test(id));
+        
+        function rankScore(id){
+          let s = 0;
+          if(/gemini-3\.[7-9]/i.test(id)) s += 1000;
+          else if(/gemini-3\.[5-6]/i.test(id)) s += 900;
+          else if(/gemini-3/i.test(id)) s += 800;
+          else if(/gemini-2\.5/i.test(id)) s += 700;
+          else if(/gemini-2\.0/i.test(id)) s += 600;
+          else s += 100;
+          if(/flash/i.test(id)) s += 50;
+          if(/lite/i.test(id)) s -= 15;
+          if(/preview|exp/i.test(id)) s -= 10;
+          return s;
+        }
+        valid.sort((a, b) => rankScore(b) - rankScore(a));
+        if(valid.length){
+          DISCOVERED_MODELS = valid;
+          updateModelSelectUI(valid);
+          if(!valid.includes(ACTIVE_GEMINI_MODEL)){
+            ACTIVE_GEMINI_MODEL = valid[0];
+            localStorage.setItem("A2Z_LAST_WORKING_MODEL", ACTIVE_GEMINI_MODEL);
+          }
+          console.log("[A2Z] Discovered working models from Google API:", valid);
+          return valid;
+        }
+      }
+    } catch(err){
+      console.warn("[A2Z] ListModels failed for " + ver + ":", err);
+    }
+  }
+  return [];
+}
+
+function updateModelSelectUI(modelsList){
+  const sel = $("geminiModelSelect");
+  if(!sel || !modelsList || !modelsList.length) return;
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="auto">⚡ Auto-detect Live Models (Recommended)</option>';
+  modelsList.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m + (/3\.[5-8]/i.test(m) ? " (Latest)" : "");
+    sel.appendChild(opt);
+  });
+  if(modelsList.includes(currentVal)){
+    sel.value = currentVal;
+  } else {
+    sel.value = "auto";
+  }
+}
+
+async function geminiRequest(key, body){
   key = String(key || "").trim();
   if(!key) throw Error("Gemini API key is empty. Please enter your Gemini API key.");
   
-  var selEl = $("geminiModelSelect");
-  var userChosen = selEl ? selEl.value : "auto";
-  
-  var modelsToTry = [];
-  if(userChosen && userChosen !== "auto") {
-    modelsToTry = [userChosen].concat(fallbackModels.filter(m => m !== userChosen));
-  } else {
-    modelsToTry = [ACTIVE_GEMINI_MODEL].concat(fallbackModels.filter(m => m !== ACTIVE_GEMINI_MODEL));
+  // Try to discover live models from Google if not yet fetched
+  if(!DISCOVERED_MODELS.length){
+    try { await fetchAvailableModels(key); } catch(_){}
   }
+  
+  const basePool = DISCOVERED_MODELS.length ? DISCOVERED_MODELS : MODERN_GEMINI_MODELS;
+  const selEl = $("geminiModelSelect");
+  const userChosen = selEl ? selEl.value : "auto";
+  
+  let modelsToTry = [];
+  if(userChosen && userChosen !== "auto"){
+    modelsToTry = [userChosen].concat(basePool.filter(m => m !== userChosen));
+  } else {
+    modelsToTry = [ACTIVE_GEMINI_MODEL].concat(basePool.filter(m => m !== ACTIVE_GEMINI_MODEL));
+  }
+  
+  // Remove duplicates while preserving order
+  modelsToTry = Array.from(new Set(modelsToTry));
   
   let last = "", errors = [];
+  const apiVersions = ["v1beta", "v1"];
+  
   for(let mi = 0; mi < modelsToTry.length; mi++){
     const model = modelsToTry[mi];
-    try {
-      $("status").textContent = "🤖 Reading with " + model + "…";
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 90000);
-      let r, d;
+    
+    // Try both v1beta and v1 endpoints for each model
+    for(let vi = 0; vi < apiVersions.length; vi++){
+      const ver = apiVersions[vi];
+      const url = "https://generativelanguage.googleapis.com/" + ver + "/models/" + model + ":generateContent";
+      
       try {
-        r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
-          method: "POST",
-          headers: {"Content-Type": "application/json", "x-goog-api-key": key},
-          body: JSON.stringify(body),
-          signal: controller.signal
-        });
-        d = await r.json().catch(() => ({}));
-      } finally {
-        clearTimeout(timeout);
-      }
-      
-      if(r.ok && d && Array.isArray(d.candidates) && d.candidates.length) {
-        ACTIVE_GEMINI_MODEL = model;
-        return d;
-      }
-      
-      const msg = String(d?.error?.message || ("HTTP " + r.status)).trim();
-      last = model + ": HTTP " + r.status + " — " + msg;
-      errors.push(last);
-      
-      // Invalid API key or unauthorized
-      if(r.status === 401 || r.status === 403 || /API key not valid|invalid.*api.*key|permission denied/i.test(msg)) {
-        throw Error(last + " (Invalid API key. Check your key at https://aistudio.google.com/)");
-      }
-      
-      // Model not found (404) or unsupported (400) -> Try next model in list
-      if(r.status === 404 || (r.status === 400 && /not found|unsupported|not supported/i.test(msg))) {
-        console.warn("Gemini model " + model + " not available on this API key, trying next...");
+        $("status").textContent = "🤖 Reading with " + model + " (" + ver + ")…";
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 90000);
+        let r, d;
+        try {
+          r = await fetch(url, {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "x-goog-api-key": key},
+            body: JSON.stringify(body),
+            signal: controller.signal
+          });
+          d = await r.json().catch(() => ({}));
+        } finally {
+          clearTimeout(timeout);
+        }
+        
+        if(r.ok && d && Array.isArray(d.candidates) && d.candidates.length){
+          ACTIVE_GEMINI_MODEL = model;
+          localStorage.setItem("A2Z_LAST_WORKING_MODEL", model);
+          return d;
+        }
+        
+        const msg = String(d?.error?.message || ("HTTP " + r.status)).trim();
+        last = model + " (" + ver + "): HTTP " + r.status + " — " + msg;
+        errors.push(last);
+        
+        // Invalid API key
+        if(r.status === 401 || r.status === 403 || /API key not valid|invalid.*api.*key|permission denied/i.test(msg)){
+          throw Error(last + " (Invalid API key. Get a key at https://aistudio.google.com/)");
+        }
+        
+        // Model not found (404) or unsupported in this version (400) -> Try next version or next model
+        if(r.status === 404 || (r.status === 400 && /not found|unsupported|not supported|is not supported for generateContent/i.test(msg))){
+          continue;
+        }
+        
+        // Rate limit (429) -> Try next model
+        if(r.status === 429){
+          console.warn(model + " rate limit (429), trying next model...");
+          break; // break inner version loop, try next model
+        }
+        
+        // Server error (500, 503) -> Try next model
+        if(r.status >= 500){
+          console.warn(model + " server error " + r.status + ", trying next model...");
+          break;
+        }
+        
+      } catch(e){
+        if(/API key not valid|invalid.*api.*key|permission denied/i.test(e.message)){
+          throw e;
+        }
+        last = e?.name === "AbortError" ? (model + ": request timed out after 90s") : (e?.message || String(e));
+        errors.push(last);
         continue;
       }
-      
-      // Rate limit (429) -> Try next fallback model if available
-      if(r.status === 429 && mi < modelsToTry.length - 1) {
-        console.warn("Gemini model " + model + " hit quota limit (429), trying fallback model...");
-        continue;
-      }
-      
-      // Server error (500, 503) -> Try next fallback model if available
-      if(r.status >= 500 && mi < modelsToTry.length - 1) {
-        console.warn("Gemini server error on " + model + ", trying fallback model...");
-        continue;
-      }
-      
-      throw Error(last);
-    } catch(e) {
-      if(/API key not valid|invalid.*api.*key|permission denied/i.test(e.message)) {
-        throw e;
-      }
-      last = e?.name === "AbortError" ? (model + ": request timed out after 90s") : (e?.message || String(e));
-      errors.push(last);
-      if(mi < modelsToTry.length - 1) {
-        console.warn("Request failed on " + model + " (" + last + "), trying next model...");
-        continue;
-      }
-      throw Error(last);
     }
   }
-  throw Error("Gemini request failed: " + (last || errors.join("; ")));
+  
+  throw Error("All Gemini models failed. " + (last || errors.join("; ")));
 }
 async function testGeminiKey(){
   var key = $("geminiKey").value.trim() || localStorage.getItem(KEY) || "";
   if(!key){ showSaveToast("पहले Gemini API key डालें.", true); return; }
   $("testKey").disabled = true;
-  $("status").textContent = "🔑 Testing Gemini API key…";
+  $("status").textContent = "🔑 Checking available models with Google API…";
   try {
+    const liveModels = await fetchAvailableModels(key);
     var body = {contents: [{role: "user", parts: [{text: "Reply with exactly: OK"}]}], generationConfig: {temperature: 0, maxOutputTokens: 8}};
     await geminiRequest(key, body);
-    $("status").textContent = "✅ Gemini key is working! Active model: " + ACTIVE_GEMINI_MODEL;
-    showSaveToast("✓ Gemini key working! (" + ACTIVE_GEMINI_MODEL + ")");
+    
+    const countInfo = liveModels.length ? (" (" + liveModels.length + " live models detected)") : "";
+    $("status").textContent = "✅ Connected to: " + ACTIVE_GEMINI_MODEL + countInfo;
+    showSaveToast("✓ Gemini key active: " + ACTIVE_GEMINI_MODEL + countInfo);
+    
     var selEl = $("geminiModelSelect");
     if(selEl && selEl.value === "auto") {
       selEl.title = "Currently active: " + ACTIVE_GEMINI_MODEL;
     }
   } catch(e) {
     $("status").textContent = "❌ " + (e.message || String(e));
-    showSaveToast("Gemini key/API test failed: " + (e.message || String(e)), true);
+    showSaveToast("Gemini API test failed: " + (e.message || String(e)), true);
   } finally {
     $("testKey").disabled = false;
   }
@@ -1609,7 +1711,10 @@ window.__A2Z_REVIEW_ACTIONS_READY=true;
 function setup(){
  document.body.classList.toggle("ai-figures-enabled",!!$("enableAIFigures")&&$("enableAIFigures").checked);
  ["showAIFigureSlots","autoCropOriginalVisuals","enableAIFigures","defaultKeepOptions"].forEach(function(id){var el=$(id);if(el)el.addEventListener("change",function(){document.body.classList.toggle("ai-figures-enabled",!!$("enableAIFigures")&&$("enableAIFigures").checked);if(id==="showAIFigureSlots")render();if(id==="defaultKeepOptions")showSaveToast("Default option-saving preference updated. Existing questions can still be changed individually.");});});
- $("eCropFromPdf").onclick=()=>{if(editing>=0)cropQ(editing)}; $("eCrop").onclick=()=>{if(editing>=0)cropQ(editing)}; $("geminiKey").value=localStorage.getItem(KEY)||"";$("testKey").onclick=testGeminiKey;
+ $("eCropFromPdf").onclick=()=>{if(editing>=0)cropQ(editing)}; $("eCrop").onclick=()=>{if(editing>=0)cropQ(editing)}; $("geminiKey").value=localStorage.getItem(KEY)||"";
+if($("geminiKey").value){
+  fetchAvailableModels($("geminiKey").value).catch(()=>{});
+}$("testKey").onclick=testGeminiKey;
 $("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("Gemini API key भरें.");localStorage.setItem(KEY,v);alert("✔ Key saved on this device.")};$("pdf").addEventListener("change",async function(){
   let f=this.files&&this.files[0];
   if(!f){$("status").textContent="Waiting for PDF…";return;}
