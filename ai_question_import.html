@@ -969,7 +969,7 @@ function parseGeminiJson(raw){
     str = fenceMatch[1].trim();
   }
   
-  // 2. Direct attempt
+  // 2. Direct attempt (if already clean)
   try { return JSON.parse(str); } catch(_){}
   
   // 3. Find outermost { ... } or [ ... ]
@@ -987,12 +987,11 @@ function parseGeminiJson(raw){
   }
   
   if (start !== -1 && end > start) {
-    var sliced = str.slice(start, end + 1).trim();
-    try { return JSON.parse(sliced); } catch(_){}
-    str = sliced;
+    str = str.slice(start, end + 1).trim();
+    try { return JSON.parse(str); } catch(_){}
   }
   
-  // 4. Repair unescaped backslashes (frequent in MathJax/LaTeX inside JSON strings)
+  // 4. Bulletproof LaTeX backslash repair (never turn \text into tab+ext or \frac into formfeed+rac!)
   var repaired = "";
   var inString = false;
   var escaped = false;
@@ -1011,14 +1010,31 @@ function parseGeminiJson(raw){
     }
     if(ch === '\\'){
       var next = str[i+1] || "";
-      var isStandardEscape = /["\\/bfnrt]/.test(next);
-      var isUnicode = next === "u" && /^[0-9a-fA-F]{4}$/.test(str.slice(i+2, i+6));
-      if(isStandardEscape || isUnicode){
+      // If backslash is followed by quote or another backslash:
+      // \" or \\ -> this is already a valid JSON escape
+      if(next === '"' || next === '\\'){
         repaired += ch;
         escaped = true;
-      } else {
-        repaired += "\\\\";
+        continue;
       }
+      
+      // In LaTeX inside JSON, letters (like \text, \theta, \frac, \beta, \nu, \sqrt, \alpha, \times)
+      // or math brackets \(, \), \[, \], \{, \}, \_ MUST BE PRESERVED AS LITERAL LATEX BACKSLASHES!
+      // So we double them (\\\\) so JSON.parse gives intact LaTeX commands without control character corruption!
+      if(/^[a-zA-Z()\[\]{}_^,;:+\-*=<>|]/.test(next)){
+        repaired += "\\\\";
+        continue;
+      }
+      
+      // Standard JSON escapes (e.g. \n alone, \t alone)
+      if(/^[bfnrt/]/.test(next)){
+        repaired += ch;
+        escaped = true;
+        continue;
+      }
+      
+      // Default: double any other backslash
+      repaired += "\\\\";
       continue;
     }
     if(ch === '"'){
@@ -1505,7 +1521,9 @@ async function extractNativePdf(key, pdfB64, totalPages, limit, libraryList){
   var wanted = limit ? Math.min(limit, 250) : 250;
   var prompt = `Extract all exam questions from the supplied PDF document. Faithful transcription task, not summarization.
 CRITICAL RULES:
-1. Each printed/logical question MUST be a separate object in questions[]. Never combine multiple questions into one.
+1. COMPLETE PAPER EXTRACTION: Extract EVERY printed question in the supplied pages without skipping or truncating.
+2. LATEX COMMAND RULE: Always output clean LaTeX commands (e.g. \\( \\theta_1 \\), \\( \\text{ cm} \\), \\( \\frac{a}{b} \\), \\( d = 4\\sqrt{3}\\text{ cm} \\)).
+3. Each printed/logical question MUST be a separate object in questions[]. Never combine multiple questions into one.
 2. Return ONLY valid JSON in exactly this shape: {"questions":[...]}.
 3. Preserve BOTH English and Hindi/Devanagari text exactly if the paper is bilingual. Never translate, shorten or omit text.
 4. MATHEMATICAL NOTATION INLINE RULE (CRITICAL - DO NOT BREAK LINES):
@@ -1776,9 +1794,18 @@ async function extract(){
       
       if(!String(nq.text || "").trim()) continue;
       
-      // Prevent duplicates by question number
-      var keyNo = String(nq.no || "").trim().toLowerCase();
-      if(keyNo && qs.some(x => String(x.no || "").trim().toLowerCase() === keyNo)) continue;
+      // Prevent duplicates ONLY by question text content, NEVER by question number alone!
+      // (This ensures Section B, Part 2, and multi-segment questions like 19-37 are NEVER dropped!)
+      function qFingerprint(txt){
+        return String(txt || "").replace(/[^a-zA-Z0-9\u0900-\u097F]+/g, "").toLowerCase().slice(0, 80);
+      }
+      var fp = qFingerprint(nq.text);
+      if(fp && qs.some(x => qFingerprint(x.text) === fp)) continue;
+      
+      // If question number is repeated across sections or segments, assign unique chronological number
+      if(qs.some(x => String(x.no || "").trim().toLowerCase() === String(nq.no || "").trim().toLowerCase())){
+        nq.no = String(qs.length + 1);
+      }
       
       qs.push(nq);
     }
