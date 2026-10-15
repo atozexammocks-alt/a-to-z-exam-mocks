@@ -6,7 +6,22 @@
   <title>A to Z Exam Mocks - Library Manager</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'><path d='M12 3L1 9l11 6 9-4.91V17h2V9M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
   <script>
-window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};
+window.MathJax = {
+  tex: {
+    inlineMath: [["\\(", "\\)"], ["$", "$"]],
+    displayMath: [["\\[", "\\]"], ["$$", "$$"]],
+    processEscapes: true,
+    packages: {'[+]': ['ams', 'noerrors', 'noundefined']}
+  },
+  options: {
+    skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+    renderError: function(doc, em, err) {
+      console.warn("MathJax bypass error:", err);
+      return doc.text(em.text);
+    }
+  },
+  svg: { fontCache: "global" }
+};
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -58,7 +73,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     .nav-tabs { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .nav-btn { background: #0f172a; border: 1px solid #334155; color: #94a3b8; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; text-decoration: none; display: flex; align-items: center; gap: 6px; }
     .nav-btn:hover { border-color: #38bdf8; color: white; }
-    .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+    .user-pill { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.25); color: #38bdf8; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; }
 
     /* Library Mode Switcher Bar */
     .library-mode-bar { background: #090d16; border-bottom: 1px solid #1e293b; padding: 10px 20px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
@@ -88,16 +103,22 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     .saved-question-view-modal{position:fixed;inset:0;background:rgba(0,0,0,.90);display:none;align-items:center;justify-content:center;z-index:130000;padding:16px}
     .saved-question-view-card{width:min(1050px,100%);height:min(94vh,100%);background:#fff;color:#111827;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.45)}
     .saved-question-view-head{background:#0b1120;color:#fff;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex:0 0 auto}
-    .saved-question-view-body{padding:24px;overflow:auto;line-height:1.55;font-size:15px}
+    .saved-question-view-body{padding:24px;overflow:auto;line-height:1.6;font-size:15px}
     .saved-question-view-body .sqv-text{white-space:pre-wrap;margin-bottom:16px}
     .saved-question-view-body .sqv-figure{margin:14px 0;text-align:center}
     .saved-question-view-body .sqv-figure img{max-width:100%;max-height:420px;object-fit:contain;border:1px solid #d1d5db;border-radius:6px;background:#fff}
-    .saved-question-view-body .sqv-label{font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;margin-bottom:5px}
-    .saved-question-view-body .sqv-options{display:flex;flex-direction:column;gap:12px;margin-top:18px}
-    .saved-question-view-body .sqv-option{padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#f8fafc}
+    .saved-question-view-body .sqv-label{font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;margin-bottom:5px;letter-spacing:0.5px;}
+    .saved-question-view-body .sqv-options{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+    .saved-question-view-body .sqv-option{padding:10px 14px;border:1.5px solid #e5e7eb;border-radius:8px;background:#f8fafc;transition:.15s}
+    .saved-question-view-body .sqv-option.correct-option{background:#ecfdf5;border-color:#10b981;box-shadow:0 0 0 1px #10b981}
     .saved-question-view-body .sqv-option img{display:block;max-width:95%;max-height:240px;object-fit:contain;margin:9px auto 0;border:1px solid #d1d5db;border-radius:5px;background:#fff}
     .saved-question-view-body table{border-collapse:collapse;width:100%;margin:12px 0}.saved-question-view-body td,.saved-question-view-body th{border:1px solid #9ca3af;padding:6px 8px}
     .saved-question-view-empty{padding:25px;text-align:center;color:#64748b;background:#f8fafc;border-radius:8px}
+    
+    .sqv-answer-card{margin:16px 0;padding:12px 16px;background:#ecfdf5;border:1.5px solid #10b981;border-radius:10px;display:flex;align-items:center;gap:12px}
+    .sqv-answer-badge{background:#059669;color:#fff;border-radius:6px;padding:4px 10px;font-size:14px;font-weight:900}
+    .sqv-answer-text{font-size:15px;font-weight:800;color:#065f46}
+
     @media(max-width:700px){.image-gallery-grid{grid-template-columns:1fr}.library-view-tools{width:100%;margin-left:0}.library-view-tool{flex:1}}
     @media(min-width:1051px){.library-questions-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     @media(min-width:701px) and (max-width:1050px){.library-questions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -302,6 +323,58 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
         <button class="tool-btn" style="background:#7f1d1d;" onclick="closeSavedQuestionView()">✕ Close</button>
       </div>
       <div id="saved-question-view-body" class="saved-question-view-body"></div>
+    </div>
+  </div>
+
+  <!-- AI SOLUTION & QUESTION TOOLS MODAL -->
+  <div id="library-ai-modal" style="display:none;position:fixed;inset:0;z-index:120000;background:rgba(0,0,0,.85);padding:14px;align-items:center;justify-content:center;">
+    <div style="width:min(880px,98vw);max-height:94vh;overflow:auto;background:#0b1120;border:1.5px solid #38bdf8;border-radius:14px;padding:18px;color:#fff;box-shadow:0 20px 60px rgba(0,0,0,.8);">
+      <div style="display:flex;gap:8px;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:10px;">
+        <b id="library-ai-title" style="flex:1;color:#38bdf8;font-size:16px;">🤖 AI Question Solution Studio</b>
+        <button class="tool-btn" style="background:#334155;font-size:10px;" onclick="promptGeminiKey()">🔑 API Key</button>
+        <button class="tool-btn" style="background:#7f1d1d;" onclick="closeLibraryAIModal()">✕ Close</button>
+      </div>
+      <div id="library-ai-meta" style="font-size:13px;color:#e2e8f0;margin:12px 0;background:#060911;padding:12px;border:1px solid #1e293b;border-radius:8px;line-height:1.6;white-space:pre-wrap;"></div>
+      
+      <div id="library-ai-controls" style="display:none;margin:10px 0;background:#07101f;padding:10px;border-radius:8px;border:1px solid #1e293b;">
+        <label style="font-size:12px;color:#cbd5e1;">Number of similar questions: </label>
+        <select id="library-ai-count" style="background:#0f172a;color:#fff;border:1px solid #334155;border-radius:6px;padding:4px 8px;">
+          <option>3</option><option selected>5</option><option>7</option><option>10</option><option>15</option>
+        </select>
+        <label style="display:block;margin-top:8px;font-size:12px;color:#cbd5e1;"><input id="library-ai-with-solutions" type="checkbox" style="margin-right:6px;"> Generate solutions for new questions too</label>
+        <label style="display:block;margin-top:8px;font-size:12px;color:#cbd5e1;">Difficulty: 
+          <select id="library-ai-level" style="background:#0f172a;color:#fff;border:1px solid #334155;border-radius:6px;padding:4px 8px;">
+            <option value="same">Same as original</option>
+            <option value="easy">Easier</option>
+            <option value="sameplus">Slightly harder</option>
+            <option value="mixed">Mixed</option>
+          </select>
+        </label>
+      </div>
+
+      <div id="library-ai-answer-section" style="display:none;margin:10px 0;padding:10px;background:#052e1b;border:1.5px solid #10b981;border-radius:8px;">
+        <label style="font-size:11px;font-weight:800;color:#a7f3d0;text-transform:uppercase;">✅ Correct Answer (MCQ option letter or Numerical value):</label>
+        <input id="library-ai-answer-input" type="text" style="width:100%;margin-top:5px;padding:8px;background:#060911;border:1px solid #10b981;border-radius:6px;color:#fff;font-size:14px;font-weight:700;" placeholder="e.g. B or 4 cm">
+      </div>
+
+      <div id="library-ai-status" style="font-size:12px;color:#fbbf24;white-space:pre-wrap;margin:10px 0;min-height:18px;"></div>
+      
+      <div id="library-ai-solution-container" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;">Step-by-step Solution (LaTeX / MathJax supported):</label>
+          <div style="display:flex;gap:6px;">
+            <button class="tool-btn" id="library-ai-view-tab-btn" style="background:#334155;font-size:10px;" onclick="toggleSolutionPreviewTab()">👁 Preview Math</button>
+          </div>
+        </div>
+        <textarea id="library-ai-solution" style="width:100%;min-height:260px;background:#060911;color:#fff;border:1px solid #334155;border-radius:8px;padding:12px;font:14px/1.65 inherit;box-sizing:border-box;resize:vertical;"></textarea>
+        <div id="library-ai-solution-preview" style="display:none;width:100%;min-height:260px;background:#fff;color:#111827;border-radius:8px;padding:16px;font-size:15px;line-height:1.65;box-sizing:border-box;overflow:auto;"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+        <button id="library-ai-generate" class="tool-btn" style="background:#7c3aed;padding:9px 16px;font-size:12px;font-weight:800;" onclick="runLibraryAI()">🤖 Generate</button>
+        <button id="library-ai-save" class="tool-btn" style="display:none;background:#059669;padding:9px 16px;font-size:12px;font-weight:800;" onclick="saveLibraryAISolution()">💾 Save Solution & Answer</button>
+        <button id="library-ai-regen" class="tool-btn" style="display:none;background:#2563eb;padding:9px 14px;font-size:11px;" onclick="runLibraryAI()">↻ Regenerate</button>
+      </div>
     </div>
   </div>
 
@@ -717,8 +790,6 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
           const explicitCentral=q.central===true || q.isCentral===true || q.libraryMode==='central' || q.targetLibrary==='central';
           const explicitGroup=q.group===true || q.libraryMode==='group' || q.targetLibrary==='group';
           if(activeLibraryMode==='private') {
-            // Private library: include records owned by this teacher plus legacy private records.
-            // Do NOT hide a teacher's own question just because an older uploader wrote a mode flag.
             return !explicitCentral && !explicitGroup && (!owner || !email || owner===email);
           }
           if(activeLibraryMode==='central') return explicitCentral;
@@ -726,20 +797,13 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
           return false;
         });
 
-        // Safety net: rebuild missing folder nodes from the actual saved question paths.
-        // This keeps the Library usable even if an older folder-config document was empty
-        // while questions were already saved successfully.
         const tree = getCurrentActiveTree();
         let changed = false;
         libraryQuestions.forEach(q => {
           const path = getQuestionFolderPath(q);
           if(path) changed = treeInsertPath(tree, path) || changed;
         });
-        if(changed && activeLibraryMode === 'private') {
-          await saveLibraryStateForCurrentMode();
-        } else if(changed && activeLibraryMode === 'central') {
-          await saveLibraryStateForCurrentMode();
-        } else if(changed && activeLibraryMode === 'group') {
+        if(changed) {
           await saveLibraryStateForCurrentMode();
         }
       }catch(e){ pickerQuestions=[]; libraryQuestions=[]; console.error("Library question load failed:",e); }
@@ -823,10 +887,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     function libraryMathMarkup(v){
       var x=String(v??"");
       if(!x)return "";
-      // Preserve existing MathJax delimiters.
       if(/\\\(|\\\[|\\\)|\\\]/.test(x) || /(^|[^$])\$[^$]+\$(?!$)/.test(x)) return x;
-      // Firestore/AI data normally contains SINGLE backslashes: \frac, \sqrt, \int, etc.
-      // Detect the actual LaTeX commands instead of requiring double backslashes.
       if(/\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|iiiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|nu|pi|sigma|omega|phi|psi|rho|tau|left|right|begin|end|mathbf|mathrm|text|overline|underline|vec|hat|dot|lim|log|ln|sin|cos|tan|cot|sec|csc|infty)\b/.test(x)
         || /(?:[A-Za-z0-9\}])\^\{[^}]+\}/.test(x)
         || /(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)
@@ -844,7 +905,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
       var targets=[];
       if(root) targets=[root];
-      else targets=Array.from(document.querySelectorAll(".library-q-text,.library-q-options,.sqv-text,.sqv-option,.sqv-figure"));
+      else targets=Array.from(document.querySelectorAll(".library-q-text,.library-q-options,.sqv-text,.sqv-option,.sqv-figure,#library-ai-solution-preview"));
       var run=function(){return MathJax.typesetPromise(targets).catch(function(e){console.warn("MathJax typeset failed:",e);});};
       if(MathJax.startup&&MathJax.startup.promise) MathJax.startup.promise.then(run).catch(function(){}); else run();
     }
@@ -908,7 +969,6 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
         });
       }
       walk(getTreeRoot(),'',0);
-      if(rows.length>1){} // keep root
       box.innerHTML=rows.join('');
     }
     window.selectMoveDestination=function(path){pendingMove.destination=normalizeFolderPath(path);renderMoveDestinationTree();};
@@ -957,7 +1017,6 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       path=normalizeFolderPath(path);
       const node=findFolderByPath(path);
       if(!node)return;
-      // Only delete questions belonging to the currently selected library; include all nested subfolders.
       const affected=(libraryQuestions||[]).filter(q=>pathIn(getQuestionFolderPath(q),path));
       const questionCount=affected.length;
       if(!confirm('PERMANENTLY DELETE this folder and all its subfolders?\n\nThis will permanently delete '+questionCount+' question(s) stored inside this folder/subfolders. This cannot be undone.'))return;
@@ -965,7 +1024,6 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       if(idx<0)return;
       let deleted=0;
       try{
-        // Permanently remove the folder's questions from Firestore first. If one fails, keep the folder so the remaining records are still reachable.
         for(const q of affected){
           await window.deleteDoc(window.doc(window.db,'questions',String(q.id)));
           deleted++;
@@ -1049,33 +1107,62 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       const arr=Array.isArray(q?.optionImages)?q.optionImages:[];
       return arr.map(v=>typeof v==='object'?(v.src||v.url||v.image||v.data||''):String(v||''));
     }
+
+    // RENDER SAVED QUESTION VIEW MODAL (WITH PROMINENT ANSWER & DETAILED SOLUTION)
     function renderSavedQuestionView(q){
       if(!q)return '<div class="saved-question-view-empty">Question data not found.</div>';
       let h='';
       const text=questionText(q);
       if(text) h+='<div class="sqv-text">'+renderLibraryText(text)+'</div>';
+      
       const visuals=savedQuestionVisuals(q);
       const primary=questionImage(q);
       const seen=new Set();
       visuals.forEach(v=>{if(v.src && !seen.has(v.src)){seen.add(v.src);h+='<div class="sqv-figure"><div class="sqv-label">'+escapeHtml(v.label)+'</div><img src="'+escapeHtml(v.src)+'" alt="'+escapeHtml(v.label)+'"></div>';}});
+      
+      // Get answer if available
+      const ans = String(q.answer || q.finalAnswer || q.correct_answer || q.correctAnswer || q.ans || '').trim();
+      const ansUpper = ans.toUpperCase();
+
       const opts=questionOptions(q), optImgs=savedQuestionOptionImages(q);
       if(opts.length){
         h+='<div class="sqv-options">';
         opts.forEach((o,i)=>{
-          h+='<div class="sqv-option"><div><b>'+String.fromCharCode(65+i)+'.</b> '+renderLibraryText(o)+'</div>';
+          const letter = String.fromCharCode(65+i);
+          const isCorrect = (ansUpper === letter || ansUpper.startsWith(letter + ".") || ansUpper.startsWith(letter + ")") || ansUpper.startsWith("OPTION " + letter) || ansUpper === o.trim().toUpperCase());
+          h+='<div class="sqv-option ' + (isCorrect ? 'correct-option' : '') + '"><div><b>'+letter+'.</b> '+renderLibraryText(o)+(isCorrect ? ' <span style="color:#059669;font-weight:900;margin-left:8px;">✔ (Correct)</span>' : '')+'</div>';
           const oi=optImgs[i];
-          if(oi && /^(data:image\/|https?:\/|blob:)/i.test(oi)) h+='<img src="'+escapeHtml(oi)+'" alt="Option '+String.fromCharCode(65+i)+' image">';
+          if(oi && /^(data:image\/|https?:\/|blob:)/i.test(oi)) h+='<img src="'+escapeHtml(oi)+'" alt="Option '+letter+' image">';
           h+='</div>';
         });
         h+='</div>';
       }
+      
       if(q.tableRows){
         let rows=q.tableRows;
         if(!Array.isArray(rows) && rows && rows.__array){rows=Object.keys(rows).filter(k=>k!=='__array').sort((a,b)=>Number(a)-Number(b)).map(k=>rows[k]);}
         if(Array.isArray(rows)&&rows.length){h+='<div class="sqv-figure"><div class="sqv-label">Table</div><table>'+rows.map(r=>{let cells=Array.isArray(r)?r:Object.keys(r||{}).filter(k=>k!=='__array').sort((a,b)=>Number(a)-Number(b)).map(k=>r[k]);return '<tr>'+cells.map(c=>'<td>'+renderLibraryText(c)+'</td>').join('')+'</tr>';}).join('')+'</table></div>';}
       }
       if(q.matrixLatex) h+='<div class="sqv-figure"><div class="sqv-label">Matrix</div><div>'+renderLibraryText(q.matrixLatex)+'</div></div>';
-      if(q.solution){h+='<hr style="border:0;border-top:1px solid #e5e7eb;margin:22px 0"><div class="sqv-label">Solution / Explanation</div><div class="sqv-text">'+renderLibraryText(q.solution)+'</div>';}
+
+      // PROMINENT ANSWER DISPLAY
+      if(ans){
+        h += '<div class="sqv-answer-card">' +
+             '<span class="sqv-answer-badge">ANSWER</span>' +
+             '<div>' +
+             '<div style="font-size:11px;font-weight:800;color:#047857;text-transform:uppercase;">Correct Answer / सही उत्तर</div>' +
+             '<div class="sqv-answer-text">' + renderLibraryText(ans) + '</div>' +
+             '</div></div>';
+      }
+
+      // SOLUTION / EXPLANATION DISPLAY (check solution OR explanation field)
+      const sol = q.solution || q.explanation || '';
+      if(sol){
+        h+='<hr style="border:0;border-top:1px solid #e5e7eb;margin:22px 0">' +
+           '<div class="sqv-label" style="color:#6d28d9;font-size:12px;">🧠 Detailed Solution / Explanation</div>' +
+           '<div class="sqv-text" style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:16px;color:#1e1b4b;margin-top:8px;">'+renderLibraryText(sol)+'</div>';
+      }
+      
       if(!h && primary) h='<div class="sqv-figure"><img src="'+escapeHtml(primary)+'" alt="Question"></div>';
       return h||'<div class="saved-question-view-empty">No question content was saved.</div>';
     }
@@ -1091,17 +1178,385 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
     };
     window.closeSavedQuestionView=function(){const m=document.getElementById('saved-question-view-modal');if(m)m.style.display='none';};
 
-
+    // AI SOLUTION STUDIO IMPLEMENTATION WITH MULTI-MODEL FALLBACK & LATEX JSON REPAIR
     let libraryAIQuestionId="";
-    function libraryAIModal(){let m=document.getElementById("library-ai-modal");if(m)return m;m=document.createElement("div");m.id="library-ai-modal";m.style.cssText="display:none;position:fixed;inset:0;z-index:12000;background:#000c;padding:14px;align-items:center;justify-content:center";m.innerHTML='<div style="width:min(850px,98vw);max-height:94vh;overflow:auto;background:#0b1120;border:1px solid #334155;border-radius:14px;padding:16px;color:#fff"><div style="display:flex;gap:8px;align-items:center"><b id="library-ai-title" style="flex:1;color:#38bdf8">AI Question Tools</b><button class="tool-btn" onclick="closeLibraryAIModal()">✕ Close</button></div><div id="library-ai-meta" style="font-size:12px;color:#94a3b8;margin:10px 0"></div><div id="library-ai-controls" style="display:none;margin:10px 0"><label>Number of similar questions </label><select id="library-ai-count"><option>3</option><option selected>5</option><option>7</option><option>10</option><option>15</option><option>20</option></select><label style="display:block;margin-top:8px"><input id="library-ai-with-solutions" type="checkbox"> Generate solutions for new questions too</label><label style="display:block;margin-top:8px">Difficulty <select id="library-ai-level"><option value="same">Same as original</option><option value="easy">Easier</option><option value="sameplus">Slightly harder</option><option value="mixed">Mixed</option></select></label></div><div id="library-ai-status" style="font-size:12px;color:#fbbf24;white-space:pre-wrap;margin:10px 0"></div><textarea id="library-ai-solution" style="display:none;width:100%;min-height:280px;background:#060911;color:#fff;border:1px solid #334155;border-radius:8px;padding:12px;font:14px/1.6 inherit"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button id="library-ai-generate" class="tool-btn" style="background:#7c3aed" onclick="runLibraryAI()">🤖 Generate</button><button id="library-ai-save" class="tool-btn" style="display:none;background:#059669" onclick="saveLibraryAISolution()">💾 Save Solution</button><button id="library-ai-regen" class="tool-btn" style="display:none;background:#2563eb" onclick="runLibraryAI()">↻ Regenerate Solution</button></div></div>';document.body.appendChild(m);return m;}
+    function libraryAIModal(){return document.getElementById("library-ai-modal");}
     function libraryAIQ(id){return libraryQuestions.find(q=>String(q.id)===String(id))||pickerQuestions.find(q=>String(q.id)===String(id));}
-    async function libraryGemini(prompt){const key=String(localStorage.getItem("A2Z_GEMINI_API_KEY")||"").trim();if(!key)throw Error("Gemini API key not found. Open AI Question Import and save the key on this device.");let errs=[];for(const model of ["gemini-2.5-flash","gemini-2.5-flash-lite"]){const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+model+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},body:JSON.stringify({contents:[{role:"user",parts:[{text:prompt}]}],generationConfig:{temperature:.35,responseMimeType:"application/json",maxOutputTokens:8192}})});const d=await r.json().catch(()=>({})),t=d?.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";if(r.ok&&t)return t;const msg=d?.error?.message||("Gemini HTTP "+r.status);errs.push(msg);if([400,401,403].includes(r.status))throw Error(msg);}throw Error(errs.join("; "));}
-    function parseLibraryJSON(s){let x=String(s||"").trim().replace(/^```(?:json)?/i,"").replace(/```$/,"").trim(),a=x.indexOf("{"),b=x.lastIndexOf("}");if(a>=0&&b>a)x=x.slice(a,b+1);return JSON.parse(x);}
-    window.openLibraryAISolution=function(id){const q=libraryAIQ(id);if(!q)return alert("Question not found.");libraryAIQuestionId=String(id);libraryAIModal().style.display="flex";document.getElementById("library-ai-title").textContent=q.solution?"AI Solution · Review / Regenerate":"AI Solution · Generate and Save";document.getElementById("library-ai-meta").textContent=questionText(q);document.getElementById("library-ai-controls").style.display="none";document.getElementById("library-ai-solution").style.display="block";document.getElementById("library-ai-solution").value=String(q.solution||"");document.getElementById("library-ai-status").textContent=q.solution?"Edit saved solution, save changes, or regenerate it.":"Generate a solution, review it, then save it.";document.getElementById("library-ai-save").style.display="inline-block";document.getElementById("library-ai-regen").style.display="inline-block";document.getElementById("library-ai-generate").textContent=q.solution?"↻ Regenerate Solution":"🤖 Generate Solution";};
-    window.openLibrarySimilarQuestions=function(id){const q=libraryAIQ(id);if(!q)return alert("Question not found.");libraryAIQuestionId=String(id);libraryAIModal().style.display="flex";document.getElementById("library-ai-title").textContent="Generate Similar Questions";document.getElementById("library-ai-meta").textContent="Reference: "+questionText(q);document.getElementById("library-ai-controls").style.display="block";document.getElementById("library-ai-solution").style.display="none";document.getElementById("library-ai-save").style.display="none";document.getElementById("library-ai-regen").style.display="none";document.getElementById("library-ai-generate").textContent="✨ Generate Questions";document.getElementById("library-ai-status").textContent="AI will infer the concept, pattern, type and level; new questions will be saved in this folder.";};
-    window.closeLibraryAIModal=function(){document.getElementById("library-ai-modal")?.style.setProperty("display","none");};
-    window.runLibraryAI=async function(){const q=libraryAIQ(libraryAIQuestionId);if(!q)return;const similar=document.getElementById("library-ai-controls").style.display!=="none",status=document.getElementById("library-ai-status"),btn=document.getElementById("library-ai-generate");btn.disabled=true;status.textContent="Generating with AI…";try{const stem=questionText(q),opts=questionOptions(q);if(!similar){const prompt="Solve this exam question accurately. Return ONLY JSON {\"answer\":string,\"explanation\":string,\"final_answer\":string}. Explain step-by-step using Given, Concept, Formula, Substitution, Calculation, Final Answer where applicable. Use valid MathJax delimiters \\( ... \\) and \\[ ... \\]. Preserve units and meaning. For MCQ give option letter. Never invent missing data.\nQuestion: "+stem+"\nOptions: "+JSON.stringify(opts)+"\nType: "+String(q.qType||q.questionType||q.type||"MCQ")+"\nCurrent answer: "+String(q.answer||q.finalAnswer||"");const out=parseLibraryJSON(await libraryGemini(prompt));if(!out.explanation)throw Error("AI returned an empty solution.");document.getElementById("library-ai-solution").value=String(out.explanation);status.textContent="Solution generated. Review/edit it and press Save Solution."+(out.answer||out.final_answer?"\nSuggested answer: "+(out.answer||out.final_answer):"");document.getElementById("library-ai-save").style.display="inline-block";}else{const n=Math.max(1,Math.min(20,Number(document.getElementById("library-ai-count").value)||5)),withSol=document.getElementById("library-ai-with-solutions").checked,level=document.getElementById("library-ai-level").value;const prompt="Analyze this reference question's subject, concept, pattern, type and difficulty. Generate exactly "+n+" NEW exam-ready questions testing the same concept/pattern without copying wording. Difficulty: "+level+". Check correctness and units. MCQs need exactly four options and answer letter A/B/C/D; use MathJax delimiters for equations. Return ONLY JSON {\"concept\":string,\"items\":[{\"question\":string,\"type\":string,\"options\":[string],\"answer\":string,\"solution\":string,\"difficulty\":string,\"topic\":string}]}. Exactly "+n+" items. Include worked solutions only if requested.\nReference: "+stem+"\nOptions: "+JSON.stringify(opts)+"\nAnswer: "+String(q.answer||q.finalAnswer||"")+"\nExisting solution: "+String(q.solution||"")+"\nSubject/topic: "+[q.subject,q.chapter,q.topic].filter(Boolean).join(" / ")+"\nSolutions requested: "+withSol;const out=parseLibraryJSON(await libraryGemini(prompt)),items=Array.isArray(out.items)?out.items:[];if(items.length!==n)throw Error("AI returned "+items.length+" questions; expected "+n+". Try again.");const em=teacherEmailKey();if(!em)throw Error("Teacher login not found. Sign in through Teacher Portal.");const mode=activeLibraryMode||q.libraryMode||"private",folderPath=getQuestionFolderPath(q)||normalizeFolderPath(currentFolderPath);let saved=0;status.textContent="Saving generated questions…";for(let i=0;i<items.length;i++){const it=items[i],qt=String(it.question||"").trim();if(!qt)continue;const type=String(it.type||q.qType||q.type||"MCQ"),op=Array.isArray(it.options)?it.options.map(String):[];await window.addDoc(window.collection(window.db,"questions"),{ownerEmail:em,creatorEmail:em,libraryMode:mode,targetLibrary:mode,central:mode==="central",group:mode==="group",libraryType:mode==="central"?"Central Library":mode==="group"?"Group Library":"Personal Library",folderPath,folder:folderPath.split(" / ")[0]||"",subfolder:folderPath.split(" / ").slice(1).join(" / "),qNo:"AI-"+Date.now()+"-"+(i+1),qText:qt,question:qt,text:qt,options:op,keepOptions:op.length>0,qType:type,type,answer:String(it.answer||""),finalAnswer:String(it.answer||""),solution:withSol?String(it.solution||""):"",topic:String(it.topic||q.topic||q.chapter||""),chapter:String(q.chapter||q.topic||""),subject:String(q.subject||"Physics"),level:String(it.difficulty||q.level||q.difficulty||"Medium"),source:"AI-generated similar question",generatedFromQuestionId:String(q.id),generatedFromConcept:String(out.concept||q.topic||q.chapter||""),createdAt:new Date().toISOString()});saved++;}status.textContent="✓ Saved "+saved+" new questions in "+folderPath+" ("+mode+" library).";await loadPickerQuestions();renderLibraryBrowser();}}catch(e){console.error("[Library AI]",e);status.textContent="❌ "+(e.message||String(e));}finally{btn.disabled=false;}};
-    window.saveLibraryAISolution=async function(){const q=libraryAIQ(libraryAIQuestionId);if(!q)return;const solution=document.getElementById("library-ai-solution").value.trim();if(!solution)return alert("Generate or enter a solution first.");const btn=document.getElementById("library-ai-save");btn.disabled=true;try{await window.updateDoc(window.doc(window.db,"questions",String(q.id)),{solution,solutionGenerated:true,solutionStatus:"approved",solutionApproved:true,solutionUpdatedAt:new Date().toISOString(),solutionUpdatedBy:teacherEmailKey()});q.solution=solution;q.solutionGenerated=true;q.solutionApproved=true;document.getElementById("library-ai-status").textContent="✓ Solution saved to Firebase and linked to this question.";renderLibraryBrowser();}catch(e){document.getElementById("library-ai-status").textContent="❌ Save failed: "+(e.message||String(e));}finally{btn.disabled=false;}};
+
+    function promptGeminiKey(){
+      const current = localStorage.getItem("A2Z_GEMINI_API_KEY") || "";
+      const val = prompt("Enter or update your Google Gemini API Key:", current);
+      if(val !== null){
+        const cleaned = val.trim();
+        if(cleaned){
+          localStorage.setItem("A2Z_GEMINI_API_KEY", cleaned);
+          showToast("✔ Gemini API Key saved!");
+        } else {
+          localStorage.removeItem("A2Z_GEMINI_API_KEY");
+          showToast("Gemini API Key removed.");
+        }
+      }
+    }
+
+    function toggleSolutionPreviewTab(){
+      const ta = document.getElementById("library-ai-solution");
+      const pv = document.getElementById("library-ai-solution-preview");
+      const btn = document.getElementById("library-ai-view-tab-btn");
+      if(!ta || !pv) return;
+      if(pv.style.display === "none"){
+        pv.innerHTML = renderLibraryText(ta.value || "(No solution text entered)");
+        pv.style.display = "block";
+        ta.style.display = "none";
+        btn.textContent = "✏️ Edit Source";
+        typesetLibraryMath(pv);
+      } else {
+        pv.style.display = "none";
+        ta.style.display = "block";
+        btn.textContent = "👁 Preview Math";
+      }
+    }
+
+    // Bulletproof JSON repair that prevents \text becoming Tab+ext or \frac becoming Formfeed+rac
+    function repairGeminiJson(str) {
+      var out = "";
+      var inString = false;
+      var escaped = false;
+      
+      for (var i = 0; i < str.length; i++) {
+        var c = str[i];
+        if (!inString) {
+          out += c;
+          if (c === '"') inString = true;
+          continue;
+        }
+        if (escaped) {
+          out += c;
+          escaped = false;
+          continue;
+        }
+        if (c === '\\') {
+          var next = str[i + 1] || "";
+          if (next === '"' || next === '\\') {
+            out += c;
+            escaped = true;
+            continue;
+          }
+          if (/^[a-zA-Z()\[\]{}_^,;:+\-*=<>|]/.test(next)) {
+            out += "\\\\";
+            continue;
+          }
+          if (/^[bfnrt/]/.test(next)) {
+            out += c;
+            escaped = true;
+            continue;
+          }
+          out += "\\\\";
+          continue;
+        }
+        if (c === '"') {
+          inString = false;
+        }
+        out += c;
+      }
+      return out;
+    }
+
+    function parseLibraryJSON(s){
+      var x = String(s || "").trim();
+      var fenceMatch = x.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (fenceMatch) x = fenceMatch[1].trim();
+      
+      try { return JSON.parse(x); } catch(_) {}
+      
+      var a = x.indexOf("{"), b = x.lastIndexOf("}");
+      if (a >= 0 && b > a) x = x.slice(a, b + 1);
+      
+      try { return JSON.parse(x); } catch(_) {}
+      
+      var repaired = repairGeminiJson(x);
+      var cleaned = repaired.replace(/,\s*([}\]])/g, "$1");
+      return JSON.parse(cleaned);
+    }
+
+    const GEMINI_MODELS = [
+      "gemini-3.6-flash",
+      "gemini-3.5-flash",
+      "gemini-3-flash",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash"
+    ];
+
+    async function libraryGemini(prompt){
+      let key = String(localStorage.getItem("A2Z_GEMINI_API_KEY") || "").trim();
+      if(!key){
+        const entered = prompt("Google Gemini API Key is required. Please paste your Gemini API Key:");
+        if(entered && entered.trim()){
+          key = entered.trim();
+          localStorage.setItem("A2Z_GEMINI_API_KEY", key);
+        } else {
+          throw Error("Gemini API key is required to generate solutions.");
+        }
+      }
+
+      let errs = [];
+      for(const model of GEMINI_MODELS){
+        try {
+          const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + key, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+              contents: [{role: "user", parts: [{text: prompt}]}],
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: "application/json",
+                maxOutputTokens: 8192
+              }
+            })
+          });
+          const d = await r.json().catch(() => ({}));
+          const t = d?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+          if(r.ok && t) return t;
+          
+          const msg = d?.error?.message || ("HTTP " + r.status);
+          errs.push(model + ": " + msg);
+          if(r.status === 401 || r.status === 403) throw Error("Invalid Gemini API Key: " + msg);
+        } catch(netErr) {
+          if(/Invalid Gemini API Key/i.test(netErr.message)) throw netErr;
+          errs.push(model + ": " + netErr.message);
+          continue;
+        }
+      }
+      throw Error("All Gemini models failed: " + errs.join("; "));
+    }
+
+    window.openLibraryAISolution = function(id){
+      const q = libraryAIQ(id);
+      if(!q) return alert("Question not found.");
+      libraryAIQuestionId = String(id);
+      
+      const modal = libraryAIModal();
+      modal.style.display = "flex";
+      
+      const existingSol = String(q.solution || q.explanation || "").trim();
+      const existingAns = String(q.answer || q.finalAnswer || q.correct_answer || "").trim();
+
+      document.getElementById("library-ai-title").textContent = existingSol ? "🧠 AI Solution · Review / Regenerate" : "🧠 AI Solution · Generate & Save";
+      document.getElementById("library-ai-meta").textContent = questionText(q);
+      document.getElementById("library-ai-controls").style.display = "none";
+      
+      const solContainer = document.getElementById("library-ai-solution-container");
+      solContainer.style.display = "block";
+      
+      const ta = document.getElementById("library-ai-solution");
+      ta.value = existingSol;
+      ta.style.display = "block";
+
+      const pv = document.getElementById("library-ai-solution-preview");
+      pv.style.display = "none";
+      document.getElementById("library-ai-view-tab-btn").textContent = "👁 Preview Math";
+
+      const ansSection = document.getElementById("library-ai-answer-section");
+      ansSection.style.display = "block";
+      document.getElementById("library-ai-answer-input").value = existingAns;
+
+      document.getElementById("library-ai-status").textContent = existingSol 
+        ? "Existing solution loaded. You can edit the text, verify the answer, or regenerate with AI." 
+        : "Click 'Generate' to compute the step-by-step solution and answer using Gemini.";
+
+      document.getElementById("library-ai-save").style.display = existingSol ? "inline-block" : "none";
+      document.getElementById("library-ai-regen").style.display = existingSol ? "inline-block" : "none";
+      document.getElementById("library-ai-generate").textContent = existingSol ? "↻ Regenerate Solution" : "🤖 Generate Solution";
+    };
+
+    window.openLibrarySimilarQuestions = function(id){
+      const q = libraryAIQ(id);
+      if(!q) return alert("Question not found.");
+      libraryAIQuestionId = String(id);
+      
+      const modal = libraryAIModal();
+      modal.style.display = "flex";
+      
+      document.getElementById("library-ai-title").textContent = "✨ Generate Similar Questions";
+      document.getElementById("library-ai-meta").textContent = "Reference Question: " + questionText(q);
+      document.getElementById("library-ai-controls").style.display = "block";
+      document.getElementById("library-ai-solution-container").style.display = "none";
+      document.getElementById("library-ai-answer-section").style.display = "none";
+      document.getElementById("library-ai-save").style.display = "none";
+      document.getElementById("library-ai-regen").style.display = "none";
+      document.getElementById("library-ai-generate").textContent = "✨ Generate Questions";
+      document.getElementById("library-ai-status").textContent = "AI will analyze the reference question, extract the underlying concept, and create brand-new variations in this folder.";
+    };
+
+    window.closeLibraryAIModal = function(){
+      document.getElementById("library-ai-modal").style.display = "none";
+    };
+
+    window.runLibraryAI = async function(){
+      const q = libraryAIQ(libraryAIQuestionId);
+      if(!q) return;
+      const similar = document.getElementById("library-ai-controls").style.display !== "none";
+      const status = document.getElementById("library-ai-status");
+      const btn = document.getElementById("library-ai-generate");
+      btn.disabled = true;
+      status.textContent = "🤖 Generating with Gemini… please wait…";
+
+      try {
+        const stem = questionText(q), opts = questionOptions(q);
+        if(!similar){
+          const prompt = `You are a distinguished university Physics & Mathematics professor solving this exam question for students.
+Solve accurately step-by-step.
+CRITICAL FORMAT RULES:
+1. Return ONLY valid JSON: {"answer": "...", "explanation": "...", "final_answer": "..."}
+2. For MCQs: answer MUST be the correct option letter (A, B, C, or D).
+3. In explanation, format all mathematical notation inside inline MathJax \\( ... \\) or display \\[ ... \\]. Use standard LaTeX commands (e.g. \\frac{a}{b}, \\sqrt{x}, \\theta, \\text{ cm}).
+4. Include clear headings: Given / Parameters, Concept / Law, Formula, Calculation, and Final Answer.
+
+Question: ${stem}
+Options: ${JSON.stringify(opts)}
+Type: ${String(q.qType || q.questionType || q.type || "MCQ")}
+Current saved answer: ${String(q.answer || q.finalAnswer || "")}`;
+
+          const raw = await libraryGemini(prompt);
+          const out = parseLibraryJSON(raw);
+          if(!out.explanation) throw Error("AI returned an empty explanation.");
+
+          const solText = String(out.explanation).trim();
+          const solvedAns = String(out.answer || out.final_answer || "").trim();
+
+          document.getElementById("library-ai-solution").value = solText;
+          if(solvedAns) {
+            document.getElementById("library-ai-answer-input").value = solvedAns;
+          }
+
+          status.textContent = "✔ Solution generated successfully! Review the text and answer below, then click 'Save Solution & Answer'.";
+          document.getElementById("library-ai-save").style.display = "inline-block";
+          document.getElementById("library-ai-regen").style.display = "inline-block";
+          document.getElementById("library-ai-solution-container").style.display = "block";
+          document.getElementById("library-ai-answer-section").style.display = "block";
+        } else {
+          const n = Math.max(1, Math.min(20, Number(document.getElementById("library-ai-count").value) || 5));
+          const withSol = document.getElementById("library-ai-with-solutions").checked;
+          const level = document.getElementById("library-ai-level").value;
+
+          const prompt = `Analyze this reference question's subject, concept, formula pattern, and difficulty.
+Generate exactly ${n} NEW exam-ready questions testing the same concept without copying exact wording.
+Difficulty: ${level}.
+For MCQs provide exactly 4 options and answer letter (A/B/C/D). Use MathJax \\( ... \\) for all equations.
+Return ONLY JSON: {"concept": "...", "items": [{"question": "...", "type": "MCQ", "options": ["...", "...", "...", "..."], "answer": "...", "solution": "...", "difficulty": "Medium", "topic": "..."}]}
+Number of items: ${n}
+Include solutions: ${withSol}
+
+Reference: ${stem}
+Options: ${JSON.stringify(opts)}
+Topic: ${[q.subject, q.chapter, q.topic].filter(Boolean).join(" / ")}`;
+
+          const raw = await libraryGemini(prompt);
+          const out = parseLibraryJSON(raw);
+          const items = Array.isArray(out.items) ? out.items : [];
+          if(!items.length) throw Error("No questions were returned. Try again.");
+
+          const em = teacherEmailKey();
+          if(!em) throw Error("Teacher login email is missing.");
+          const mode = activeLibraryMode || q.libraryMode || "private";
+          const folderPath = getQuestionFolderPath(q) || normalizeFolderPath(currentFolderPath);
+
+          let saved = 0;
+          status.textContent = "Saving generated questions to Firebase…";
+          for(let i = 0; i < items.length; i++){
+            const it = items[i], qt = String(it.question || "").trim();
+            if(!qt) continue;
+            const type = String(it.type || q.qType || q.type || "MCQ");
+            const op = Array.isArray(it.options) ? it.options.map(String) : [];
+            await window.addDoc(window.collection(window.db, "questions"), {
+              ownerEmail: em,
+              creatorEmail: em,
+              libraryMode: mode,
+              targetLibrary: mode,
+              central: mode === "central",
+              group: mode === "group",
+              libraryType: mode === "central" ? "Central Library" : mode === "group" ? "Group Library" : "Personal Library",
+              folderPath,
+              folder: folderPath.split(" / ")[0] || "",
+              subfolder: folderPath.split(" / ").slice(1).join(" / "),
+              qNo: "AI-" + Date.now() + "-" + (i + 1),
+              qText: qt,
+              question: qt,
+              text: qt,
+              options: op,
+              keepOptions: op.length > 0,
+              qType: type,
+              type,
+              answer: String(it.answer || ""),
+              finalAnswer: String(it.answer || ""),
+              solution: withSol ? String(it.solution || "") : "",
+              explanation: withSol ? String(it.solution || "") : "",
+              topic: String(it.topic || q.topic || q.chapter || ""),
+              chapter: String(q.chapter || q.topic || ""),
+              subject: String(q.subject || "Physics"),
+              level: String(it.difficulty || q.level || q.difficulty || "Medium"),
+              source: "AI-generated similar question",
+              generatedFromQuestionId: String(q.id),
+              generatedFromConcept: String(out.concept || q.topic || q.chapter || ""),
+              createdAt: new Date().toISOString()
+            });
+            saved++;
+          }
+          status.textContent = `✔ Successfully generated and saved ${saved} new questions in "${folderPath}"!`;
+          await loadPickerQuestions();
+          renderLibraryBrowser();
+        }
+      } catch(e) {
+        console.error("[Library AI Error]", e);
+        status.textContent = "❌ " + (e.message || String(e));
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
+    window.saveLibraryAISolution = async function(){
+      const q = libraryAIQ(libraryAIQuestionId);
+      if(!q) return;
+      const solution = document.getElementById("library-ai-solution").value.trim();
+      const answer = document.getElementById("library-ai-answer-input").value.trim();
+      if(!solution) return alert("Generate or enter a solution first.");
+
+      const btn = document.getElementById("library-ai-save");
+      btn.disabled = true;
+      try {
+        const updatePayload = {
+          solution: solution,
+          explanation: solution,
+          solutionGenerated: true,
+          solutionStatus: "approved",
+          solutionApproved: true,
+          solutionUpdatedAt: new Date().toISOString(),
+          solutionUpdatedBy: teacherEmailKey()
+        };
+        if(answer){
+          updatePayload.answer = answer;
+          updatePayload.finalAnswer = answer;
+          q.answer = answer;
+          q.finalAnswer = answer;
+        }
+
+        await window.updateDoc(window.doc(window.db, "questions", String(q.id)), updatePayload);
+        q.solution = solution;
+        q.explanation = solution;
+        q.solutionGenerated = true;
+        q.solutionApproved = true;
+
+        document.getElementById("library-ai-status").textContent = "✔ Solution and Answer successfully saved to Firebase!";
+        showToast("✔ Solution & Answer saved!");
+        await loadPickerQuestions();
+        renderLibraryBrowser();
+      } catch(e) {
+        document.getElementById("library-ai-status").textContent = "❌ Save failed: " + (e.message || String(e));
+      } finally {
+        btn.disabled = false;
+      }
+    };
+
     function renderLibraryQuestions(){
       const box=document.getElementById('library-questions-section');
       const list=document.getElementById('library-questions-list');
@@ -1117,7 +1572,7 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       });
       window._libraryRenderedQuestions=rows;
       if(!rows.length){
-        list.innerHTML='';
+        list.innerHTML='<div style="color:#64748b;padding:20px;text-align:center;">No questions found in this folder.</div>';
         return;
       }
       list.className='library-questions-grid';
@@ -1127,13 +1582,14 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
         const img=questionImage(q);
         const type=q.type||q.questionType||q.qType||'MCQ';
         const marks=q.marks??q.mark??1;
+        const hasSol = !!(q.solution || q.explanation);
         return '<div class="library-question-card">'+
           '<div class="library-q-main">'+
           '<div style="display:flex;align-items:center;gap:8px;min-width:0;">'+
           '<div class="library-q-title" style="flex:1;">Q'+(i+1)+' · '+escapeHtml(type)+' · '+escapeHtml(marks)+' mark'+(Number(marks)===1?'':'s')+'</div>'+
           '<div class="question-action-inline">'+
           '<button class="tool-btn library-mini-btn" style="background:#059669;" onclick="openSavedQuestionView(\''+escapeHtml(q.id)+'\')">View</button>'+
-          '<button class="tool-btn library-mini-btn" style="background:#7c3aed;" onclick="openLibraryAISolution(\''+escapeHtml(q.id)+'\')">'+(q.solution?'↻ AI Solution':'🧠 AI Solution')+'</button>'+
+          '<button class="tool-btn library-mini-btn" style="background:'+(hasSol?'#047857':'#7c3aed')+';" onclick="openLibraryAISolution(\''+escapeHtml(q.id)+'\')">'+(hasSol?'✓ AI Solution':'🧠 AI Solution')+'</button>'+
           '<button class="tool-btn library-mini-btn" style="background:#0e7490;" onclick="openLibrarySimilarQuestions(\''+escapeHtml(q.id)+'\')">✨ Similar Qs</button>'+
           (img?'<button class="tool-btn library-mini-btn" style="background:#7c3aed;" onclick="editLibraryQuestion(\''+escapeHtml(q.id)+'\')">Edit</button>':'')+
           '<button class="tool-btn library-mini-btn" style="background:#2563eb;" onclick="moveLibraryQuestion(\''+escapeHtml(q.id)+'\')">Move</button>'+
@@ -1302,6 +1758,20 @@ window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\
       localStorage.removeItem('ExamVault_Teacher_Email');
       localStorage.removeItem('ExamVault_Teacher_UID');
       window.location.replace('index.html');
+    };
+
+    window.toggleProfileDropdown = function() {
+      const dd = document.getElementById('profile-dropdown-menu');
+      if (!dd) return;
+      dd.classList.toggle('show');
+      const email = teacherEmailKey();
+      document.getElementById('dropdown-user-email').textContent = email || "Not Logged In";
+    };
+
+    window.onclick = function(e) {
+      if (!e.target.closest('.profile-container')) {
+        document.getElementById('profile-dropdown-menu')?.classList.remove('show');
+      }
     };
 
     window.addEventListener('DOMContentLoaded', async () => {
