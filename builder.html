@@ -268,6 +268,19 @@ window.loadQuestions=async function(){
   const tree=window.builderFolderTrees[window.builderMode]||[];
   for(const q of window.builderData){const p=folderOf(q);if(p)treeInsertPath(tree,p);}
   renderTree();
+  // Apply an image-only Editor Studio result to this Builder paper session.
+  // This is temporary and does not update the Library/Firebase document.
+  try{
+   const raw=localStorage.getItem("AZ_BUILDER_IMAGE_EDIT_RESULT");
+   if(raw){
+    const result=JSON.parse(raw),qid=String(result?.id||""),image=String(result?.image||"");
+    if(qid&&image&&window.builderData.some(q=>String(q.id)===qid)){
+     window.textEdits[qid]={...(window.textEdits[qid]||{}),image};
+     localStorage.removeItem("AZ_BUILDER_IMAGE_EDIT_RESULT");
+     console.info("[A2Z Builder] Temporary edited figure returned for question",qid);
+    }
+   }
+  }catch(resultError){console.warn("[A2Z Builder] Could not restore Editor Studio image result:",resultError);}
   renderQuestions(previousScroll);
   renderSelected();
   status.textContent="Library connected • "+window.builderData.length+" questions";
@@ -466,6 +479,25 @@ window.openTextEditor=function(encodedId){
  document.getElementById("textEditorBackdrop").style.display="flex";
  bindLiveQuestionEditor();renderLiveQuestionPreview();
 };
+window.openImageInEditor=function(){
+ const id=String(window.activeTextEditId||"");
+ const q=(window.builderData||[]).find(x=>String(x.id)===id);
+ if(!id||!q)return alert("Question not found in the current Builder Library.");
+ const image=(window.textEdits[id]||{}).image||imageOf(q);
+ if(!image)return alert("इस question में कोई image/diagram नहीं मिला।");
+ try{
+  localStorage.setItem("AZ_BUILDER_IMAGE_EDIT_ID",id);
+  localStorage.setItem("AZ_BUILDER_IMAGE_EDIT_RETURN","builder.html?imageEditReturn=1");
+  localStorage.setItem("Temp_Editor_Image",image);
+  localStorage.setItem("Temp_Editor_Synced_Image","");
+  localStorage.setItem("Temp_QText",String(document.getElementById("textEditorMain")?.value||displayTextOf(q)||""));
+  const opts=[...document.querySelectorAll("#textEditorOptions input[data-opt]")].map(x=>x.value);
+  ["A","B","C","D"].forEach((letter,i)=>localStorage.setItem("Temp_Opt_"+letter,opts[i]||""));
+  localStorage.removeItem("AZ_BUILDER_IMAGE_EDIT_RESULT");
+ }catch(e){alert("Image Editor के लिए image तैयार नहीं हो पाई: "+(e?.message||e));return;}
+ const w=window.open("editor.html?builderImageEdit=1","_blank");
+ if(!w){alert("Popup blocked. Please allow popups for Editor Studio.");return;}
+};
 function bindLiveQuestionEditor(){
  const ids=["textEditorMain","textEditorFontSize","textEditorWeight","textEditorAlign","textEditorLine","textEditorHideOptions"];
  ids.forEach(id=>{const el=document.getElementById(id);if(el)el.oninput=el.onchange=()=>renderLiveQuestionPreview();});
@@ -482,10 +514,10 @@ function renderLiveQuestionPreview(){
  const id=window.activeTextEditId;if(!id)return;const q=window.builderData.find(x=>String(x.id)===String(id));if(!q)return;
  const txt=document.getElementById("textEditorMain").value;
  const opts=[...document.querySelectorAll("#textEditorOptions input[data-opt]")].map(x=>x.value).filter(x=>x.trim());
- const img=imageOf(q);const preview=document.getElementById("studentQuestionLivePreview");if(!preview)return;
+ const img=(window.textEdits[id]||{}).image||imageOf(q);const preview=document.getElementById("studentQuestionLivePreview");if(!preview)return;
  const fs=Number(document.getElementById("textEditorFontSize").value)||14,weight=Number(document.getElementById("textEditorWeight").value)||400,align=document.getElementById("textEditorAlign").value||"left",line=Number(document.getElementById("textEditorLine").value)||1.65;
  const showOptions=!document.getElementById("textEditorHideOptions").checked;
- preview.innerHTML='<div style="font-size:'+fs+'px;font-weight:'+weight+';text-align:'+align+';line-height:'+line+';white-space:pre-wrap;overflow-wrap:anywhere">'+renderLibraryText(txt)+'</div>'+(img?'<div style="text-align:center"><img class="live-figure" src="'+esc(img)+'" alt="Original question figure"></div>':'')+(showOptions&&opts.length?'<div style="margin-top:12px;border-top:1px solid #ddd;padding-top:9px">'+opts.map((o,i)=>'<div class="live-option"><b>'+String.fromCharCode(65+i)+'.</b> '+renderLibraryText(o)+'</div>').join("")+'</div>':'');
+ preview.innerHTML='<div style="font-size:'+fs+'px;font-weight:'+weight+';text-align:'+align+';line-height:'+line+';white-space:pre-wrap;overflow-wrap:anywhere">'+renderLibraryText(txt)+'</div>'+(img?'<div style="text-align:center"><img class="live-figure" src="'+esc(img)+'" alt="Question diagram"><div style="margin:8px 0"><button type="button" class="btn blue" onclick="openImageInEditor()">🖼️ Edit Diagram in Editor Studio</button></div></div>':'')+(showOptions&&opts.length?'<div style="margin-top:12px;border-top:1px solid #ddd;padding-top:9px">'+opts.map((o,i)=>'<div class="live-option"><b>'+String.fromCharCode(65+i)+'.</b> '+renderLibraryText(o)+'</div>').join("")+'</div>':'');
  if(window.MathJax?.typesetPromise){window.MathJax.typesetClear?.([preview]);window.MathJax.typesetPromise([preview]).catch(()=>{});}
  const restore=document.getElementById("restoreOriginalQuestionBtn");if(restore)restore.style.display=editorHasChanges()?"inline-flex":"none";
 }
@@ -768,11 +800,11 @@ window.deleteSelectedDuplicates=async function(){
 function renderDuplicateReview(){const box=document.getElementById('duplicateReviewContent'),summary=document.getElementById('duplicateReviewSummary'),progress=document.getElementById('duplicateReviewProgress');if(!duplicateReviewGroups.length){summary.textContent='✓ No duplicate groups remain in the loaded Library.';box.innerHTML='<div class="empty">✓ No duplicate groups remain in the loaded Library.</div>';progress.textContent='0 groups';return}const g=duplicateReviewGroups[duplicateReviewIndex];duplicateReviewCurrentKey=g.key;summary.textContent=(duplicateReviewIndex+1)+' of '+duplicateReviewGroups.length+' duplicate groups · '+g.questions.length+' matching copies · all folders';progress.textContent='Group '+(duplicateReviewIndex+1)+' / '+duplicateReviewGroups.length;box.innerHTML='<div id="duplicateDeleteNotice" style="display:none;padding:10px;border:1px solid #10b981;background:#064e3b;color:#d1fae5;border-radius:8px;margin-bottom:10px;font-weight:800"></div><div class="dup-bulk-bar" style="position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#111827;padding:10px;border:1px solid #475569;border-radius:9px;margin-bottom:10px"><b id="duplicateSelectedCount">'+duplicateReviewSelected.size+' selected</b><button id="duplicateBulkDelete" class="btn red" '+(duplicateReviewSelected.size?'':'disabled')+' onclick="deleteSelectedDuplicates()">🗑 Permanently Delete Selected</button><span style="font-size:11px;color:#cbd5e1">Select one, several, or all copies. This review stays open after deletion.</span></div><section class="dup-review-group"><h4>✖ '+(g.questions.length-1)+' potential duplicate'+(g.questions.length-1===1?'':'s')+' found · '+g.questions.length+' copies in this group</h4><div class="dup-review-grid">'+g.questions.map((q,i)=>{const id=String(q.id),decision=duplicateReviewDecisions[id]||'pending',txt=cleanQuestionText(displayTextOf(q)),img=imageOf(q),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),folder=folderOf(q)||'(No folder path saved)',type=typeOf(q),checked=duplicateReviewSelected.has(id);return '<article class="dup-review-card '+(decision==='keep'?'keep':'')+'"><label style="display:flex;gap:8px;align-items:center;margin-bottom:8px;font-weight:800;color:#fca5a5"><input type="checkbox" '+(checked?'checked':'')+' data-id="'+esc(id)+'" onchange="toggleDuplicateSelection(this.dataset.id,this.checked)"> Select this copy for deletion</label><h5>Copy '+(i+1)+' · '+esc(type)+' · '+esc(folder)+'</h5><div class="dup-review-question">'+(txt?renderLibraryText(txt):'<em>No text</em>')+'</div>'+(img?'<img class="dup-review-image" src="'+esc(img)+'" alt="Question figure">':'')+(opts.length?'<div class="dup-review-options">'+opts.map((o,j)=>'<div><b>'+String.fromCharCode(65+j)+'.</b> '+renderLibraryText(o)+'</div>').join('')+'</div>':'')+'<div class="dup-state">Status: '+(decision==='keep'?'Keep / Not a duplicate':'Not reviewed')+'</div><div class="dup-review-actions"><button class="btn review-keep" data-id="'+esc(id)+'" data-decision="keep" onclick="setDuplicateDecision(this.dataset.id,this.dataset.decision)">✓ Keep / Not Duplicate</button></div></article>'}).join('')+'</div><p style="font-size:10px;color:#94a3b8;margin:10px 0 0">Only checked questions are deleted. The group review stays open after deletion so you can inspect remaining copies and keep or delete more.</p></section>';if(window.MathJax?.typesetPromise)window.MathJax.typesetPromise([box]).catch(()=>{})}
 
 function questionHTML(q,num){
- const img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),edit=window.textEdits[String(q.id)]||{};
+ const edit=window.textEdits[String(q.id)]||{},img=edit.image||imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean);
  const style='font-size:'+Number(edit.fontSize||window.paperSettings.fontSize||14)+'px;font-weight:'+Number(edit.weight||window.paperSettings.weight||400)+';text-align:'+String(edit.align||'left')+';line-height:'+Number(edit.lineHeight||1.55)+';';
  return '<div class="paper-q"><div class="paper-question-line"><span class="paper-q-num"><b>'+num+'.</b></span>'+(txt?'<span class="paper-text" style="'+style+'">'+renderMath(esc(txt))+'</span>':'')+'</div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!edit.hideOptions?'<div class="paper-options" style="'+style+'">'+opts.map((o,i)=>'<span><b>'+String.fromCharCode(65+i)+'.</b> '+renderMath(esc(o))+'</span>').join("")+'</div>':'')+'</div>';
 }function printQuestionHTML(q,num){
- const img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),edit=window.textEdits[String(q.id)]||{};
+ const edit=window.textEdits[String(q.id)]||{},img=edit.image||imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean);
  const style='font-size:'+Number(edit.fontSize||window.paperSettings.fontSize||14)+'px;font-weight:'+Number(edit.weight||window.paperSettings.weight||400)+';text-align:'+String(edit.align||'left')+';line-height:'+Number(edit.lineHeight||1.55)+';';
  return '<div class="paper-q"><div class="paper-question-line"><span class="paper-q-num"><b>'+num+'.</b></span>'+(txt?'<span class="paper-text" style="'+style+'">'+renderMath(esc(txt))+'</span>':'')+'</div>'+(img?'<div class="paper-img"><img src="'+esc(img)+'"></div>':'')+(opts.length&&!edit.hideOptions?'<div class="paper-options" style="'+style+'">'+opts.map((o,i)=>'<span><b>'+String.fromCharCode(65+i)+'.</b> '+renderMath(esc(o))+'</span>').join("")+'</div>':'')+'</div>';
 }
