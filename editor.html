@@ -727,7 +727,7 @@
       const params = new URLSearchParams(window.location.search);
       if (params.get('builderImageEdit') === '1') {
         if (confirm("Discard diagram edits and return to Test Builder?")) {
-          ['AZ_BUILDER_IMAGE_EDIT_ID','AZ_BUILDER_IMAGE_EDIT_RETURN','Temp_Editor_Image','Temp_Editor_Synced_Image','Temp_QText','Temp_Opt_A','Temp_Opt_B','Temp_Opt_C','Temp_Opt_D'].forEach(k=>localStorage.removeItem(k));
+          ['AZ_BUILDER_IMAGE_EDIT_ID','AZ_BUILDER_IMAGE_EDIT_RETURN','AZ_BUILDER_IMAGE_EDIT_CONTEXT','Temp_Editor_Image','Temp_Editor_Synced_Image','Temp_QText','Temp_Opt_A','Temp_Opt_B','Temp_Opt_C','Temp_Opt_D'].forEach(k=>localStorage.removeItem(k));
           window.location.href='builder.html';
         }
         return;
