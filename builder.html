@@ -349,7 +349,10 @@ window.saveBuilderAISolution=async function(){const q=builderAIQ();if(!q)return;
 
 function renderQuestions(restoreScrollTop){
  const counter=document.getElementById("deleteSelectedCount");if(counter)counter.textContent=window.selected.size;
- const box=document.getElementById("questions"),rows=getVisible(),dups=duplicateCounts();
+ const box=document.getElementById("questions");
+ // Clear MathJax's bookkeeping before replacing previously typeset question cards.
+ if(box&&window.MathJax?.typesetClear){try{window.MathJax.typesetClear([box]);}catch(e){console.warn("[A2Z Builder] MathJax cleanup skipped:",e);}}
+ const rows=getVisible(),dups=duplicateCounts();
  const savedScroll=Number.isFinite(restoreScrollTop)?restoreScrollTop:(box?.scrollTop||0);
  const scoped=getFolderScopedQuestions(),modeLabel=({private:"Private",central:"Central",group:"Group"})[window.builderMode]||window.builderMode;
  const scope=document.getElementById("folderScope");
@@ -375,12 +378,20 @@ function renderQuestions(restoreScrollTop){
  requestAnimationFrame(()=>{box.scrollTop=savedScroll;});
  typeset(box,savedScroll);
 }
+// Expose the renderer for the page's inline search/type-filter handlers.
+window.renderQuestions=renderQuestions;
 function typeset(root,restoreScrollTop){
- if(!window.MathJax?.typesetPromise)return;
  const target=root||document.getElementById("questions");
- window.MathJax.typesetPromise(target?[target]:undefined).then(()=>{
-  if(target&&Number.isFinite(restoreScrollTop))target.scrollTop=restoreScrollTop;
- }).catch(()=>{});
+ const run=()=>{
+  if(!window.MathJax?.typesetPromise)return;
+  window.MathJax.typesetPromise(target?[target]:undefined).then(()=>{
+   if(target&&Number.isFinite(restoreScrollTop))target.scrollTop=restoreScrollTop;
+  }).catch(e=>console.warn("[A2Z Builder] MathJax rendering skipped:",e));
+ };
+ // Firebase can finish before the MathJax CDN script has completed startup.
+ if(window.MathJax?.startup?.promise)window.MathJax.startup.promise.then(run).catch(run);
+ else if(window.MathJax?.typesetPromise)run();
+ else setTimeout(()=>{if(window.MathJax?.startup?.promise)window.MathJax.startup.promise.then(run).catch(run);else run();},350);
 }
 window.toggleQuestion=function(encodedId){
  const id=decodeURIComponent(String(encodedId||""));
