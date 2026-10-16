@@ -5,89 +5,244 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>A to Z Exam Mocks — Printout</title>
 <script>
-window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["\\[","\\]"],["$","$"]]},svg:{fontCache:"global"}};</script>
+window.MathJax={tex:{inlineMath:[["\\(","\\)"],["$","$"]],displayMath:[["[","]"],["$$","$$"]]},svg:{fontCache:"global"}};
+</script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 <style>
+:root{
+  --paper-width: 210mm;
+  --paper-height: 297mm;
+  --paper-padding: 10mm; /* Default Narrow Margin */
+  --print-page-size: A4;
+  --wm-opacity: 0.16;
+}
 *{box-sizing:border-box}
-html,body{margin:0;background:#dbe2ea;color:#111;font-family:Arial,sans-serif}
-body{min-height:100vh}
-.toolbar{position:sticky;top:0;z-index:50;background:#111827;color:#fff;padding:8px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px #0004}
+html,body{margin:0;background:#cbd5e1;color:#111;font-family:Arial,sans-serif}
+body{min-height:100vh;padding-bottom:30px}
+
+/* Toolbar Styling */
+.toolbar{position:sticky;top:0;z-index:50;background:#111827;color:#fff;padding:8px 12px;display:flex;gap:7px;align-items:center;flex-wrap:wrap;box-shadow:0 2px 10px #0004}
 .toolbar label{font-size:11px;font-weight:700;display:flex;gap:4px;align-items:center}
 .toolbar input,.toolbar select{padding:5px;border:1px solid #64748b;border-radius:5px;background:#fff;color:#111}
-.toolbar input[type=number]{width:55px}.toolbar input[type=range]{width:95px}
+.toolbar input[type=number]{width:55px}
+.toolbar input[type=range]{width:95px}
 .toolbar button{padding:6px 9px;border:1px solid #64748b;border-radius:5px;background:#2563eb;color:#fff;font-weight:800;cursor:pointer}
-.toolbar button.gray{background:#374151}.toolbar button.green{background:#059669}
-.toolbar .spacer{flex:1}.hint{font-size:10px;color:#cbd5e1}
-.paper{position:relative;width:var(--paper-width,210mm);min-height:var(--paper-height,297mm);margin:18px auto;padding:var(--paper-padding,15mm);background:#fff;box-shadow:0 3px 18px #0003;overflow:visible}
-.header{position:relative;z-index:2;text-align:center;border-bottom:2px solid #111;padding:8px 6px 10px;margin-bottom:14px;min-height:88px}
-.logo{position:absolute;left:0;top:3px;width:62px;height:62px;object-fit:contain}
-.header-main{padding:0 5px 0 72px}.school{font-size:18px;font-weight:800}.title{font-size:17px;font-weight:800;margin-top:2px;min-height:1.2em}.editable{user-select:text;-webkit-user-select:text;cursor:text;outline:none}.editable:focus{outline:1px dashed #2563eb;outline-offset:2px}.editableText{user-select:text;-webkit-user-select:text;cursor:text;outline:none}.editableText:focus{outline:1px dashed #2563eb;outline-offset:1px}.school,.title,.meta,.meta b{user-select:text;-webkit-user-select:text;cursor:text}
-.meta{font-size:12px;margin-top:5px;display:flex;justify-content:space-between;text-align:left}.meta .right{text-align:right}
-.content{position:relative;z-index:2}.content.two-col{column-count:2;column-gap:16mm;column-rule:1px solid #b8b8b8;column-rule-width:1px;column-rule-style:solid;column-fill:balance}.content.two-col .section{column-span:all}.content.two-col .question{break-inside:avoid;page-break-inside:avoid}.question{break-inside:avoid;page-break-inside:avoid;margin:0 0 10px;padding:2px 0;line-height:1.5}.question.flow-column{break-before:column;column-break-before:always}.question.flow-page{break-before:page;page-break-before:always}.question.flow-none{break-before:auto;page-break-before:auto}
-.question.selected{outline:2px solid #2563eb;outline-offset:2px}.qbox{border:1px solid #888;padding:6px;border-radius:4px}.qbottom{border-bottom:1px solid #888}.qleft{border-left:3px solid #888;padding-left:7px}.qline{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:3px;align-items:start}.qmarks{font-size:.82em;font-weight:700;white-space:nowrap;text-align:right;padding-left:8px}
-.qnum{font-weight:700}.qtext{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
-.options{margin:5px 0 0 31px;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px}.options.row-wise{grid-template-columns:1fr}.option{display:grid;grid-template-columns:22px minmax(0,1fr);gap:3px;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
-.qimage{margin:7px auto;text-align:center}.qimage img{max-width:96%;max-height:180px;object-fit:contain}
-.section{position:relative;z-index:2;text-align:center;font-weight:800;font-size:15px;margin:14px 0 10px;padding:6px 8px;border-bottom:1px solid #555;break-inside:avoid}
-.section.box{border:1px solid #555}.section.none{border:0}.section.selected{outline:2px solid #2563eb;outline-offset:2px}
-.footer{position:relative;z-index:2;text-align:center;border-top:1px solid #777;margin-top:18px;padding-top:5px;font-size:10px}
-.watermark-layer{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
-.watermark{position:absolute;left:-20%;width:140%;text-align:center;color:#334155;font-size:64px;font-weight:900;opacity:var(--wm-opacity,.18);transform:rotate(-32deg);white-space:nowrap}
-.w0{top:7%}.w1{top:27%}.w2{top:47%}.w3{top:67%}.w4{top:87%}.w5{top:107%}
+.toolbar button.gray{background:#374151}
+.toolbar button.green{background:#059669}
+.toolbar .spacer{flex:1}
+.hint{font-size:10px;color:#cbd5e1}
+
+/* Screen Paper Preview with Visual Page-Break Lines */
+.paper{
+  position:relative;
+  width:var(--paper-width,210mm);
+  min-height:var(--paper-height,297mm);
+  margin:20px auto;
+  padding:var(--paper-padding,10mm);
+  background-color:#fff;
+  /* Visual dashed line on screen at every page height so it doesn't look like an endless strip */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--paper-height, 297mm) - 2px),
+    #94a3b8 calc(var(--paper-height, 297mm) - 2px),
+    #94a3b8 var(--paper-height, 297mm)
+  );
+  box-shadow:0 6px 24px rgba(0,0,0,0.18);
+  overflow:hidden;
+}
+
+/* Header & Meta */
+.header{position:relative;z-index:2;text-align:center;border-bottom:2px solid #111;padding:4px 6px 8px;margin-bottom:12px;min-height:76px}
+.logo{position:absolute;left:0;top:2px;width:58px;height:58px;object-fit:contain}
+.header-main{padding:0 5px 0 66px}
+.school{font-size:18px;font-weight:800;letter-spacing:0.3px}
+.title{font-size:16px;font-weight:800;margin-top:2px;min-height:1.2em}
+.editable,.editableText{user-select:text;-webkit-user-select:text;cursor:text;outline:none}
+.editable:focus,.editableText:focus{outline:1px dashed #2563eb;outline-offset:2px}
+.school,.title,.meta,.meta b{user-select:text;-webkit-user-select:text;cursor:text}
+.meta{font-size:12px;margin-top:5px;display:flex;justify-content:space-between;text-align:left}
+.meta .right{text-align:right}
+
+/* Questions & Two-Column Layout */
+.content{position:relative;z-index:2}
+.content.two-col{column-count:2;column-gap:10mm;column-rule:1px solid #999;column-fill:balance}
+.content.two-col .section{column-span:all}
+.question{
+  break-inside:avoid;
+  page-break-inside:avoid;
+  margin:0 0 9px;
+  padding:3px 0;
+  line-height:1.45;
+}
+.question.flow-column{break-before:column;column-break-before:always}
+.question.flow-page{break-before:page;page-break-before:always}
+.question.flow-none{break-before:auto;page-break-before:auto}
+.question.selected{outline:2px solid #2563eb;outline-offset:2px}
+.qbox{border:1px solid #888;padding:6px;border-radius:4px}
+.qbottom{border-bottom:1px solid #888;padding-bottom:5px}
+.qleft{border-left:3px solid #888;padding-left:7px}
+.qline{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:4px;align-items:start}
+.qmarks{font-size:.82em;font-weight:700;white-space:nowrap;text-align:right;padding-left:6px}
+.qnum{font-weight:700}
+.qtext{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.options{margin:4px 0 0 28px;display:grid;grid-template-columns:1fr 1fr;gap:3px 14px}
+.options.row-wise{grid-template-columns:1fr}
+.option{display:grid;grid-template-columns:22px minmax(0,1fr);gap:3px;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+.qimage{margin:6px auto;text-align:center}
+.qimage img{max-width:96%;max-height:175px;object-fit:contain}
+
+/* Section & Footer */
+.section{position:relative;z-index:2;text-align:center;font-weight:800;font-size:14px;margin:12px 0 8px;padding:5px 8px;border-bottom:1.5px solid #333;break-inside:avoid;page-break-inside:avoid;break-after:avoid;page-break-after:avoid}
+.section.box{border:1.5px solid #333}
+.section.none{border:0}
+.section.selected{outline:2px solid #2563eb;outline-offset:2px}
+.footer{position:relative;z-index:2;text-align:center;border-top:1px solid #777;margin-top:16px;padding-top:5px;font-size:10px;break-inside:avoid;page-break-inside:avoid}
+
+/* Full-Page Diagonal Watermark */
+.watermark-layer{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  pointer-events:none;
+  overflow:hidden;
+}
+.watermark{
+  position:absolute;
+  left:50%;
+  width:150%;
+  text-align:center;
+  color:#1e293b;
+  font-size:clamp(46px, 6.2vw, 86px);
+  font-weight:900;
+  letter-spacing:6px;
+  text-transform:uppercase;
+  opacity:var(--wm-opacity,.16);
+  transform:translate(-50%, -50%) rotate(-38deg);
+  white-space:nowrap;
+  user-select:none;
+}
+/* Evenly spaced vertical positions depending on count */
+.w-single{top:50%}
+.w0{top:18%}
+.w1{top:50%}
+.w2{top:82%}
+.w3{top:34%}
+.w4{top:66%}
+.w5{top:92%}
+
 .empty{padding:80px 20px;text-align:center;color:#64748b;font-size:16px}
-@media(max-width:900px){.paper{width:100%;margin:8px auto;padding:10mm}.toolbar{position:sticky}.meta{font-size:10px}}
+
+@media(max-width:900px){
+  .paper{width:100%;margin:8px auto;padding:8mm}
+  .meta{font-size:10px}
+}
+
+/* PROFESSIONAL PRINT LAYOUT — Fixed Narrow Margin on EVERY Page */
 @media print{
- @page{size:var(--print-page-size,A4);margin:0}
- html,body{background:#fff}
- /* Repeat the selected watermark count on every printed sheet, not across the entire multi-page paper. */
- .paper .watermark-layer{position:fixed;inset:var(--paper-padding,15mm);z-index:1;overflow:hidden;pointer-events:none}
- .paper .header,.paper .content,.paper .footer{position:relative;z-index:2}
- .paper .watermark{left:-20%;width:140%;font-size:clamp(28px,4vw,64px)}
- .toolbar{display:none!important}
- .paper{width:var(--paper-width,210mm);min-height:var(--paper-height,297mm);margin:0;padding:var(--paper-padding,15mm);box-shadow:none;overflow:visible}
- .question.selected,.section.selected{outline:none}
- .watermark{print-color-adjust:exact;-webkit-print-color-adjust:exact}
- .content.two-col{column-fill:balance;height:auto;min-height:0}
- .content.two-col .question{break-inside:avoid;page-break-inside:avoid}
+  @page{
+    size: var(--print-page-size, A4);
+    /* THIS guarantees top, bottom, left, and right margin on Page 1, Page 2, Page 3... */
+    margin: var(--paper-padding, 10mm);
+  }
+  html,body{
+    background:#fff !important;
+    margin:0 !important;
+    padding:0 !important;
+  }
+  .toolbar{display:none !important}
+  .paper{
+    width:100% !important;
+    min-height:0 !important;
+    margin:0 !important;
+    /* Set padding to 0 in print because @page margin handles all 4 sides on every single page */
+    padding:0 !important;
+    box-shadow:none !important;
+    background-image:none !important;
+    overflow:visible !important;
+  }
+  /* Fixed watermark layer repeats on every printed sheet edge-to-edge */
+  .paper .watermark-layer{
+    position:fixed;
+    inset:0;
+    width:100vw;
+    height:100vh;
+    z-index:1;
+    overflow:hidden;
+    pointer-events:none;
+  }
+  .paper .watermark{
+    left:50%;
+    width:150vw;
+    font-size:68pt;
+    letter-spacing:6px;
+    transform:translate(-50%, -50%) rotate(-38deg);
+    print-color-adjust:exact;
+    -webkit-print-color-adjust:exact;
+  }
+  .paper .header,.paper .content,.paper .footer{
+    position:relative;
+    z-index:2;
+  }
+  .question.selected,.section.selected{outline:none !important}
+  .content.two-col{column-fill:auto;height:auto;min-height:0}
+  .question{break-inside:avoid;page-break-inside:avoid}
 }
 </style>
 </head>
 <body>
-<div class="toolbar" onmousedown="saveCurrentSelection(event)"><label>Watermark <input id="watermarkOpacity" type="range" min="0" max="100" value="18" oninput="setWatermarkOpacity(this.value)" style="width:110px"> <span id="watermarkOpacityValue">18%</span></label><label>Watermarks <input id="watermarkCount" type="number" min="1" max="6" value="1" style="width:48px" onchange="setWatermarkCount(this.value)"></label>
-<b>🖨 Print Preview</b>
-<label>Size <input id="fontSize" type="number" min="8" max="72" value="14" oninput="liveFontSize(this.value)" onmousedown="saveCurrentSelection(event)"></label><button type="button" onmousedown="saveCurrentSelection(event)" onclick="changeSelectedFontSize(-1)">A−</button><button type="button" onmousedown="saveCurrentSelection(event)" onclick="changeSelectedFontSize(1)">A+</button>
-<button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('bold')"><b>B</b></button><button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('italic')"><i>I</i></button><button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('underline')"><u>U</u></button>
-<label>Q Border <select id="qBorder"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom</option><option value="left">Left</option></select></label>
-<label>Section <select id="sectionBorder"><option value="bottom">Bottom</option><option value="box">Box</option><option value="none">None</option></select></label>
-<button class="gray" onclick="selectAllQuestions()">Select All Questions</button><button class="gray" onclick="moveSelected(-1)">↑ Move Up</button><button class="gray" onclick="moveSelected(1)">↓ Move Down</button>
-<button class="gray" onclick="mode('questions')">Select Questions</button>
-<button class="gray" onclick="mode('sections')">Select Sections</button>
-<button class="gray" onclick="clearSel()">Clear</button>
-<button class="green" onclick="apply()">Apply</button>
-<button onclick="window.print()">Print</button><button class="gray" onclick="window.close()">Close</button>
-<label>Paper <select id="paperSize" onchange="setPaperSize(this.value)"><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option><option value="A3">A3</option><option value="A5">A5</option></select></label><label>Margins <select id="paperMargin" onchange="setPaperMargin(this.value)"><option value="normal">Normal</option><option value="narrow">Narrow</option><option value="wide">Wide</option></select></label><button class="gray" onclick="startNewColumn()">↪ New Column Before</button><button class="gray" onclick="startNewPage()">↳ New Page Before</button><button class="gray" onclick="clearQuestionBreak()">Clear Break</button><span class="spacer"></span><span class="hint">Select a question → move it or force it to a new column/page. Paper size & margins control the print format.</span>
+<div class="toolbar" onmousedown="saveCurrentSelection(event)">
+  <label>Watermark <input id="watermarkOpacity" type="range" min="0" max="100" value="16" oninput="setWatermarkOpacity(this.value)" style="width:95px"> <span id="watermarkOpacityValue">16%</span></label>
+  <label>WM Count <input id="watermarkCount" type="number" min="1" max="6" value="1" style="width:46px" onchange="setWatermarkCount(this.value)"></label>
+  <b>🖨 Print Preview</b>
+  <label>Size <input id="fontSize" type="number" min="8" max="72" value="13" oninput="liveFontSize(this.value)" onmousedown="saveCurrentSelection(event)"></label>
+  <button type="button" onmousedown="saveCurrentSelection(event)" onclick="changeSelectedFontSize(-1)">A−</button>
+  <button type="button" onmousedown="saveCurrentSelection(event)" onclick="changeSelectedFontSize(1)">A+</button>
+  <button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('bold')"><b>B</b></button>
+  <button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('italic')"><i>I</i></button>
+  <button type="button" onmousedown="saveCurrentSelection(event)" onclick="fmt('underline')"><u>U</u></button>
+  <label>Columns <select id="colLayout" onchange="setColLayout(this.value)"><option value="one">1 Column</option><option value="two">2 Columns</option></select></label>
+  <label>Q Border <select id="qBorder" onchange="build()"><option value="none">None</option><option value="box">Box</option><option value="bottom">Bottom</option><option value="left">Left</option></select></label>
+  <label>Section <select id="sectionBorder" onchange="build()"><option value="bottom">Bottom</option><option value="box">Box</option><option value="none">None</option></select></label>
+  <button class="gray" onclick="selectAllQuestions()">Select All Qs</button>
+  <button class="gray" onclick="moveSelected(-1)">↑ Up</button>
+  <button class="gray" onclick="moveSelected(1)">↓ Down</button>
+  <button class="gray" onclick="mode('questions')">Select Qs</button>
+  <button class="gray" onclick="mode('sections')">Select Sec</button>
+  <button class="gray" onclick="clearSel()">Clear</button>
+  <button class="green" onclick="apply()">Apply</button>
+  <button onclick="window.print()">Print</button>
+  <button class="gray" onclick="window.close()">Close</button>
+  <label>Paper <select id="paperSize" onchange="setPaperSize(this.value)"><option value="A4">A4</option><option value="Letter">Letter</option><option value="Legal">Legal</option><option value="A3">A3</option><option value="A5">A5</option></select></label>
+  <label>Margins <select id="paperMargin" onchange="setPaperMargin(this.value)"><option value="narrow" selected>Narrow (10mm)</option><option value="compact">Compact (7mm)</option><option value="normal">Normal (14mm)</option><option value="wide">Wide (18mm)</option></select></label>
+  <button class="gray" onclick="startNewColumn()">↪ New Col</button>
+  <button class="gray" onclick="startNewPage()">↳ New Page</button>
+  <button class="gray" onclick="clearQuestionBreak()">Clear Break</button>
+  <span class="spacer"></span>
+  <span class="hint">Fixed margins apply to all printed pages automatically.</span>
 </div>
+
 <div id="paper" class="paper"><div class="empty">Loading paper…</div></div>
+
 <script>
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
 function questionText(q){
-      const candidates=[q.text,q.qText,q.questionText,q.question_text,q.content];
-      for(const v of candidates){
-        if(typeof v==='string' && v.trim()) return v.trim();
-      }
-      const fallback=q.question;
-      if(typeof fallback==='string' && fallback.trim() && !/^(data:image\/|https?:\/\/|blob:)/i.test(fallback.trim())) return fallback.trim();
-      return '';
-    }
+  const candidates=[q.text,q.qText,q.questionText,q.question_text,q.content];
+  for(const v of candidates){
+    if(typeof v==='string' && v.trim()) return v.trim();
+  }
+  const fallback=q.question;
+  if(typeof fallback==='string' && fallback.trim() && !/^(data:image\/|https?:\/\/|blob:)/i.test(fallback.trim())) return fallback.trim();
+  return '';
+}
 const escapeHtml=esc;
 function cleanQ(v){return String(v??'').trim();}
 function cleanOpt(v){
   let x=String(v??'').trim();
-  // Library already supplies the A/B/C/D/E marker through the renderer. Remove any
-  // embedded option labels from imported data so we never print "B. (b) ...".
   for(let i=0;i<3;i++){
     const before=x;
-    x=x.replace(/^\s*(?:\(?[A-Ea-e]\)?[.)]|\[[A-Ea-e]\]|[A-Ea-e]\s*[-:])\s*/,'');
+    x=x.replace(/^\s*(?:\(?[A-Ea-e]\)?[.)]|[[A-Ea-e]]|[A-Ea-e]\s*[-:])\s*/,'');
     if(x===before)break;
   }
   return x.trim();
@@ -123,448 +278,267 @@ function imageOf(q){
   }
   return walk(q);
 }
-    function libraryMathMarkup(v){
-      var x=String(v||"");
-      if(!x)return "";
-      if(/\\\\\(|\\\\\[/.test(x)) return x;
-      if(/\\\\(?:frac|dfrac|tfrac|sqrt|int|iint|iiint|oint|sum|prod|partial|nabla|Delta|delta|alpha|beta|gamma|theta|lambda|mu|pi|sigma|omega|left|right|begin|end|mathbf|mathrm|text)\\b/.test(x)
-        || /(?:[A-Za-z0-9\\}])\\^\\{[^}]+\\}|(?:[A-Za-z0-9\\}])_\\{[^}]+\\}/.test(x)){
-        return "\\("+x+"\\)";
+function libraryMathMarkup(v){
+  var x=String(v||"");
+  if(!x)return "";
+  if(/\\\(|\\\[/.test(x)) return x; if(/\\(?:frac\vert{}dfrac\vert{}tfrac\vert{}sqrt\vert{}int\vert{}iint\vert{}iiint\vert{}oint\vert{}sum\vert{}prod\vert{}partial\vert{}nabla\vert{}Delta\vert{}delta\vert{}alpha\vert{}beta\vert{}gamma\vert{}theta\vert{}lambda\vert{}mu\vert{}pi\vert{}sigma\vert{}omega\vert{}left\vert{}right\vert{}begin\vert{}end\vert{}mathbf\vert{}mathrm\vert{}text)\b/.test(x) \vert{}\vert{} /(?:[A-Za-z0-9\}])\^\{[^}]+\}\vert{}(?:[A-Za-z0-9\}])_\{[^}]+\}/.test(x)){ return "\\("+x+"\\)"; } return x; } function renderLibraryText(v){ var x=libraryMathMarkup(v); return escapeHtml(x).replace(/&lt;/g,"<").replace(/&gt;/g,">"); } function questionOptions(q){ let opts=q.options\vert{}\vert{}q.choices\vert{}\vert{}q.answerOptions; if(!opts && typeof q.optText==='string' && q.optText.trim()) opts=q.optText.split(/\s*\Vert{}\s*/).map(cleanOpt).filter(Boolean); if(typeof opts==='string'){ try{ opts=JSON.parse(opts); }catch(e){ opts=null; } } if(Array.isArray(opts)) return opts.map(x=>cleanOpt(typeof x==='object' ? (x.text\vert{}\vert{}x.value\vert{}\vert{}x.label\vert{}\vert{}'') : String(x))).filter(Boolean); const out=[]; ['A','B','C','D','E'].forEach(k=>{ const v=q['option'+k]??q['option_'+k]??q['choice'+k]; if(v!==undefined && String(v).trim()) out.push(cleanOpt(String(v))); }); return out; }  let data={questions:[],sections:[],branding:{},title:'Question Paper',school:'',logo:'',layout:'one',watermarkCount:1}; let qSel=new Set(),sSel=new Set(),modeName='questions',qStyle={},sStyle={},qFlow={}; const PAPER_SIZES={ A4:{w:"210mm",h:"297mm",css:"A4"}, Letter:{w:"215.9mm",h:"279.4mm",css:"Letter"}, Legal:{w:"215.9mm",h:"355.6mm",css:"Legal"}, A3:{w:"297mm",h:"420mm",css:"A3"}, A5:{w:"148mm",h:"210mm",css:"A5"} }; const PAPER_MARGINS={compact:"7mm",narrow:"10mm",normal:"14mm",wide:"18mm"}; let savedRange=null,savedFormatTarget=null;  document.addEventListener('selectionchange',()=>{ const sel=window.getSelection(); if(!sel\vert{}\vert{}!sel.rangeCount\vert{}\vert{}sel.isCollapsed)return; const a=sel.anchorNode?.parentElement?.closest?.('.paper'); if(a){ savedRange=sel.getRangeAt(0).cloneRange(); savedFormatTarget=sel.anchorNode.parentElement.closest('.title,.school,.meta')\vert{}\vert{}null; } });  function saveCurrentSelection(){ const sel=window.getSelection(); if(sel&&sel.rangeCount&&!sel.isCollapsed){ const range=sel.getRangeAt(0); const root=range.commonAncestorContainer?.parentElement?.closest?.('.paper'); if(root){ savedRange=range.cloneRange(); const target=range.commonAncestorContainer?.nodeType===3?range.commonAncestorContainer.parentElement:range.commonAncestorContainer; savedFormatTarget=target?.closest?.('.editableText,.editable,.sectionName,.qtext,.option,.title,.school,.meta')\vert{}\vert{}null; } } }  document.addEventListener('pointerdown',e=>{ if(e.target.closest?.('.toolbar')) saveCurrentSelection(e); },true);  document.addEventListener('input',e=>{ const el=e.target.closest?.('[data-field]'); if(!el)return; data.branding=data.branding\vert{}\vert{}{}; data.branding[el.dataset.field]=el.innerText.replace(/\n/g,' ').trim(); if(el.dataset.field==='paperTitle')data.title=data.branding[el.dataset.field]; if(el.dataset.field==='schoolName')data.school=data.branding[el.dataset.field]; try{localStorage.setItem('AZ_PAPER_BRANDING',JSON.stringify(data.branding))}catch(_){} });  function restoreSavedRange(){ if(!savedRange)return false; const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(savedRange.cloneRange()); return true; }  function wrapSelectionStyle(styles){ if(!restoreSavedRange())return false; const sel=window.getSelection(); if(!sel.rangeCount\vert{}\vert{}sel.isCollapsed)return false; const range=sel.getRangeAt(0); const span=document.createElement('span'); Object.assign(span.style,styles); span.appendChild(range.extractContents()); range.insertNode(span); sel.removeAllRanges(); const nr=document.createRange(); nr.selectNodeContents(span); sel.addRange(nr); savedRange=nr.cloneRange(); return true; }  function liveFontSize(value){ if(!savedRange)return false; const size=Math.max(8,Math.min(72,Number(value)\vert{}\vert{}13)); return wrapSelectionStyle({fontSize:size+'px'}); }  function changeSelectedFontSize(delta){ const current=Number(document.getElementById('fontSize').value)\vert{}\vert{}13; const next=Math.max(8,Math.min(72,current+Number(delta\vert{}\vert{}0))); document.getElementById('fontSize').value=next; return liveFontSize(next); }  function receive(p){ if(!p\vert{}\vert{}!Array.isArray(p.questions))return; data=Object.assign(data,p); data.questions=p.questions\vert{}\vert{}[]; data.sections=Array.isArray(p.sections)?p.sections:[]; data.branding=p.branding\vert{}\vert{}{}; data.title=data.branding.paperTitle\vert{}\vert{}p.title\vert{}\vert{}'Question Paper'; data.school=data.branding.schoolName\vert{}\vert{}p.school\vert{}\vert{}''; data.logo=data.branding.logoUrl\vert{}\vert{}p.logo\vert{}\vert{}''; const colSel=document.getElementById('colLayout'); if(colSel && (data.branding.layout \vert{}\vert{} data.layout)){ colSel.value = (data.branding.layout \vert{}\vert{} data.layout) === 'two' ? 'two' : 'one'; } build(); }  function markLabel(m){ const x=Number(m); if(!isFinite(x)\vert{}\vert{}x<=0)return ''; return x+' Mark'+(x===1?'':'s'); } function sectionMarkLabel(s){ const x=Number(s?.marks); if(!isFinite(x)\vert{}\vert{}x<=0)return ''; return x===1?'1 Mark Each':x+' Marks Each'; } function setWatermarkOpacity(v){ const n=Math.max(0,Math.min(100,Number(v)\vert{}\vert{}0)); document.documentElement.style.setProperty('--wm-opacity',String(n/100)); const out=document.getElementById('watermarkOpacityValue'); if(out)out.textContent=n+'\%'; } function setWatermarkCount(v){ const n=Math.max(1,Math.min(6,Number(v)\vert{}\vert{}1)); data.watermarkCount=n; build(); } function setColLayout(v){ data.layout = v === 'two' ? 'two' : 'one'; if(data.branding) data.branding.layout = data.layout; build(); }  function questionHTML(q,n){ const id=String(q.id\vert{}\vert{}n); const e=data.textEdits?.[id]\vert{}\vert{}{}; const text=cleanQ(e.text!==undefined?e.text:questionText(q)); const opts=(Array.isArray(e.options)?e.options:questionOptions(q)).map(cleanOpt).filter(Boolean); const img=imageOf(q); const st=qStyle[id]\vert{}\vert{}{}; const font=st.font\vert{}\vert{}e.fontFamily\vert{}\vert{}data.branding?.fontFamily\vert{}\vert{}'Times New Roman'; const size=st.size\vert{}\vert{}e.fontSize\vert{}\vert{}13; const weight=st.weight\vert{}\vert{}e.weight\vert{}\vert{}400; const italic=st.italic?'italic':'normal'; const under=st.underline?'underline':'none'; const border=document.getElementById('qBorder').value; const sectionForQ=data.sections.find(s=>Array.isArray(s.questionIds)&&s.questionIds.map(String).includes(id)); const qMark=sectionForQ?.marks??q.marks??q.mark??q.marksPerQuestion; const flow=qFlow[id]\vert{}\vert{}"none"; const cls='question '+(qSel.has(id)?'selected ':'')+(flow==="column"?"flow-column ":flow==="page"?"flow-page ":"flow-none ")+(border==='box'?'qbox':border==='bottom'?'qbottom':border==='left'?'qleft':''); const style='font-family:'+esc(font)+';font-size:'+Number(size)+'px;font-weight:'+Number(weight)+';font-style:'+italic+';text-decoration:'+under+';';    function imgTag(src){return '<div class="qimage"><img src="'+esc(src)+'"></div>';} function visualSrc(v){ if(!v)return ''; if(typeof v==='string')return /^(https?:\/\/\vert{}data:image\/\vert{}blob:)/i.test(v.trim())?v.trim():''; return imageOf(v); } function renderTextWithVisual(){ const blocks=Array.isArray(q.content_blocks)?q.content_blocks:[]; if(blocks.length){ let remaining=text, html=''; for(const b of blocks){ const anchor=String(b?.anchor\vert{}\vert{}b?.figure_reference\vert{}\vert{}'').trim(); const src=visualSrc(b?.image\vert{}\vert{}b?.src\vert{}\vert{}b?.url\vert{}\vert{}b?.data\vert{}\vert{}b?.cropImage\vert{}\vert{}b?.figureImage\vert{}\vert{}b?.visual\vert{}\vert{}b?.crop\vert{}\vert{}''); if(!anchor\vert{}\vert{}!src)continue; const idx=remaining.toLowerCase().indexOf(anchor.toLowerCase()); if(idx>=0){ const end=idx+anchor.length; html+=renderLibraryText(remaining.slice(0,end))+imgTag(src); remaining=remaining.slice(end); } } if(html)return html+renderLibraryText(remaining); } const anchor=String(q.figure_reference\vert{}\vert{}q.figureReference\vert{}\vert{}'').trim(); if(img&&anchor){ const idx=text.toLowerCase().indexOf(anchor.toLowerCase()); if(idx>=0){ const end=idx+anchor.length; return renderLibraryText(text.slice(0,end))+imgTag(img)+renderLibraryText(text.slice(end)); } } if(img){ const re=/(\[\s*(?:figure\vert{}image\vert{}diagram)[^\]]*\]|<img[^>]*>|\{\{\s*(?:figure|image|diagram)[^}]*\}\})/i;
+      if(re.test(text)){
+        return renderLibraryText(text).replace(re, imgTag(img));
       }
-      return x;
+      return renderLibraryText(text) + imgTag(img);
     }
-    function renderLibraryText(v){
-      var x=libraryMathMarkup(v);
-      return escapeHtml(x).replace(/&lt;/g,"<").replace(/&gt;/g,">");
-    }
-    function typesetLibraryMath(){
-      if(!window.MathJax||typeof MathJax.typesetPromise!=="function")return;
-      if(MathJax.startup&&MathJax.startup.promise){
-        MathJax.startup.promise.then(function(){
-          MathJax.typesetPromise(Array.from(document.querySelectorAll(".library-q-text,.library-q-options"))).catch(function(){});
-        }).catch(function(){});
-      }
-    }
+    return renderLibraryText(text);
+  }
 
-    function questionOptions(q){
-      let opts=q.options||q.choices||q.answerOptions;
-      if(!opts && typeof q.optText==='string' && q.optText.trim()) opts=q.optText.split(/\s*\|\s*/).map(cleanOpt).filter(Boolean);
-      if(typeof opts==='string'){ try{ opts=JSON.parse(opts); }catch(e){ opts=null; } }
-      if(Array.isArray(opts)) return opts.map((x,i)=>cleanOpt(typeof x==='object' ? (x.text||x.value||x.label||'') : String(x))).filter(Boolean);
-      const out=[];
-      ['A','B','C','D','E'].forEach(k=>{
-        const v=q['option'+k]??q['option_'+k]??q['choice'+k];
-        if(v!==undefined && String(v).trim()) out.push(String(v));
+  const bodyHTML = renderTextWithVisual();
+  const optColsClass = (data.branding?.optionLayout === 'row' || opts.some(o => o.length > 42)) ? 'options row-wise' : 'options';
+  const optsHTML = opts.length
+    ? `<div class="${optColsClass} library-q-options">` +
+      opts.map((o, i) => `<div class="option"><b>(${String.fromCharCode(97 + i)})</b><div class="editableText" contenteditable="true" data-qid="${esc(id)}" data-opt="${i}">${renderLibraryText(o)}</div></div>`).join('') +
+      `</div>`
+    : '';
+
+  const mLabel = markLabel(qMark);
+  return `<div class="${cls}" data-qid="${esc(id)}" style="${style}" onclick="toggleQuestionSelect(event,'${esc(id)}')">
+    <div class="qline">
+      <div class="qnum">Q${n}.</div>
+      <div class="qtext library-q-text editableText" contenteditable="true" data-qid="${esc(id)}">${bodyHTML}</div>
+      ${mLabel ? `<div class="qmarks">[${esc(mLabel)}]</div>` : `<div></div>`}
+    </div>
+    ${optsHTML}
+  </div>`;
+}
+
+function sectionHTML(s, idx){
+  const sid = String(s.id ?? idx);
+  const st = sStyle[sid] || {};
+  const border = st.border || document.getElementById('sectionBorder')?.value || 'bottom';
+  const cls = `section ${border === 'box' ? 'box' : border === 'none' ? 'none' : ''} ${sSel.has(sid) ? 'selected' : ''}`;
+  const font = st.font || data.branding?.fontFamily || 'Arial';
+  const size = st.size || 14;
+  const weight = st.weight || 800;
+  const italic = st.italic ? 'italic' : 'normal';
+  const under = st.underline ? 'underline' : 'none';
+  const style = `font-family:${esc(font)};font-size:${Number(size)}px;font-weight:${Number(weight)};font-style:${italic};text-decoration:${under};`;
+  const mLabel = sectionMarkLabel(s);
+  const title = s.title || s.name || `Section ${idx + 1}`;
+  return `<div class="${cls}" data-sid="${esc(sid)}" style="${style}" onclick="toggleSectionSelect(event,'${esc(sid)}')">
+    <span class="sectionName editableText" contenteditable="true">${esc(title)}</span>
+    ${mLabel ? ` <span style="font-weight:600;font-size:0.88em">(${esc(mLabel)})</span>` : ''}
+  </div>`;
+}
+
+function build(){
+  const paper = document.getElementById('paper');
+  if(!paper) return;
+  if(!Array.isArray(data.questions) || !data.questions.length){
+    paper.innerHTML = `<div class="empty">No questions found to display.</div>`;
+    return;
+  }
+
+  const b = data.branding || {};
+  const school = b.schoolName || data.school || 'A TO Z EXAM MOCKS';
+  const title = b.paperTitle || data.title || 'Question Paper';
+  const subject = b.subject || '';
+  const timeAllowed = b.timeAllowed || b.duration || '3 Hours';
+  const maxMarks = b.maxMarks || b.totalMarks || '';
+  const wmText = b.watermarkText || b.watermark || b.schoolName || data.school || '';
+  const wmCount = Math.max(1, Math.min(6, Number(data.watermarkCount) || 1));
+
+  let wmHTML = '';
+  if(wmText){
+    if(wmCount === 1){
+      wmHTML = `<div class="watermark-layer"><div class="watermark w-single">${esc(wmText)}</div></div>`;
+    } else {
+      wmHTML = `<div class="watermark-layer">` +
+        Array.from({length: wmCount}, (_, i) => `<div class="watermark w${i}">${esc(wmText)}</div>`).join('') +
+        `</div>`;
+    }
+  }
+
+  const qMap = new Map(data.questions.map((q, idx) => [String(q.id || idx), q]));
+  const usedIds = new Set();
+  let bodyParts = [];
+  let qCounter = 1;
+
+  if(Array.isArray(data.sections) && data.sections.length){
+    data.sections.forEach((s, idx) => {
+      bodyParts.push(sectionHTML(s, idx));
+      const ids = Array.isArray(s.questionIds) ? s.questionIds.map(String) : [];
+      ids.forEach(id => {
+        const q = qMap.get(id);
+        if(q && !usedIds.has(id)){
+          usedIds.add(id);
+          bodyParts.push(questionHTML(q, qCounter++));
+        }
       });
-      return out;
-    }
-    function normalizeFolderPath(v){
-      return String(v||'').trim().replace(/\\/g,'/').split('/').map(x=>x.trim()).filter(Boolean).join(' / ');
-    }
-    
-let data={questions:[],sections:[],branding:{},title:'Question Paper',school:'',logo:'',layout:'one',watermarkCount:1};
-let qSel=new Set(),sSel=new Set(),modeName='questions',qStyle={},sStyle={},qFlow={};
-const PAPER_SIZES={A4:{w:"210mm",h:"297mm",css:"A4"},Letter:{w:"215.9mm",h:"279.4mm",css:"Letter"},Legal:{w:"215.9mm",h:"355.6mm",css:"Legal"},A3:{w:"297mm",h:"420mm",css:"A3"},A5:{w:"148mm",h:"210mm",css:"A5"}};
-const PAPER_MARGINS={narrow:"10mm",normal:"15mm",wide:"20mm"};
-let savedRange=null,savedFormatTarget=null;
-document.addEventListener('selectionchange',()=>{
- const sel=window.getSelection();
- if(!sel||!sel.rangeCount||sel.isCollapsed)return;
- const a=sel.anchorNode?.parentElement?.closest?.('.paper');
- if(a){savedRange=sel.getRangeAt(0).cloneRange();savedFormatTarget=sel.anchorNode.parentElement.closest('.title,.school,.meta')||null;}
-});
-function saveCurrentSelection(ev){
- const sel=window.getSelection();
- if(sel&&sel.rangeCount&&!sel.isCollapsed){
-  const range=sel.getRangeAt(0);
-  const root=range.commonAncestorContainer?.parentElement?.closest?.('.paper');
-  if(root){
-   savedRange=range.cloneRange();
-   const target=range.commonAncestorContainer?.nodeType===3?range.commonAncestorContainer.parentElement:range.commonAncestorContainer;
-   savedFormatTarget=target?.closest?.('.editableText,.editable,.sectionName,.qtext,.option,.title,.school,.meta')||null;
-  }
- }
- // Never cancel toolbar pointer/mouse events: selects, inputs and buttons must stay fully interactive.
-}
-document.addEventListener('pointerdown',e=>{
- if(e.target.closest?.('.toolbar')) saveCurrentSelection(e);
-},true);
-document.addEventListener('input',e=>{
- const el=e.target.closest?.('[data-field]');
- if(!el)return;
- data.branding=data.branding||{};
- data.branding[el.dataset.field]=el.innerText.replace(/\n/g,' ').trim();
- if(el.dataset.field==='paperTitle')data.title=data.branding[el.dataset.field];
- if(el.dataset.field==='schoolName')data.school=data.branding[el.dataset.field];
- try{localStorage.setItem('AZ_PAPER_BRANDING',JSON.stringify(data.branding))}catch(_){}
-});
-function restoreSavedRange(){
- if(!savedRange)return false;
- const sel=window.getSelection();sel.removeAllRanges();sel.addRange(savedRange.cloneRange());return true;
-}
-function wrapSelectionStyle(styles){
- if(!restoreSavedRange())return false;
- const sel=window.getSelection();if(!sel.rangeCount||sel.isCollapsed)return false;
- const range=sel.getRangeAt(0);const span=document.createElement('span');
- Object.assign(span.style,styles);span.appendChild(range.extractContents());range.insertNode(span);
- sel.removeAllRanges();const nr=document.createRange();nr.selectNodeContents(span);sel.addRange(nr);savedRange=nr.cloneRange();return true;
-}
-function applyTextFormatting(){
- const size=Math.max(8,Math.min(72,Number(document.getElementById('fontSize').value)||14));
- return wrapSelectionStyle({fontFamily:family,fontSize:size+'px'});
-}
-function liveFontFamily(value){return false;}
-function liveFontSize(value){
- if(!savedRange)return false;
- const size=Math.max(8,Math.min(72,Number(value)||14));
- return wrapSelectionStyle({fontSize:size+'px'});
-}
-function changeSelectedFontSize(delta){
- const current=Number(document.getElementById('fontSize').value)||14;
- const next=Math.max(8,Math.min(72,current+Number(delta||0)));
- document.getElementById('fontSize').value=next;
- return liveFontSize(next);
-}
-
-function receive(p){if(!p||!Array.isArray(p.questions))return;data=Object.assign(data,p);data.questions=p.questions||[];data.sections=Array.isArray(p.sections)?p.sections:[];data.branding=p.branding||{};data.title=data.branding.paperTitle||p.title||'Question Paper';data.school=data.branding.schoolName||p.school||'';data.logo=data.branding.logoUrl||p.logo||'';build()}
-function markLabel(m){const x=Number(m);if(!isFinite(x)||x<=0)return '';return '1 × '+x+' = '+x+' Mark'+(x===1?'':'s')}
-function sectionMarkLabel(s){const x=Number(s?.marks);if(!isFinite(x)||x<=0)return '';return x===1?'1 Mark Each':x+' Marks Each'}
-function setWatermarkOpacity(v){const n=Math.max(0,Math.min(100,Number(v)||0));document.documentElement.style.setProperty('--watermark-opacity',String(n/100));document.documentElement.style.setProperty('--wm-opacity',String(n/100));const out=document.getElementById('watermarkOpacityValue');if(out)out.textContent=n+'%';}
-function setWatermarkCount(v){const n=Math.max(1,Math.min(6,Number(v)||1));data.watermarkCount=n;build();}
-function questionHTML(q,n){
- const id=String(q.id||'');
- const e=data.textEdits?.[id]||{};
- const text=cleanQ(e.text!==undefined?e.text:questionText(q));
- const opts=(Array.isArray(e.options)?e.options:questionOptions(q)).map(cleanOpt).filter(Boolean);
- const img=imageOf(q);
- const st=qStyle[id]||{};
- const font=st.font||e.fontFamily||data.branding.fontFamily||'Times New Roman';
- const size=st.size||e.fontSize||14;
- const weight=st.weight||e.weight||400;
- const italic=st.italic?'italic':'normal';
- const under=st.underline?'underline':'none';
- const border=document.getElementById('qBorder').value;
- const sectionForQ=data.sections.find(s=>Array.isArray(s.questionIds)&&s.questionIds.map(String).includes(id));
- const qMark=sectionForQ?.marks??q.marks??q.mark??q.marksPerQuestion;
- const flow=qFlow[id]||"none";
- const cls='question '+(qSel.has(id)?'selected ':'')+(flow==="column"?"flow-column ":flow==="page"?"flow-page ":"flow-none ")+(border==='box'?'qbox':border==='bottom'?'qbottom':border==='left'?'qleft':'');
- const style='font-family:'+esc(font)+';font-size:'+Number(size)+'px;font-weight:'+Number(weight)+';font-style:'+italic+';text-decoration:'+under+';';
-
- // Keep visuals at their source position. Older records only have one image + a
- // figure_reference, so insert that image immediately after the matching anchor
- // in the question text. Newer records may have ordered content_blocks.
- function imgTag(src){return '<div class="qimage"><img src="'+esc(src)+'"></div>';}
- function visualSrc(v){
-   if(!v)return '';
-   if(typeof v==='string')return /^(https?:\/\/|data:image\/|blob:)/i.test(v.trim())?v.trim():'';
-   return imageOf(v);
- }
- function renderTextWithVisual(){
-   const blocks=Array.isArray(q.content_blocks)?q.content_blocks:[];
-   if(blocks.length){
-     let remaining=text, html='';
-     for(const b of blocks){
-       const anchor=String(b?.anchor||b?.figure_reference||'').trim();
-       const src=visualSrc(b?.image||b?.src||b?.url||b?.data||b?.cropImage||b?.figureImage||b?.visual||b?.crop||'');
-       if(!anchor||!src)continue;
-       const idx=remaining.toLowerCase().indexOf(anchor.toLowerCase());
-       if(idx>=0){
-         const end=idx+anchor.length;
-         html+=renderLibraryText(remaining.slice(0,end))+imgTag(src);
-         remaining=remaining.slice(end);
-       }
-     }
-     if(html)return html+renderLibraryText(remaining);
-   }
-   const anchor=String(q.figure_reference||q.figureReference||'').trim();
-   if(img&&anchor){
-     const idx=text.toLowerCase().indexOf(anchor.toLowerCase());
-     if(idx>=0){
-       const end=idx+anchor.length;
-       return renderLibraryText(text.slice(0,end))+imgTag(img)+renderLibraryText(text.slice(end));
-     }
-   }
-   // If the stored text contains an explicit image/figure placeholder, replace it
-   // at that exact point rather than appending the image at the end.
-   if(img){
-     const re=/(\[\s*(?:figure|image|diagram)[^\]]*\]|<img[^>]*>|\{\{\s*(?:figure|image|diagram)[^}]*\}\})/i;
-     if(re.test(text))return renderLibraryText(text).replace(re,imgTag(img));
-   }
-   return renderLibraryText(text)+(img?imgTag(img):'');
- }
- const qContent=renderTextWithVisual();
- return '<div class="'+cls+'" data-q="'+esc(id)+'" onclick="selectQ(\''+esc(id)+'\')" style="'+style+'"><div class="qline"><span class="qnum">'+n+'.</span><span class="qtext library-q-text editableText" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+qContent+'</span><span class="qmarks">'+markLabel(qMark)+'</span></div>'+(opts.length&&!e.hideOptions?'<div class="options library-q-options '+((opts.length>=3&&(opts.some(o=>String(o).length>55)||opts.join(' ').length>150))?'row-wise':'')+'">'+opts.map((o,i)=>'<div class="option"><b>'+String.fromCharCode(65+i)+'.</b><span class="editableText" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+renderLibraryText(o)+'</span></div>').join('')+'</div>':'')+'</div>';
-}
-function build(){const p=document.getElementById('paper');const b=data.branding||{};const logo=(b.showLogo&&b.logoUrl)||data.logo?'<img class="logo" src="'+esc((b.showLogo&&b.logoUrl)||data.logo)+'">':'';const wmText=b.watermarkText||'A to Z Exam Mocks';const wmCount=Math.max(1,Math.min(6,Number(data.watermarkCount||b.watermarkCount||1)));let h=(b.showWatermark?'<div class="watermark-layer">'+Array.from({length:wmCount},(_,i)=>'<div class="watermark w'+i+'" style="top:'+(10+80*(i+1)/(wmCount+1))+'%;opacity:'+Math.max(0,Math.min(.45,Number(b.watermarkOpacity??18)/100))+'">'+esc(wmText)+'</div>').join('')+'</div>':'')+'<header class="header">'+logo+'<div class="header-main" style="font-size:14px;font-weight:700;">'+(data.school?'<div class="school editable" contenteditable="true" spellcheck="false" data-field="schoolName">'+esc(data.school)+'</div>':'<div class="school editable" contenteditable="true" spellcheck="false" data-field="schoolName">School Name</div>')+'<div class="title editable" contenteditable="true" spellcheck="false" data-field="paperTitle" style="font-size:18px;font-weight:700;">'+esc(data.title)+'</div><div class="meta"><div><b>Class:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="className">'+esc(b.className||'—')+'</span><br><b>Subject:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="subjectName">'+esc(b.subjectName||'—')+'</span></div><div class="right"><b>Session:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="sessionName">'+esc(b.sessionName||'—')+'</span><br><b>Time:</b> <span class="editable" contenteditable="true" spellcheck="false" data-field="examTime">'+esc(b.examTime||'—')+'</span></div></div></div></header><main class="content">';let n=0;if(data.sections.length){const assigned=new Set();for(const s of data.sections){const ids=Array.isArray(s.questionIds)?s.questionIds.map(String):[];const qs=ids.map(id=>data.questions.find(q=>String(q.id)===id)).filter(Boolean);qs.forEach(q=>assigned.add(String(q.id)));if(!qs.length)continue;const sb=document.getElementById('sectionBorder').value;const ss=sStyle[String(s.id)]||{};const st='font-size:'+Number(ss.size||15)+'px;font-weight:'+Number(ss.weight||700)+';font-style:'+(ss.italic?'italic':'normal')+';text-decoration:'+(ss.underline?'underline':'none')+';';h+='<div class="section '+sb+' '+(sSel.has(String(s.id))?'selected':'')+'" data-s="'+esc(s.id)+'" onclick="selectS(\''+esc(s.id)+'\')" style="'+st+'">'+'<span class="editableText sectionName" contenteditable="true" spellcheck="false" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">'+esc(s.name||'Section')+'</span> <span style="font-size:11px;font-weight:400">('+qs.length+' Questions • '+sectionMarkLabel(s)+')</span></div>';qs.forEach(q=>{n++;h+=questionHTML(q,n)})}/* If section metadata is stale/empty, never lose the received questions: render the full question pool as a safe fallback. */}else data.questions.forEach(q=>{n++;h+=questionHTML(q,n)});if(data.sections.length&&n===0&&data.questions.length){data.questions.forEach(q=>{n++;h+=questionHTML(q,n)})}h+='</main>'+(b.showFooter!==false?'<div class="footer">'+(b.showAZBrand!==false?'A to Z Exam Mocks • ':'')+'Question Paper</div>':'');p.innerHTML=h.replace('<main class="content">','<main class="content '+(String(data.branding.layout||data.layout||'one')==='two'?'two-col':'one-col')+'">');typesetLibraryMath()}
-function setPaperSize(v){const x=PAPER_SIZES[v]||PAPER_SIZES.A4;document.documentElement.style.setProperty("--paper-width",x.w);document.documentElement.style.setProperty("--paper-height",x.h);document.documentElement.style.setProperty("--print-page-size",x.css);build();}
-function setPaperMargin(v){const m=PAPER_MARGINS[v]||PAPER_MARGINS.normal;document.documentElement.style.setProperty("--paper-padding",m);document.documentElement.style.setProperty("--print-margin",m);build();}
-function selectedQuestionIds(){return [...qSel].map(String);}
-function setQuestionBreak(type){const ids=selectedQuestionIds();if(!ids.length){alert("Select one or more questions first.");return;}ids.forEach(id=>qFlow[id]=type);build();}
-function startNewColumn(){setQuestionBreak("column");}
-function startNewPage(){setQuestionBreak("page");}
-function clearQuestionBreak(){setQuestionBreak("none");}
-function mode(m){modeName=m;qSel.clear();sSel.clear();build()}
-function selectAllQuestions(){modeName='questions';qSel=new Set(data.questions.map(q=>String(q.id)));sSel.clear();build()}
-function clearSel(){qSel.clear();sSel.clear();build()}
-function selectQ(id){if(modeName!=='questions')return;id=String(id);qSel.has(id)?qSel.delete(id):qSel.add(id);sSel.clear();build()}
-function moveSelected(dir){
- if(!qSel.size)return;
- const selected=new Set([...qSel].map(String));
- let moved=false;
- if(Array.isArray(data.sections)&&data.sections.length){
-  for(const sec of data.sections){
-   const ids=(sec.questionIds||[]).map(String);
-   for(let i=0;i<ids.length;i++){
-    if(!selected.has(ids[i]))continue;
-    const j=i+dir;
-    if(j>=0&&j<ids.length&&(!selected.has(ids[j]))){[ids[i],ids[j]]=[ids[j],ids[i]];moved=true;}
-   }
-   sec.questionIds=ids;
-  }
-  const assigned=new Set(data.sections.flatMap(sec=>(sec.questionIds||[]).map(String)));
-  const un=data.questions.filter(q=>!assigned.has(String(q.id))).map(q=>String(q.id));
-  for(let i=0;i<un.length;i++){
-   if(!selected.has(un[i]))continue;
-   const j=i+dir;
-   if(j>=0&&j<un.length&&(!selected.has(un[j]))){[un[i],un[j]]=[un[j],un[i]];moved=true;}
-  }
-  if(moved){
-   const byId=new Map(data.questions.map(q=>[String(q.id),q]));
-   const ordered=[];
-   for(const sec of data.sections) for(const id of sec.questionIds||[]) if(byId.has(String(id))) ordered.push(byId.get(String(id)));
-   for(const id of un) if(byId.has(String(id))&&!ordered.some(q=>String(q.id)===id))ordered.push(byId.get(id));
-   data.questions=ordered;
-  }
- }else{
-  const arr=data.questions;
-  for(let i=0;i<arr.length;i++){
-   if(!selected.has(String(arr[i].id)))continue;
-   const j=i+dir;
-   if(j>=0&&j<arr.length&&!selected.has(String(arr[j].id))){[arr[i],arr[j]]=[arr[j],arr[i]];moved=true;}
-  }
- }
- if(moved){try{localStorage.setItem('AZ_PRINT_SELECTED_IDS',JSON.stringify(data.questions.map(q=>String(q.id))));}catch(e){}build();}
-}
-function selectS(id){if(modeName!=='sections')return;id=String(id);sSel.has(String(id))?sSel.delete(String(id)):sSel.add(String(id));qSel.clear();build()}
-function fmt(k){if(!qSel.size&&!sSel.size){if(k==='bold')wrapSelectionStyle({fontWeight:'700'});else if(k==='italic')wrapSelectionStyle({fontStyle:'italic'});else if(k==='underline')wrapSelectionStyle({textDecoration:'underline'});else return;return}if(qSel.size){qSel.forEach(id=>{const s=qStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;qStyle[id]=s});build()}else if(sSel.size){sSel.forEach(id=>{const s=sStyle[id]||{};if(k==='bold')s.weight=s.weight===700?400:700;if(k==='italic')s.italic=!s.italic;if(k==='underline')s.underline=!s.underline;sStyle[id]=s});build()}else alert('Select question(s) or section(s) first.')}
-function apply(){
- if(!qSel.size&&!sSel.size){return applyTextFormatting();}
- const sz=Math.max(8,Math.min(72,Number(document.getElementById('fontSize').value)||14));
- if(qSel.size){qSel.forEach(id=>qStyle[id]={...(qStyle[id]||{}),font:f,size:sz});build();return}
- if(sSel.size){sSel.forEach(id=>sStyle[id]={...(sStyle[id]||{}),font:f,size:sz});build();return}
-}
-function loadStored(){
- // 0) Direct backup: Paper Designer stores the exact payload in window.name before navigating.
- // window.name survives navigation from about:blank to printout.html.
- try{
-  const wn=String(window.name||"");
-  if(wn.startsWith("__AZ_PRINT_PAYLOAD__")){
-   const x=JSON.parse(wn.slice("__AZ_PRINT_PAYLOAD__".length));
-   if(x&&Array.isArray(x.questions)&&x.questions.length){receive(x);return true}
-  }
- }catch(e){console.warn("Window-name print payload unavailable:",e)}
- // 1) Best source: Paper Designer's in-memory payload.
- try{
-  if(window.opener&&window.opener.__AZ_PRINT_PAYLOAD&&Array.isArray(window.opener.__AZ_PRINT_PAYLOAD.questions)&&window.opener.__AZ_PRINT_PAYLOAD.questions.length){
-   receive(window.opener.__AZ_PRINT_PAYLOAD);return true
-  }
- }catch(e){}
- // 2) Normal source: payload saved by Paper Designer before opening this page.
- try{
-  const x=JSON.parse(localStorage.getItem('AZ_PRINT_PAYLOAD')||'null');
-  if(x?.questions?.length){receive(x);return true}
- }catch(e){}
- // 3) Deterministic fallback: Builder already keeps the exact selected question
- // objects locally. This avoids making Printout depend on Firebase just to render.
- try{
-  const ids=printIdsFromAnySource();
-  let handoff=[];
-  try{handoff=JSON.parse(localStorage.getItem('AZ_BUILDER_SELECTED_QUESTIONS')||'[]');}catch(e){}
-  if(!Array.isArray(handoff)||!handoff.length){
-    try{handoff=JSON.parse(sessionStorage.getItem('AZ_BUILDER_SELECTED_QUESTIONS')||'[]');}catch(e){}
-  }
-  if(Array.isArray(handoff)&&handoff.length){
-   const map=new Map(handoff.map(q=>[String(q?.id||q?.qid||q?.questionId||''),q]));
-   const qs=(ids.length?ids:handoff.map(q=>String(q?.id||q?.qid||q?.questionId||'')).filter(Boolean))
-     .map(id=>map.get(String(id))).filter(Boolean);
-   if(qs.length){
-    const branding=JSON.parse(localStorage.getItem('AZ_PAPER_BRANDING')||'{}');
-    const sections=storedPrintSections();
-    receive({
-     questions:qs,
-     sections:Array.isArray(sections)?sections:[],
-     branding:branding,
-     title:branding.paperTitle||'Question Paper',
-     school:branding.schoolName||'',
-     logo:branding.showLogo?branding.logoUrl:'',
-     watermarkCount:1
     });
-    return true;
-   }
   }
- }catch(e){}
- return false
-}
-// Deterministic local bootstrap: Printout must render the Paper Designer payload immediately.
-// Do this before any Firebase/IndexedDB work so a network/storage delay cannot leave the page on Loading paper…
-function bootLocalPayload(){
- try{if(data.questions.length)return true;return loadStored();}catch(e){console.warn("Local print payload bootstrap failed",e);return false}
-}
-function printIdsFromAnySource(){
- const out=[];
- const add=v=>{
-  if(v==null)return;
-  if(Array.isArray(v)){v.forEach(add);return;}
-  if(typeof v==='object'){
-   for(const k of ['id','qid','questionId','questionID']){if(v[k]!=null){add(v[k]);return;}}
-   return;
+
+  data.questions.forEach((q, idx) => {
+    const id = String(q.id || idx);
+    if(!q.id) q.id = id;
+    if(!usedIds.has(id)){
+      usedIds.add(id);
+      bodyParts.push(questionHTML(q, qCounter++));
+    }
+  });
+
+  const twoCol = (b.layout || data.layout) === 'two' ? 'two-col' : '';
+  paper.innerHTML = `
+    ${wmHTML}
+    <div class="header">
+      ${data.logo ? `<img class="logo" src="${esc(data.logo)}" alt="Logo">` : ''}
+      <div class="header-main">
+        <div class="school editable" contenteditable="true" data-field="schoolName">${esc(school)}</div>
+        <div class="title editable" contenteditable="true" data-field="paperTitle">${esc(title)}</div>
+        <div class="meta">
+          <div>
+            ${subject ? `<div><b>Subject:</b> <span class="editable" contenteditable="true" data-field="subject">${esc(subject)}</span></div>` : ''}
+            <div><b>Time:</b> <span class="editable" contenteditable="true" data-field="timeAllowed">${esc(timeAllowed)}</span></div>
+          </div>
+          <div class="right">
+            ${maxMarks ? `<div><b>Max. Marks:</b> <span class="editable" contenteditable="true" data-field="maxMarks">${esc(maxMarks)}</span></div>` : ''}
+            <div><b>Date:</b> <span class="editable" contenteditable="true" data-field="examDate">${esc(b.examDate || new Date().toLocaleDateString())}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="content ${twoCol}">${bodyParts.join('')}</div>
+    <div class="footer editable" contenteditable="true" data-field="footerText">${esc(b.footerText || '— End of Question Paper —')}</div>
+  `;
+
+  if(window.MathJax && typeof MathJax.typesetPromise === 'function'){
+    MathJax.typesetPromise([paper]).catch(()=>{});
   }
-  const x=String(v).trim(); if(x&&!out.includes(x))out.push(x);
- };
- try{
-  const u=(new URLSearchParams(location.search).get('selected')||'').split(',').map(x=>x.trim()).filter(Boolean);
-  u.forEach(add);
- }catch(e){}
- for(const key of ['AZ_PRINT_SELECTED_IDS','AZ_BUILDER_SELECTED_IDS']){
-  try{const a=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(a))a.forEach(add);}catch(e){}
- }
- try{const a=JSON.parse(sessionStorage.getItem('AZ_BUILDER_SELECTED_IDS')||'[]');if(Array.isArray(a))a.forEach(add);}catch(e){}
- // Paper Designer is authoritative for ordering/section assignment.
- for(const sectionsKey of ['AZ_PRINT_SECTIONS','AZ_PAPER_DESIGN_SECTIONS']){
-  try{
-   const sections=JSON.parse(localStorage.getItem(sectionsKey)||'[]');
-   if(Array.isArray(sections))sections.forEach(sec=>{
-    if(!sec||typeof sec!=='object')return;
-    add(sec.questionIds); add(sec.questions); add(sec.ids); add(sec.questionIDs);
-   });
-  }catch(e){}
- }
- return out;
 }
 
-function storedPrintSections(){
- try{
-  const a=JSON.parse(localStorage.getItem("AZ_PRINT_SECTIONS")||"[]");
-  if(Array.isArray(a)&&a.length)return a;
- }catch(e){}
- try{
-  const a=JSON.parse(localStorage.getItem("AZ_PAPER_DESIGN_SECTIONS")||"[]");
-  if(Array.isArray(a))return a;
- }catch(e){}
- return [];
+function mode(m){ modeName = m; }
+
+function toggleQuestionSelect(ev, id){
+  if(ev.target.isContentEditable && document.activeElement === ev.target) return;
+  if(modeName !== 'questions') return;
+  if(qSel.has(id)) qSel.delete(id); else qSel.add(id);
+  document.querySelectorAll(`.question[data-qid="${CSS.escape(id)}"]`).forEach(el => el.classList.toggle('selected', qSel.has(id)));
 }
-window.addEventListener('message',e=>{if(e.data?.type==='AZ_PRINT_PAYLOAD')receive(e.data.payload)});
-setPaperSize('A4');setPaperMargin('normal');
-// Run immediately as well as on DOMContentLoaded. The script is already below the paper element.
-bootLocalPayload();
-window.addEventListener('DOMContentLoaded',()=>{
- let tries=0;
- const boot=()=>{
-  tries++;
-  if(!data.questions.length)bootLocalPayload();
-  if(data.questions.length)return;
-  if(tries<8){setTimeout(boot,250);return}
-  document.getElementById('paper').innerHTML='<div class="empty">No questions received.<br><small>Return to Paper Designer and use Print / Export again.</small></div>';
- };
- boot();
+
+function toggleSectionSelect(ev, sid){
+  if(ev.target.isContentEditable && document.activeElement === ev.target) return;
+  if(modeName !== 'sections') return;
+  if(sSel.has(sid)) sSel.delete(sid); else sSel.add(sid);
+  document.querySelectorAll(`.section[data-sid="${CSS.escape(sid)}"]`).forEach(el => el.classList.toggle('selected', sSel.has(sid)));
+}
+
+function selectAllQuestions(){
+  modeName = 'questions';
+  data.questions.forEach((q, i) => qSel.add(String(q.id || i)));
+  build();
+}
+
+function clearSel(){
+  qSel.clear();
+  sSel.clear();
+  build();
+}
+
+function moveSelected(dir){
+  if(!qSel.size) return;
+  const arr = data.questions;
+  if(dir < 0){
+    for(let i = 1; i < arr.length; i++){
+      const id = String(arr[i].id), prevId = String(arr[i - 1].id);
+      if(qSel.has(id) && !qSel.has(prevId)){
+        [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+      }
+    }
+  } else {
+    for(let i = arr.length - 2; i >= 0; i--){
+      const id = String(arr[i].id), nextId = String(arr[i + 1].id);
+      if(qSel.has(id) && !qSel.has(nextId)){
+        [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+      }
+    }
+  }
+  build();
+}
+
+function fmt(cmd){
+  if(restoreSavedRange()){
+    document.execCommand(cmd, false, null);
+    return;
+  }
+  const targetSet = modeName === 'sections' ? sSel : qSel;
+  const styleMap = modeName === 'sections' ? sStyle : qStyle;
+  targetSet.forEach(id => {
+    styleMap[id] = styleMap[id] || {};
+    if(cmd === 'bold') styleMap[id].weight = (styleMap[id].weight === 700) ? 400 : 700;
+    if(cmd === 'italic') styleMap[id].italic = !styleMap[id].italic;
+    if(cmd === 'underline') styleMap[id].underline = !styleMap[id].underline;
+  });
+  build();
+}
+
+function apply(){
+  const size = Number(document.getElementById('fontSize').value) || 13;
+  const sBorder = document.getElementById('sectionBorder').value;
+  if(modeName === 'sections' && sSel.size){
+    sSel.forEach(sid => {
+      sStyle[sid] = Object.assign(sStyle[sid] || {}, { size, border: sBorder });
+    });
+  } else if(qSel.size){
+    qSel.forEach(qid => {
+      qStyle[qid] = Object.assign(qStyle[qid] || {}, { size });
+    });
+  }
+  build();
+}
+
+function setPaperSize(val){
+  const cfg = PAPER_SIZES[val] || PAPER_SIZES.A4;
+  document.documentElement.style.setProperty('--paper-width', cfg.w);
+  document.documentElement.style.setProperty('--paper-height', cfg.h);
+  document.documentElement.style.setProperty('--print-page-size', cfg.css);
+}
+
+function setPaperMargin(val){
+  const pad = PAPER_MARGINS[val] || PAPER_MARGINS.narrow;
+  document.documentElement.style.setProperty('--paper-padding', pad);
+}
+
+function startNewColumn(){
+  qSel.forEach(id => { qFlow[id] = 'column'; });
+  build();
+}
+
+function startNewPage(){
+  qSel.forEach(id => { qFlow[id] = 'page'; });
+  build();
+}
+
+function clearQuestionBreak(){
+  qSel.forEach(id => { delete qFlow[id]; });
+  build();
+}
+
+window.addEventListener('message', e => {
+  if(e.data && (Array.isArray(e.data.questions) || e.data.type === 'PAPER_DATA')){
+    receive(e.data.payload || e.data);
+  }
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  setPaperMargin('narrow');
+  try {
+    const keys = ['AZ_PRINT_PAYLOAD', 'PRINT_PAPER_DATA', 'AZ_PAPER_DATA'];
+    for(const k of keys){
+      const raw = localStorage.getItem(k);
+      if(raw){
+        receive(JSON.parse(raw));
+        break;
+      }
+    }
+  } catch(_){}
 });
 </script>
-<script type="module">
-import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import {getFirestore,collection,getDocs,doc,getDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-const AZCFG={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZqFbbF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
-try{
- const app=initializeApp(AZCFG,"AZPrintoutDirect");const auth=getAuth(app),db=getFirestore(app);
- function openPrintSession(id){
- return new Promise((resolve,reject)=>{
-  const req=indexedDB.open("AZExamPrintSessions",1);
-  req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("sessions"))db.createObjectStore("sessions",{keyPath:"id"})};
-  req.onsuccess=()=>{const db=req.result;const tx=db.transaction("sessions","readonly");const get=tx.objectStore("sessions").get(id);get.onsuccess=()=>{const v=get.result||null;db.close();resolve(v)};get.onerror=()=>{db.close();reject(get.error)}};
-  req.onerror=()=>reject(req.error);
- });
-}
-async function directLoad(){
-  if(window.__AZ_DIRECT_PRINT_LOADED)return;
-  try{ if(loadStored()){ window.__AZ_DIRECT_PRINT_LOADED=true; return; } }catch(e){ console.warn("Local Paper Designer payload unavailable:",e); }
-  const sessionId=new URLSearchParams(location.search).get("session");
-  if(sessionId){
-   try{
-    const session=await openPrintSession(sessionId);
-    if(session&&Array.isArray(session.questions)&&session.questions.length){
-     window.__AZ_DIRECT_PRINT_LOADED=true;
-     receive({questions:session.questions,sections:Array.isArray(session.sections)?session.sections:[],branding:session.branding||{},title:session.branding?.paperTitle||"Question Paper",school:session.branding?.schoolName||"",logo:session.branding?.showLogo?session.branding.logoUrl:"",watermarkCount:1});
-     return;
-    }
-   }catch(e){ console.warn("Print session unavailable:",e); }
-  }
-  const ids=printIdsFromAnySource();
-  if(!ids.length)return;
-  const sections=storedPrintSections();
-  const branding=JSON.parse(localStorage.getItem("AZ_PAPER_BRANDING")||"{}");
-  try{await signInAnonymously(auth);}catch(e){console.warn("Anonymous Firebase sign-in failed:",e)}
-  const collections=["questions","library_questions","questionBank","question_bank"];
-  const found=[];
-  for(const cname of collections){
-   if(found.length>=ids.length)break;
-   for(const id of ids){
-    if(found.some(q=>String(q.id)===String(id)))continue;
-    try{
-     const snap=await getDoc(doc(db,cname,String(id)));
-     if(snap.exists())found.push({id:snap.id,_sourceCollection:cname,...snap.data()});
-    }catch(e){console.warn("Question lookup failed in "+cname+":",e)}
-   }
-  }
-  // If the document ID was saved in a different legacy representation, do one
-  // collection-wide fallback and match every known ID exactly.
-  if(found.length<ids.length){
-   for(const cname of collections){
-    if(found.length>=ids.length)break;
-    try{
-     const snap=await getDocs(collection(db,cname));
-     for(const d of snap.docs){
-      if(ids.includes(String(d.id)) && !found.some(q=>String(q.id)===String(d.id))){
-       found.push({id:d.id,_sourceCollection:cname,...d.data()});
-      }
-     }
-    }catch(e){console.warn("Collection fallback failed in "+cname,e)}
-   }
-  }
-  const qs=ids.map(id=>found.find(q=>String(q.id)===String(id))).filter(Boolean);
-  if(!qs.length){try{loadStored()}catch(_){ } return;}
-  window.__AZ_DIRECT_PRINT_LOADED=true;
-  receive({questions:qs,sections:Array.isArray(sections)?sections:[],branding:branding,title:branding.paperTitle||"Question Paper",school:branding.schoolName||"",logo:branding.showLogo?branding.logoUrl:"",watermarkCount:1});
- }
- setTimeout(()=>directLoad().catch(e=>{console.warn("Direct print load failed",e);window.__AZ_DIRECT_PRINT_ERROR=String(e?.message||e)}),100);
- setTimeout(()=>directLoad().catch(e=>{console.warn("Direct print retry failed",e);window.__AZ_DIRECT_PRINT_ERROR=String(e?.message||e)}),1200);
-}catch(e){console.warn("Printout Firebase init failed",e)}
-</script><script>
-(function(){
- async function bootIndexedDB(){
-  try{
-   if(window.__AZ_IDB_BOOTED)return;
-   window.__AZ_IDB_BOOTED=true;
-   const id=new URLSearchParams(location.search).get("session");
-   if(!id)return;
-   const session=await new Promise((resolve,reject)=>{
-    const req=indexedDB.open("AZExamPrintSessions",1);
-    req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains("sessions"))db.createObjectStore("sessions",{keyPath:"id"})};
-    req.onsuccess=()=>{const db=req.result;const tx=db.transaction("sessions","readonly");const get=tx.objectStore("sessions").get(id);get.onsuccess=()=>{const v=get.result||null;db.close();resolve(v)};get.onerror=()=>{db.close();reject(get.error)}};
-    req.onerror=()=>reject(req.error);
-   });
-   // IndexedDB is only a backup. If localStorage/message already supplied questions,
-   // never overwrite the working paper with an IndexedDB error.
-   if(session&&Array.isArray(session.questions)&&session.questions.length && !data.questions.length){
-    receive({questions:session.questions,sections:Array.isArray(session.sections)?session.sections:[],branding:session.branding||{},title:session.branding?.paperTitle||"Question Paper",school:session.branding?.schoolName||"",logo:session.branding?.showLogo?session.branding.logoUrl:"",watermarkCount:1});
-   }
-  }catch(e){
-   // IndexedDB is optional. Never replace a valid/possibly-loading paper with an error screen.
-   console.warn("Printout IndexedDB backup unavailable:",e);
-   try{loadStored();}catch(_){}
-  }
- }
- if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bootIndexedDB,{once:true});
- else bootIndexedDB();
-})();
-</script></body>
+</body>
 </html>
