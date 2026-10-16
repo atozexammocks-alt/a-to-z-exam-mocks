@@ -270,13 +270,16 @@ window.loadQuestions=async function(){
   renderTree();
   // Apply an image-only Editor Studio result to this Builder paper session.
   // This is temporary and does not update the Library/Firebase document.
+  let returnedImageQuestionId="";
   try{
    const raw=localStorage.getItem("AZ_BUILDER_IMAGE_EDIT_RESULT");
    if(raw){
-    const result=JSON.parse(raw),qid=String(result?.id||""),image=String(result?.image||"");
+    const result=JSON.parse(raw),qid=String(result?.id||""),image=String(result?.image||localStorage.getItem("Temp_Editor_Synced_Image")||"");
     if(qid&&image&&window.builderData.some(q=>String(q.id)===qid)){
      window.textEdits[qid]={...(window.textEdits[qid]||{}),image};
+     returnedImageQuestionId=qid;
      localStorage.removeItem("AZ_BUILDER_IMAGE_EDIT_RESULT");
+     localStorage.removeItem("Temp_Editor_Synced_Image");
      console.info("[A2Z Builder] Temporary edited figure returned for question",qid);
     }
    }
@@ -284,6 +287,7 @@ window.loadQuestions=async function(){
   renderQuestions(previousScroll);
   renderSelected();
   status.textContent="Library connected • "+window.builderData.length+" questions";
+  if(returnedImageQuestionId)setTimeout(()=>window.openTextEditor(encodeURIComponent(returnedImageQuestionId)),120);
  }catch(e){
   console.error("[A2Z Builder] Library load failed:",e);
   status.textContent="Library loading failed";
@@ -376,7 +380,7 @@ function renderQuestions(restoreScrollTop){
  const rawAll=Array.isArray(window.builderAllLibraryQuestions)?window.builderAllLibraryQuestions:[];const privateCount=rawAll.filter(q=>belongs(q,"private")).length,centralCount=rawAll.filter(q=>belongs(q,"central")).length,groupCount=rawAll.filter(q=>belongs(q,"group")).length;document.getElementById("status").textContent="Firebase "+rawAll.length+" • Private "+privateCount+" • Central "+centralCount+" • Group "+groupCount+" • Showing "+window.builderData.length+" "+modeLabel;
  if(!rows.length){const raw=Array.isArray(window.builderAllLibraryQuestions)?window.builderAllLibraryQuestions:[],pc=raw.filter(q=>belongs(q,"private")).length,cc=raw.filter(q=>belongs(q,"central")).length,gc=raw.filter(q=>belongs(q,"group")).length,mail=builderTeacherEmail()||"No teacher email saved in this browser";const reason=window.builderData.length===0?"No questions matched the selected library mode/account.":"Questions are loaded, but the current folder/search/type filters show none.";box.innerHTML='<div class="empty"><b>'+esc(reason)+'</b><br><small>Firebase fetched: '+raw.length+' • Private: '+pc+' • Central: '+cc+' • Group: '+gc+'</small><br><small>Current browser account: '+esc(mail)+'</small><br><small>Try another library tab or press ↻ Reload. Private questions are filtered by the teacher email saved on this device.</small></div>';box.scrollTop=savedScroll;return}
  box.innerHTML=rows.map((q,i)=>{
-  const id=String(q.id),sel=window.selected.has(id),img=imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1,dupCount=questionKey(q)?(dups[questionKey(q)]||0):0;
+  const id=String(q.id),sel=window.selected.has(id),img=(window.textEdits[id]||{}).image||imageOf(q),txt=cleanQuestionText(displayTextOf(q)),opts=displayOptionsOf(q).map(cleanOptionText).filter(Boolean),type=q.type||q.questionType||q.qType||"MCQ",marks=q.marks??q.mark??1,dupCount=questionKey(q)?(dups[questionKey(q)]||0):0;
   return '<article class="card '+(sel?'selected':'')+'" data-qid="'+esc(id)+'">'+
    '<div class="qhead"><input type="checkbox" '+(sel?'checked':'')+' aria-label="Select question '+esc(i+1)+'" onclick="event.stopPropagation();toggleQuestion(\''+encodeURIComponent(id)+'\')"><div class="qtitle">Q'+(i+1)+' · '+esc(type)+' · '+esc(marks)+' mark'+(Number(marks)==1?'':'s')+'</div>'+(dupCount>1?'<button type="button" class="dup-tag dup-click" title="Review all matching questions across the full Library" onclick="event.stopPropagation();openDuplicateReview(\''+encodeURIComponent(id)+'\')">✖ '+(dupCount-1)+' DUPLICATE'+(dupCount-1===1?'':'S')+' · '+dupCount+' COPIES</button>':'<span class="clean-tag">✓ CLEAN</span>')+'<button type="button" class="btn primary" onclick="event.stopPropagation();openQuestionView(\''+encodeURIComponent(id)+'\')">👁 View</button>'+'<button type="button" class="btn purple" onclick="event.stopPropagation();builderAISolution(\''+encodeURIComponent(id)+'\')">🧠 AI Solution</button>'+'<button type="button" class="btn blue" onclick="event.stopPropagation();builderSimilarQuestions(\''+encodeURIComponent(id)+'\')">✨ Similar Qs</button>'+(txt?'<button type="button" class="btn blue" onclick="event.stopPropagation();openTextEditor(\''+encodeURIComponent(id)+'\')">✏️ Edit Text</button>':'')+'<button type="button" class="btn" onclick="event.stopPropagation();removeSelection(\''+encodeURIComponent(id)+'\')">✕</button></div>'+
    (img?'<div class="qimg" onclick="previewImage(\''+encodeURIComponent(img)+'\')"><img src="'+esc(img)+'" alt="Question preview" loading="lazy"></div>':'')+
