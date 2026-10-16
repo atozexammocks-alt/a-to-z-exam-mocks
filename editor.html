@@ -725,6 +725,13 @@
 
     window.goBackToSlicer = function() {
       const params = new URLSearchParams(window.location.search);
+      if (params.get('builderImageEdit') === '1') {
+        if (confirm("Discard diagram edits and return to Test Builder?")) {
+          ['AZ_BUILDER_IMAGE_EDIT_ID','AZ_BUILDER_IMAGE_EDIT_RETURN','Temp_Editor_Image','Temp_Editor_Synced_Image','Temp_QText','Temp_Opt_A','Temp_Opt_B','Temp_Opt_C','Temp_Opt_D'].forEach(k=>localStorage.removeItem(k));
+          window.location.href='builder.html';
+        }
+        return;
+      }
       if (params.get('builderEdit') === '1') {
         if (confirm("Discard changes and return to Test Builder?")) {
           localStorage.removeItem('AZ_BUILDER_EDIT_ID');
@@ -829,6 +836,24 @@
 
       // Keep crop-to-field images available for Builder/Library editing.
       localStorage.setItem('AZ_EDITOR_CROP_IMAGES', JSON.stringify(editorCropImages));
+
+      // TEST BUILDER IMAGE-ONLY MODE: return the edited diagram to the active
+      // Builder paper session without modifying the saved Library question.
+      if (new URLSearchParams(window.location.search).get('builderImageEdit') === '1') {
+        const qid=localStorage.getItem('AZ_BUILDER_IMAGE_EDIT_ID');
+        if(!qid){alert('Builder question ID is missing; edited image was not returned.');return;}
+        try{
+          localStorage.setItem('Temp_Editor_Synced_Image',finalUrl);
+          localStorage.setItem('AZ_BUILDER_IMAGE_EDIT_RESULT',JSON.stringify({id:String(qid)}));
+          ['AZ_BUILDER_IMAGE_EDIT_ID','AZ_BUILDER_IMAGE_EDIT_RETURN','Temp_Editor_Image','Temp_QText','Temp_Opt_A','Temp_Opt_B','Temp_Opt_C','Temp_Opt_D'].forEach(k=>localStorage.removeItem(k));
+          showToast('✔ Edited diagram ready — returning to Test Builder');
+          setTimeout(()=>{window.location.href='builder.html?imageEditReturn=1';},650);
+        }catch(err){
+          console.error('Builder image return failed:',err);
+          alert('Edited image could not be returned to Test Builder: '+(err?.message||err));
+        }
+        return;
+      }
 
       // LIBRARY EDIT MODE: update the same Firestore question and return to Library.
       if (new URLSearchParams(window.location.search).get('libraryEdit') === '1') {
