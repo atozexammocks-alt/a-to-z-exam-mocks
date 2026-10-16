@@ -275,10 +275,18 @@ window.loadQuestions=async function(){
    const raw=localStorage.getItem("AZ_BUILDER_IMAGE_EDIT_RESULT");
    if(raw){
     const result=JSON.parse(raw),qid=String(result?.id||""),image=String(result?.image||localStorage.getItem("Temp_Editor_Synced_Image")||"");
+    const context=JSON.parse(localStorage.getItem("AZ_BUILDER_IMAGE_EDIT_CONTEXT")||"null");
     if(qid&&image&&window.builderData.some(q=>String(q.id)===qid)){
-     window.textEdits[qid]={...(window.textEdits[qid]||{}),image};
+     const next={...(window.textEdits[qid]||{}),image};
+     if(context&&String(context.id)===qid){
+      if(typeof context.text==="string")next.text=context.text;
+      if(Array.isArray(context.options))next.options=context.options;
+      if(context.hideOptions===true)next.hideOptions=true;
+     }
+     window.textEdits[qid]=next;
      returnedImageQuestionId=qid;
      localStorage.removeItem("AZ_BUILDER_IMAGE_EDIT_RESULT");
+     localStorage.removeItem("AZ_BUILDER_IMAGE_EDIT_CONTEXT");
      localStorage.removeItem("Temp_Editor_Synced_Image");
      console.info("[A2Z Builder] Temporary edited figure returned for question",qid);
     }
@@ -494,9 +502,11 @@ window.openImageInEditor=function(){
   localStorage.setItem("AZ_BUILDER_IMAGE_EDIT_RETURN","builder.html?imageEditReturn=1");
   localStorage.setItem("Temp_Editor_Image",image);
   localStorage.setItem("Temp_Editor_Synced_Image","");
-  localStorage.setItem("Temp_QText",String(document.getElementById("textEditorMain")?.value||displayTextOf(q)||""));
+  const currentText=String(document.getElementById("textEditorMain")?.value||displayTextOf(q)||"");
   const opts=[...document.querySelectorAll("#textEditorOptions input[data-opt]")].map(x=>x.value);
+  localStorage.setItem("Temp_QText",currentText);
   ["A","B","C","D"].forEach((letter,i)=>localStorage.setItem("Temp_Opt_"+letter,opts[i]||""));
+  localStorage.setItem("AZ_BUILDER_IMAGE_EDIT_CONTEXT",JSON.stringify({id,text:currentText,options:opts,hideOptions:document.getElementById("textEditorHideOptions")?.checked===true}));
   localStorage.removeItem("AZ_BUILDER_IMAGE_EDIT_RESULT");
  }catch(e){alert("Image Editor के लिए image तैयार नहीं हो पाई: "+(e?.message||e));return;}
  const w=window.open("editor.html?builderImageEdit=1","_blank");
