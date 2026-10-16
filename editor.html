@@ -767,11 +767,10 @@
         const w = r.width * scaleX;
         const h = r.height * scaleY;
 
+        // Keep a clean white patch behind edited text to cover the original print,
+        // but never render the editor's selection/box outline into the saved question.
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(x, y, w, h);
-        ctx.strokeStyle = '#cbd5e1';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, w, h);
 
         const contentDiv = tb.querySelector('[contenteditable="true"]');
         if (contentDiv) {
