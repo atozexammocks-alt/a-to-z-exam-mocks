@@ -434,6 +434,7 @@ window.MathJax = {
       <button id="view-image-btn" class="library-view-tool" onclick="openFolderImageGallery()">🖼️ Images</button>
       <button id="view-pdf-btn" class="library-view-tool" onclick="openFolderPdfLinks()">📄 PDF Link</button>
     </div>
+    <a class="tool-btn library-top-action" href="recycle_bin.html" style="background:#7c3aed;color:#fff;text-decoration:none;white-space:nowrap;">♻️ Recycle Bin</a>
     <button id="create-folder-btn" class="tool-btn library-top-action" style="background:#2563eb;white-space:nowrap;margin-left:0;" onclick="promptNewFolder()">＋ Create Folder</button>
     <button id="group-invite-btn" class="tool-btn library-top-action" style="background:#7c3aed;display:none;" onclick="openLibraryAccessModal()">👥 Invite</button>
   </div>
@@ -484,6 +485,7 @@ window.MathJax = {
     let groupLibraryTree = [];
     
     let folderPdfs = {}; // Stores PDF links per folder path
+    let recycleBinItems = []; // Soft-deleted items kept for recovery
     let currentFolderPath = "";
     let pickerMode = new URLSearchParams(location.search).get('picker') === '1';
     let pickerQuestions = [];
@@ -581,6 +583,7 @@ window.MathJax = {
         else if (activeLibraryMode === 'central') centralLibraryTree = tree;
         else groupLibraryTree = tree;
         folderPdfs = (data.folderPdfs && typeof data.folderPdfs === "object") ? {...data.folderPdfs} : {};
+        recycleBinItems = Array.isArray(data.recycleBin) ? data.recycleBin : [];
       } catch (e) {
         console.error("Failed to load library state:", e);
       }
@@ -615,6 +618,7 @@ window.MathJax = {
           ownerEmail: email,
           libraryTree: treeData,
           folderPdfs: folderPdfs,
+          recycleBin: recycleBinItems,
           updatedAt: new Date().toISOString()
         });
         return true;
@@ -783,9 +787,10 @@ window.MathJax = {
         const snap=await window.getDocs(window.collection(window.db,"questions"));
         const all=snap.docs.map(d=>({id:d.id,...d.data()}));
         console.info("[A2Z Library] Firebase questions fetched:", all.length);
-        pickerQuestions=all;
+        const activeQuestions=all.filter(q=>q.isDeleted!==true);
+        pickerQuestions=activeQuestions;
         const email=teacherEmailKey();
-        libraryQuestions=all.filter(q=>{
+        libraryQuestions=activeQuestions.filter(q=>{
           const owner=String(q.ownerEmail||q.creatorEmail||q.createdBy||q.teacherEmail||'').trim().toLowerCase();
           const explicitCentral=q.central===true || q.isCentral===true || q.libraryMode==='central' || q.targetLibrary==='central';
           const explicitGroup=q.group===true || q.libraryMode==='group' || q.targetLibrary==='group';
@@ -1018,32 +1023,23 @@ window.MathJax = {
       const node=findFolderByPath(path);
       if(!node)return;
       const affected=(libraryQuestions||[]).filter(q=>pathIn(getQuestionFolderPath(q),path));
-      const questionCount=affected.length;
-      if(!confirm('PERMANENTLY DELETE this folder and all its subfolders?\n\nThis will permanently delete '+questionCount+' question(s) stored inside this folder/subfolders. This cannot be undone.'))return;
+      if(!confirm('Move this folder and its subfolders to Recycle Bin? Its questions and PDF links will be recoverable.'))return;
       const src=findFolderParentArray(path),idx=src.arr.findIndex(x=>x===node);
       if(idx<0)return;
-      let deleted=0;
+      const savedFolderPdfs={};
+      Object.keys(folderPdfs||{}).forEach(k=>{if(pathIn(k,path))savedFolderPdfs[k]=folderPdfs[k];});
+      const trash={id:'trash_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),type:'folder',title:path,originalPath:path,mode:activeLibraryMode,deletedAt:new Date().toISOString(),folderNode:JSON.parse(JSON.stringify(node)),folderPdfs:savedFolderPdfs,questionIds:affected.map(q=>String(q.id))};
       try{
-        for(const q of affected){
-          await window.deleteDoc(window.doc(window.db,'questions',String(q.id)));
-          deleted++;
-        }
+        recycleBinItems.unshift(trash);
+        if(!await saveLibraryStateForCurrentMode()){recycleBinItems.shift();throw Error('Could not save Recycle Bin entry. Nothing was moved.');}
+        for(const q of affected){await window.updateDoc(window.doc(window.db,'questions',String(q.id)),{isDeleted:true,deletedAt:trash.deletedAt,deletedBy:teacherEmailKey(),deletedMode:activeLibraryMode});}
         src.arr.splice(idx,1);
-        Object.keys(folderPdfs||{}).forEach(k=>{if(pathIn(k,path))delete folderPdfs[k];});
-        const saved=await saveLibraryStateForCurrentMode();
-        if(!saved)throw Error('Questions were deleted, but the folder tree could not be saved to Firestore. Refresh and retry deleting the now-empty folder.');
+        Object.keys(savedFolderPdfs).forEach(k=>delete folderPdfs[k]);
+        if(!await saveLibraryStateForCurrentMode())throw Error('Recycle Bin entry is saved, but the folder view could not be updated. The item is recoverable from Recycle Bin.');
         if(pathIn(currentFolderPath,path))currentFolderPath=src.parentPath||'';
-        await loadLibraryStateForCurrentMode();
-        await loadPickerQuestions();
-        renderLibraryBrowser();
-        showToast('🗑️ Folder deleted permanently; '+deleted+' question(s) deleted.');
-      }catch(e){
-        console.error('[A2Z Library] Permanent folder delete failed:',{path,deleted,total:questionCount,error:e});
-        alert('Folder deletion stopped after deleting '+deleted+' of '+questionCount+' question(s). Error: '+(e.message||String(e))+'\n\nThe folder has been kept where possible so you can retry for the remaining questions.');
-        await loadLibraryStateForCurrentMode();
-        await loadPickerQuestions();
-        renderLibraryBrowser();
-      }
+        await loadLibraryStateForCurrentMode();await loadPickerQuestions();renderLibraryBrowser();
+        showToast('♻️ Folder moved to Recycle Bin.');
+      }catch(e){console.error('[A2Z Library] Folder recycle failed:',e);alert('Could not complete folder deletion: '+(e.message||String(e))+'\nCheck Recycle Bin before retrying.');await loadLibraryStateForCurrentMode();await loadPickerQuestions();renderLibraryBrowser();}
     };
 
     window.editLibraryQuestion=function(id){
@@ -1070,13 +1066,17 @@ window.MathJax = {
     };
     window.moveLibraryQuestion=function(id){ openQuestionMoveModal(id); };
     window.deleteLibraryQuestion=async function(id){
-      if(!confirm('Delete this question permanently?')) return;
+      const q=(libraryQuestions||[]).find(x=>String(x.id)===String(id));
+      if(!q)return alert('Question not found. Refresh the Library and try again.');
+      if(!confirm('Move this question to Recycle Bin? You can restore it later.')) return;
+      const trash={id:'trash_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),type:'question',title:(questionText(q)||'Question').slice(0,140),originalPath:getQuestionFolderPath(q),mode:activeLibraryMode,deletedAt:new Date().toISOString(),itemId:String(id)};
       try{
-        await window.deleteDoc(window.doc(window.db,'questions',id));
-        showToast('🗑️ Question deleted');
-        await loadPickerQuestions();
-        renderLibraryBrowser();
-      }catch(e){alert('Delete failed: '+e.message);}
+        recycleBinItems.unshift(trash);
+        if(!await saveLibraryStateForCurrentMode()){recycleBinItems.shift();throw Error('Could not save Recycle Bin entry. Nothing was moved.');}
+        await window.updateDoc(window.doc(window.db,'questions',String(id)),{isDeleted:true,deletedAt:trash.deletedAt,deletedBy:teacherEmailKey(),deletedMode:activeLibraryMode});
+        showToast('♻️ Question moved to Recycle Bin');
+        await loadPickerQuestions();renderLibraryBrowser();
+      }catch(e){alert('Delete failed: '+e.message+'\nCheck Recycle Bin before retrying.');}
     };
 
     function savedQuestionVisuals(q){
@@ -1714,11 +1714,14 @@ Topic: ${[q.subject, q.chapter, q.topic].filter(Boolean).join(" / ")}`;
     };
 
     window.deletePdfItem = async function(idx) {
-      if(folderPdfs[currentFolderPath]) {
+      if(folderPdfs[currentFolderPath] && folderPdfs[currentFolderPath][idx]) {
+        const item=folderPdfs[currentFolderPath][idx];
+        const trash={id:'trash_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),type:'pdf',title:item.name||item.title||'PDF link',originalPath:currentFolderPath,mode:activeLibraryMode,deletedAt:new Date().toISOString(),pdfItem:JSON.parse(JSON.stringify(item)),pdfIndex:idx};
+        recycleBinItems.unshift(trash);
         folderPdfs[currentFolderPath].splice(idx, 1);
-        await saveLibraryStateForCurrentMode();
+        if(!await saveLibraryStateForCurrentMode()){folderPdfs[currentFolderPath].splice(idx,0,item);recycleBinItems=recycleBinItems.filter(x=>x.id!==trash.id);return alert('Could not save changes. PDF link was kept.');}
         renderPdfTableForCurrentFolder();
-        showToast("🗑️ PDF link removed.");
+        showToast('♻️ PDF link moved to Recycle Bin.');
       }
     };
 
