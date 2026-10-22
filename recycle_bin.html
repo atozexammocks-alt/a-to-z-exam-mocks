@@ -30,7 +30,7 @@ function pathMatches(p,root){return p===root||p.startsWith(root+' / ')}
 async function persist(){await setDoc(configRef(),{ownerEmail:email,libraryTree:config.libraryTree||[],folderPdfs:config.folderPdfs||{},recycleBin:entries,updatedAt:new Date().toISOString()})}
 async function loadBin(){
  if(!email){$('login').style.display='block';status('Enter your educator email to access your Recycle Bin.');return}
- await auth.authStateReady?.catch?.(()=>{});configLocation();status('Loading Recycle Bin…');
+ if(!auth.currentUser)await signInAnonymously(auth);configLocation();status('Loading Recycle Bin…');
  try{const snap=await getDoc(configRef());config=snap.exists()?snap.data():{};entries=Array.isArray(config.recycleBin)?config.recycleBin:[];render()}catch(e){status('Could not load Recycle Bin: '+(e.message||e)+'\nCheck your login and Firebase permissions.')}
 }
 function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -49,12 +49,12 @@ window.restoreItem=async function(id){
    await updateQuestion(x.itemId,{isDeleted:false,deletedAt:null,deletedBy:null,deletedMode:null});
   }else if(x.type==='folder'){
    const tree=normalizeTree(config);const path=String(x.originalPath||x.title||'');const parts=pathParts(path);const name=parts.pop();const parentPath=parts.join(' / ');const parent=parentPath?findNode(tree,parentPath):null;
-   const target=parent?(parent.children||(parent.children=[])):tree;
+   const target=parent?(parent.children||(parent.children=[])):ensureParent(tree,parentPath);
    if(target.some(n=>String(n.name).toLowerCase()===String(name).toLowerCase())){alert('A folder with this name already exists at the original location. Rename or move that folder first, then restore.');return}
    target.push(x.folderNode||{id:'f_'+Date.now(),name,type:'folder',children:[]});
    const pdfs={...(config.folderPdfs||{}),...(x.folderPdfs||{})};
    config.libraryTree=tree;config.folderPdfs=pdfs;
-   for(const qid of (x.questionIds||[])){try{await updateQuestion(qid,{isDeleted:false,deletedAt:null,deletedBy:null,deletedMode:null})}catch(e){console.warn('Question restore failed',qid,e)}}
+   for(const qid of (x.questionIds||[])){await updateQuestion(qid,{isDeleted:false,deletedAt:null,deletedBy:null,deletedMode:null})}
   }else if(x.type==='pdf'){
    const p=x.originalPath||'';const pdfs={...(config.folderPdfs||{})};const list=Array.isArray(pdfs[p])?[...pdfs[p]]:[];
    const at=Math.max(0,Math.min(Number(x.pdfIndex)||0,list.length));list.splice(at,0,x.pdfItem||{title:x.title||'PDF',url:''});pdfs[p]=list;config.folderPdfs=pdfs;
