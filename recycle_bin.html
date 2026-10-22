@@ -22,7 +22,7 @@ const $=id=>document.getElementById(id),status=t=>$('status').textContent=t;
 const teacherDocId=e=>(e||'').replace(/[^a-zA-Z0-9]/g,'_');
 function configRef(){return doc(db,configPath,configId)}
 function configLocation(){mode=$('mode').value;if(mode==='private'){configPath='folder_configs_private';configId=teacherDocId(email)}else if(mode==='central'){configPath='folder_configs_central';configId='global_central_tree'}else{configPath='folder_configs_group';configId=teacherDocId(email)+'_group'}}
-function normalizeTree(d){if(Array.isArray(d.libraryTree))return d.libraryTree;const mains=Array.isArray(d.mainFolders)?d.mainFolders:[],subs=d.subFolders||{};return mains.map(name=>({id:'f_'+name,name,type:'folder',children:(Array.isArray(subs[name])?subs[name]:[]).map(n=>({id:'f_'+name+'_'+n,name:n,type:'folder',children:[]}))}))}
+function normalizeTree(d){if(Array.isArray(d.libraryTree)&&d.libraryTree.length)return d.libraryTree;const mains=Array.isArray(d.mainFolders)?d.mainFolders:[],subs=d.subFolders||{};return mains.map(name=>({id:'f_'+name,name,type:'folder',children:(Array.isArray(subs[name])?subs[name]:[]).map(n=>({id:'f_'+name+'_'+n,name:n,type:'folder',children:[]}))}))}
 function pathParts(p){return String(p||'').split(' / ').map(x=>x.trim()).filter(Boolean)}
 function findNode(tree,path){let arr=tree,node=null;for(const part of pathParts(path)){node=(arr||[]).find(n=>String(n.name)===part);if(!node)return null;arr=node.children||(node.children=[])}return node}
 function ensureParent(tree,path){let arr=tree;for(const part of pathParts(path)){let n=arr.find(x=>String(x.name)===part);if(!n){n={id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name:part,type:'folder',children:[]};arr.push(n)}arr=n.children||(n.children=[])}return arr}
