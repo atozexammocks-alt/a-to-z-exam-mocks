@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A to Z Exam Mocks — Recycle Bin</title>
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif}body{margin:0;background:#060911;color:#f8fafc}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 20px;background:#0b1120;border-bottom:1px solid #1e293b}.top h1{font-size:20px;color:#c4b5fd;margin:0}.btn,select{border:1px solid #334155;border-radius:8px;padding:9px 12px;background:#0f172a;color:#f8fafc;font-weight:700;cursor:pointer}.btn:hover{border-color:#a78bfa}.primary{background:#047857;border-color:#10b981}.danger{background:#7f1d1d;border-color:#ef4444}.wrap{padding:18px;max-width:1200px;margin:auto}.hint{color:#94a3b8;font-size:13px;line-height:1.6;margin:0 0 14px}.status{padding:10px;border-radius:8px;background:#0f172a;color:#cbd5e1;margin-bottom:12px;white-space:pre-wrap}.item{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#0b1120;border:1px solid #273449;border-radius:12px;padding:14px;margin:10px 0}.meta{min-width:0;flex:1}.name{font-weight:800;overflow-wrap:anywhere}.sub{font-size:12px;color:#94a3b8;margin-top:6px;overflow-wrap:anywhere}.actions{display:flex;gap:8px;flex-wrap:wrap}.empty{text-align:center;padding:42px 16px;border:1px dashed #334155;border-radius:12px;color:#94a3b8}.login{max-width:420px;margin:40px auto;padding:22px;background:#0b1120;border:1px solid #334155;border-radius:14px;display:none}.login input{width:100%;padding:11px;margin:7px 0 12px;background:#060911;color:white;border:1px solid #334155;border-radius:7px}
+</style>
+</head>
+<body>
+<header class="top"><h1>♻️ Recycle Bin</h1><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="library.html" style="text-decoration:none">← Back to Library</a><select id="mode" onchange="loadBin()"><option value="private">🔒 Private Library</option><option value="central">📁 Central Library</option><option value="group">🤝 Group Library</option></select><button class="btn" onclick="logout()">Logout</button></div></header>
+<main class="wrap"><p class="hint">Deleted folders, questions and PDF links appear here. Restore brings them back to their original location. Permanent delete cannot be undone.</p><div id="status" class="status">Connecting to Library…</div><div id="items"></div></main>
+<div id="login" class="login"><h2 style="margin-top:0">Educator Login</h2><label>Email</label><input id="email" type="email" placeholder="educator@gmail.com"><button class="btn primary" style="width:100%" onclick="login()">Continue</button></div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {getFirestore,collection,getDocs,doc,getDoc,setDoc,updateDoc,deleteDoc} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZrQfBBF7Q_KMX0",authDomain:"physicsvault-80a10.firebaseapp.com",projectId:"physicsvault-80a10",storageBucket:"physicsvault-80a10.firebasestorage.app",messagingSenderId:"1043166507399",appId:"1:1043166507399:web:634efdac6f109273d42322"};
+const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app);
+let email=(localStorage.getItem('ExamVault_Teacher_Email')||'').trim().toLowerCase(),entries=[],config={},configPath='',configId='',mode='private';
+const $=id=>document.getElementById(id),status=t=>$('status').textContent=t;
+const teacherDocId=e=>(e||'').replace(/[^a-zA-Z0-9]/g,'_');
+function configRef(){return doc(db,configPath,configId)}
+function configLocation(){mode=$('mode').value;if(mode==='private'){configPath='folder_configs_private';configId=teacherDocId(email)}else if(mode==='central'){configPath='folder_configs_central';configId='global_central_tree'}else{configPath='folder_configs_group';configId=teacherDocId(email)+'_group'}}
+function normalizeTree(d){if(Array.isArray(d.libraryTree))return d.libraryTree;const mains=Array.isArray(d.mainFolders)?d.mainFolders:[],subs=d.subFolders||{};return mains.map(name=>({id:'f_'+name,name,type:'folder',children:(Array.isArray(subs[name])?subs[name]:[]).map(n=>({id:'f_'+name+'_'+n,name:n,type:'folder',children:[]}))}))}
+function pathParts(p){return String(p||'').split(' / ').map(x=>x.trim()).filter(Boolean)}
+function findNode(tree,path){let arr=tree,node=null;for(const part of pathParts(path)){node=(arr||[]).find(n=>String(n.name)===part);if(!node)return null;arr=node.children||(node.children=[])}return node}
+function ensureParent(tree,path){let arr=tree;for(const part of pathParts(path)){let n=arr.find(x=>String(x.name)===part);if(!n){n={id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),name:part,type:'folder',children:[]};arr.push(n)}arr=n.children||(n.children=[])}return arr}
+function pathMatches(p,root){return p===root||p.startsWith(root+' / ')}
+async function persist(){await setDoc(configRef(),{ownerEmail:email,libraryTree:config.libraryTree||[],folderPdfs:config.folderPdfs||{},recycleBin:entries,updatedAt:new Date().toISOString()})}
+async function loadBin(){
+ if(!email){$('login').style.display='block';status('Enter your educator email to access your Recycle Bin.');return}
+ await auth.authStateReady?.catch?.(()=>{});configLocation();status('Loading Recycle Bin…');
+ try{const snap=await getDoc(configRef());config=snap.exists()?snap.data():{};entries=Array.isArray(config.recycleBin)?config.recycleBin:[];render()}catch(e){status('Could not load Recycle Bin: '+(e.message||e)+'\nCheck your login and Firebase permissions.')}
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){
+ const list=$('items');const rows=entries.map((x,i)=>({x,i})).filter(o=>(o.x.mode||'private')===mode);
+ status(rows.length+' item(s) in '+mode.toUpperCase()+' Recycle Bin.');
+ if(!rows.length){list.innerHTML='<div class="empty">🗑️ Recycle Bin is empty for this library.</div>';return}
+ list.innerHTML=rows.map(({x})=>'<article class="item"><div class="meta"><div class="name">'+(x.type==='folder'?'📁':x.type==='question'?'❓': '📄')+' '+esc(x.title||x.type||'Deleted item')+'</div><div class="sub">Type: '+esc(x.type)+' · Original location: '+esc(x.originalPath||'Library root')+'<br>Deleted: '+esc(x.deletedAt||'Unknown date')+'</div></div><div class="actions"><button class="btn primary" onclick="restoreItem(\''+esc(x.id)+'\')">↩ Restore</button><button class="btn danger" onclick="permanentDelete(\''+esc(x.id)+'\')">Delete permanently</button></div></article>').join('')
+}
+async function updateQuestion(id,payload){await updateDoc(doc(db,'questions',String(id)),payload)}
+window.restoreItem=async function(id){
+ const x=entries.find(a=>String(a.id)===String(id));if(!x)return;
+ if(!confirm('Restore “'+(x.title||x.type)+'” to its original location?'))return;
+ try{
+  if(x.type==='question'){
+   await updateQuestion(x.itemId,{isDeleted:false,deletedAt:null,deletedBy:null,deletedMode:null});
+  }else if(x.type==='folder'){
+   const tree=normalizeTree(config);const path=String(x.originalPath||x.title||'');const parts=pathParts(path);const name=parts.pop();const parentPath=parts.join(' / ');const parent=parentPath?findNode(tree,parentPath):null;
+   const target=parent?(parent.children||(parent.children=[])):tree;
+   if(target.some(n=>String(n.name).toLowerCase()===String(name).toLowerCase())){alert('A folder with this name already exists at the original location. Rename or move that folder first, then restore.');return}
+   target.push(x.folderNode||{id:'f_'+Date.now(),name,type:'folder',children:[]});
+   const pdfs={...(config.folderPdfs||{}),...(x.folderPdfs||{})};
+   config.libraryTree=tree;config.folderPdfs=pdfs;
+   for(const qid of (x.questionIds||[])){try{await updateQuestion(qid,{isDeleted:false,deletedAt:null,deletedBy:null,deletedMode:null})}catch(e){console.warn('Question restore failed',qid,e)}}
+  }else if(x.type==='pdf'){
+   const p=x.originalPath||'';const pdfs={...(config.folderPdfs||{})};const list=Array.isArray(pdfs[p])?[...pdfs[p]]:[];
+   const at=Math.max(0,Math.min(Number(x.pdfIndex)||0,list.length));list.splice(at,0,x.pdfItem||{title:x.title||'PDF',url:''});pdfs[p]=list;config.folderPdfs=pdfs;
+  }
+  entries=entries.filter(a=>String(a.id)!==String(id));await persist();await loadBin();status('Item restored successfully. '+entries.length+' item(s) remain in this bin.');
+ }catch(e){alert('Restore failed: '+(e.message||e));}
+};
+window.permanentDelete=async function(id){
+ const x=entries.find(a=>String(a.id)===String(id));if(!x)return;
+ if(!confirm('Permanently delete “'+(x.title||x.type)+'”? This cannot be undone.'))return;
+ try{
+  if(x.type==='question'){await deleteDoc(doc(db,'questions',String(x.itemId)))}
+  if(x.type==='folder'){for(const qid of (x.questionIds||[])){try{await deleteDoc(doc(db,'questions',String(qid)))}catch(e){console.warn('Question permanent delete failed',qid,e)}}}
+  entries=entries.filter(a=>String(a.id)!==String(id));await persist();render();
+ }catch(e){alert('Permanent delete failed: '+(e.message||e))}
+};
+window.login=function(){const e=$('email').value.trim().toLowerCase();if(!e)return alert('Enter your educator email.');email=e;localStorage.setItem('ExamVault_Teacher_Email',email);$('login').style.display='none';loadBin()};
+window.logout=function(){localStorage.removeItem('ExamVault_Teacher_Email');location.href='index.html'};
+window.addEventListener('DOMContentLoaded',async()=>{if(email){try{await signInAnonymously(auth)}catch(e){}await loadBin()}else{$('login').style.display='block';status('Enter your educator email to access your Recycle Bin.')}});
+</script>
+</body></html>
