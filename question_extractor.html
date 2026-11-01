@@ -19,13 +19,91 @@ const $=id=>document.getElementById(id),CFG={apiKey:"AIzaSyAE7T5cToJKcoUQcj_-GZr
 let pdfDoc=null,questions=[],active=0,canvases={},model="",busy=false,cropBox=null;
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function say(s){$("status").textContent=s}function toast(s,e){let t=$("toast");t.textContent=s;t.className="toast"+(e?" err":"");t.style.display="block";setTimeout(()=>t.style.display="none",3500)}function key(){let k=$("key").value.trim()||localStorage.getItem(KEY)||"";if(k)localStorage.setItem(KEY,k);return k}
-async function discover(k){let r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?key="+encodeURIComponent(k)),d=await r.json();if(!r.ok)throw Error(d.error?.message||"Gemini key check failed");let a=(d.models||[]).filter(x=>(x.supportedGenerationMethods||[]).includes("generateContent")).map(x=>x.name.replace(/^models\//,"")),p=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3.5-flash-lite","gemini-3-flash","gemini-2.5-flash","gemini-2.0-flash"];model=p.find(x=>a.includes(x))||a.find(x=>/flash/i.test(x))||a[0];if(!model)throw Error("No available Gemini generateContent model for this key");localStorage.setItem("A2Z_LAST_WORKING_MODEL",model);return model}
-async function gemini(parts,max,json){let k=key();if(!k)throw Error("Gemini API key डालो या A2Z AI Import में saved key इस्तेमाल करो.");if(!model)model=localStorage.getItem("A2Z_LAST_WORKING_MODEL")||await discover(k);let pool=[model,"gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3.5-flash-lite","gemini-2.5-flash"],last="";for(let m of [...new Set(pool)])for(let v of ["v1beta","v1"]){try{let body={contents:[{role:"user",parts:parts}],generationConfig:{temperature:.1,maxOutputTokens:max,...(json?{responseMimeType:"application/json"}:{})}},r=await fetch("https://generativelanguage.googleapis.com/"+v+"/models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":k},body:JSON.stringify(body)}),d=await r.json();if(r.ok&&d.candidates&&d.candidates[0]){model=m;localStorage.setItem("A2Z_LAST_WORKING_MODEL",m);return d.candidates[0].content.parts.map(x=>x.text||"").join("")}last=d.error?.message||("HTTP "+r.status);if(r.status===401||r.status===403)throw Error(last);if(r.status===429)break}catch(e){if(/API key|permission|not valid/i.test(e.message))throw e;last=e.message}}throw Error("Gemini failed: "+last)}
+async function discover(k){
+ const versions=["v1beta","v1"]; let last="";
+ for(const ver of versions){
+  try{
+   const r=await fetch("https://generativelanguage.googleapis.com/"+ver+"/models?key="+encodeURIComponent(k));
+   const d=await r.json(); if(!r.ok){last=d.error?.message||("HTTP "+r.status);continue;}
+   const models=(d.models||[]).filter(x=>(x.supportedGenerationMethods||[]).includes("generateContent")&&!/embedding|tts|transcribe|live|imagen/i.test(x.name||"")).map(x=>x.name.replace(/^models\//,""));
+   const preferred=["gemini-3.8-flash","gemini-3.7-flash","gemini-3.6-flash","gemini-3.5-flash","gemini-3-flash","gemini-2.5-flash","gemini-2.0-flash"];
+   model=preferred.find(x=>models.includes(x))||models.find(x=>/flash/i.test(x))||models[0];
+   if(model){localStorage.setItem("A2Z_LAST_WORKING_MODEL",model);return model;}
+   last="Google did not return a model supporting generateContent.";
+  }catch(e){last=e.message;}
+ }
+ throw Error("Gemini model discovery failed: "+last);
+}
+async function gemini(parts,max,json){
+ const k=key(); if(!k)throw Error("Gemini API key missing. Add the same key used in A2Z AI Import.");
+ let models=[];
+ try{await discover(k);models=[model];}catch(e){throw e;}
+ const versions=["v1beta","v1"]; let errors=[];
+ for(const m of models){
+  for(const ver of versions){
+   say("Gemini "+m+" is analysing the PDF page image…");
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
+   try{
+    const body={contents:[{role:"user",parts}],generationConfig:{temperature:0.1,maxOutputTokens:Math.min(8192,max),...(json?{responseMimeType:"application/json"}:{})}};
+    const r=await fetch("https://generativelanguage.googleapis.com/"+ver+"/models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":k},body:JSON.stringify(body),signal:controller.signal});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok&&d.candidates?.[0]){localStorage.setItem("A2Z_LAST_WORKING_MODEL",m);return d.candidates[0].content.parts.map(x=>x.text||"").join("");}
+    const msg=d.error?.message||("HTTP "+r.status);errors.push(m+" "+ver+": "+msg);
+    if(r.status===401||r.status===403)throw Error(msg+" — Gemini API key/permission issue. Check the key in A2Z AI Import.");
+    if(r.status===429)throw Error("Gemini quota/rate limit reached. Wait a little and retry. Details: "+msg);
+   }catch(e){if(/API key|permission|quota|rate limit/i.test(e.message))throw e;errors.push(e.name==="AbortError"?"Request timed out after 90 seconds":e.message);}
+   finally{clearTimeout(timer);}
+  }
+ }
+ throw Error("Gemini request failed: "+errors.join(" | "));
+}
 async function page(n,scale){let k=n+"_"+scale;if(canvases[k])return canvases[k];let p=await pdfDoc.getPage(n),v=p.getViewport({scale:scale}),c=document.createElement("canvas");c.width=Math.ceil(v.width);c.height=Math.ceil(v.height);await p.render({canvasContext:c.getContext("2d"),viewport:v}).promise;canvases[k]=c;return c}
 function jpeg(c){let x=document.createElement("canvas"),s=Math.min(1,1400/c.width);x.width=Math.round(c.width*s);x.height=Math.round(c.height*s);x.getContext("2d").drawImage(c,0,0,x.width,x.height);return x.toDataURL("image/jpeg",.78).split(",")[1]}
-function parse(t){t=String(t).trim();let a=t.indexOf("{"),b=t.lastIndexOf("}");return JSON.parse(a>=0?t.slice(a,b+1):t)}
+function parse(t){
+ t=String(t||"").replace(/^```(?:json)?/i,"").replace(/```$/,"").trim();
+ let a=t.indexOf("{"),b=t.lastIndexOf("}");
+ if(a<0||b<a)throw Error("Gemini response did not contain JSON. Try one-page batch.");
+ return JSON.parse(t.slice(a,b+1));
+}
 async function crop(pageNo,bbox){let c=await page(pageNo,2.2),t=bbox[0],l=bbox[1],bt=bbox[2],r=bbox[3],x=c.width*l/1000,y=c.height*t/1000,w=c.width*(r-l)/1000,h=c.height*(bt-t)/1000;if(w<20||h<20)return jpeg(c);let o=document.createElement("canvas");o.width=Math.round(w);o.height=Math.round(h);o.getContext("2d").drawImage(c,x,y,w,h,0,0,w,h);return o.toDataURL("image/jpeg",.9)}
-async function extract(){if(busy)return;if(!pdfDoc)return toast("पहले PDF upload करो",true);let st=$("scope").value==="range"?Math.max(1,+$("from").value||1):1,en=$("scope").value==="range"?Math.min(pdfDoc.numPages,+$("to").value||pdfDoc.numPages):pdfDoc.numPages,bs=+$("batch").value||2;if(en<st)return toast("Page range गलत है",true);busy=true;$("start").disabled=true;questions=[];nav();let done=0;try{for(let p=st;p<=en;p+=bs){let arr=[];for(let n=p;n<=Math.min(en,p+bs-1);n++)arr.push({n:n,img:jpeg(await page(n,1.55))});let prompt="You are a precise exam-paper visual question extractor. Inspect the attached PDF page images. Extract EVERY question in original reading order; do not summarize, skip, invent or solve. Transcribe the complete stem, equations, symbols, units, tables and labels faithfully. Put MCQ options separately in options array, do not duplicate them in text. Keep any diagram description in diagram. Return only JSON: {\"questions\":[{\"number\":\"1\",\"page\":1,\"text\":\"question stem\",\"options\":[\"option A\",\"option B\"],\"diagram\":\"description or empty\",\"bbox\":[top,left,bottom,right],\"confidence\":0.9}]}. bbox is normalized 0..1000 relative to the supplied PDF page; top,left,bottom,right. Include the full question and options in crop. Page field must use actual PDF page number shown in the user message. If bbox is uncertain use [0,0,1000,1000]. Do not omit questions because the page is scanned or contains diagrams.";let parts=[{text:prompt}];arr.forEach(x=>parts.push({text:"PDF page "+x.n},{inline_data:{mime_type:"image/jpeg",data:x.img}}));say("Gemini is visually reading pages "+p+"–"+arr[arr.length-1].n+" / "+pdfDoc.numPages+"…");let out=parse(await gemini(parts,Math.min(20000,8500*arr.length),true));for(let q of (out.questions||[])){let pn=+q.page||p;if(pn<p||pn>arr[arr.length-1].n)pn=p;let bb=Array.isArray(q.bbox)&&q.bbox.length===4?q.bbox.map(x=>Math.max(0,Math.min(1000,+x||0))):[0,0,1000,1000],z={no:String(q.number||questions.length+1),page:pn,text:String(q.text||"").trim(),options:Array.isArray(q.options)?q.options.map(String):[],diagram:String(q.diagram||""),bbox:bb,confidence:+q.confidence||0,image:"",mode:"both",selected:true};if(!z.text)continue;if($("autoCrop").checked)try{z.image=await crop(pn,bb)}catch(e){}questions.push(z)}done+=arr.length;$("bar").style.width=(done/(en-st+1)*100)+"%";nav();if(questions.length){active=0;edit()}say("Processed "+done+"/"+(en-st+1)+" pages · "+questions.length+" questions · "+model)}if(questions.length)toast(questions.length+" questions extracted. Review before saving.");else toast("No questions found. Try batch size 1 or a page range.",true)}catch(e){say("Stopped: "+e.message);toast(e.message,true)}finally{busy=false;$("start").disabled=false;actions()}}
+async function extract(){
+ if(busy)return;
+ if(!pdfDoc)return toast("पहले PDF upload करो",true);
+ let st=$("scope").value==="range"?Math.max(1,+$("from").value||1):1,
+ en=$("scope").value==="range"?Math.min(pdfDoc.numPages,+$("to").value||pdfDoc.numPages):pdfDoc.numPages,
+ bs=+$("batch").value||1;
+ if(en<st)return toast("Page range गलत है",true);
+ busy=true;$("start").disabled=true;$("start").textContent="⏳ Extracting…";
+ questions=[];nav();let done=0;
+ try{
+  for(let p=st;p<=en;p+=bs){
+   let arr=[];
+   for(let n=p;n<=Math.min(en,p+bs-1);n++){
+    say("Rendering PDF page "+n+"…");
+    arr.push({n,img:jpeg(await page(n,1.25))});
+   }
+   let prompt="Read these exam PDF page images carefully. Extract every complete question visible, in original reading order. Do not skip, summarize, invent or solve. Preserve exact mathematical notation, symbols, units, subscripts, superscripts, tables and wording. Put each MCQ option separately. Include diagram labels/description. Return JSON only in this schema: {\"questions\":[{\"number\":\"1\",\"page\":1,\"text\":\"complete question stem\",\"options\":[\"A...\",\"B...\"],\"diagram\":\"description or empty\",\"bbox\":[top,left,bottom,right],\"confidence\":0.9}]}. bbox coordinates are normalized 0 to 1000 relative to the page image; top,left,bottom,right. The crop should include question number, entire stem, all options and any attached figure. The page number must be one of the actual page numbers given with the images. If unsure about crop, use full-page bbox [0,0,1000,1000]. If no question is present return {\"questions\":[]}.";
+   let parts=[{text:prompt}];
+   arr.forEach(x=>parts.push({text:"This is PDF page "+x.n+"."},{inline_data:{mime_type:"image/jpeg",data:x.img}}));
+   say("Gemini is reading page(s) "+p+"–"+arr[arr.length-1].n+" of "+pdfDoc.numPages+"…");
+   let out=parse(await gemini(parts,8192,true));
+   for(let q of (out.questions||[])){
+    let pn=+q.page||p;if(pn<p||pn>arr[arr.length-1].n)pn=p;
+    let bb=Array.isArray(q.bbox)&&q.bbox.length===4?q.bbox.map(x=>Math.max(0,Math.min(1000,+x||0))):[0,0,1000,1000];
+    let z={no:String(q.number||questions.length+1),page:pn,text:String(q.text||"").trim(),options:Array.isArray(q.options)?q.options.map(String):[],diagram:String(q.diagram||""),bbox:bb,confidence:+q.confidence||0,image:"",mode:"both",selected:true};
+    if(!z.text)continue;
+    if($("autoCrop").checked){say("Cropping question "+z.no+" from original page "+pn+"…");try{z.image=await crop(pn,bb)}catch(e){console.warn("Auto crop failed",e);}}
+    questions.push(z);
+   }
+   done+=arr.length;$("bar").style.width=(done/(en-st+1)*100)+"%";nav();
+   if(questions.length){active=questions.length-1;edit();}
+   say("Completed "+done+"/"+(en-st+1)+" pages · "+questions.length+" questions found · model "+model);
+  }
+  if(questions.length)toast(questions.length+" questions extracted. Review each before saving.");
+  else toast("No questions found on selected pages. Try a different page range.",true);
+ }catch(e){say("Extraction error: "+e.message);toast(e.message,true);console.error("[A2Z Question Extractor]",e);}
+ finally{busy=false;$("start").disabled=false;$("start").textContent="🤖 Extract PDF";actions();}
+}
 function nav(){$("nav").innerHTML=questions.map((q,i)=>'<button class="qchip '+(i===active?"active":"")+'" data-i="'+i+'">Q'+esc(q.no)+' · p'+q.page+'</button>').join("");$("nav").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{active=+b.dataset.i;edit()});$("count").textContent=questions.length?(active+1)+" / "+questions.length:"0 / 0";actions()}
 function edit(){let q=questions[active];nav();if(!q){$("editorArea").innerHTML='<div class="empty">No questions extracted yet.</div>';preview();return}$("editorArea").innerHTML='<div class="muted">Original PDF crop · source page '+q.page+' · AI confidence '+Math.round(q.confidence*100)+'%</div><div class="source">'+(q.image?'<img src="'+q.image+'">':'<span class="muted">No crop. Use Manual crop.</span>')+'</div><div class="row"><button id="crop" class="btn">✂ Manual crop / adjust</button><button id="gen" class="btn purple">🎨 Generate diagram</button><button id="delimg" class="btn">Remove image</button></div><div class="editor"><div class="field"><label>EDITABLE QUESTION TEXT</label><textarea id="txt">'+esc(q.text)+'</textarea></div><div class="field" style="margin-top:8px"><label>ANSWER OPTIONS</label><div id="opts" class="choices"></div><button id="add" class="btn" style="margin-top:7px">+ Add option</button></div><div class="field" style="margin-top:8px"><label>DIAGRAM DESCRIPTION</label><textarea id="diag" style="min-height:65px">'+esc(q.diagram)+'</textarea></div><div class="mode"><button class="btn '+(q.mode==="text"?"active":"")+'" data-mode="text">📝 Text only</button><button class="btn '+(q.mode==="image"?"active":"")+'" data-mode="image">🖼 Image only</button><button class="btn '+(q.mode==="both"?"active":"")+'" data-mode="both">📝 + 🖼 Both</button></div><label class="check"><input id="sel" type="checkbox" '+(q.selected?"checked":"")+'> Include in save</label></div>';$("txt").oninput=e=>{q.text=e.target.value;preview()};$("diag").oninput=e=>{q.diagram=e.target.value;preview()};$("sel").onchange=e=>{q.selected=e.target.checked;nav()};document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{q.mode=b.dataset.mode;edit()});$("crop").onclick=manualCrop;$("gen").onclick=generateDiagram;$("delimg").onclick=()=>{q.image="";edit()};$("add").onclick=()=>{q.options.push("");options()};options();preview()}
 function options(){let q=questions[active];$("opts").innerHTML=q.options.map((o,i)=>'<div class="choice"><b>'+String.fromCharCode(65+i)+'.</b><input data-opt="'+i+'" value="'+esc(o)+'"><button class="btn" data-del="'+i+'">×</button></div>').join("");$("opts").querySelectorAll("[data-opt]").forEach(x=>x.oninput=()=>{q.options[+x.dataset.opt]=x.value;preview()});$("opts").querySelectorAll("[data-del]").forEach(x=>x.onclick=()=>{q.options.splice(+x.dataset.del,1);options();preview()})}
