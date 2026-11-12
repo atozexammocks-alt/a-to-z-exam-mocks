@@ -1733,7 +1733,7 @@ async function extract(){
     let totalPages = pdfDoc.numPages || 1;
     let lim = Number($("max").value) || 0;
     
-    // Build page segments so that 8192 output tokens is NEVER exceeded (ensuring all 37+ questions are extracted!)
+    // Build small page segments to keep each response complete and recoverable.
     var segments = [];
     if(mode === "range"){
       var startP = Math.max(1, Math.min(totalPages, Number($("pageStart").value) || 1));
@@ -1743,7 +1743,7 @@ async function extract(){
       if(totalPages <= 8){
         segments.push({start: 1, end: totalPages, desc: "all " + totalPages + " pages", fullPdf: true});
       } else {
-        // Healthy 10-page segments so no output token truncation happens!
+        // Small 3-page batches reduce output truncation; failed batches are recursively split.
         var chunkSpan = 3;
         for(var s = 1; s <= totalPages; s += chunkSpan){
           var e = Math.min(totalPages, s + chunkSpan - 1);
@@ -1758,7 +1758,9 @@ async function extract(){
       try {
         return await extractNativePdfBatch(key, chunk.base64, seg.start, seg.end, totalPages, remainingLimit, libraryList, null);
       } catch(batchError) {
-        if(seg.end <= seg.start) throw Error("Could not completely read PDF page " + seg.start + ": " + (batchError && batchError.message ? batchError.message : String(batchError)));
+        var batchMessage = String(batchError && batchError.message ? batchError.message : batchError);
+        if(/API key|permission denied|HTTP 401|HTTP 403|HTTP 429|All Gemini models failed|quota|billing/i.test(batchMessage)) throw batchError;
+        if(seg.end <= seg.start) throw Error("Could not completely read PDF page " + seg.start + ": " + batchMessage);
         var mid = Math.floor((seg.start + seg.end) / 2);
         $("status").textContent = "↻ Incomplete response for pages " + seg.start + "–" + seg.end + "; retrying as smaller ranges…";
         var left = await extractSegmentReliably({start:seg.start,end:mid}, remainingLimit);
