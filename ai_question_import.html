@@ -1740,29 +1740,33 @@ async function extract(){
       var endP = Math.max(startP, Math.min(totalPages, Number($("pageEnd").value) || totalPages));
       segments.push({start: startP, end: endP, desc: "pages " + startP + "–" + endP});
     } else {
-      if(totalPages <= 8){
-        segments.push({start: 1, end: totalPages, desc: "all " + totalPages + " pages", fullPdf: true});
-      } else {
-        // Small 3-page batches reduce output truncation; failed batches are recursively split.
-        var chunkSpan = 3;
-        for(var s = 1; s <= totalPages; s += chunkSpan){
-          var e = Math.min(totalPages, s + chunkSpan - 1);
-          segments.push({start: s, end: e, desc: "pages " + s + "–" + e});
-        }
+      // Process in small batches. If one page is bad, it is isolated and later pages still run.
+      var chunkSpan = totalPages <= 8 ? 1 : 2;
+      for(var s = 1; s <= totalPages; s += chunkSpan){
+        var e = Math.min(totalPages, s + chunkSpan - 1);
+        segments.push({start: s, end: e, desc: "pages " + s + "–" + e});
       }
     }
     
     var allExtractedQuestions = [];
+    var failedPdfPages = [];
+    function isFatalGeminiError(err){
+      return /API key|permission denied|HTTP 401|HTTP 403|HTTP 429|All Gemini models failed|quota|billing/i.test(String(err && err.message ? err.message : err));
+    }
     async function extractSegmentReliably(seg, remainingLimit){
-      var chunk = await splitPdfRangeBase64(seg.start, seg.end);
       try {
+        var chunk = await splitPdfRangeBase64(seg.start, seg.end);
         return await extractNativePdfBatch(key, chunk.base64, seg.start, seg.end, totalPages, remainingLimit, libraryList, null);
       } catch(batchError) {
+        if(isFatalGeminiError(batchError)) throw batchError;
         var batchMessage = String(batchError && batchError.message ? batchError.message : batchError);
-        if(/API key|permission denied|HTTP 401|HTTP 403|HTTP 429|All Gemini models failed|quota|billing/i.test(batchMessage)) throw batchError;
-        if(seg.end <= seg.start) throw Error("Could not completely read PDF page " + seg.start + ": " + batchMessage);
+        if(seg.end <= seg.start){
+          failedPdfPages.push({page:seg.start,error:batchMessage});
+          console.warn("[A2Z PDF Import] Skipping unreadable page",seg.start,batchMessage);
+          return [];
+        }
         var mid = Math.floor((seg.start + seg.end) / 2);
-        $("status").textContent = "↻ Incomplete response for pages " + seg.start + "–" + seg.end + "; retrying as smaller ranges…";
+        $("status").textContent = "↻ Issue on pages " + seg.start + "–" + seg.end + "; isolating page and continuing…";
         var left = await extractSegmentReliably({start:seg.start,end:mid}, remainingLimit);
         var rightLimit = remainingLimit ? Math.max(1, remainingLimit - left.length) : 250;
         var right = (remainingLimit && left.length >= remainingLimit) ? [] : await extractSegmentReliably({start:mid+1,end:seg.end}, rightLimit);
@@ -1776,7 +1780,14 @@ async function extract(){
       $("status").textContent = "🤖 AI (" + ACTIVE_GEMINI_MODEL + ") is reading " + seg.desc + progressText + "…";
       $("batchProgress").textContent = segments.length > 1 ? (" Batch " + (si + 1) + "/" + segments.length + " (" + seg.desc + ")") : "";
       var remainingLimit = lim ? Math.max(1, lim - allExtractedQuestions.length) : 250;
-      var segList = await extractSegmentReliably(seg, remainingLimit);
+      var segList = [];
+      try {
+        segList = await extractSegmentReliably(seg, remainingLimit);
+      } catch(segmentError) {
+        if(isFatalGeminiError(segmentError)) throw segmentError;
+        failedPdfPages.push({page:seg.start,error:String(segmentError && segmentError.message ? segmentError.message : segmentError)});
+        console.warn("[A2Z PDF Import] Batch skipped; continuing with next batch",seg,segmentError);
+      }
       if(Array.isArray(segList) && segList.length){
         segList.forEach(function(item){
           var rawP = Number(item.page);
@@ -1787,7 +1798,8 @@ async function extract(){
     }
     
     if(!allExtractedQuestions || !allExtractedQuestions.length){
-      throw Error("No questions detected in the selected pages. Make sure the PDF contains readable exam questions.");
+      var failedSummary = failedPdfPages.length ? " Unreadable page(s): " + failedPdfPages.map(function(x){return x.page;}).join(", ") + "." : "";
+      throw Error("No questions detected in the selected pages. Make sure the PDF contains readable exam questions." + failedSummary);
     }
     
     $("status").textContent = "🔍 Processing and normalizing " + allExtractedQuestions.length + " questions…";
@@ -1837,8 +1849,14 @@ async function extract(){
     render();
     $("generateSolutions").style.display = "inline-block";
     $("generateSolutions").disabled = false;
-    $("status").textContent = "✔ Successfully extracted ALL " + qs.length + " question(s)! Review each question below.";
-    showSaveToast("✔ " + qs.length + " questions extracted successfully!");
+    if(failedPdfPages.length){
+      var failedList = failedPdfPages.map(function(x){return x.page;}).filter(function(v,i,a){return a.indexOf(v)===i;}).sort(function(a,b){return a-b;});
+      $("status").textContent = "⚠️ Extracted " + qs.length + " question(s). Could not read PDF page(s): " + failedList.join(", ") + ". Other pages were processed; retry those pages separately.";
+      showSaveToast("⚠️ " + qs.length + " questions extracted; " + failedList.length + " page(s) need retry.",true);
+    } else {
+      $("status").textContent = "✔ Successfully extracted " + qs.length + " question(s)! Review each question below.";
+      showSaveToast("✔ " + qs.length + " questions extracted successfully!");
+    }
     
   } catch(e) {
     $("status").textContent = "❌ " + (e && e.message ? e.message : String(e));
