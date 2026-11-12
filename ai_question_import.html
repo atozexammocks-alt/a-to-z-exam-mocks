@@ -39,8 +39,8 @@ window.MathJax = {
   <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash Lite</option>
   <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
 </select><span class="muted">Key stays in this browser only; never put it in GitHub.</span></div><div class="row"><div class="suggestbox" style="width:100%"><b>🧠 Faithful Reconstruction:</b> AI will separately reconstruct readable tables as HTML, matrices as LaTeX, and graphs/diagrams as inline SVG when possible. Complex photos remain available as exact PDF crops.</div></div><div class="row"><label for="defaultLibraryMode"><b>📚 Save all questions to:</b></label><select id="defaultLibraryMode" style="background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><option value="private">Private Library</option><option value="central">Central Library</option><option value="group">Group Library</option></select><span class="muted">AI will create the suggested folder path automatically.</span></div><div class="row" style="padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><label for="bankRootOverride"><b>🗂 Main Question-Bank Folder:</b></label><input id="bankRootOverride" type="text" placeholder="Auto-detect, or enter JEE Mains / CBSE / NCERT Exemplar" style="flex:1;min-width:230px;background:#0f172a;border:1px solid #475569;color:#fff;border-radius:7px;padding:9px"><button id="applyBankRoot" class="btn purple" type="button">Apply to This Import</button><span class="muted">Manual value becomes the main folder; AI creates/reuses class, chapter and topic folders only inside it.</span></div><div class="row"><label style="display:flex;align-items:center;gap:7px"><input id="autoGenerateFigures" type="checkbox"> 🎨 Automatically generate AI figures for questions that need a diagram</label><span class="muted">Generated separately from extraction, only for question-owned figures; tables/matrices are not converted to figures.</span></div><div class="row"><input id="pdf" type="file" accept=".pdf,application/pdf"><button id="extract" class="btn blue">🤖 Extract Questions with AI</button><button id="generateSolutions" class="btn purple" type="button" style="display:none">🧠 Generate All Solutions</button><span id="status" class="muted">Waiting for PDF…</span></div>
-<div class="settings" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="field"><label>TOTAL PDF PAGES</label><input id="totalPagesDisplay" value="—" readonly></div><div class="field"><label>PAGE MODE</label><select id="pageMode"><option value="full" selected>🚀 Complete PDF (Direct AI Single-Pass — Recommended)</option><option value="range">📑 Specific Page Range (Manual)</option></select></div><div class="field"><label>START PAGE</label><input id="pageStart" type="number" min="1" value="1"></div><div class="field"><label>END PAGE</label><input id="pageEnd" type="number" min="1" value="5"></div></div>
-<div class="row" style="margin-top:7px;padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><b>⚡ Direct AI Extraction:</b><span class="muted">Gemini reads the entire paper in a single pass without artificial batches. No questions get cut at page boundaries, and non-question pages won't stop extraction.</span><span id="batchProgress" class="muted"></span></div>
+<div class="settings" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="field"><label>TOTAL PDF PAGES</label><input id="totalPagesDisplay" value="—" readonly></div><div class="field"><label>PAGE MODE</label><select id="pageMode"><option value="full" selected>🚀 Complete PDF (Reliable AI batches — Recommended)</option><option value="range">📑 Specific Page Range (Manual)</option></select></div><div class="field"><label>START PAGE</label><input id="pageStart" type="number" min="1" value="1"></div><div class="field"><label>END PAGE</label><input id="pageEnd" type="number" min="1" value="5"></div></div>
+<div class="row" style="margin-top:7px;padding:9px;border:1px solid #334155;border-radius:8px;background:#07101f"><b>⚡ Reliable AI Extraction:</b><span class="muted">The PDF is processed in small page batches. If a response is incomplete, that batch is automatically split into smaller page ranges and retried.</span><span id="batchProgress" class="muted"></span></div>
 <div class="settings"><div class="field"><label>Maximum Questions</label><select id="max"><option value="0">All</option><option>25</option><option>50</option><option>100</option></select></div></div>
 <div class="row"><button id="import" class="btn green" disabled>☁ Import Reviewed Questions</button><button id="clear" class="btn red" disabled>✕ Clear</button></div><div id="stats" class="muted" style="margin-top:8px"></div><div class="import-progress"><div class="progress-chip">Total Questions: <b id="totalCount">0</b></div><div class="progress-chip">Uploaded: <b id="uploadedCount">0</b></div><div class="progress-chip">Remaining: <b id="remainingCount">0</b></div></div></div>
 <div id="grid" class="grid"><div class="card muted">Your extracted questions will appear here.</div></div></div>
@@ -1097,22 +1097,14 @@ function inferQuestionType(q){
   return "short";
 }
 function normalizeSolutionJson(out){out=out&&typeof out==='object'?out:{};return {answer:String(out.answer||"").trim(),explanation:String(out.explanation||out.solution||out.steps||"").trim(),final_answer:String(out.final_answer||out.finalAnswer||out.final||out.answer||"").trim()};}
-let ACTIVE_GEMINI_MODEL = localStorage.getItem("A2Z_LAST_WORKING_MODEL") || "gemini-3.5-flash";
+let ACTIVE_GEMINI_MODEL = localStorage.getItem("A2Z_LAST_WORKING_MODEL") || "gemini-2.5-flash";
 let DISCOVERED_MODELS = [];
 
 // Static priority list focusing on Gemini 3.x and 2.5
 const MODERN_GEMINI_MODELS = [
-  "gemini-3.8-flash",
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.5-flash-lite",
-  "gemini-3-flash",
-  "gemini-3.0-flash",
   "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite"
+  "gemini-2.0-flash"
 ];
 
 // Query Google ModelService.ListModels to detect all supported models on this key
@@ -1648,7 +1640,7 @@ async function extractNativePdfBatch(key,pdfB64,startPage,endPage,totalPages,lim
   var wanted=limit?Math.min(limit,250):250;
   var prompt=`Read ONLY the supplied original PDF pages ${startPage}-${endPage} of ${totalPages}. Faithful exam transcription, not summarization. Return ONLY JSON {"questions":[...]}. Each numbered/logical question MUST be a separate object; numerical questions without options are separate. If the PDF visibly contains Q1 and Q2, never combine them into one object, even when they share a page or topic. Never concatenate options from adjacent numbered questions. Each question's options array must contain only the options printed under that question; for an ordinary four-option MCQ, return exactly four options (A-D). If one extracted stem contains two separate printed question numbers, split it into separate objects before returning JSON. Preserve exact English and Hindi/Devanagari wording, punctuation, numbers, units and option order. Preserve mathematics as valid MathJax LaTeX inside \( ... \) or \[ ... \]. Never replace roots, fractions, powers, subscripts, Greek symbols, integrals, vectors, matrices or derivatives with words such as SQRT/INT/alpha or slash text. Options must be separate strings without A/B/C/D labels. Set question_type from the actual format: if the question has A/B/C/D or other selectable choices, classify it as "mcq" (or "mcq_multi" only when it explicitly says multiple answers/select all); this includes Assertion–Reason and Reasoning questions that have choices. Do NOT return a separate "assertion" or "assertion_reason" type. Use "numerical" only for answer-entry questions without selectable options, "fill_blank" for fill-in-the-blank, "ssr"/"short"/"long" for written responses, and "passage" for comprehension. Do not translate, paraphrase or invent. Tables go in table_rows and matrices in matrix_latex; do not duplicate table cells in question text. FIGURE DETECTION: Inspect the supplied original PDF itself. Do not assume separate page screenshots are attached. Identify only visuals clearly owned by each question boundary. Return visual_regions entries with visual_type, anchor, required and page_number; do not invent crop_box coordinates. If a figure is needed, describe it in figure_reference so the teacher can use the original-PDF crop tool. Tables and matrices are not figures. Never assign a nearby figure to the wrong question. Each question must include question_number, question, options, answer, explanation, question_type, page, visual_type, visual_required, figure_required, figure_reference, visual_regions. If a question continues across supplied pages, keep it as one question and mark continuation fields. Include page as the absolute PDF page number. Maximum questions: ${wanted}. Existing library paths: ${libraryList}.`;
   var parts=[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}];
-  var d=await geminiRequest(key,{contents:[{role:"user",parts:parts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:8192}});
+  var d=await geminiRequest(key,{contents:[{role:"user",parts:parts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}});
   var raw=(d?.candidates?.[0]?.content?.parts||[]).map(function(p){return p.text||""}).join("").trim();
   if(!raw)throw Error("Gemini returned no data for pages "+startPage+"-"+endPage);
   var parsed=parseGeminiJson(raw);
@@ -1752,7 +1744,7 @@ async function extract(){
         segments.push({start: 1, end: totalPages, desc: "all " + totalPages + " pages", fullPdf: true});
       } else {
         // Healthy 10-page segments so no output token truncation happens!
-        var chunkSpan = 10;
+        var chunkSpan = 3;
         for(var s = 1; s <= totalPages; s += chunkSpan){
           var e = Math.min(totalPages, s + chunkSpan - 1);
           segments.push({start: s, end: e, desc: "pages " + s + "–" + e});
@@ -1761,38 +1753,34 @@ async function extract(){
     }
     
     var allExtractedQuestions = [];
+    async function extractSegmentReliably(seg, remainingLimit){
+      var chunk = await splitPdfRangeBase64(seg.start, seg.end);
+      try {
+        return await extractNativePdfBatch(key, chunk.base64, seg.start, seg.end, totalPages, remainingLimit, libraryList, null);
+      } catch(batchError) {
+        if(seg.end <= seg.start) throw Error("Could not completely read PDF page " + seg.start + ": " + (batchError && batchError.message ? batchError.message : String(batchError)));
+        var mid = Math.floor((seg.start + seg.end) / 2);
+        $("status").textContent = "↻ Incomplete response for pages " + seg.start + "–" + seg.end + "; retrying as smaller ranges…";
+        var left = await extractSegmentReliably({start:seg.start,end:mid}, remainingLimit);
+        var rightLimit = remainingLimit ? Math.max(1, remainingLimit - left.length) : 250;
+        var right = (remainingLimit && left.length >= remainingLimit) ? [] : await extractSegmentReliably({start:mid+1,end:seg.end}, rightLimit);
+        return left.concat(right);
+      }
+    }
     for(var si = 0; si < segments.length; si++){
       if(lim && allExtractedQuestions.length >= lim) break;
       var seg = segments[si];
       var progressText = segments.length > 1 ? (" [" + (si + 1) + "/" + segments.length + " " + seg.desc + "]") : "";
       $("status").textContent = "🤖 AI (" + ACTIVE_GEMINI_MODEL + ") is reading " + seg.desc + progressText + "…";
-      $("batchProgress").textContent = segments.length > 1 ? (" Segment " + (si + 1) + "/" + segments.length + " (" + seg.desc + ")") : "";
-      
-      try {
-        var pdfB64ToSend = "";
-        if(seg.fullPdf){
-          pdfB64ToSend = uint8ToBase64(new Uint8Array(sourcePdfBytes));
-        } else {
-          var chunk = await splitPdfRangeBase64(seg.start, seg.end);
-          pdfB64ToSend = chunk.base64;
-        }
-        
-        var segList = await extractNativePdf(key, pdfB64ToSend, totalPages, lim || 250, libraryList);
-        if(Array.isArray(segList) && segList.length){
-          segList.forEach(function(item){
-            var rawP = Number(item.page);
-            if(!item.page || isNaN(rawP) || rawP <= 1){
-              item.page = seg.start;
-            } else if(rawP < seg.start && seg.start > 1){
-              item.page = Math.min(seg.end, seg.start + rawP - 1);
-            }
-            allExtractedQuestions.push(item);
-          });
-        }
-      } catch(segErr){
-        console.warn("Segment " + seg.desc + " notice:", segErr);
-        // If a segment has no questions (e.g. blank end pages, answer keys), DO NOT CRASH! Keep going!
-        if(segments.length === 1) throw segErr;
+      $("batchProgress").textContent = segments.length > 1 ? (" Batch " + (si + 1) + "/" + segments.length + " (" + seg.desc + ")") : "";
+      var remainingLimit = lim ? Math.max(1, lim - allExtractedQuestions.length) : 250;
+      var segList = await extractSegmentReliably(seg, remainingLimit);
+      if(Array.isArray(segList) && segList.length){
+        segList.forEach(function(item){
+          var rawP = Number(item.page);
+          if(!item.page || isNaN(rawP) || rawP < seg.start || rawP > seg.end) item.page = seg.start;
+          allExtractedQuestions.push(item);
+        });
       }
     }
     
@@ -1825,11 +1813,15 @@ async function extract(){
       
       // Prevent duplicates ONLY by question text content, NEVER by question number alone!
       // (This ensures Section B, Part 2, and multi-segment questions like 19-37 are NEVER dropped!)
-      function qFingerprint(txt){
-        return String(txt || "").replace(/[^a-zA-Z0-9\u0900-\u097F]+/g, "").toLowerCase().slice(0, 80);
+      function qFingerprint(questionText, questionOptions){
+        var stem = String(questionText || "").normalize("NFKC").replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
+        var opts = (Array.isArray(questionOptions) ? questionOptions : []).map(function(v){
+          return String(v || "").normalize("NFKC").replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
+        }).join("|");
+        return stem + "::" + opts;
       }
-      var fp = qFingerprint(nq.text);
-      if(fp && qs.some(x => qFingerprint(x.text) === fp)) continue;
+      var fp = qFingerprint(nq.text, nq.options);
+      if(fp && qs.some(function(x){ return String(x.sourcePage || x.page || "") === String(nq.sourcePage || nq.page || "") && qFingerprint(x.text, x.options) === fp; })) continue;
       
       // If question number is repeated across sections or segments, assign unique chronological number
       if(qs.some(x => String(x.no || "").trim().toLowerCase() === String(nq.no || "").trim().toLowerCase())){
@@ -2277,7 +2269,7 @@ $("saveKey").onclick=()=>{let v=$("geminiKey").value.trim();if(!v)return alert("
     sourcePdfFile=f;
     pdfPageTextsCache = [];
     let u=new Uint8Array(await f.arrayBuffer());sourcePdfBytes=u.slice().buffer;sourcePdfDoc=null;
-    if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";var d=await getSourcePdfDoc();var n=d.numPages||1;$("totalPagesDisplay").value=n;$("pageEnd").value=Math.min(5,n);$("pageStart").value=1;$("pageEnd").max=n;$("pageStart").max=n;$("status").textContent="📄 "+f.name+" — "+n+" pages detected. Default extraction: 5-page batches.";}
+    if(window.pdfjsLib){pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";var d=await getSourcePdfDoc();var n=d.numPages||1;$("totalPagesDisplay").value=n;$("pageEnd").value=Math.min(5,n);$("pageStart").value=1;$("pageEnd").max=n;$("pageStart").max=n;$("status").textContent="📄 "+f.name+" — "+n+" pages detected. Default extraction: 3-page batches with automatic split-and-retry.";}
   }catch(e){$("status").textContent="⚠️ Could not read page count: "+(e.message||e);}
 });
 $("pageMode").addEventListener("change",function(){var manual=this.value==="range";$("pageStart").disabled=!manual;$("pageEnd").disabled=!manual;});
