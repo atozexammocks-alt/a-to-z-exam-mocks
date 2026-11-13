@@ -1598,18 +1598,32 @@ Maximum questions to extract: ${wanted}. Existing library paths: ${libraryList}.
   return arr.slice(0, wanted);
 }
 async function splitPdfRangeBase64(startPage,endPage){
-  if(!window.PDFLib||!PDFLib.PDFDocument)throw Error("PDF splitter failed to load. Refresh and try again.");
-  var src=await PDFLib.PDFDocument.load(sourcePdfBytes,{updateMetadata:false});
-  var total=src.getPageCount();
+  var pdfDoc=await getSourcePdfDoc();
+  var total=pdfDoc.numPages||1;
   startPage=Math.max(1,Math.min(total,Number(startPage)||1));
   endPage=Math.max(startPage,Math.min(total,Number(endPage)||startPage));
-  var out=await PDFLib.PDFDocument.create();
-  var pages=await out.copyPages(src,Array.from({length:endPage-startPage+1},function(_,i){return startPage-1+i;}));
-  pages.forEach(function(pg){out.addPage(pg);});
-  var bytes=await out.save({useObjectStreams:true});
-  var bin="",step=0x8000;
-  for(var i=0;i<bytes.length;i+=step)bin+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+step,bytes.length)));
-  return {base64:btoa(bin),start:startPage,end:endPage,total:total};
+  // Prefer a compact real PDF upload; fall back to PDF.js-rendered page images
+  // when PDF-Lib is unavailable or cannot parse/encrypt/copy the source PDF.
+  try{
+    if(!window.PDFLib||!PDFLib.PDFDocument)throw Error("PDF-Lib unavailable");
+    var src=await PDFLib.PDFDocument.load(sourcePdfBytes,{updateMetadata:false});
+    var out=await PDFLib.PDFDocument.create();
+    var pages=await out.copyPages(src,Array.from({length:endPage-startPage+1},function(_,i){return startPage-1+i;}));
+    pages.forEach(function(pg){out.addPage(pg);});
+    var bytes=await out.save({useObjectStreams:true});
+    var bin="",step=0x8000;
+    for(var i=0;i<bytes.length;i+=step)bin+=String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+step,bytes.length)));
+    return {base64:btoa(bin),images:null,start:startPage,end:endPage,total:total,mode:"pdf"};
+  }catch(splitError){
+    console.warn("[A2Z PDF Import] PDF-Lib split failed; using PDF.js page images instead.",splitError);
+    var images=[];
+    for(var p=startPage;p<=endPage;p++){
+      var jpg=await renderPdfPageJpeg(pdfDoc,p);
+      if(!jpg)throw Error("Could not render PDF page "+p+" as an image.");
+      images.push({mimeType:"image/jpeg",data:jpg});
+    }
+    return {base64:null,images:images,start:startPage,end:endPage,total:total,mode:"images"};
+  }
 }
 async function renderPdfPageJpeg(pdfDoc,pageNo){
   var page=await pdfDoc.getPage(pageNo),base=page.getViewport({scale:1});
@@ -1639,7 +1653,14 @@ async function cropNormalizedPdfVisual(pageData,box){
 async function extractNativePdfBatch(key,pdfB64,startPage,endPage,totalPages,limit,libraryList,pageImages){
   var wanted=limit?Math.min(limit,250):250;
   var prompt=`Read ONLY the supplied original PDF pages ${startPage}-${endPage} of ${totalPages}. Faithful exam transcription, not summarization. Return ONLY JSON {"questions":[...]}. Each numbered/logical question MUST be a separate object; numerical questions without options are separate. If the PDF visibly contains Q1 and Q2, never combine them into one object, even when they share a page or topic. Never concatenate options from adjacent numbered questions. Each question's options array must contain only the options printed under that question; for an ordinary four-option MCQ, return exactly four options (A-D). If one extracted stem contains two separate printed question numbers, split it into separate objects before returning JSON. Preserve exact English and Hindi/Devanagari wording, punctuation, numbers, units and option order. Preserve mathematics as valid MathJax LaTeX inside \( ... \) or \[ ... \]. Never replace roots, fractions, powers, subscripts, Greek symbols, integrals, vectors, matrices or derivatives with words such as SQRT/INT/alpha or slash text. Options must be separate strings without A/B/C/D labels. Set question_type from the actual format: if the question has A/B/C/D or other selectable choices, classify it as "mcq" (or "mcq_multi" only when it explicitly says multiple answers/select all); this includes Assertion–Reason and Reasoning questions that have choices. Do NOT return a separate "assertion" or "assertion_reason" type. Use "numerical" only for answer-entry questions without selectable options, "fill_blank" for fill-in-the-blank, "ssr"/"short"/"long" for written responses, and "passage" for comprehension. Do not translate, paraphrase or invent. Tables go in table_rows and matrices in matrix_latex; do not duplicate table cells in question text. FIGURE DETECTION: Inspect the supplied original PDF itself. Do not assume separate page screenshots are attached. Identify only visuals clearly owned by each question boundary. Return visual_regions entries with visual_type, anchor, required and page_number; do not invent crop_box coordinates. If a figure is needed, describe it in figure_reference so the teacher can use the original-PDF crop tool. Tables and matrices are not figures. Never assign a nearby figure to the wrong question. Each question must include question_number, question, options, answer, explanation, question_type, page, visual_type, visual_required, figure_required, figure_reference, visual_regions. If a question continues across supplied pages, keep it as one question and mark continuation fields. Include page as the absolute PDF page number. Maximum questions: ${wanted}. Existing library paths: ${libraryList}.`;
-  var parts=[{text:prompt},{inlineData:{mimeType:"application/pdf",data:pdfB64}}];
+  var parts=[{text:prompt}];
+  if(Array.isArray(pageImages)&&pageImages.length){
+    pageImages.forEach(function(im){parts.push({inlineData:{mimeType:im.mimeType||"image/jpeg",data:im.data}});});
+  }else if(pdfB64){
+    parts.push({inlineData:{mimeType:"application/pdf",data:pdfB64}});
+  }else{
+    throw Error("No PDF data or rendered page images were prepared for pages "+startPage+"-"+endPage);
+  }
   var d=await geminiRequest(key,{contents:[{role:"user",parts:parts}],generationConfig:{temperature:0,responseMimeType:"application/json",maxOutputTokens:16384}});
   var raw=(d?.candidates?.[0]?.content?.parts||[]).map(function(p){return p.text||""}).join("").trim();
   if(!raw)throw Error("Gemini returned no data for pages "+startPage+"-"+endPage);
@@ -1756,7 +1777,7 @@ async function extract(){
     async function extractSegmentReliably(seg, remainingLimit){
       try {
         var chunk = await splitPdfRangeBase64(seg.start, seg.end);
-        return await extractNativePdfBatch(key, chunk.base64, seg.start, seg.end, totalPages, remainingLimit, libraryList, null);
+        return await extractNativePdfBatch(key, chunk.base64, seg.start, seg.end, totalPages, remainingLimit, libraryList, chunk.images || null);
       } catch(batchError) {
         if(isFatalGeminiError(batchError)) throw batchError;
         var batchMessage = String(batchError && batchError.message ? batchError.message : batchError);
@@ -1859,8 +1880,10 @@ async function extract(){
     }
     
   } catch(e) {
-    $("status").textContent = "❌ " + (e && e.message ? e.message : String(e));
-    alert("AI extraction notice: " + (e && e.message ? e.message : String(e)));
+    var exactError = String(e && e.message ? e.message : e);
+    console.error("[A2Z AI extraction failed]",e);
+    $("status").textContent = "❌ AI extraction failed: " + exactError;
+    alert("AI extraction failed:\n\n" + exactError + "\n\nCheck the Gemini key/model, API quota, and browser console if this continues.");
   } finally {
     $("extract").disabled = false;
   }
